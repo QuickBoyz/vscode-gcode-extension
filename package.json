@@ -10,16 +10,34 @@
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "gcode",
-      "aliases": ["G-Code", "gcode"],
-      "extensions": [".nc",".ngc",".g",".gc"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "gcode",
-      "scopeName": "source.gcode",
-      "path": "./syntaxes/gcode.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "gcode",
+        "aliases": [
+          "G-Code",
+          "gcode"
+        ],
+        "extensions": [
+          ".nc",
+          ".ngc",
+          ".g",
+          ".gc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gcode",
+        "scopeName": "source.gcode",
+        "path": "./syntaxes/gcode.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "G-Code Theme",
+        "path": "./themes/gcode-theme.json"
+      }
+    ]
   }
 }
