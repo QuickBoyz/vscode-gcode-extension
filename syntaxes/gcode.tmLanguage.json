@@ -108,7 +108,7 @@
     "operators": {
       "patterns": [
         {
-          "match": "(?i)(SIN|COS|TAN|ASIN|ACOS|ATAN|FIX|FUP|LN|ROUND|SQRT|ABS|MOD)",
+          "match": "(?i)(SIN|COS|TAN|ASIN|ACOS|ATAN|FIX|FUP|LN|ROUND|SQRT|ABS|MOD|MIN|MAX)",
           "name": "support.function.math.gcode"
         },
         {
