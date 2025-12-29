@@ -1,0 +1,295 @@
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0
+      },
+      "lineNumber": 10
+    },
+    {
+      "type": "GCode",
+      "code": 1,
+      "params": {
+        "X": 10,
+        "Y": 20,
+        "F": 100
+      },
+      "lineNumber": 20
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "+",
+          "left": {
+            "type": "Variable",
+            "id": 1
+          },
+          "right": {
+            "type": "Number",
+            "value": 10
+          }
+        },
+        "Y": {
+          "type": "Binary",
+          "operator": "+",
+          "left": {
+            "type": "Variable",
+            "id": 2
+          },
+          "right": {
+            "type": "Number",
+            "value": 20
+          }
+        }
+      },
+      "lineNumber": 25
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": 1000
+      },
+      "lineNumber": 30
+    },
+    {
+      "type": "GCode",
+      "code": 2,
+      "params": {
+        "X": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "Y": 30,
+        "I": 5,
+        "J": 5
+      },
+      "lineNumber": 40
+    },
+    {
+      "type": "MCode",
+      "code": 5,
+      "params": {},
+      "lineNumber": 50
+    },
+    {
+      "type": "MCode",
+      "code": 6,
+      "params": {
+        "T": 1
+      },
+      "lineNumber": 55
+    },
+    {
+      "type": "MCode",
+      "code": 30,
+      "params": {},
+      "lineNumber": 60
+    },
+    {
+      "type": "WhileStart",
+      "label": null,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 100
+        }
+      },
+      "lineNumber": 70
+    },
+    {
+      "type": "GCode",
+      "code": 1,
+      "params": {
+        "X": 10,
+        "Y": 20,
+        "F": 100
+      },
+      "lineNumber": 80
+    },
+    {
+      "type": "IfStart",
+      "label": null,
+      "condition": {
+        "type": "Relational",
+        "operator": "EQ",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 100
+        }
+      },
+      "lineNumber": 85
+    },
+    {
+      "type": "Goto",
+      "target": 100,
+      "lineNumber": 86
+    },
+    {
+      "type": "ElseIf",
+      "label": null,
+      "condition": {
+        "type": "Relational",
+        "operator": "EQ",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 200
+        }
+      },
+      "lineNumber": 87
+    },
+    {
+      "type": "Goto",
+      "target": 200,
+      "lineNumber": 88
+    },
+    {
+      "type": "Else",
+      "label": null,
+      "lineNumber": 89
+    },
+    {
+      "type": "Goto",
+      "target": 300,
+      "lineNumber": 90
+    },
+    {
+      "type": "EndIf",
+      "label": null,
+      "lineNumber": 91
+    },
+    {
+      "type": "Goto",
+      "target": 300,
+      "lineNumber": 92
+    },
+    {
+      "type": "WhileEnd",
+      "label": null,
+      "lineNumber": 93
+    },
+    {
+      "type": "WhileStart",
+      "label": 100,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 100
+        }
+      },
+      "lineNumber": 100
+    },
+    {
+      "type": "GCode",
+      "code": 1,
+      "params": {
+        "X": 10,
+        "Y": 20,
+        "F": 100
+      },
+      "lineNumber": 110
+    },
+    {
+      "type": "IfStart",
+      "label": 111,
+      "condition": {
+        "type": "Relational",
+        "operator": "EQ",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 100
+        }
+      },
+      "lineNumber": 120
+    },
+    {
+      "type": "Goto",
+      "target": 100,
+      "lineNumber": 130
+    },
+    {
+      "type": "ElseIf",
+      "label": 111,
+      "condition": {
+        "type": "Relational",
+        "operator": "EQ",
+        "left": {
+          "type": "Variable",
+          "name": "var"
+        },
+        "right": {
+          "type": "Number",
+          "value": 200
+        }
+      },
+      "lineNumber": 140
+    },
+    {
+      "type": "Goto",
+      "target": 200,
+      "lineNumber": 150
+    },
+    {
+      "type": "Else",
+      "label": 111,
+      "lineNumber": 160
+    },
+    {
+      "type": "Goto",
+      "target": 300,
+      "lineNumber": 170
+    },
+    {
+      "type": "EndIf",
+      "label": 111,
+      "lineNumber": 180
+    },
+    {
+      "type": "Goto",
+      "target": 300,
+      "lineNumber": 190
+    },
+    {
+      "type": "WhileEnd",
+      "label": 100,
+      "lineNumber": 200
+    },
+    {
+      "type": "MCode",
+      "code": 30,
+      "params": {},
+      "lineNumber": 210
+    }
+  ]
+}

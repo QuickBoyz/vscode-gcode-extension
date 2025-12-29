@@ -1,472 +1,316 @@
 @preprocessor typescript
 @{%
-const moo = require('moo');
+const moo = require("moo");
 
-// Create base lexer
 const baseLexer = moo.compile({
-  // Skip whitespace and comments - these won't be matched in grammar
-  ws: { match: /\s+/, lineBreaks: true },
+  ws:      { match: /[ \t]+/ },
+  nl:      { match: /\r?\n+/, lineBreaks: true },
   comment: /;.*/,
   lineNumber: /N[0-9]+/,
-  
-  // Keywords
-  // Note: ELSIF must come before ELSE in the lexer definition
-  // Moo matches in order, so put longer patterns first
-  IF: 'IF',
-  THEN: 'THEN',
-  ENDIF: 'ENDIF',
+
   ELSIF: /ELSIF|ELSEIF/,
-  ELSE: 'ELSE',
-  WHILE: 'WHILE',
-  DO: 'DO',
-  ENDWHILE: 'ENDWHILE',
-  GOTO: 'GOTO',
-  END: 'END',
-  
-  // Special codes
+  ELSE: "ELSE",
+  IF: "IF",
+  THEN: "THEN",
+  ENDIF: "ENDIF",
+
+  WHILE: "WHILE",
+  DO: "DO",
+  END: "END",
+
+  GOTO: "GOTO",
+
   OSUB: /O[0-9]+/,
-  MCALL: 'M98',
-  MRET: 'M99',
+  MCALL: "M98",
+  MRET: "M99",
+
   GCODE: /G[0-9]+(?:\.[0-9]+)?/,
   MCODE: /M[0-9]+/,
-  
-  // Operators
-  RELOP: ['GT', 'LT', 'EQ', 'NE', 'LE', 'GE'],
-  FUNC: ['SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'FIX', 'FUP', 'LN', 'ROUND', 'SQRT', 'ABS', 'MOD', 'MIN', 'MAX'],
-  
-  // Punctuation
-  comma: ',',
-  equals: '=',
-  plus: '+',
-  minus: '-',
-  star: '*',
-  slash: '/',
-  lBracket: '[',
-  rBracket: ']',
-  
-  // Variables
+
+  RELOP: ["GT", "LT", "EQ", "NE", "LE", "GE"],
+  FUNC: ["SIN","COS","TAN","ASIN","ACOS","ATAN","FIX","FUP","LN","ROUND","SQRT","ABS","MOD","MIN","MAX"],
+
+  comma: ",",
+  equals: "=",
+  plus: "+",
+  minus: "-",
+  star: "*",
+  slash: "/",
+  lBracket: "[",
+  rBracket: "]",
+
   VAR: [/#[0-9]+/, /#<[a-zA-Z0-9]+>/],
-  
-  // Numbers
   NUMBER: /[0-9]+(?:\.[0-9]+)?/,
-  
-  // Parameters (single letter)
   PARAM: /[A-Z]/,
-  
-  // Words (letter followed by digits)
-  WORD: /[A-Z][0-9]+/,
 });
 
-// Create a wrapper lexer that filters out ws and comment (but preserves lineNumber)
-// According to Moo docs (https://github.com/tjvr/moo#usage), we need to implement
-// the lexer interface: reset, save, formatError, has, and next
 const lexer = {
-  reset(chunk, info) {
-    baseLexer.reset(chunk, info);
-  },
-  save() {
-    return baseLexer.save();
-  },
-  formatError(token) {
-    return baseLexer.formatError(token);
-  },
-  has(name) {
-    // Only report tokens that we actually emit (not filtered ones)
-    if (name === 'ws' || name === 'comment') {
-      return false;
-    }
-    return baseLexer.has(name);
-  },
+  reset: (...a) => baseLexer.reset(...a),
+  save: () => baseLexer.save(),
+  formatError: t => baseLexer.formatError(t),
+  has: n => n !== "ws" && baseLexer.has(n),
   next() {
-    let token;
-    // Keep getting tokens until we find one that's not filtered
-    // According to Moo docs, next() returns undefined when no more tokens
-    while ((token = baseLexer.next())) {
-      if (token.type !== 'ws' && token.type !== 'comment') {
-        return token;
-      }
+    let t;
+    while ((t = baseLexer.next())) {
+      if (t.type !== "ws") return t;
     }
-    // No more tokens - return undefined as per Moo interface
-    return undefined;
   }
 };
 
-function parseVariable(varToken) {
-  const text = varToken.value || varToken;
-  if (text.startsWith('#<')) {
-    return { type: "Variable", name: text.slice(2, -1) };
-  } else {
-    return { type: "Variable", id: parseInt(text.slice(1)) };
-  }
+function parseVariable(t) {
+  const v = t.value;
+  return v.startsWith("#<")
+    ? { type: "Variable", name: v.slice(2, -1) }
+    : { type: "Variable", id: Number(v.slice(1)) };
 }
 
-function parseAssignment(varToken, value) {
-  const text = varToken.value || varToken;
-  if (text.startsWith('#<')) {
-    return {
-      type: "Assign",
-      variable: text.slice(2, -1),
-      value: value
-    };
-  } else {
-    return {
-      type: "Assign",
-      variable: parseInt(text.slice(1)),
-      value: value
-    };
-  }
+function parseAssignment(t, value) {
+  const v = t.value;
+  return {
+    type: "Assign",
+    variable: v.startsWith("#<") ? v.slice(2, -1) : Number(v.slice(1)),
+    value
+  };
+}
+
+function parseComment(t) {
+  return t.value.slice(1).trim();
 }
 %}
 
 @lexer lexer
 
-program -> statements {% ([statements]) => ({ type: "Program", body: statements }) %}
+# ------------------------------------------------------------
+# Program / Lines
+# ------------------------------------------------------------
 
-statements -> statement {% ([stmt]) => [stmt] %}
-         | statements statement {% ([stmts, stmt]) => [...stmts, stmt] %}
+program ->
+  lines {% ([l]) => ({ type: "Program", body: l }) %}
 
-statement -> %lineNumber gcode {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber mcode {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber param_update {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber assignment {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber ifstmt {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber whilestmt {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber subdef {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber subcall {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber gotostmt {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | %lineNumber o_block {% 
-  ([lineNum, stmt]) => ({
-    ...stmt,
-    lineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-         | gcode {% id %}
-         | mcode {% id %}
-         | param_update {% id %}
-         | assignment {% id %}
-         | ifstmt {% id %}
-         | whilestmt {% id %}
-         | subdef {% id %}
-         | subcall {% id %}
-         | gotostmt {% id %}
-         | o_block {% id %}
+lines ->
+  line line_breaks? {% ([l]) => [l] %}
+| lines line_breaks line line_breaks? {% ([a,_,b]) => [...a,b] %}
 
-o_block -> %OSUB {% 
-  ([osub]) => ({
-    type: "OBlock",
-    id: parseInt(osub.value.slice(1))
-  })
-%}
+line ->
+  opt_line_number statement opt_comment
+  {% ([ln, stmt, comment]) => ({
+    ...stmt,
+    ...(ln !== undefined ? { lineNumber: ln } : {}),
+    ...(comment !== undefined ? { comment } : {})
+  }) %}
+| opt_line_number comment_only
+  {% ([ln, value]) => ({
+    type: "Comment",
+    value,
+    ...(ln !== undefined ? { lineNumber: ln } : {})
+  }) %}
 
-gcode -> %GCODE {% ([gcode]) => ({ type: "GCode", code: parseFloat(gcode.value.slice(1)), params: {} }) %}
-         | %GCODE param_list {% 
-  ([gcode, params]) => ({
+opt_line_number ->
+  %lineNumber {% ([n]) => Number(n.value.slice(1)) %}
+| null {% () => undefined %}
+
+opt_comment ->
+  %comment {% ([c]) => parseComment(c) %}
+| null {% () => undefined %}
+
+comment_only ->
+  %comment {% ([c]) => parseComment(c) %}
+
+line_breaks ->
+  %nl {% () => null %}
+| line_breaks %nl {% () => null %}
+
+line_breaks? ->
+  line_breaks {% () => null %}
+| null {% () => undefined %}
+
+# ------------------------------------------------------------
+# Statements (FLAT)
+# ------------------------------------------------------------
+
+statement ->
+  gcode {% id %}
+| mcode {% id %}
+| param_block {% ([p]) => ({ type: "Param", params: p }) %}
+| assignment {% id %}
+| goto_stmt {% id %}
+| labeled_while_start {% id %}
+| labeled_while_end {% id %}
+| while_start {% id %}
+| while_end {% id %}
+| labeled_if_start {% id %}
+| labeled_elseif_stmt {% id %}
+| labeled_else_stmt {% id %}
+| labeled_endif_stmt {% id %}
+| if_start {% id %}
+| elseif_stmt {% id %}
+| else_stmt {% id %}
+| endif_stmt {% id %}
+| subcall {% id %}
+| oblock_stmt {% id %}
+
+# ------------------------------------------------------------
+# Labeled WHILE (flat)
+# ------------------------------------------------------------
+
+labeled_while_start ->
+  %OSUB %WHILE %lBracket expr %rBracket %DO
+  {% ([o,_,__,cond]) => ({
+    type: "WhileStart",
+    label: Number(o.value.slice(1)),
+    condition: cond
+  }) %}
+
+labeled_while_end ->
+  %OSUB %END
+  {% ([o]) => ({
+    type: "WhileEnd",
+    label: Number(o.value.slice(1))
+  }) %}
+
+# ------------------------------------------------------------
+# Un-labeled WHILE (flat)
+# ------------------------------------------------------------
+
+while_start ->
+ %WHILE %lBracket expr %rBracket %DO
+  {% ([_,__,cond]) => ({
+    type: "WhileStart",
+    label: null,
+    condition: cond
+  }) %}
+
+while_end ->
+ %END
+  {% () => ({
+    type: "WhileEnd",
+    label: null
+  }) %}
+
+# ------------------------------------------------------------
+# Labeled IF (flat)
+# ------------------------------------------------------------
+
+labeled_if_start ->
+  %OSUB %IF %lBracket expr %rBracket %THEN
+  {% ([o,_,__,cond]) => ({ type: "IfStart", label: Number(o.value.slice(1)), condition: cond }) %}
+
+labeled_elseif_stmt ->
+  %OSUB %ELSIF %lBracket expr %rBracket %THEN
+  {% ([o,_,__,cond]) => ({ type: "ElseIf", label: Number(o.value.slice(1)), condition: cond }) %}
+
+labeled_else_stmt ->
+  %OSUB %ELSE {% ([o]) => ({ type: "Else", label: Number(o.value.slice(1)) }) %}
+
+labeled_endif_stmt ->
+  %OSUB %ENDIF {% ([o]) => ({ type: "EndIf", label: Number(o.value.slice(1)) }) %}
+
+# ------------------------------------------------------------
+# Un-labeled IF (flat)
+# ------------------------------------------------------------
+
+if_start ->
+  %IF %lBracket expr %rBracket %THEN
+  {% ([_,__,cond]) => ({ type: "IfStart", label: null, condition: cond }) %}
+
+elseif_stmt ->
+  %ELSIF %lBracket expr %rBracket %THEN
+  {% ([_,__,cond]) => ({ type: "ElseIf", label: null, condition: cond }) %}
+
+else_stmt ->
+  %ELSE {% () => ({ type: "Else", label: null }) %}
+
+endif_stmt ->
+  %ENDIF {% () => ({ type: "EndIf", label: null }) %}
+# ------------------------------------------------------------
+# G / M Codes
+# ------------------------------------------------------------
+
+gcode ->
+  %GCODE param_block?
+  {% ([g,p]) => ({
     type: "GCode",
-    code: parseFloat(gcode.value.slice(1)),
-    params: params
-  })
-%}
+    code: Number(g.value.slice(1)),
+    params: p ?? {}
+  }) %}
 
-mcode -> %MCODE {% ([mcode]) => ({ type: "MCode", code: parseInt(mcode.value.slice(1)), params: {} }) %}
-         | %MCODE param_list {% 
-  ([mcode, params]) => ({
+mcode ->
+  %MCODE param_block?
+  {% ([m,p]) => ({
     type: "MCode",
-    code: parseInt(mcode.value.slice(1)),
-    params: params
-  })
-%}
+    code: Number(m.value.slice(1)),
+    params: p ?? {}
+  }) %}
 
-param_update -> param {% ([param]) => ({ type: "ParamUpdate", params: param }) %}
-             | param_update param {% 
-  ([update, param]) => ({
-    type: "ParamUpdate",
-    params: Object.assign({}, update.params, param)
-  })
-%}
+# ------------------------------------------------------------
+# Params
+# ------------------------------------------------------------
 
-param_list -> param {% ([param]) => param %}
-           | param_list param {% 
-  ([list, param]) => Object.assign({}, list, param)
-%}
+param_block ->
+  param {% id %}
+| param_block param {% ([a,b]) => Object.assign(a,b) %}
 
-param -> %PARAM %NUMBER {% 
-  ([param, number]) => ({ [param.value]: Number(number.value) })
-%}
-      | %PARAM %lBracket expr %rBracket {% 
-  ([param, _, expr, __]) => ({ [param.value]: expr })
-%}
+param_block? ->
+  param_block {% id %}
+| null {% () => undefined %}
 
-assignment -> %VAR %equals expr {% 
-  ([varToken, _, value]) => parseAssignment(varToken, value)
-%}
+param ->
+  %PARAM param_value
+  {% ([k,v]) => ({ [k.value]: v }) %}
 
-ifstmt -> %IF %lBracket expr %rBracket %THEN statements %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____, lineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: undefined,
-    endifLineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: undefined
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements %lineNumber %ELSE statements %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____, elseLineNum, elseBody, ______, endifLineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: elseBody,
-    elseLineNumber: parseInt(elseLineNum.value.slice(1)),
-    endifLineNumber: parseInt(endifLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements %lineNumber %ELSE statements %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____, elseLineNum, elseBody, ______]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: elseBody,
-    elseLineNumber: parseInt(elseLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements %ELSE statements %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____, elseBody, ______, endifLineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: elseBody,
-    endifLineNumber: parseInt(endifLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements %ELSE statements %ENDIF {% 
-  ([_, __, condition, ___, ____, body, _____, elseBody, ______]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: [],
-    elseBody: elseBody
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____, lineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: undefined,
-    endifLineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: undefined
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %lineNumber %ELSE statements %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____, elseLineNum, elseBody, ______, endifLineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: elseBody,
-    elseLineNumber: parseInt(elseLineNum.value.slice(1)),
-    endifLineNumber: parseInt(endifLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %lineNumber %ELSE statements %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____, elseLineNum, elseBody, ______]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: elseBody,
-    elseLineNumber: parseInt(elseLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %ELSE statements %lineNumber %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____, elseBody, ______, endifLineNum]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: elseBody,
-    endifLineNumber: parseInt(endifLineNum.value.slice(1))
-  })
-%}
-       | %IF %lBracket expr %rBracket %THEN statements elsif_list %ELSE statements %ENDIF {% 
-  ([_, __, condition, ___, ____, body, elseIfs, _____, elseBody, ______]) => ({
-    type: "If",
-    condition: condition,
-    body: body,
-    elseIfs: elseIfs,
-    elseBody: elseBody
-  })
-%}
+param_value ->
+  %NUMBER {% ([n]) => Number(n.value) %}
+| %lBracket expr %rBracket {% ([_,e]) => e %}
 
-elsif_list -> %lineNumber %ELSIF %lBracket expr %rBracket %THEN statements {% 
-  ([lineNum, _, __, condition, ___, ____, body]) => [
-    { condition: condition, body: body, lineNumber: parseInt(lineNum.value.slice(1)) }
-  ]
-%}
-           | %ELSIF %lBracket expr %rBracket %THEN statements {% 
-  ([_, __, condition, ___, ____, body]) => [
-    { condition: condition, body: body }
-  ]
-%}
-           | elsif_list %lineNumber %ELSIF %lBracket expr %rBracket %THEN statements {% 
-  ([list, lineNum, _, __, condition, ___, ____, body]) => [
-    ...list,
-    { condition: condition, body: body, lineNumber: parseInt(lineNum.value.slice(1)) }
-  ]
-%}
-           | elsif_list %ELSIF %lBracket expr %rBracket %THEN statements {% 
-  ([list, _, __, condition, ___, ____, body]) => [
-    ...list,
-    { condition: condition, body: body }
-  ]
-%}
+# ------------------------------------------------------------
+# Other statements
+# ------------------------------------------------------------
 
-whilestmt -> %WHILE %lBracket expr %rBracket %DO statements %lineNumber %END {% 
-  ([_, __, condition, ___, ____, body, _____, lineNum]) => ({
-    type: "While",
-    condition: condition,
-    body: body,
-    endLineNumber: parseInt(lineNum.value.slice(1))
-  })
-%}
-       | %WHILE %lBracket expr %rBracket %DO statements %END {% 
-  ([_, __, condition, ___, ____, body, _____]) => ({
-    type: "While",
-    condition: condition,
-    body: body
-  })
-%}
+goto_stmt ->
+  %GOTO %NUMBER
+  {% ([_,n]) => ({ type: "Goto", target: Number(n.value) }) %}
 
-subdef -> %OSUB statements %MRET {% 
-  ([osub, body, _]) => ({
-    type: "SubprogramDef",
-    id: parseInt(osub.value.slice(1)),
-    body: body
-  })
-%}
+subcall ->
+  %MCALL %NUMBER
+  {% ([_,n]) => ({ type: "SubprogramCall", id: Number(n.value) }) %}
 
-subcall -> %MCALL %WORD {% 
-  ([_, word]) => ({
-    type: "SubprogramCall",
-    id: parseInt(word.value.slice(1))
-  })
-%}
+oblock_stmt ->
+  %OSUB
+  {% ([o]) => ({ type: "OBlock", id: Number(o.value.slice(1)) }) %}
 
-gotostmt -> %GOTO %NUMBER {% 
-  ([_, number]) => ({
-    type: "Goto",
-    lineNumber: Number(number.value)
-  })
-%}
+assignment ->
+  %VAR %equals expr {% ([v,_,e]) => parseAssignment(v,e) %}
 
-arg_list -> expr {% ([expr]) => [expr] %}
-         | arg_list %comma expr {% ([list, _, expr]) => [...list, expr] %}
+# ------------------------------------------------------------
+# Expressions
+# ------------------------------------------------------------
 
 expr -> expr_rel {% id %}
 
-expr_rel -> expr_add {% id %}
-         | expr_rel %RELOP expr_add {% 
-  ([left, op, right]) => ({
-    type: "Relational",
-    operator: op.value,
-    left: left,
-    right: right
-  })
-%}
+expr_rel ->
+  expr_add {% id %}
+| expr_rel %RELOP expr_add
+  {% ([l,o,r]) => ({ type:"Relational", operator:o.value, left:l, right:r }) %}
 
-expr_add -> expr_mul {% id %}
-          | expr_add %plus expr_mul {% ([left, _, right]) => ({ type: "Binary", operator: "+", left, right }) %}
-          | expr_add %minus expr_mul {% ([left, _, right]) => ({ type: "Binary", operator: "-", left, right }) %}
+expr_add ->
+  expr_mul {% id %}
+| expr_add %plus expr_mul  {% ([l,_,r]) => ({ type:"Binary", operator:"+", left:l, right:r }) %}
+| expr_add %minus expr_mul {% ([l,_,r]) => ({ type:"Binary", operator:"-", left:l, right:r }) %}
 
-expr_mul -> expr_unary {% id %}
-          | expr_mul %star expr_unary {% ([left, _, right]) => ({ type: "Binary", operator: "*", left, right }) %}
-          | expr_mul %slash expr_unary {% ([left, _, right]) => ({ type: "Binary", operator: "/", left, right }) %}
+expr_mul ->
+  expr_unary {% id %}
+| expr_mul %star expr_unary  {% ([l,_,r]) => ({ type:"Binary", operator:"*", left:l, right:r }) %}
+| expr_mul %slash expr_unary {% ([l,_,r]) => ({ type:"Binary", operator:"/", left:l, right:r }) %}
 
-expr_unary -> expr_ternary {% id %}
+expr_unary -> expr_primary {% id %}
 
-expr_ternary -> expr_primary {% id %}
-              | %IF %lBracket expr %rBracket %THEN expr %ELSE expr {% 
-  ([_, __, condition, ___, ____, thenExpr, _____, elseExpr]) => ({
-    type: "TernaryIf",
-    condition: condition,
-    thenExpr: thenExpr,
-    elseExpr: elseExpr
-  })
-%}
+expr_primary ->
+  %NUMBER {% ([n]) => ({ type:"Number", value:Number(n.value) }) %}
+| %VAR {% ([v]) => parseVariable(v) %}
+| %FUNC %lBracket arg_list %rBracket
+  {% ([f,_,a]) => ({ type:"FuncCall", name:f.value, args:a }) %}
+| %lBracket expr %rBracket {% ([_,e]) => e %}
 
-expr_primary -> %FUNC %lBracket arg_list %rBracket {% 
-  ([func, _, args, __]) => ({
-    type: "FuncCall",
-    name: func.value,
-    args: args
-  })
-%}
-             | %NUMBER {% ([number]) => ({ type: "Number", value: Number(number.value) }) %}
-             | %VAR {% ([varToken]) => parseVariable(varToken) %}
-             | %lBracket expr %rBracket {% ([_, expr, __]) => expr %}
+arg_list ->
+  expr
+| arg_list %comma expr {% ([a,_,b]) => [...a,b] %}

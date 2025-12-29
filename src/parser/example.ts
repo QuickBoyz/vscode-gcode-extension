@@ -12,6 +12,7 @@ const exampleGcode =
   "N30 M3 S1000\n" +
   "N40 G2 X[#<var>] Y30 I5 J5\n" +
   "N50 M5\n" +
+  "N55 M6 T1\n" +
   "N60 M30\n" +
   "N70 WHILE [#<var> LT 100] DO\n" +
   "N80 G1 X10 Y20 F100\n" +
@@ -24,7 +25,18 @@ const exampleGcode =
   "N91 ENDIF\n" +
   "N92 GOTO 300\n" +
   "N93 END\n" +
-  "N94 M30\n";
+  "N100 O100 WHILE [#<var> LT 100] DO\n" +
+  "N110 G1 X10 Y20 F100\n" +
+  "N120 O111 IF [#<var> EQ 100] THEN\n" +
+  "N130 GOTO 100\n" +
+  "N140 O111 ELSEIF [#<var> EQ 200] THEN\n" +
+  "N150 GOTO 200\n" +
+  "N160 O111 ELSE\n" +
+  "N170 GOTO 300\n" +
+  "N180 O111 ENDIF\n" +
+  "N190 GOTO 300\n" +
+  "N200 O100 END\n" +
+  "N210 M30\n";
 
 const parser = new GCodeParser();
 

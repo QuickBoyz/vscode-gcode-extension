@@ -5,150 +5,110 @@
 // @ts-ignore
 function id(d: any[]): any { return d[0]; }
 declare var lineNumber: any;
+declare var comment: any;
+declare var nl: any;
 declare var OSUB: any;
+declare var WHILE: any;
+declare var lBracket: any;
+declare var rBracket: any;
+declare var DO: any;
+declare var END: any;
+declare var IF: any;
+declare var THEN: any;
+declare var ELSIF: any;
+declare var ELSE: any;
+declare var ENDIF: any;
 declare var GCODE: any;
 declare var MCODE: any;
 declare var PARAM: any;
 declare var NUMBER: any;
-declare var lBracket: any;
-declare var rBracket: any;
+declare var GOTO: any;
+declare var MCALL: any;
 declare var VAR: any;
 declare var equals: any;
-declare var IF: any;
-declare var THEN: any;
-declare var ENDIF: any;
-declare var ELSE: any;
-declare var ELSIF: any;
-declare var WHILE: any;
-declare var DO: any;
-declare var END: any;
-declare var MRET: any;
-declare var MCALL: any;
-declare var WORD: any;
-declare var GOTO: any;
-declare var comma: any;
 declare var RELOP: any;
 declare var plus: any;
 declare var minus: any;
 declare var star: any;
 declare var slash: any;
 declare var FUNC: any;
+declare var comma: any;
 
-const moo = require('moo');
+const moo = require("moo");
 
-// Create base lexer
 const baseLexer = moo.compile({
-  // Skip whitespace and comments - these won't be matched in grammar
-  ws: { match: /\s+/, lineBreaks: true },
+  ws:      { match: /[ \t]+/ },
+  nl:      { match: /\r?\n+/, lineBreaks: true },
   comment: /;.*/,
   lineNumber: /N[0-9]+/,
-  
-  // Keywords
-  // Note: ELSIF must come before ELSE in the lexer definition
-  // Moo matches in order, so put longer patterns first
-  IF: 'IF',
-  THEN: 'THEN',
-  ENDIF: 'ENDIF',
+
   ELSIF: /ELSIF|ELSEIF/,
-  ELSE: 'ELSE',
-  WHILE: 'WHILE',
-  DO: 'DO',
-  ENDWHILE: 'ENDWHILE',
-  GOTO: 'GOTO',
-  END: 'END',
-  
-  // Special codes
+  ELSE: "ELSE",
+  IF: "IF",
+  THEN: "THEN",
+  ENDIF: "ENDIF",
+
+  WHILE: "WHILE",
+  DO: "DO",
+  END: "END",
+
+  GOTO: "GOTO",
+
   OSUB: /O[0-9]+/,
-  MCALL: 'M98',
-  MRET: 'M99',
+  MCALL: "M98",
+  MRET: "M99",
+
   GCODE: /G[0-9]+(?:\.[0-9]+)?/,
   MCODE: /M[0-9]+/,
-  
-  // Operators
-  RELOP: ['GT', 'LT', 'EQ', 'NE', 'LE', 'GE'],
-  FUNC: ['SIN', 'COS', 'TAN', 'ASIN', 'ACOS', 'ATAN', 'FIX', 'FUP', 'LN', 'ROUND', 'SQRT', 'ABS', 'MOD', 'MIN', 'MAX'],
-  
-  // Punctuation
-  comma: ',',
-  equals: '=',
-  plus: '+',
-  minus: '-',
-  star: '*',
-  slash: '/',
-  lBracket: '[',
-  rBracket: ']',
-  
-  // Variables
+
+  RELOP: ["GT", "LT", "EQ", "NE", "LE", "GE"],
+  FUNC: ["SIN","COS","TAN","ASIN","ACOS","ATAN","FIX","FUP","LN","ROUND","SQRT","ABS","MOD","MIN","MAX"],
+
+  comma: ",",
+  equals: "=",
+  plus: "+",
+  minus: "-",
+  star: "*",
+  slash: "/",
+  lBracket: "[",
+  rBracket: "]",
+
   VAR: [/#[0-9]+/, /#<[a-zA-Z0-9]+>/],
-  
-  // Numbers
   NUMBER: /[0-9]+(?:\.[0-9]+)?/,
-  
-  // Parameters (single letter)
   PARAM: /[A-Z]/,
-  
-  // Words (letter followed by digits)
-  WORD: /[A-Z][0-9]+/,
 });
 
-// Create a wrapper lexer that filters out ws and comment (but preserves lineNumber)
-// According to Moo docs (https://github.com/tjvr/moo#usage), we need to implement
-// the lexer interface: reset, save, formatError, has, and next
 const lexer = {
-  reset(chunk, info) {
-    baseLexer.reset(chunk, info);
-  },
-  save() {
-    return baseLexer.save();
-  },
-  formatError(token) {
-    return baseLexer.formatError(token);
-  },
-  has(name) {
-    // Only report tokens that we actually emit (not filtered ones)
-    if (name === 'ws' || name === 'comment') {
-      return false;
-    }
-    return baseLexer.has(name);
-  },
+  reset: (...a) => baseLexer.reset(...a),
+  save: () => baseLexer.save(),
+  formatError: t => baseLexer.formatError(t),
+  has: n => n !== "ws" && baseLexer.has(n),
   next() {
-    let token;
-    // Keep getting tokens until we find one that's not filtered
-    // According to Moo docs, next() returns undefined when no more tokens
-    while ((token = baseLexer.next())) {
-      if (token.type !== 'ws' && token.type !== 'comment') {
-        return token;
-      }
+    let t;
+    while ((t = baseLexer.next())) {
+      if (t.type !== "ws") return t;
     }
-    // No more tokens - return undefined as per Moo interface
-    return undefined;
   }
 };
 
-function parseVariable(varToken) {
-  const text = varToken.value || varToken;
-  if (text.startsWith('#<')) {
-    return { type: "Variable", name: text.slice(2, -1) };
-  } else {
-    return { type: "Variable", id: parseInt(text.slice(1)) };
-  }
+function parseVariable(t) {
+  const v = t.value;
+  return v.startsWith("#<")
+    ? { type: "Variable", name: v.slice(2, -1) }
+    : { type: "Variable", id: Number(v.slice(1)) };
 }
 
-function parseAssignment(varToken, value) {
-  const text = varToken.value || varToken;
-  if (text.startsWith('#<')) {
-    return {
-      type: "Assign",
-      variable: text.slice(2, -1),
-      value: value
-    };
-  } else {
-    return {
-      type: "Assign",
-      variable: parseInt(text.slice(1)),
-      value: value
-    };
-  }
+function parseAssignment(t, value) {
+  const v = t.value;
+  return {
+    type: "Assign",
+    variable: v.startsWith("#<") ? v.slice(2, -1) : Number(v.slice(1)),
+    value
+  };
+}
+
+function parseComment(t) {
+  return t.value.slice(1).trim();
 }
 
 interface NearleyToken {
@@ -181,333 +141,110 @@ interface Grammar {
 const grammar: Grammar = {
   Lexer: lexer,
   ParserRules: [
-    {"name": "program", "symbols": ["statements"], "postprocess": ([statements]) => ({ type: "Program", body: statements })},
-    {"name": "statements", "symbols": ["statement"], "postprocess": ([stmt]) => [stmt]},
-    {"name": "statements", "symbols": ["statements", "statement"], "postprocess": ([stmts, stmt]) => [...stmts, stmt]},
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "gcode"], "postprocess":  
-        ([lineNum, stmt]) => ({
+    {"name": "program", "symbols": ["lines"], "postprocess": ([l]) => ({ type: "Program", body: l })},
+    {"name": "lines", "symbols": ["line", "line_breaks?"], "postprocess": ([l]) => [l]},
+    {"name": "lines", "symbols": ["lines", "line_breaks", "line", "line_breaks?"], "postprocess": ([a,_,b]) => [...a,b]},
+    {"name": "line", "symbols": ["opt_line_number", "statement", "opt_comment"], "postprocess":  ([ln, stmt, comment]) => ({
           ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "mcode"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "param_update"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "assignment"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "ifstmt"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "whilestmt"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "subdef"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "subcall"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "gotostmt"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "statement", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), "o_block"], "postprocess":  
-        ([lineNum, stmt]) => ({
-          ...stmt,
-          lineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
+          ...(ln !== undefined ? { lineNumber: ln } : {}),
+          ...(comment !== undefined ? { comment } : {})
+        }) },
+    {"name": "line", "symbols": ["opt_line_number", "comment_only"], "postprocess":  ([ln, value]) => ({
+          type: "Comment",
+          value,
+          ...(ln !== undefined ? { lineNumber: ln } : {})
+        }) },
+    {"name": "opt_line_number", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber)], "postprocess": ([n]) => Number(n.value.slice(1))},
+    {"name": "opt_line_number", "symbols": [], "postprocess": () => undefined},
+    {"name": "opt_comment", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": ([c]) => parseComment(c)},
+    {"name": "opt_comment", "symbols": [], "postprocess": () => undefined},
+    {"name": "comment_only", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": ([c]) => parseComment(c)},
+    {"name": "line_breaks", "symbols": [(lexer.has("nl") ? {type: "nl"} : nl)], "postprocess": () => null},
+    {"name": "line_breaks", "symbols": ["line_breaks", (lexer.has("nl") ? {type: "nl"} : nl)], "postprocess": () => null},
+    {"name": "line_breaks?", "symbols": ["line_breaks"], "postprocess": () => null},
+    {"name": "line_breaks?", "symbols": [], "postprocess": () => undefined},
     {"name": "statement", "symbols": ["gcode"], "postprocess": id},
     {"name": "statement", "symbols": ["mcode"], "postprocess": id},
-    {"name": "statement", "symbols": ["param_update"], "postprocess": id},
+    {"name": "statement", "symbols": ["param_block"], "postprocess": ([p]) => ({ type: "Param", params: p })},
     {"name": "statement", "symbols": ["assignment"], "postprocess": id},
-    {"name": "statement", "symbols": ["ifstmt"], "postprocess": id},
-    {"name": "statement", "symbols": ["whilestmt"], "postprocess": id},
-    {"name": "statement", "symbols": ["subdef"], "postprocess": id},
+    {"name": "statement", "symbols": ["goto_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_while_start"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_while_end"], "postprocess": id},
+    {"name": "statement", "symbols": ["while_start"], "postprocess": id},
+    {"name": "statement", "symbols": ["while_end"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_if_start"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_elseif_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_else_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["labeled_endif_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["if_start"], "postprocess": id},
+    {"name": "statement", "symbols": ["elseif_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["else_stmt"], "postprocess": id},
+    {"name": "statement", "symbols": ["endif_stmt"], "postprocess": id},
     {"name": "statement", "symbols": ["subcall"], "postprocess": id},
-    {"name": "statement", "symbols": ["gotostmt"], "postprocess": id},
-    {"name": "statement", "symbols": ["o_block"], "postprocess": id},
-    {"name": "o_block", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB)], "postprocess":  
-        ([osub]) => ({
-          type: "OBlock",
-          id: parseInt(osub.value.slice(1))
-        })
-        },
-    {"name": "gcode", "symbols": [(lexer.has("GCODE") ? {type: "GCODE"} : GCODE)], "postprocess": ([gcode]) => ({ type: "GCode", code: parseFloat(gcode.value.slice(1)), params: {} })},
-    {"name": "gcode", "symbols": [(lexer.has("GCODE") ? {type: "GCODE"} : GCODE), "param_list"], "postprocess":  
-        ([gcode, params]) => ({
+    {"name": "statement", "symbols": ["oblock_stmt"], "postprocess": id},
+    {"name": "labeled_while_start", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("WHILE") ? {type: "WHILE"} : WHILE), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("DO") ? {type: "DO"} : DO)], "postprocess":  ([o,_,__,cond]) => ({
+          type: "WhileStart",
+          label: Number(o.value.slice(1)),
+          condition: cond
+        }) },
+    {"name": "labeled_while_end", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("END") ? {type: "END"} : END)], "postprocess":  ([o]) => ({
+          type: "WhileEnd",
+          label: Number(o.value.slice(1))
+        }) },
+    {"name": "while_start", "symbols": [(lexer.has("WHILE") ? {type: "WHILE"} : WHILE), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("DO") ? {type: "DO"} : DO)], "postprocess":  ([_,__,cond]) => ({
+          type: "WhileStart",
+          label: null,
+          condition: cond
+        }) },
+    {"name": "while_end", "symbols": [(lexer.has("END") ? {type: "END"} : END)], "postprocess":  () => ({
+          type: "WhileEnd",
+          label: null
+        }) },
+    {"name": "labeled_if_start", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN)], "postprocess": ([o,_,__,cond]) => ({ type: "IfStart", label: Number(o.value.slice(1)), condition: cond })},
+    {"name": "labeled_elseif_stmt", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN)], "postprocess": ([o,_,__,cond]) => ({ type: "ElseIf", label: Number(o.value.slice(1)), condition: cond })},
+    {"name": "labeled_else_stmt", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("ELSE") ? {type: "ELSE"} : ELSE)], "postprocess": ([o]) => ({ type: "Else", label: Number(o.value.slice(1)) })},
+    {"name": "labeled_endif_stmt", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess": ([o]) => ({ type: "EndIf", label: Number(o.value.slice(1)) })},
+    {"name": "if_start", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN)], "postprocess": ([_,__,cond]) => ({ type: "IfStart", label: null, condition: cond })},
+    {"name": "elseif_stmt", "symbols": [(lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN)], "postprocess": ([_,__,cond]) => ({ type: "ElseIf", label: null, condition: cond })},
+    {"name": "else_stmt", "symbols": [(lexer.has("ELSE") ? {type: "ELSE"} : ELSE)], "postprocess": () => ({ type: "Else", label: null })},
+    {"name": "endif_stmt", "symbols": [(lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess": () => ({ type: "EndIf", label: null })},
+    {"name": "gcode", "symbols": [(lexer.has("GCODE") ? {type: "GCODE"} : GCODE), "param_block?"], "postprocess":  ([g,p]) => ({
           type: "GCode",
-          code: parseFloat(gcode.value.slice(1)),
-          params: params
-        })
-        },
-    {"name": "mcode", "symbols": [(lexer.has("MCODE") ? {type: "MCODE"} : MCODE)], "postprocess": ([mcode]) => ({ type: "MCode", code: parseInt(mcode.value.slice(1)), params: {} })},
-    {"name": "mcode", "symbols": [(lexer.has("MCODE") ? {type: "MCODE"} : MCODE), "param_list"], "postprocess":  
-        ([mcode, params]) => ({
+          code: Number(g.value.slice(1)),
+          params: p ?? {}
+        }) },
+    {"name": "mcode", "symbols": [(lexer.has("MCODE") ? {type: "MCODE"} : MCODE), "param_block?"], "postprocess":  ([m,p]) => ({
           type: "MCode",
-          code: parseInt(mcode.value.slice(1)),
-          params: params
-        })
-        },
-    {"name": "param_update", "symbols": ["param"], "postprocess": ([param]) => ({ type: "ParamUpdate", params: param })},
-    {"name": "param_update", "symbols": ["param_update", "param"], "postprocess":  
-        ([update, param]) => ({
-          type: "ParamUpdate",
-          params: Object.assign({}, update.params, param)
-        })
-        },
-    {"name": "param_list", "symbols": ["param"], "postprocess": ([param]) => param},
-    {"name": "param_list", "symbols": ["param_list", "param"], "postprocess":  
-        ([list, param]) => Object.assign({}, list, param)
-        },
-    {"name": "param", "symbols": [(lexer.has("PARAM") ? {type: "PARAM"} : PARAM), (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess":  
-        ([param, number]) => ({ [param.value]: Number(number.value) })
-        },
-    {"name": "param", "symbols": [(lexer.has("PARAM") ? {type: "PARAM"} : PARAM), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess":  
-        ([param, _, expr, __]) => ({ [param.value]: expr })
-        },
-    {"name": "assignment", "symbols": [(lexer.has("VAR") ? {type: "VAR"} : VAR), (lexer.has("equals") ? {type: "equals"} : equals), "expr"], "postprocess":  
-        ([varToken, _, value]) => parseAssignment(varToken, value)
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, lineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: undefined,
-          endifLineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: undefined
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, elseLineNum, elseBody, ______, endifLineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: elseBody,
-          elseLineNumber: parseInt(elseLineNum.value.slice(1)),
-          endifLineNumber: parseInt(endifLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, elseLineNum, elseBody, ______]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: elseBody,
-          elseLineNumber: parseInt(elseLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, elseBody, ______, endifLineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: elseBody,
-          endifLineNumber: parseInt(endifLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, elseBody, ______]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: [],
-          elseBody: elseBody
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____, lineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: undefined,
-          endifLineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: undefined
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____, elseLineNum, elseBody, ______, endifLineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: elseBody,
-          elseLineNumber: parseInt(elseLineNum.value.slice(1)),
-          endifLineNumber: parseInt(endifLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____, elseLineNum, elseBody, ______]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: elseBody,
-          elseLineNumber: parseInt(elseLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____, elseBody, ______, endifLineNum]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: elseBody,
-          endifLineNumber: parseInt(endifLineNum.value.slice(1))
-        })
-        },
-    {"name": "ifstmt", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements", "elsif_list", (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "statements", (lexer.has("ENDIF") ? {type: "ENDIF"} : ENDIF)], "postprocess":  
-        ([_, __, condition, ___, ____, body, elseIfs, _____, elseBody, ______]) => ({
-          type: "If",
-          condition: condition,
-          body: body,
-          elseIfs: elseIfs,
-          elseBody: elseBody
-        })
-        },
-    {"name": "elsif_list", "symbols": [(lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements"], "postprocess":  
-        ([lineNum, _, __, condition, ___, ____, body]) => [
-          { condition: condition, body: body, lineNumber: parseInt(lineNum.value.slice(1)) }
-        ]
-        },
-    {"name": "elsif_list", "symbols": [(lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements"], "postprocess":  
-        ([_, __, condition, ___, ____, body]) => [
-          { condition: condition, body: body }
-        ]
-        },
-    {"name": "elsif_list", "symbols": ["elsif_list", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements"], "postprocess":  
-        ([list, lineNum, _, __, condition, ___, ____, body]) => [
-          ...list,
-          { condition: condition, body: body, lineNumber: parseInt(lineNum.value.slice(1)) }
-        ]
-        },
-    {"name": "elsif_list", "symbols": ["elsif_list", (lexer.has("ELSIF") ? {type: "ELSIF"} : ELSIF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "statements"], "postprocess":  
-        ([list, _, __, condition, ___, ____, body]) => [
-          ...list,
-          { condition: condition, body: body }
-        ]
-        },
-    {"name": "whilestmt", "symbols": [(lexer.has("WHILE") ? {type: "WHILE"} : WHILE), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("DO") ? {type: "DO"} : DO), "statements", (lexer.has("lineNumber") ? {type: "lineNumber"} : lineNumber), (lexer.has("END") ? {type: "END"} : END)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____, lineNum]) => ({
-          type: "While",
-          condition: condition,
-          body: body,
-          endLineNumber: parseInt(lineNum.value.slice(1))
-        })
-        },
-    {"name": "whilestmt", "symbols": [(lexer.has("WHILE") ? {type: "WHILE"} : WHILE), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("DO") ? {type: "DO"} : DO), "statements", (lexer.has("END") ? {type: "END"} : END)], "postprocess":  
-        ([_, __, condition, ___, ____, body, _____]) => ({
-          type: "While",
-          condition: condition,
-          body: body
-        })
-        },
-    {"name": "subdef", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB), "statements", (lexer.has("MRET") ? {type: "MRET"} : MRET)], "postprocess":  
-        ([osub, body, _]) => ({
-          type: "SubprogramDef",
-          id: parseInt(osub.value.slice(1)),
-          body: body
-        })
-        },
-    {"name": "subcall", "symbols": [(lexer.has("MCALL") ? {type: "MCALL"} : MCALL), (lexer.has("WORD") ? {type: "WORD"} : WORD)], "postprocess":  
-        ([_, word]) => ({
-          type: "SubprogramCall",
-          id: parseInt(word.value.slice(1))
-        })
-        },
-    {"name": "gotostmt", "symbols": [(lexer.has("GOTO") ? {type: "GOTO"} : GOTO), (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess":  
-        ([_, number]) => ({
-          type: "Goto",
-          lineNumber: Number(number.value)
-        })
-        },
-    {"name": "arg_list", "symbols": ["expr"], "postprocess": ([expr]) => [expr]},
-    {"name": "arg_list", "symbols": ["arg_list", (lexer.has("comma") ? {type: "comma"} : comma), "expr"], "postprocess": ([list, _, expr]) => [...list, expr]},
+          code: Number(m.value.slice(1)),
+          params: p ?? {}
+        }) },
+    {"name": "param_block", "symbols": ["param"], "postprocess": id},
+    {"name": "param_block", "symbols": ["param_block", "param"], "postprocess": ([a,b]) => Object.assign(a,b)},
+    {"name": "param_block?", "symbols": ["param_block"], "postprocess": id},
+    {"name": "param_block?", "symbols": [], "postprocess": () => undefined},
+    {"name": "param", "symbols": [(lexer.has("PARAM") ? {type: "PARAM"} : PARAM), "param_value"], "postprocess": ([k,v]) => ({ [k.value]: v })},
+    {"name": "param_value", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([n]) => Number(n.value)},
+    {"name": "param_value", "symbols": [(lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess": ([_,e]) => e},
+    {"name": "goto_stmt", "symbols": [(lexer.has("GOTO") ? {type: "GOTO"} : GOTO), (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([_,n]) => ({ type: "Goto", target: Number(n.value) })},
+    {"name": "subcall", "symbols": [(lexer.has("MCALL") ? {type: "MCALL"} : MCALL), (lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([_,n]) => ({ type: "SubprogramCall", id: Number(n.value) })},
+    {"name": "oblock_stmt", "symbols": [(lexer.has("OSUB") ? {type: "OSUB"} : OSUB)], "postprocess": ([o]) => ({ type: "OBlock", id: Number(o.value.slice(1)) })},
+    {"name": "assignment", "symbols": [(lexer.has("VAR") ? {type: "VAR"} : VAR), (lexer.has("equals") ? {type: "equals"} : equals), "expr"], "postprocess": ([v,_,e]) => parseAssignment(v,e)},
     {"name": "expr", "symbols": ["expr_rel"], "postprocess": id},
     {"name": "expr_rel", "symbols": ["expr_add"], "postprocess": id},
-    {"name": "expr_rel", "symbols": ["expr_rel", (lexer.has("RELOP") ? {type: "RELOP"} : RELOP), "expr_add"], "postprocess":  
-        ([left, op, right]) => ({
-          type: "Relational",
-          operator: op.value,
-          left: left,
-          right: right
-        })
-        },
+    {"name": "expr_rel", "symbols": ["expr_rel", (lexer.has("RELOP") ? {type: "RELOP"} : RELOP), "expr_add"], "postprocess": ([l,o,r]) => ({ type:"Relational", operator:o.value, left:l, right:r })},
     {"name": "expr_add", "symbols": ["expr_mul"], "postprocess": id},
-    {"name": "expr_add", "symbols": ["expr_add", (lexer.has("plus") ? {type: "plus"} : plus), "expr_mul"], "postprocess": ([left, _, right]) => ({ type: "Binary", operator: "+", left, right })},
-    {"name": "expr_add", "symbols": ["expr_add", (lexer.has("minus") ? {type: "minus"} : minus), "expr_mul"], "postprocess": ([left, _, right]) => ({ type: "Binary", operator: "-", left, right })},
+    {"name": "expr_add", "symbols": ["expr_add", (lexer.has("plus") ? {type: "plus"} : plus), "expr_mul"], "postprocess": ([l,_,r]) => ({ type:"Binary", operator:"+", left:l, right:r })},
+    {"name": "expr_add", "symbols": ["expr_add", (lexer.has("minus") ? {type: "minus"} : minus), "expr_mul"], "postprocess": ([l,_,r]) => ({ type:"Binary", operator:"-", left:l, right:r })},
     {"name": "expr_mul", "symbols": ["expr_unary"], "postprocess": id},
-    {"name": "expr_mul", "symbols": ["expr_mul", (lexer.has("star") ? {type: "star"} : star), "expr_unary"], "postprocess": ([left, _, right]) => ({ type: "Binary", operator: "*", left, right })},
-    {"name": "expr_mul", "symbols": ["expr_mul", (lexer.has("slash") ? {type: "slash"} : slash), "expr_unary"], "postprocess": ([left, _, right]) => ({ type: "Binary", operator: "/", left, right })},
-    {"name": "expr_unary", "symbols": ["expr_ternary"], "postprocess": id},
-    {"name": "expr_ternary", "symbols": ["expr_primary"], "postprocess": id},
-    {"name": "expr_ternary", "symbols": [(lexer.has("IF") ? {type: "IF"} : IF), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket), (lexer.has("THEN") ? {type: "THEN"} : THEN), "expr", (lexer.has("ELSE") ? {type: "ELSE"} : ELSE), "expr"], "postprocess":  
-        ([_, __, condition, ___, ____, thenExpr, _____, elseExpr]) => ({
-          type: "TernaryIf",
-          condition: condition,
-          thenExpr: thenExpr,
-          elseExpr: elseExpr
-        })
-        },
-    {"name": "expr_primary", "symbols": [(lexer.has("FUNC") ? {type: "FUNC"} : FUNC), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "arg_list", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess":  
-        ([func, _, args, __]) => ({
-          type: "FuncCall",
-          name: func.value,
-          args: args
-        })
-        },
-    {"name": "expr_primary", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([number]) => ({ type: "Number", value: Number(number.value) })},
-    {"name": "expr_primary", "symbols": [(lexer.has("VAR") ? {type: "VAR"} : VAR)], "postprocess": ([varToken]) => parseVariable(varToken)},
-    {"name": "expr_primary", "symbols": [(lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess": ([_, expr, __]) => expr}
+    {"name": "expr_mul", "symbols": ["expr_mul", (lexer.has("star") ? {type: "star"} : star), "expr_unary"], "postprocess": ([l,_,r]) => ({ type:"Binary", operator:"*", left:l, right:r })},
+    {"name": "expr_mul", "symbols": ["expr_mul", (lexer.has("slash") ? {type: "slash"} : slash), "expr_unary"], "postprocess": ([l,_,r]) => ({ type:"Binary", operator:"/", left:l, right:r })},
+    {"name": "expr_unary", "symbols": ["expr_primary"], "postprocess": id},
+    {"name": "expr_primary", "symbols": [(lexer.has("NUMBER") ? {type: "NUMBER"} : NUMBER)], "postprocess": ([n]) => ({ type:"Number", value:Number(n.value) })},
+    {"name": "expr_primary", "symbols": [(lexer.has("VAR") ? {type: "VAR"} : VAR)], "postprocess": ([v]) => parseVariable(v)},
+    {"name": "expr_primary", "symbols": [(lexer.has("FUNC") ? {type: "FUNC"} : FUNC), (lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "arg_list", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess": ([f,_,a]) => ({ type:"FuncCall", name:f.value, args:a })},
+    {"name": "expr_primary", "symbols": [(lexer.has("lBracket") ? {type: "lBracket"} : lBracket), "expr", (lexer.has("rBracket") ? {type: "rBracket"} : rBracket)], "postprocess": ([_,e]) => e},
+    {"name": "arg_list", "symbols": ["expr"]},
+    {"name": "arg_list", "symbols": ["arg_list", (lexer.has("comma") ? {type: "comma"} : comma), "expr"], "postprocess": ([a,_,b]) => [...a,b]}
   ],
   ParserStart: "program",
 };

@@ -11,7 +11,7 @@ export class GCodeParser {
   private parse(input: string) {
     const parser = new Parser(Grammar.fromCompiled(grammar));
 
-    parser.feed(input);
+    parser.feed(input.trim());
     const results = parser.finish();
 
     if (results.length === 0) {
