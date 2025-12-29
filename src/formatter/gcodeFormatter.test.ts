@@ -292,6 +292,94 @@ describe("GCodeFormatter", () => {
     });
   });
 
+  describe("empty line handling", () => {
+    it("should preserve one empty line when there are one or more empty lines (default)", () => {
+      const result = parseAndFormat("G0 X0\n\nG1 X10");
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(3);
+      expect(lines[1]).toBe("");
+    });
+
+    it("should collapse multiple consecutive empty lines to one", () => {
+      const result = parseAndFormat("G0 X0\n\n\n\nG1 X10");
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(3);
+      expect(lines[1]).toBe("");
+    });
+
+    it("should remove all empty lines in compact mode", () => {
+      const result = parseAndFormat("G0 X0\n\n\nG1 X10\n\nM30", {
+        compactOutput: true,
+      });
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(3);
+      expect(lines.every((line) => line !== "")).toBe(true);
+    });
+
+    it("should remove empty lines when preserveEmptyLines is false", () => {
+      const result = parseAndFormat("G0 X0\n\nG1 X10", {
+        preserveEmptyLines: false,
+      });
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(2);
+    });
+
+    it("should handle empty lines in control structures", () => {
+      const input = `WHILE [#1 LT 100] DO
+
+G1 X10
+
+END`;
+      const result = parseAndFormat(input, {
+        indentSize: 2,
+        preserveEmptyLines: true,
+      });
+      const lines = result.split("\n");
+      expect(lines).toHaveLength(5);
+      expect(lines[1]).toBe("");
+      expect(lines[3]).toBe("");
+    });
+  });
+
+  describe("indent option", () => {
+    it("should disable indentation when indent is false", () => {
+      const result = parseAndFormat(
+        "WHILE [#1 LT 100] DO\nG1 X10\nEND",
+        {
+          indent: false,
+        }
+      );
+      const lines = result.split("\n");
+      expect(lines[0]).not.toMatch(/^\s/);
+      expect(lines[1]).not.toMatch(/^\s/); // No indentation
+      expect(lines[2]).not.toMatch(/^\s/);
+    });
+
+    it("should disable nested indentation when indent is false", () => {
+      const result = parseAndFormat(
+        "WHILE [#1 LT 100] DO\nIF [#2 EQ 1] THEN\nG1 X10\nENDIF\nEND",
+        { indent: false }
+      );
+      const lines = result.split("\n");
+      lines.forEach((line) => {
+        expect(line).not.toMatch(/^\s/); // No line should have leading whitespace
+      });
+    });
+
+    it("should still indent when indent is true (default)", () => {
+      const result = parseAndFormat(
+        "WHILE [#1 LT 100] DO\nG1 X10\nEND",
+        {
+          indent: true,
+          indentSize: 4,
+          useTabs: false,
+        }
+      );
+      const lines = result.split("\n");
+      expect(lines[1]).toMatch(/^    /); // 4 spaces
+    });
+  });
+
   describe("integration", () => {
     it("should format a complete program", () => {
       const input = `G0 X0 Y0 Z0
@@ -335,6 +423,48 @@ M30`;
       });
       expect(result).toMatch(/^N100\s/m);
       expect(result).toMatch(/^N150\s/m);
+    });
+
+    it("should format the test3.nc file preserving structure", () => {
+      const input = `%
+G21 G90 G54 G17
+
+(T1 M6)
+
+#<depth>=-17
+#<x_spacing>=50
+
+o100 while [#<row_count> LT #<rows>]
+
+  G00 X0 Y0
+
+o100 endwhile
+
+M30
+%`;
+
+      const result = parseAndFormat(input, {
+        prettyPrintCommands: false,
+        prettyPrintNumbers: false,
+        preserveEmptyLines: true,
+      });
+
+      // Should preserve empty lines
+      expect(result).toContain("\n\n");
+    });
+
+    it("should produce compact output when compactOutput is true", () => {
+      const input = `G0 X0
+
+G1 X10
+
+M30`;
+
+      const result = parseAndFormat(input, {
+        compactOutput: true,
+      });
+
+      expect(result).not.toContain("\n\n");
     });
   });
 });

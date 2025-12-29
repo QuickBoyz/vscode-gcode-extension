@@ -180,6 +180,11 @@ export interface LabelStatement extends BaseStatement {
   lineNumber: number;
 }
 
+// Empty line statement (preserves blank lines in source)
+export interface EmptyLineStatement extends BaseStatement {
+  type: "EmptyLine";
+}
+
 // Union of all statement types
 export type Statement =
   | GCodeStatement
@@ -199,7 +204,8 @@ export type Statement =
   | ElseStatement
   | EndIfStatement
   | ProgramDelimiterStatement
-  | LabelStatement;
+  | LabelStatement
+  | EmptyLineStatement;
 
 // Program root node
 export interface Program {

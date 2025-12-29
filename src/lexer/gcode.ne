@@ -4,7 +4,7 @@ const moo = require("moo");
 
 const baseLexer = moo.compile({
   ws:      { match: /[ \t]+/ },
-  nl:      { match: /\r?\n+/, lineBreaks: true },
+  nl:      { match: /\r?\n/, lineBreaks: true },
   comment: /;.*/,
   parenComment: /\([^)]*\)/,
   lineNumber: /N[0-9]+/,
@@ -99,8 +99,9 @@ program ->
   lines {% ([l]) => ({ type: "Program", body: l }) %}
 
 lines ->
-  line line_breaks? {% ([l]) => [l] %}
-| lines line_breaks line line_breaks? {% ([a,_,b]) => [...a,b] %}
+  line {% ([l]) => [l] %}
+| lines %nl line {% ([a,_,b]) => [...a, b] %}
+| lines %nl {% ([a,_]) => [...a, { type: "EmptyLine" }] %}
 
 line ->
   opt_line_number statement opt_comment
@@ -136,13 +137,6 @@ comment_only ->
   %comment {% ([c]) => ({ value: parseComment(c), style: "semicolon" }) %}
 | %parenComment {% ([c]) => ({ value: parseParenComment(c), style: "parenthetical" }) %}
 
-line_breaks ->
-  %nl {% () => null %}
-| line_breaks %nl {% () => null %}
-
-line_breaks? ->
-  line_breaks {% () => null %}
-| null {% () => undefined %}
 
 # ------------------------------------------------------------
 # Statements (FLAT)

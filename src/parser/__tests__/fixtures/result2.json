@@ -45,6 +45,9 @@
       "style": "parenthetical"
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Comment",
       "value": "WORK ZERO",
       "style": "parenthetical"
@@ -53,6 +56,9 @@
       "type": "GCode",
       "code": 54,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Comment",
@@ -87,6 +93,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 8,
       "params": {}
@@ -99,6 +108,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "T": {
@@ -106,6 +118,9 @@
           "id": 123
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Param",
@@ -117,10 +132,16 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "H": 27.4
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "MCode",
@@ -222,11 +243,17 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 4,
       "params": {
         "P": 50
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -236,6 +263,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 54.1,
       "params": {
@@ -243,9 +273,15 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 5.1,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -253,9 +289,15 @@
       "params": {}
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 53.1,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -265,9 +307,15 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 112,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -277,10 +325,16 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "X": 0.1234
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Param",
@@ -289,10 +343,16 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "X": 10.01
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Param",
@@ -301,11 +361,17 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 4,
       "params": {
         "S": 5000
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Comment",
@@ -337,6 +403,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 3,
       "params": {
@@ -352,6 +421,9 @@
           "id": 1243
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "MCode",
@@ -372,11 +444,17 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 41,
       "params": {
         "D": 2
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -497,6 +575,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "F": {
@@ -514,6 +595,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Param",
       "params": {
         "X": {
@@ -529,6 +613,9 @@
           }
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -552,6 +639,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "IfGoto",
       "condition": {
         "type": "Relational",
@@ -566,6 +656,9 @@
         }
       },
       "target": 19999
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "IfStart",
@@ -616,29 +709,7 @@
       "label": null
     },
     {
-      "type": "WhileStart",
-      "label": 5,
-      "condition": {
-        "type": "Relational",
-        "operator": "LT",
-        "left": {
-          "type": "Variable",
-          "id": 123
-        },
-        "right": {
-          "type": "Number",
-          "value": 7.5
-        }
-      }
-    },
-    {
-      "type": "Comment",
-      "value": "SOMETHING HERE",
-      "style": "parenthetical"
-    },
-    {
-      "type": "WhileEnd",
-      "label": 5
+      "type": "EmptyLine"
     },
     {
       "type": "WhileStart",
@@ -664,6 +735,37 @@
     {
       "type": "WhileEnd",
       "label": 5
+    },
+    {
+      "type": "EmptyLine"
+    },
+    {
+      "type": "WhileStart",
+      "label": 5,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "id": 123
+        },
+        "right": {
+          "type": "Number",
+          "value": 7.5
+        }
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "SOMETHING HERE",
+      "style": "parenthetical"
+    },
+    {
+      "type": "WhileEnd",
+      "label": 5
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -685,6 +787,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 51,
       "params": {
@@ -701,6 +806,9 @@
           }
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -725,6 +833,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 65,
       "params": {
@@ -735,9 +846,15 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 9,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Comment",
@@ -778,11 +895,17 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 97,
       "params": {
         "P": 1000
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "MCode",
@@ -792,9 +915,18 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 30,
       "params": {}
+    },
+    {
+      "type": "EmptyLine"
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Label",
@@ -806,6 +938,9 @@
       "style": "parenthetical"
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 0,
       "params": {
@@ -814,11 +949,17 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "MCode",
       "code": 6,
       "params": {
         "T": 25
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Comment",

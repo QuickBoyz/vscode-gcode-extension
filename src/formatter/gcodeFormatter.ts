@@ -45,8 +45,25 @@ export class GCodeFormatter {
     this.indentLevel = 0;
 
     const lines: string[] = [];
+    let lastWasEmptyLine = false;
 
     for (const statement of program.body) {
+      // Handle empty lines based on options
+      if (statement.type === "EmptyLine") {
+        // In compact mode, skip all empty lines
+        if (this.options.compactOutput) {
+          continue;
+        }
+        // When preserving empty lines, collapse consecutive empty lines to one
+        if (this.options.preserveEmptyLines && !lastWasEmptyLine) {
+          lines.push("");
+          lastWasEmptyLine = true;
+        }
+        continue;
+      }
+
+      lastWasEmptyLine = false;
+
       // Adjust indent level based on statement type (before formatting)
       this.adjustIndentBefore(statement);
 
@@ -92,6 +109,10 @@ export class GCodeFormatter {
    * Get the current indentation string
    */
   private getIndent(): string {
+    // If indentation is disabled, return empty string
+    if (!this.options.indent) {
+      return "";
+    }
     const char = this.options.useTabs
       ? "\t"
       : " ".repeat(this.options.indentSize);
@@ -178,6 +199,8 @@ export class GCodeFormatter {
         return this.formatProgramDelimiter();
       case "Label":
         return `N${statement.lineNumber}`;
+      case "EmptyLine":
+        return "";
       default:
         return "";
     }

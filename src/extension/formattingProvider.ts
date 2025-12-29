@@ -42,6 +42,13 @@ export class GCodeFormattingProvider
       // Use VS Code's editor settings for indentation
       indentSize: options.tabSize,
       useTabs: !options.insertSpaces,
+      // New formatting options
+      indent: config.get<boolean>("formatter.indent", true),
+      preserveEmptyLines: config.get<boolean>(
+        "formatter.preserveEmptyLines",
+        true
+      ),
+      compactOutput: config.get<boolean>("formatter.compactOutput", false),
     };
   }
 

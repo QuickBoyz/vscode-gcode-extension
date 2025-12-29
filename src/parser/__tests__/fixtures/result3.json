@@ -27,9 +27,15 @@
       "params": {}
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "Comment",
       "value": "T1 M6",
       "style": "parenthetical"
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -156,6 +162,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "WhileStart",
       "label": 100,
       "condition": {
@@ -170,6 +179,9 @@
           "name": "rows"
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -204,6 +216,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "WhileStart",
       "label": 110,
       "condition": {
@@ -218,6 +233,9 @@
           "name": "cols"
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -268,6 +286,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 0,
       "params": {
@@ -309,6 +330,9 @@
           "name": "plunge_feed"
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",
@@ -405,6 +429,9 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "GCode",
       "code": 0,
       "params": {
@@ -413,6 +440,9 @@
           "name": "clearance"
         }
       }
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -431,8 +461,14 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "WhileEnd",
       "label": 110
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "Assign",
@@ -451,8 +487,14 @@
       }
     },
     {
+      "type": "EmptyLine"
+    },
+    {
       "type": "WhileEnd",
       "label": 100
+    },
+    {
+      "type": "EmptyLine"
     },
     {
       "type": "GCode",

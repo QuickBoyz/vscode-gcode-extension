@@ -128,6 +128,21 @@
           "type": "boolean",
           "default": true,
           "description": "Pretty-print parameter numbers to always include a decimal point (X2 → X2.0)"
+        },
+        "gcode.formatter.indent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable indentation for control structures (WHILE, IF, etc.)"
+        },
+        "gcode.formatter.preserveEmptyLines": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve empty lines in the output (consecutive empty lines are collapsed to one)"
+        },
+        "gcode.formatter.compactOutput": {
+          "type": "boolean",
+          "default": false,
+          "description": "Compact output mode - removes all empty lines"
         }
       }
     }

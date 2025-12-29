@@ -4,10 +4,10 @@
 // Bypasses TS6133. Allow declared but unused functions.
 // @ts-ignore
 function id(d: any[]): any { return d[0]; }
+declare var nl: any;
 declare var lineNumber: any;
 declare var comment: any;
 declare var parenComment: any;
-declare var nl: any;
 declare var percent: any;
 declare var OSUB: any;
 declare var WHILE: any;
@@ -44,7 +44,7 @@ const moo = require("moo");
 
 const baseLexer = moo.compile({
   ws:      { match: /[ \t]+/ },
-  nl:      { match: /\r?\n+/, lineBreaks: true },
+  nl:      { match: /\r?\n/, lineBreaks: true },
   comment: /;.*/,
   parenComment: /\([^)]*\)/,
   lineNumber: /N[0-9]+/,
@@ -159,8 +159,9 @@ const grammar: Grammar = {
   Lexer: lexer,
   ParserRules: [
     {"name": "program", "symbols": ["lines"], "postprocess": ([l]) => ({ type: "Program", body: l })},
-    {"name": "lines", "symbols": ["line", "line_breaks?"], "postprocess": ([l]) => [l]},
-    {"name": "lines", "symbols": ["lines", "line_breaks", "line", "line_breaks?"], "postprocess": ([a,_,b]) => [...a,b]},
+    {"name": "lines", "symbols": ["line"], "postprocess": ([l]) => [l]},
+    {"name": "lines", "symbols": ["lines", (lexer.has("nl") ? {type: "nl"} : nl), "line"], "postprocess": ([a,_,b]) => [...a, b]},
+    {"name": "lines", "symbols": ["lines", (lexer.has("nl") ? {type: "nl"} : nl)], "postprocess": ([a,_]) => [...a, { type: "EmptyLine" }]},
     {"name": "line", "symbols": ["opt_line_number", "statement", "opt_comment"], "postprocess":  ([ln, stmt, commentObj]) => ({
           ...stmt,
           ...(ln !== undefined ? { lineNumber: ln } : {}),
@@ -184,10 +185,6 @@ const grammar: Grammar = {
     {"name": "opt_comment", "symbols": [], "postprocess": () => undefined},
     {"name": "comment_only", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": ([c]) => ({ value: parseComment(c), style: "semicolon" })},
     {"name": "comment_only", "symbols": [(lexer.has("parenComment") ? {type: "parenComment"} : parenComment)], "postprocess": ([c]) => ({ value: parseParenComment(c), style: "parenthetical" })},
-    {"name": "line_breaks", "symbols": [(lexer.has("nl") ? {type: "nl"} : nl)], "postprocess": () => null},
-    {"name": "line_breaks", "symbols": ["line_breaks", (lexer.has("nl") ? {type: "nl"} : nl)], "postprocess": () => null},
-    {"name": "line_breaks?", "symbols": ["line_breaks"], "postprocess": () => null},
-    {"name": "line_breaks?", "symbols": [], "postprocess": () => undefined},
     {"name": "statement", "symbols": ["code_block"], "postprocess": id},
     {"name": "statement", "symbols": ["assignment"], "postprocess": id},
     {"name": "statement", "symbols": ["goto_stmt"], "postprocess": id},
