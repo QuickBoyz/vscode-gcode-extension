@@ -58,21 +58,43 @@ describe("G-Code Parser", () => {
     });
   });
 
-  test("parses standalone comments", () => {
+  test("parses standalone semicolon comments", () => {
     const result = parser.parseGcode("; program start\n");
     expect(result.body[0]).toEqual({
       type: "Comment",
       value: "program start",
+      style: "semicolon",
     });
   });
 
-  test("parses trailing comments on statements", () => {
+  test("parses standalone parenthetical comments", () => {
+    const result = parser.parseGcode("( TOOL CHANGE )\n");
+    expect(result.body[0]).toEqual({
+      type: "Comment",
+      value: "TOOL CHANGE",
+      style: "parenthetical",
+    });
+  });
+
+  test("parses trailing semicolon comments on statements", () => {
     const result = parser.parseGcode("G0 X0 ; rapid move\n");
     expect(result.body[0]).toEqual({
       type: "GCode",
       code: 0,
       params: { X: 0 },
       comment: "rapid move",
+      commentStyle: "semicolon",
+    });
+  });
+
+  test("parses trailing parenthetical comments on statements", () => {
+    const result = parser.parseGcode("G0 X0 (rapid move)\n");
+    expect(result.body[0]).toEqual({
+      type: "GCode",
+      code: 0,
+      params: { X: 0 },
+      comment: "rapid move",
+      commentStyle: "parenthetical",
     });
   });
 
@@ -81,6 +103,31 @@ describe("G-Code Parser", () => {
     expect(result.body[0]).toEqual({
       type: "OBlock",
       id: 1234,
+    });
+  });
+
+  test("parses multiple G-codes on same line", () => {
+    const result = parser.parseGcode("G40 G49 G80\n");
+    expect(result.body[0]).toEqual({
+      type: "Block",
+      codes: [
+        { type: "G", code: 40 },
+        { type: "G", code: 49 },
+        { type: "G", code: 80 },
+      ],
+      params: {},
+    });
+  });
+
+  test("parses mixed G and M codes with params", () => {
+    const result = parser.parseGcode("G20 T17 M6\n");
+    expect(result.body[0]).toEqual({
+      type: "Block",
+      codes: [
+        { type: "G", code: 20 },
+        { type: "M", code: 6 },
+      ],
+      params: { T: 17 },
     });
   });
 
@@ -106,6 +153,42 @@ describe("G-Code Parser", () => {
         },
       },
     });
+  });
+
+  test("parses ternary IF GOTO statement", () => {
+    const result = parser.parseGcode("IF [#1 EQ 100] GOTO 500\n");
+    expect(result.body[0]).toEqual({
+      type: "IfGoto",
+      condition: {
+        type: "Relational",
+        operator: "EQ",
+        left: { type: "Variable", id: 1 },
+        right: { type: "Number", value: 100 },
+      },
+      target: 500,
+    });
+  });
+
+  test("parses program delimiter (%)", () => {
+    const result = parser.parseGcode("%\n");
+    expect(result.body[0]).toEqual({
+      type: "ProgramDelimiter",
+    });
+  });
+
+  test("parses program with % delimiters", () => {
+    const result = parser.parseGcode(`
+      %
+      O1234
+      G0 X0 Y0
+      M30
+      %
+    `);
+    expect(result.type).toBe("Program");
+    expect(result.body.length).toBe(5);
+    expect(result.body[0]).toEqual({ type: "ProgramDelimiter" });
+    expect(result.body[1]).toEqual({ type: "OBlock", id: 1234 });
+    expect(result.body[4]).toEqual({ type: "ProgramDelimiter" });
   });
 
   test("parses real program", () => {
@@ -140,17 +223,17 @@ describe("G-Code Parser", () => {
     });
   });
 
-  test("parses real file", () => {
+  test.each([1, 2, 3])("parses real file %s", (index) => {
     const parsed = parser.parseGcode(
       readFileSync(
-        "src/parser/__tests__/fixtures/test1.nc",
+        `src/parser/__tests__/fixtures/test${index}.nc`,
         "utf8"
       ).toString()
     );
     expect(parsed).toEqual(
       JSON.parse(
         readFileSync(
-          "src/parser/__tests__/fixtures/result1.json",
+          `src/parser/__tests__/fixtures/result${index}.json`,
           "utf8"
         ).toString()
       )

@@ -80,18 +80,6 @@
     "gcodes": {
       "patterns": [
         {
-          "match": "(?i)([G])(1)?5[4-9](.1)?\\s?(P[0-9]{1,3})?",
-          "name": "entity.name.function.gcode"
-        },
-        {
-          "match": "(?i)([G])1[1-2][0-9]",
-          "name": "entity.name.function.gcode"
-        },
-        {
-          "match": "(?i)([G])15\\s?(H[0-9]{1,2})?",
-          "name": "entity.name.function.gcode"
-        },
-        {
           "match": "(?i)([G])([0-9]{1,3})(\\.[0-9])?",
           "name": "entity.name.function.gcode"
         }
@@ -146,17 +134,13 @@
         {
           "match": "(?i)(^[O])(\\d+)?",
           "name": "meta.tag.gcode"
-        },
-        {
-          "match": "(?i)([P])\\s?(\\d?\\.?\\d+\\.?|\\.?(?=[#\\[]))",
-          "name": "variable.parameter.gcode"
         }
       ]
     },
     "coords": {
       "patterns": [
         {
-          "match": "(?i)([ABCXYZUVW])\\s?(\\-?\\d*\\.?\\d+\\.?|\\-?\\.?(?=[#\\[]))",
+          "match": "(?i)([ABCXYZUVWIJK])\\s?(\\-?\\d*\\.?\\d+\\.?|\\-?\\.?(?=[#\\[]))",
           "captures": {
             "1": {
               "name": "variable.parameter.gcode"
@@ -173,6 +157,14 @@
       "patterns": [
         {
           "match": "(?i)([DHT])\\s?(\\d+(\\.\\d*)?|(?=[#\\[]))",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.gcode"
+            },
+            "2": {
+              "name": "constant.numeric.gcode"
+            }
+          },
           "name": "variable.parameter.gcode"
         }
       ]
@@ -188,7 +180,7 @@
     "modifiers": {
       "patterns": [
         {
-          "match": "(?i)([IJKQR])(\\-?\\d*\\.?\\d+\\.?|\\-?\\.?(?=[#\\[]))",
+          "match": "(?i)([QRP])(\\-?\\d*\\.?\\d+\\.?|\\-?\\.?(?=[#\\[]))",
           "captures": {
             "1": {
               "name": "variable.parameter.gcode"
@@ -219,6 +211,10 @@
               "name": "variable.name.gcode"
             }
           },
+          "name": "variable.other.gcode"
+        },
+        {
+          "match": "[#]\\[",
           "name": "variable.other.gcode"
         }
       ]

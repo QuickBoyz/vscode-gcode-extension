@@ -1,17 +1,49 @@
 {
   "name": "vscode-gcode-extension",
-  "displayName": "vscode-gcode-extension",
-  "description": "",
+  "displayName": "G-Code Language Support",
+  "description": "G-Code language support with syntax highlighting and formatting",
   "version": "0.0.1",
+  "publisher": "QuickBoyz",
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.73.0"
   },
+  "main": "./dist/extension/index.js",
+  "activationEvents": [
+    "onLanguage:gcode",
+    "onCommand:gcode.formatDocument"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuickBoyz/vscode-gcode-extension"
+  },
+  "bugs": {
+    "url": "https://github.com/QuickBoyz/vscode-gcode-extension/issues"
+  },
+  "homepage": "https://github.com/QuickBoyz/vscode-gcode-extension",
+  "keywords": [
+    "vscode",
+    "extension",
+    "gcode",
+    "language",
+    "support",
+    "syntax",
+    "highlighting",
+    "formatting"
+  ],
   "scripts": {
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "build:parser": "nearleyc src/lexer/gcode.ne -o src/parser/gcode.ne.ts && sed -i '1i// @ts-nocheck' src/parser/gcode.ne.ts",
     "build:tsc": "tsc --project tsconfig.build.json",
     "build": "npm run build:parser && npm run build:tsc",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1",
+    "vscode": "^1.1.37"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
@@ -19,16 +51,16 @@
     "@types/moo": "^0.5.10",
     "@types/nearley": "^2.11.5",
     "@types/node": "^25.0.3",
+    "@types/vscode": "^1.107.0",
     "jest": "^29.7.0",
-    "moo": "^0.5.2",
     "moo-ignore": "^2.5.3",
-    "nearley": "^2.20.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Formatters"
   ],
   "contributes": {
     "languages": [
@@ -59,6 +91,45 @@
         "label": "G-Code Theme",
         "path": "./themes/gcode-theme.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "gcode.formatDocument",
+        "title": "Format G-Code Document",
+        "category": "G-Code"
+      }
+    ],
+    "configuration": {
+      "title": "G-Code",
+      "properties": {
+        "gcode.formatter.addLineNumbers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Add N-block line numbers to each line (N10, N20, etc.)"
+        },
+        "gcode.formatter.lineNumberStart": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "description": "Starting line number when adding N-blocks"
+        },
+        "gcode.formatter.lineNumberIncrement": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "description": "Line number increment when adding N-blocks"
+        },
+        "gcode.formatter.prettyPrintCommands": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)"
+        },
+        "gcode.formatter.prettyPrintNumbers": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pretty-print parameter numbers to always include a decimal point (X2 → X2.0)"
+        }
+      }
+    }
   }
 }

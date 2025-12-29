@@ -1,0 +1,837 @@
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "ProgramDelimiter"
+    },
+    {
+      "type": "OBlock",
+      "id": 1234
+    },
+    {
+      "type": "Block",
+      "codes": [
+        {
+          "type": "G",
+          "code": 40
+        },
+        {
+          "type": "G",
+          "code": 49
+        },
+        {
+          "type": "G",
+          "code": 80
+        }
+      ],
+      "params": {},
+      "lineNumber": 100,
+      "comment": "Cancel cutter comp, tool length, canned cycle",
+      "commentStyle": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "BEGIN TOOL LIST",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "TOOL 17 - 3/8 EM - DESC: 0.3771 DIA, 2 FLUTE,  CARBIDE MAT",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "ENDOF TOOL LIST",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "WORK ZERO",
+      "style": "parenthetical"
+    },
+    {
+      "type": "GCode",
+      "code": 54,
+      "params": {}
+    },
+    {
+      "type": "Comment",
+      "value": "POCKET SLOTS",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "Tool Diameter = 0.3771 Length = 1.5",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Block",
+      "codes": [
+        {
+          "type": "G",
+          "code": 20
+        },
+        {
+          "type": "M",
+          "code": 6
+        }
+      ],
+      "params": {
+        "T": 17
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "T": 808
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 8,
+      "params": {}
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": 12000
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "T": {
+          "type": "Variable",
+          "id": 123
+        }
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "H": {
+          "type": "Variable",
+          "id": 123
+        }
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "H": 27.4
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 4,
+      "params": {
+        "S": 3200
+      }
+    },
+    {
+      "type": "Block",
+      "codes": [
+        {
+          "type": "G",
+          "code": 90
+        },
+        {
+          "type": "G",
+          "code": 0
+        }
+      ],
+      "params": {
+        "X": -1.9996,
+        "Y": -6.2902
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 43,
+      "params": {
+        "Z": -2.8833,
+        "H": 17
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 1,
+      "params": {
+        "Z": -3.1333,
+        "F": 45
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -2.0486,
+        "Y": -6.2744,
+        "Z": -3.1378,
+        "F": 67.5
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -2.1029,
+        "Y": -6.2565,
+        "Z": -3.1428
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -2.157,
+        "Y": -6.238,
+        "Z": -3.1478
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -2.2109,
+        "Y": -6.2191,
+        "Z": -3.1528
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -2.2647,
+        "Y": -6.1997,
+        "Z": -3.1578
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 2,
+      "params": {
+        "X": 5,
+        "Y": 6,
+        "R": 2
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 3,
+      "params": {
+        "X": 5,
+        "Y": 6,
+        "R": 3.5
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 4,
+      "params": {
+        "P": 50
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 154,
+      "params": {
+        "P": 25
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 54.1,
+      "params": {
+        "P": 35
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 5.1,
+      "params": {}
+    },
+    {
+      "type": "GCode",
+      "code": 68.2,
+      "params": {}
+    },
+    {
+      "type": "GCode",
+      "code": 53.1,
+      "params": {}
+    },
+    {
+      "type": "GCode",
+      "code": 59,
+      "params": {
+        "P": 25
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 112,
+      "params": {}
+    },
+    {
+      "type": "GCode",
+      "code": 15,
+      "params": {
+        "H": 10
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": 0.1234
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -0.1242
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": 10.01
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": -25.231
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 4,
+      "params": {
+        "S": 5000
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "POCKET SLOTS",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "Tool Diameter = 0.3771 Length = 1.5",
+      "style": "parenthetical"
+    },
+    {
+      "type": "MCode",
+      "code": 6,
+      "params": {
+        "T": 12
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 8,
+      "params": {}
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": 12000
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": 5000
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": {
+          "type": "Variable",
+          "id": 1243
+        }
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": {
+          "type": "Binary",
+          "operator": "/",
+          "left": {
+            "type": "Number",
+            "value": 1234
+          },
+          "right": {
+            "type": "Variable",
+            "id": 123
+          }
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 41,
+      "params": {
+        "D": 2
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": 3004,
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": 28,
+      "value": {
+        "type": "Number",
+        "value": 0
+      },
+      "comment": "LOOP CHECKING",
+      "commentStyle": "parenthetical"
+    },
+    {
+      "type": "WhileStart",
+      "label": 2,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "FuncCall",
+          "name": "ABS",
+          "args": [
+            {
+              "type": "Binary",
+              "operator": "+",
+              "left": {
+                "type": "Variable",
+                "id": 5
+              },
+              "right": {
+                "type": "Number",
+                "value": 7
+              }
+            }
+          ]
+        },
+        "right": {
+          "type": "Number",
+          "value": 0.1
+        }
+      },
+      "comment": "WAIT FOR OPCODE",
+      "commentStyle": "parenthetical"
+    },
+    {
+      "type": "GCode",
+      "code": 2,
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "+",
+          "left": {
+            "type": "Variable",
+            "id": 31
+          },
+          "right": {
+            "type": "Number",
+            "value": 10
+          }
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": 28,
+      "value": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "id": 28
+        },
+        "right": {
+          "type": "Number",
+          "value": 1
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": 33,
+      "value": {
+        "type": "Number",
+        "value": 78
+      }
+    },
+    {
+      "type": "Label",
+      "lineNumber": 300
+    },
+    {
+      "type": "WhileEnd",
+      "label": 2
+    },
+    {
+      "type": "Param",
+      "params": {
+        "E": {
+          "type": "Variable",
+          "id": 234
+        }
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "E": {
+          "type": "Variable",
+          "id": 234
+        }
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "F": {
+          "type": "Binary",
+          "operator": "/",
+          "left": {
+            "type": "Variable",
+            "id": 123
+          },
+          "right": {
+            "type": "Number",
+            "value": 2
+          }
+        }
+      }
+    },
+    {
+      "type": "Param",
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "/",
+          "left": {
+            "type": "Variable",
+            "id": 234
+          },
+          "right": {
+            "type": "Number",
+            "value": 2
+          }
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 4,
+      "params": {
+        "P": 1
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 4,
+      "params": {
+        "P": 0.5
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 4,
+      "params": {
+        "P": 500
+      }
+    },
+    {
+      "type": "IfGoto",
+      "condition": {
+        "type": "Relational",
+        "operator": "EQ",
+        "left": {
+          "type": "Variable",
+          "id": 898
+        },
+        "right": {
+          "type": "Variable",
+          "id": 996
+        }
+      },
+      "target": 19999
+    },
+    {
+      "type": "IfStart",
+      "label": null,
+      "condition": {
+        "type": "Relational",
+        "operator": "LE",
+        "left": {
+          "type": "Number",
+          "value": 123
+        },
+        "right": {
+          "type": "FuncCall",
+          "name": "ABS",
+          "args": [
+            {
+              "type": "Binary",
+              "operator": "+",
+              "left": {
+                "type": "Variable",
+                "id": 452
+              },
+              "right": {
+                "type": "Number",
+                "value": 1234
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "SOMETHING",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Else",
+      "label": null
+    },
+    {
+      "type": "Comment",
+      "value": "SOMETHING ELSE",
+      "style": "parenthetical"
+    },
+    {
+      "type": "EndIf",
+      "label": null
+    },
+    {
+      "type": "WhileStart",
+      "label": 5,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "id": 123
+        },
+        "right": {
+          "type": "Number",
+          "value": 7.5
+        }
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "SOMETHING HERE",
+      "style": "parenthetical"
+    },
+    {
+      "type": "WhileEnd",
+      "label": 5
+    },
+    {
+      "type": "WhileStart",
+      "label": 5,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "id": 123
+        },
+        "right": {
+          "type": "Number",
+          "value": 7.5
+        }
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "SOMETHING HERE",
+      "style": "parenthetical"
+    },
+    {
+      "type": "WhileEnd",
+      "label": 5
+    },
+    {
+      "type": "Assign",
+      "variable": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "id": 8
+        },
+        "right": {
+          "type": "Number",
+          "value": 7
+        }
+      },
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 51,
+      "params": {
+        "P": {
+          "type": "Binary",
+          "operator": "*",
+          "left": {
+            "type": "Variable",
+            "id": 5
+          },
+          "right": {
+            "type": "Number",
+            "value": 1000
+          }
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": 101,
+      "value": {
+        "type": "FuncCall",
+        "name": "FIX",
+        "args": [
+          {
+            "type": "Binary",
+            "operator": "MOD",
+            "left": {
+              "type": "Variable",
+              "id": 1
+            },
+            "right": {
+              "type": "Number",
+              "value": 1000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 65,
+      "params": {
+        "P": 5000,
+        "A": 1,
+        "B": 2,
+        "C": 3
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 9,
+      "params": {}
+    },
+    {
+      "type": "Comment",
+      "value": "POCKET SLOTS",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Comment",
+      "value": "Tool Diameter = 0.3771 Length = 1.5",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Block",
+      "codes": [
+        {
+          "type": "G",
+          "code": 20
+        },
+        {
+          "type": "M",
+          "code": 6
+        }
+      ],
+      "params": {
+        "T": 1
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 8,
+      "params": {}
+    },
+    {
+      "type": "MCode",
+      "code": 3,
+      "params": {
+        "S": 12000
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 97,
+      "params": {
+        "P": 1000
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 6,
+      "params": {
+        "T": 13
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 30,
+      "params": {}
+    },
+    {
+      "type": "Label",
+      "lineNumber": 1000
+    },
+    {
+      "type": "Comment",
+      "value": "LOCAL SUB PROGRAM",
+      "style": "parenthetical"
+    },
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "X": 0,
+        "Y": 0
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 6,
+      "params": {
+        "T": 25
+      }
+    },
+    {
+      "type": "Comment",
+      "value": "End of program",
+      "style": "semicolon"
+    },
+    {
+      "type": "MCode",
+      "code": 30,
+      "params": {}
+    },
+    {
+      "type": "ProgramDelimiter"
+    }
+  ]
+}

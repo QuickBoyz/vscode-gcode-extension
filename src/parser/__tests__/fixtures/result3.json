@@ -1,0 +1,476 @@
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "ProgramDelimiter"
+    },
+    {
+      "type": "Block",
+      "codes": [
+        {
+          "type": "G",
+          "code": 21
+        },
+        {
+          "type": "G",
+          "code": 90
+        },
+        {
+          "type": "G",
+          "code": 54
+        },
+        {
+          "type": "G",
+          "code": 17
+        }
+      ],
+      "params": {}
+    },
+    {
+      "type": "Comment",
+      "value": "T1 M6",
+      "style": "parenthetical"
+    },
+    {
+      "type": "Assign",
+      "variable": "depth",
+      "value": {
+        "type": "Unary",
+        "operator": "-",
+        "operand": {
+          "type": "Number",
+          "value": 17
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "x_spacing",
+      "value": {
+        "type": "Number",
+        "value": 50
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "y_spacing",
+      "value": {
+        "type": "Number",
+        "value": 50
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "start_x",
+      "value": {
+        "type": "Number",
+        "value": 20
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "start_y",
+      "value": {
+        "type": "Number",
+        "value": 20
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "col_count",
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "row_count",
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "clearance",
+      "value": {
+        "type": "Number",
+        "value": 10
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "plunge_feed",
+      "value": {
+        "type": "Number",
+        "value": 300
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "feed",
+      "value": {
+        "type": "Number",
+        "value": 1000
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "cols",
+      "value": {
+        "type": "Number",
+        "value": 12
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "rows",
+      "value": {
+        "type": "Number",
+        "value": 12
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "diameter",
+      "value": {
+        "type": "Number",
+        "value": 10.5
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "tool_diameter",
+      "value": {
+        "type": "Variable",
+        "id": 5410
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "step_down",
+      "value": {
+        "type": "Number",
+        "value": 2
+      }
+    },
+    {
+      "type": "WhileStart",
+      "label": 100,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "name": "row_count"
+        },
+        "right": {
+          "type": "Variable",
+          "name": "rows"
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "ypos",
+      "value": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "name": "start_y"
+        },
+        "right": {
+          "type": "Binary",
+          "operator": "*",
+          "left": {
+            "type": "Variable",
+            "name": "row_count"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "y_spacing"
+          }
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "col_count",
+      "value": {
+        "type": "Number",
+        "value": 0
+      }
+    },
+    {
+      "type": "WhileStart",
+      "label": 110,
+      "condition": {
+        "type": "Relational",
+        "operator": "LT",
+        "left": {
+          "type": "Variable",
+          "name": "col_count"
+        },
+        "right": {
+          "type": "Variable",
+          "name": "cols"
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "xpos",
+      "value": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "name": "start_x"
+        },
+        "right": {
+          "type": "Binary",
+          "operator": "*",
+          "left": {
+            "type": "Variable",
+            "name": "col_count"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "x_spacing"
+          }
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "tool_center_radius",
+      "value": {
+        "type": "Binary",
+        "operator": "/",
+        "left": {
+          "type": "Binary",
+          "operator": "-",
+          "left": {
+            "type": "Variable",
+            "name": "diameter"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "tool_diameter"
+          }
+        },
+        "right": {
+          "type": "Number",
+          "value": 2
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "-",
+          "left": {
+            "type": "Variable",
+            "name": "xpos"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "tool_center_radius"
+          }
+        },
+        "Y": {
+          "type": "Variable",
+          "name": "ypos"
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "Z": {
+          "type": "Variable",
+          "name": "clearance"
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 1,
+      "params": {
+        "Z": 0,
+        "F": {
+          "type": "Variable",
+          "name": "plunge_feed"
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 2,
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "-",
+          "left": {
+            "type": "Variable",
+            "name": "xpos"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "tool_center_radius"
+          }
+        },
+        "Y": {
+          "type": "Variable",
+          "name": "ypos"
+        },
+        "Z": {
+          "type": "Variable",
+          "name": "depth"
+        },
+        "P": {
+          "type": "FuncCall",
+          "name": "ABS",
+          "args": [
+            {
+              "type": "FuncCall",
+              "name": "FUP",
+              "args": [
+                {
+                  "type": "Binary",
+                  "operator": "/",
+                  "left": {
+                    "type": "Variable",
+                    "name": "depth"
+                  },
+                  "right": {
+                    "type": "Variable",
+                    "name": "step_down"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "I": {
+          "type": "Variable",
+          "name": "tool_center_radius"
+        },
+        "J": 0,
+        "F": {
+          "type": "Variable",
+          "name": "feed"
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 2,
+      "params": {
+        "X": {
+          "type": "Binary",
+          "operator": "-",
+          "left": {
+            "type": "Variable",
+            "name": "xpos"
+          },
+          "right": {
+            "type": "Variable",
+            "name": "tool_center_radius"
+          }
+        },
+        "Y": {
+          "type": "Variable",
+          "name": "ypos"
+        },
+        "Z": {
+          "type": "Variable",
+          "name": "depth"
+        },
+        "I": {
+          "type": "Variable",
+          "name": "tool_center_radius"
+        },
+        "J": 0,
+        "F": {
+          "type": "Variable",
+          "name": "feed"
+        }
+      }
+    },
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "Z": {
+          "type": "Variable",
+          "name": "clearance"
+        }
+      }
+    },
+    {
+      "type": "Assign",
+      "variable": "col_count",
+      "value": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "name": "col_count"
+        },
+        "right": {
+          "type": "Number",
+          "value": 1
+        }
+      }
+    },
+    {
+      "type": "WhileEnd",
+      "label": 110
+    },
+    {
+      "type": "Assign",
+      "variable": "row_count",
+      "value": {
+        "type": "Binary",
+        "operator": "+",
+        "left": {
+          "type": "Variable",
+          "name": "row_count"
+        },
+        "right": {
+          "type": "Number",
+          "value": 1
+        }
+      }
+    },
+    {
+      "type": "WhileEnd",
+      "label": 100
+    },
+    {
+      "type": "GCode",
+      "code": 0,
+      "params": {
+        "Z": {
+          "type": "Variable",
+          "name": "clearance"
+        }
+      }
+    },
+    {
+      "type": "MCode",
+      "code": 30,
+      "params": {}
+    },
+    {
+      "type": "ProgramDelimiter"
+    }
+  ]
+}

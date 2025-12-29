@@ -7,6 +7,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["gcode.ne.ts"]
+  "include": ["src/**/*.ts"]
 }
