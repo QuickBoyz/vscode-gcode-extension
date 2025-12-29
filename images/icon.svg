@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect x="0" y="0" width="128" height="128" rx="20" ry="20" fill="#0f172a"/>
+  
+  <!-- Subtle grid -->
+  <rect x="32" y="8" width="1" height="112" fill="#334155" opacity="0.4"/>
+  <rect x="64" y="8" width="1" height="112" fill="#334155" opacity="0.4"/>
+  <rect x="96" y="8" width="1" height="112" fill="#334155" opacity="0.4"/>
+  <rect x="8" y="32" width="112" height="1" fill="#334155" opacity="0.4"/>
+  <rect x="8" y="64" width="112" height="1" fill="#334155" opacity="0.4"/>
+  <rect x="8" y="96" width="112" height="1" fill="#334155" opacity="0.4"/>
+  
+  <!-- G Letter using polygons -->
+  <!-- Top horizontal -->
+  <rect x="36" y="26" width="52" height="12" rx="6" fill="#f97316"/>
+  <!-- Left vertical -->
+  <rect x="30" y="26" width="12" height="76" rx="6" fill="#f97316"/>
+  <!-- Bottom horizontal -->
+  <rect x="36" y="90" width="52" height="12" rx="6" fill="#f97316"/>
+  <!-- Right vertical (lower part) -->
+  <rect x="82" y="58" width="12" height="44" rx="6" fill="#f97316"/>
+  <!-- Middle horizontal bar -->
+  <rect x="58" y="58" width="36" height="12" rx="6" fill="#f97316"/>
+  
+  <!-- Toolpath indicators -->
+  <rect x="18" y="18" width="8" height="8" rx="4" fill="#22d3ee"/>
+  <rect x="102" y="18" width="8" height="8" rx="4" fill="#22d3ee"/>
+  <rect x="102" y="102" width="8" height="8" rx="4" fill="#22d3ee"/>
+  
+  <!-- Tool position marker -->
+  <rect x="16" y="100" width="10" height="10" rx="5" fill="#4ade80"/>
+</svg>
