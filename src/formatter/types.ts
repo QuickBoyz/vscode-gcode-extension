@@ -54,16 +54,7 @@ export interface FormatterOptions {
   indent: boolean;
 
   /**
-   * Preserve empty lines in the output
-   * When true, consecutive empty lines are collapsed to a single empty line
-   * When false, all empty lines are removed
-   * @default true
-   */
-  preserveEmptyLines: boolean;
-
-  /**
    * Compact output mode - removes all empty lines
-   * Takes precedence over preserveEmptyLines when true
    * @default false
    */
   compactOutput: boolean;
@@ -81,6 +72,5 @@ export const defaultFormatterOptions: FormatterOptions = {
   indentSize: 4,
   useTabs: false,
   indent: true,
-  preserveEmptyLines: true,
   compactOutput: false,
 };

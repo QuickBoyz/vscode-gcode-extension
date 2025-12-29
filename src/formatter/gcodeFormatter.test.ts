@@ -316,14 +316,6 @@ describe("GCodeFormatter", () => {
       expect(lines.every((line) => line !== "")).toBe(true);
     });
 
-    it("should remove empty lines when preserveEmptyLines is false", () => {
-      const result = parseAndFormat("G0 X0\n\nG1 X10", {
-        preserveEmptyLines: false,
-      });
-      const lines = result.split("\n");
-      expect(lines).toHaveLength(2);
-    });
-
     it("should handle empty lines in control structures", () => {
       const input = `WHILE [#1 LT 100] DO
 
@@ -332,7 +324,6 @@ G1 X10
 END`;
       const result = parseAndFormat(input, {
         indentSize: 2,
-        preserveEmptyLines: true,
       });
       const lines = result.split("\n");
       expect(lines).toHaveLength(5);
@@ -446,7 +437,6 @@ M30
       const result = parseAndFormat(input, {
         prettyPrintCommands: false,
         prettyPrintNumbers: false,
-        preserveEmptyLines: true,
       });
 
       // Should preserve empty lines

@@ -22,11 +22,20 @@ export class GCodeFormattingProvider
     document: vscode.TextDocument,
     options: vscode.FormattingOptions
   ): FormatterOptions {
-    const config = vscode.workspace.getConfiguration("gcode", document.uri);
+    const config = vscode.workspace.getConfiguration(
+      "gcode",
+      document.uri
+    );
 
     return {
-      addLineNumbers: config.get<boolean>("formatter.addLineNumbers", false),
-      lineNumberStart: config.get<number>("formatter.lineNumberStart", 10),
+      addLineNumbers: config.get<boolean>(
+        "formatter.addLineNumbers",
+        false
+      ),
+      lineNumberStart: config.get<number>(
+        "formatter.lineNumberStart",
+        10
+      ),
       lineNumberIncrement: config.get<number>(
         "formatter.lineNumberIncrement",
         10
@@ -44,11 +53,10 @@ export class GCodeFormattingProvider
       useTabs: !options.insertSpaces,
       // New formatting options
       indent: config.get<boolean>("formatter.indent", true),
-      preserveEmptyLines: config.get<boolean>(
-        "formatter.preserveEmptyLines",
-        true
+      compactOutput: config.get<boolean>(
+        "formatter.compactOutput",
+        false
       ),
-      compactOutput: config.get<boolean>("formatter.compactOutput", false),
     };
   }
 
@@ -72,7 +80,10 @@ export class GCodeFormattingProvider
       const ast = this.parser.parseGcode(text);
 
       // Get formatter options
-      const formatterOptions = this.getFormatterOptions(document, options);
+      const formatterOptions = this.getFormatterOptions(
+        document,
+        options
+      );
 
       // Format the AST
       const formatter = new GCodeFormatter(formatterOptions);
@@ -88,8 +99,12 @@ export class GCodeFormattingProvider
     } catch (error) {
       // Show error message to user
       const message =
-        error instanceof Error ? error.message : "Unknown formatting error";
-      vscode.window.showErrorMessage(`G-code formatting failed: ${message}`);
+        error instanceof Error
+          ? error.message
+          : "Unknown formatting error";
+      vscode.window.showErrorMessage(
+        `G-code formatting failed: ${message}`
+      );
       return null;
     }
   }

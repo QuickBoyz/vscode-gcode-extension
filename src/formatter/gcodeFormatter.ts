@@ -51,11 +51,8 @@ export class GCodeFormatter {
       // Handle empty lines based on options
       if (statement.type === "EmptyLine") {
         // In compact mode, skip all empty lines
-        if (this.options.compactOutput) {
-          continue;
-        }
         // When preserving empty lines, collapse consecutive empty lines to one
-        if (this.options.preserveEmptyLines && !lastWasEmptyLine) {
+        if (!this.options.compactOutput && !lastWasEmptyLine) {
           lines.push("");
           lastWasEmptyLine = true;
         }

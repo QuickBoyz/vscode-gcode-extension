@@ -1,65 +1,66 @@
-# vscode-gcode-extension README
+# G-Code Language Support
 
-This is the README for your extension "vscode-gcode-extension". After writing up a brief description, we recommend including the following sections.
+A Visual Studio Code extension providing G-Code language support with syntax highlighting and formatting capabilities.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Syntax Highlighting**: Full syntax highlighting for G-Code files (`.nc`, `.ngc`, `.g`, `.gc`)
+- **Document Formatting**: Intelligent formatting with customizable options
+- **Custom Theme**: Dedicated G-Code color theme for optimal readability
 
-For example if there is an image subfolder under your extension project workspace:
+## Supported File Extensions
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- `.nc` - Numerical Control
+- `.ngc` - Numerical G-Code
+- `.g` - G-Code
+- `.gc` - G-Code
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+| Setting                               | Default | Description                                                                  |
+| ------------------------------------- | ------- | ---------------------------------------------------------------------------- |
+| `gcode.formatter.addLineNumbers`      | `false` | Add N-block line numbers to each line (N10, N20, etc.)                       |
+| `gcode.formatter.lineNumberStart`     | `10`    | Starting line number when adding N-blocks                                    |
+| `gcode.formatter.lineNumberIncrement` | `10`    | Line number increment when adding N-blocks                                   |
+| `gcode.formatter.prettyPrintCommands` | `true`  | Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)              |
+| `gcode.formatter.prettyPrintNumbers`  | `true`  | Pretty-print parameter numbers to always include a decimal point (X2 → X2.0) |
+| `gcode.formatter.indent`              | `true`  | Enable indentation for control structures (WHILE, IF, etc.)                  |
+| `gcode.formatter.compactOutput`       | `false` | Compact output mode - removes all empty lines                                |
+
+## Usage
+
+### Format Document
+
+Use the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
+
+- **G-Code: Format G-Code Document**
+
+Or use the standard VS Code format document shortcut (`Shift+Alt+F` / `Shift+Option+F`).
+
+## Requirements
+
+No additional requirements or dependencies needed.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+None at this time.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release with:
 
-Initial release of ...
+- Syntax highlighting for G-Code
+- Document formatting
+- Custom G-Code theme
 
-### 1.0.1
+## License
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+MIT
 
 ---
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**
