@@ -68,6 +68,47 @@ class GCodeFormatter {
     return `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${name}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
   }
 
+  /**
+   * Format an expression for display (without formatter options)
+   * Used for hover, completion, and other UI features
+   */
+  public static formatExpression(expr: Expression): string {
+    switch (expr.type) {
+      case ExpressionType.Number:
+        return expr.value.toString();
+
+      case ExpressionType.Variable:
+        if (expr.name !== undefined) {
+          return GCodeFormatter.formatNamedVariable(expr.name);
+        }
+        return GCodeFormatter.formatNumericVariable(expr.id!);
+
+      case ExpressionType.Binary:
+        return `${GCodeFormatter.formatExpression(expr.left)} ${
+          expr.operator
+        } ${GCodeFormatter.formatExpression(expr.right)}`;
+
+      case ExpressionType.Unary:
+        return `${expr.operator}${GCodeFormatter.formatExpression(
+          expr.operand
+        )}`;
+
+      case ExpressionType.Relational:
+        return `${GCodeFormatter.formatExpression(expr.left)} ${
+          expr.operator
+        } ${GCodeFormatter.formatExpression(expr.right)}`;
+
+      case ExpressionType.FuncCall:
+        const args = expr.args
+          .map((arg) => GCodeFormatter.formatExpression(arg))
+          .join(", ");
+        return `${expr.name}(${args})`;
+
+      default:
+        return GCODE_SYMBOLS.UNKNOWN_VALUE;
+    }
+  }
+
   constructor(options: Partial<FormatterOptions> = {}) {
     this.options = { ...DEFAULT_FORMATTER_OPTIONS, ...options };
     this.currentLineNumber = this.options.lineNumberStart;

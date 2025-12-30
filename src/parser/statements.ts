@@ -5,7 +5,12 @@
  * Classes provide methods and properties that can be reused across the codebase.
  */
 
-import { StatementType, Expression, CommentStyle, ExpressionType } from "./types";
+import {
+  StatementType,
+  Expression,
+  CommentStyle,
+  ExpressionType,
+} from "./types";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Range } from "vscode-languageserver/node";
 import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../constants";
@@ -63,13 +68,19 @@ export abstract class Statement {
         }
         return "?";
       case ExpressionType.Binary:
-        return `${this.formatExpression(expr.left)} ${expr.operator} ${this.formatExpression(expr.right)}`;
+        return `${this.formatExpression(expr.left)} ${
+          expr.operator
+        } ${this.formatExpression(expr.right)}`;
       case ExpressionType.Unary:
         return `${expr.operator}${this.formatExpression(expr.operand)}`;
       case ExpressionType.Relational:
-        return `${this.formatExpression(expr.left)} ${expr.operator} ${this.formatExpression(expr.right)}`;
+        return `${this.formatExpression(expr.left)} ${
+          expr.operator
+        } ${this.formatExpression(expr.right)}`;
       case ExpressionType.FuncCall:
-        return `${expr.name}(${expr.args.map((arg) => this.formatExpression(arg)).join(", ")})`;
+        return `${expr.name}(${expr.args
+          .map((arg) => this.formatExpression(arg))
+          .join(", ")})`;
       default:
         return "?";
     }
@@ -141,8 +152,15 @@ export class WhileStartStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
-    return `${labelText}${GCODE_KEYWORDS.WHILE} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.DO}`;
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
+    return `${labelText}${GCODE_KEYWORDS.WHILE} ${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(this.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    } ${GCODE_KEYWORDS.DO}`;
   }
 }
 
@@ -175,7 +193,10 @@ export class WhileEndStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
     return `${labelText}${GCODE_KEYWORDS.END}`;
   }
 }
@@ -212,8 +233,15 @@ export class IfStartStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
-    return `${labelText}${GCODE_KEYWORDS.IF} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.THEN}`;
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
+    return `${labelText}${GCODE_KEYWORDS.IF} ${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(this.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    } ${GCODE_KEYWORDS.THEN}`;
   }
 }
 
@@ -249,8 +277,15 @@ export class ElseIfStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
-    return `${labelText}${GCODE_KEYWORDS.ELSEIF} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.THEN}`;
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
+    return `${labelText}${GCODE_KEYWORDS.ELSEIF} ${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(this.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    } ${GCODE_KEYWORDS.THEN}`;
   }
 }
 
@@ -283,7 +318,10 @@ export class ElseStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
     return `${labelText}${GCODE_KEYWORDS.ELSE}`;
   }
 }
@@ -317,7 +355,10 @@ export class EndIfStatement extends Statement {
   }
 
   toString(): string {
-    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    const labelText =
+      this.label !== null
+        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
+        : "";
     return `${labelText}${GCODE_KEYWORDS.ENDIF}`;
   }
 }
@@ -365,6 +406,8 @@ export class AssignStatement extends Statement {
       typeof this.variable === "string"
         ? `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${this.variable}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
         : `${GCODE_SYMBOLS.VARIABLE_PREFIX}${this.variable}`;
-    return `${varText}${GCODE_SYMBOLS.ASSIGNMENT_OPERATOR}${this.formatExpression(this.value)}`;
+    return `${varText}${
+      GCODE_SYMBOLS.ASSIGNMENT_OPERATOR
+    }${this.formatExpression(this.value)}`;
   }
 }
