@@ -20,6 +20,15 @@ import {
   StatementType,
   ExpressionType,
 } from "./types";
+import {
+  OBlockStatement,
+  WhileStartStatement,
+  WhileEndStatement,
+  IfStartStatement,
+  ElseIfStatement,
+  ElseStatement,
+  EndIfStatement,
+} from "./statements";
 import { Token, TokenType, gcodeLexer } from "../lexer";
 import {
   CODE_TYPES,
@@ -218,11 +227,11 @@ class GCodeParser {
 
       case TokenType.ELSE:
         this.advance();
-        return { type: StatementType.Else, label: null };
+        return new ElseStatement(null);
 
       case TokenType.ENDIF:
         this.advance();
-        return { type: StatementType.EndIf, label: null };
+        return new EndIfStatement(null);
 
       case TokenType.OSUB:
         return this.parseLabeledStatement();
@@ -574,7 +583,7 @@ class GCodeParser {
       label = Number(numToken.value);
     }
 
-    return { type: StatementType.WhileStart, label, condition };
+    return new WhileStartStatement(condition, label);
   }
 
   /**
@@ -594,7 +603,7 @@ class GCodeParser {
       label = Number(numToken.value);
     }
 
-    return { type: StatementType.WhileEnd, label };
+    return new WhileEndStatement(label);
   }
 
   /**
@@ -618,7 +627,7 @@ class GCodeParser {
 
     // IF...THEN
     this.match(TokenType.THEN);
-    return { type: StatementType.IfStart, label: null, condition };
+    return new IfStartStatement(condition, null);
   }
 
   /**
@@ -630,7 +639,7 @@ class GCodeParser {
     const condition = this.parseExpression();
     this.match(TokenType.RBRACKET);
     this.match(TokenType.THEN);
-    return { type: StatementType.ElseIf, label: null, condition };
+    return new ElseIfStatement(condition, null);
   }
 
   /**
@@ -648,7 +657,7 @@ class GCodeParser {
       const condition = this.parseExpression();
       this.match(TokenType.RBRACKET);
       this.match(TokenType.DO);
-      return { type: StatementType.WhileStart, label, condition };
+      return new WhileStartStatement(condition, label);
     }
 
     // O-block END / ENDWHILE
@@ -657,7 +666,7 @@ class GCodeParser {
       next?.type === TokenType.ENDWHILE
     ) {
       this.advance();
-      return { type: StatementType.WhileEnd, label };
+      return new WhileEndStatement(label);
     }
 
     // O-block IF
@@ -683,17 +692,17 @@ class GCodeParser {
     // O-block ELSE
     if (next?.type === TokenType.ELSE) {
       this.advance();
-      return { type: StatementType.Else, label };
+      return new ElseStatement(label);
     }
 
     // O-block ENDIF
     if (next?.type === TokenType.ENDIF) {
       this.advance();
-      return { type: StatementType.EndIf, label };
+      return new EndIfStatement(label);
     }
 
     // Standalone O-block
-    return { type: StatementType.OBlock, id: label };
+    return new OBlockStatement(label);
   }
 }
 
