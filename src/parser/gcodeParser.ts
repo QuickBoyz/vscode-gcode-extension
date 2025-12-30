@@ -17,8 +17,15 @@ import {
   ParamBlock,
   ParamValue,
   CommentStyle,
+  StatementType,
+  ExpressionType,
 } from "./types";
-import { Token, gcodeLexer } from "../lexer";
+import { Token, TokenType, gcodeLexer } from "../lexer";
+import {
+  CODE_TYPES,
+  SPECIAL_MCODES,
+  GCODE_SYMBOLS,
+} from "../constants";
 
 /**
  * Fast G-code parser using recursive descent
@@ -87,8 +94,8 @@ class GCodeParser {
 
     while (this.pos < this.tokens.length) {
       // Handle empty lines (consecutive newlines)
-      if (this.match("nl")) {
-        body.push({ type: "EmptyLine" });
+      if (this.match(TokenType.NL)) {
+        body.push({ type: StatementType.EmptyLine });
         continue;
       }
 
@@ -98,10 +105,10 @@ class GCodeParser {
       }
 
       // Consume line ending
-      this.match("nl");
+      this.match(TokenType.NL);
     }
 
-    return { type: "Program", body };
+    return { type: StatementType.Program, body };
   }
 
   /**
@@ -110,7 +117,7 @@ class GCodeParser {
   private parseLine(): Statement | null {
     // Check for optional line number (N-block)
     let lineNumber: number | undefined;
-    const lineNumToken = this.match("lineNumber");
+    const lineNumToken = this.match(TokenType.LineNumber);
     if (lineNumToken) {
       lineNumber = Number(lineNumToken.value.slice(1));
     }
@@ -122,12 +129,12 @@ class GCodeParser {
     let comment: string | undefined;
     let commentStyle: CommentStyle | undefined;
 
-    const commentToken = this.match("comment");
+    const commentToken = this.match(TokenType.COMMENT);
     if (commentToken) {
       comment = commentToken.value.slice(1).trim();
       commentStyle = "semicolon";
     } else {
-      const parenComment = this.match("parenComment");
+      const parenComment = this.match(TokenType.PARENCOMMENT);
       if (parenComment) {
         comment = parenComment.value.slice(1, -1).trim();
         commentStyle = "parenthetical";
@@ -138,14 +145,14 @@ class GCodeParser {
     if (!stmt) {
       if (comment !== undefined) {
         return {
-          type: "Comment",
+          type: StatementType.Comment,
           value: comment,
           style: commentStyle!,
           ...(lineNumber !== undefined ? { lineNumber } : {}),
         };
       }
       if (lineNumber !== undefined) {
-        return { type: "Label", lineNumber };
+        return { type: StatementType.Label, lineNumber };
       }
       return null;
     }
@@ -173,51 +180,51 @@ class GCodeParser {
     if (!token) return null;
 
     switch (token.type) {
-      case "percent":
+      case TokenType.PERCENT:
         this.advance();
-        return { type: "ProgramDelimiter" };
+        return { type: StatementType.ProgramDelimiter };
 
-      case "comment":
-      case "parenComment":
+      case TokenType.COMMENT:
+      case TokenType.PARENCOMMENT:
         // Will be handled in parseLine as trailing comment
         return null;
 
-      case "GCODE":
-      case "MCODE":
-      case "PARAM":
+      case TokenType.GCODE:
+      case TokenType.MCODE:
+      case TokenType.PARAM:
         return this.parseCodeBlock();
 
-      case "VAR":
+      case TokenType.VAR:
         return this.parseAssignment();
 
-      case "hash":
+      case TokenType.HASH:
         return this.parseComputedAssignment();
 
-      case "GOTO":
+      case TokenType.GOTO:
         return this.parseGoto();
 
-      case "WHILE":
+      case TokenType.WHILE:
         return this.parseWhileStart();
 
-      case "END":
-      case "ENDWHILE":
+      case TokenType.END:
+      case TokenType.ENDWHILE:
         return this.parseWhileEnd();
 
-      case "IF":
+      case TokenType.IF:
         return this.parseIfStatement();
 
-      case "ELSEIF":
+      case TokenType.ELSEIF:
         return this.parseElseIf();
 
-      case "ELSE":
+      case TokenType.ELSE:
         this.advance();
-        return { type: "Else", label: null };
+        return { type: StatementType.Else, label: null };
 
-      case "ENDIF":
+      case TokenType.ENDIF:
         this.advance();
-        return { type: "EndIf", label: null };
+        return { type: StatementType.EndIf, label: null };
 
-      case "OSUB":
+      case TokenType.OSUB:
         return this.parseLabeledStatement();
 
       default:
@@ -237,29 +244,32 @@ class GCodeParser {
       const token = this.peek();
       if (!token) break;
 
-      if (token.type === "GCODE") {
+      if (token.type === TokenType.GCODE) {
         this.advance();
         codes.push({
-          type: "G",
+          type: CODE_TYPES.G,
           code: Number(token.value.slice(1)),
         });
-      } else if (token.type === "MCODE") {
+      } else if (token.type === TokenType.MCODE) {
         this.advance();
         // Handle M98 (subprogram call) specially
-        if (token.value.toUpperCase() === "M98") {
-          const numToken = this.match("NUMBER");
+        if (
+          token.value.toUpperCase() ===
+          `${GCODE_SYMBOLS.MCODE_PREFIX}${SPECIAL_MCODES.SUBPROGRAM_CALL}`
+        ) {
+          const numToken = this.match(TokenType.NUMBER);
           if (numToken) {
             return {
-              type: "SubprogramCall",
+              type: StatementType.SubprogramCall,
               id: Number(numToken.value),
             };
           }
         }
         codes.push({
-          type: "M",
+          type: CODE_TYPES.M,
           code: Number(token.value.slice(1)),
         });
-      } else if (token.type === "PARAM") {
+      } else if (token.type === TokenType.PARAM) {
         this.advance();
         const value = this.parseParamValue();
         params[token.value] = value;
@@ -270,16 +280,19 @@ class GCodeParser {
 
     // Build appropriate statement type
     if (codes.length === 0) {
-      return { type: "Param", params };
+      return { type: StatementType.Param, params };
     } else if (codes.length === 1) {
       const c = codes[0];
       return {
-        type: c.type === "G" ? "GCode" : "MCode",
+        type:
+          c.type === CODE_TYPES.G
+            ? StatementType.GCode
+            : StatementType.MCode,
         code: c.code,
         params,
       } as Statement;
     } else {
-      return { type: "Block", codes, params };
+      return { type: StatementType.Block, codes, params };
     }
   }
 
@@ -290,30 +303,30 @@ class GCodeParser {
     const token = this.peek();
 
     // Negative number
-    if (token?.type === "minus") {
+    if (token?.type === TokenType.MINUS) {
       this.advance();
-      const num = this.match("NUMBER");
+      const num = this.match(TokenType.NUMBER);
       if (num) return -Number(num.value);
       // Negative expression
       const expr = this.parseParamValue();
       if (typeof expr === "number") return -expr;
       return {
-        type: "Unary",
-        operator: "-",
+        type: ExpressionType.Unary,
+        operator: GCODE_SYMBOLS.MINUS,
         operand: expr as Expression,
       };
     }
 
     // Plain number
-    if (token?.type === "NUMBER") {
+    if (token?.type === TokenType.NUMBER) {
       this.advance();
       return Number(token.value);
     }
 
     // Dot followed by variable (E.#234 style)
-    if (token?.type === "dot") {
+    if (token?.type === TokenType.DOT) {
       this.advance();
-      const varToken = this.match("VAR");
+      const varToken = this.match(TokenType.VAR);
       if (varToken) {
         return this.parseVariableExpr(varToken);
       }
@@ -321,16 +334,16 @@ class GCodeParser {
     }
 
     // Variable
-    if (token?.type === "VAR") {
+    if (token?.type === TokenType.VAR) {
       this.advance();
       return this.parseVariableExpr(token);
     }
 
     // Expression in brackets
-    if (token?.type === "lBracket") {
+    if (token?.type === TokenType.LBRACKET) {
       this.advance();
       const expr = this.parseExpression();
-      this.match("rBracket");
+      this.match(TokenType.RBRACKET);
       return expr;
     }
 
@@ -343,9 +356,9 @@ class GCodeParser {
   private parseVariableExpr(token: Token): Expression {
     const v = token.value;
     if (v.startsWith("#<")) {
-      return { type: "Variable", name: v.slice(2, -1) };
+      return { type: ExpressionType.Variable, name: v.slice(2, -1) };
     }
-    return { type: "Variable", id: Number(v.slice(1)) };
+    return { type: ExpressionType.Variable, id: Number(v.slice(1)) };
   }
 
   /**
@@ -362,11 +375,11 @@ class GCodeParser {
     let left = this.parseAdditive();
 
     while (true) {
-      const op = this.match("RELOP");
+      const op = this.match(TokenType.RELOP);
       if (!op) break;
       const right = this.parseAdditive();
       left = {
-        type: "Relational",
+        type: ExpressionType.Relational,
         operator: op.value as "GT" | "LT" | "EQ" | "NE" | "LE" | "GE",
         left,
         right,
@@ -383,12 +396,12 @@ class GCodeParser {
     let left = this.parseMultiplicative();
 
     while (true) {
-      const op = this.match("plus", "minus");
+      const op = this.match(TokenType.PLUS, TokenType.MINUS);
       if (!op) break;
       const right = this.parseMultiplicative();
       left = {
-        type: "Binary",
-        operator: op.type === "plus" ? "+" : "-",
+        type: ExpressionType.Binary,
+        operator: op.type === TokenType.PLUS ? "+" : "-",
         left,
         right,
       };
@@ -404,13 +417,21 @@ class GCodeParser {
     let left = this.parseUnary();
 
     while (true) {
-      const op = this.match("star", "slash", "MOD");
+      const op = this.match(
+        TokenType.STAR,
+        TokenType.SLASH,
+        TokenType.MOD
+      );
       if (!op) break;
       const right = this.parseUnary();
       left = {
-        type: "Binary",
+        type: ExpressionType.Binary,
         operator:
-          op.type === "star" ? "*" : op.type === "slash" ? "/" : "MOD",
+          op.type === TokenType.STAR
+            ? "*"
+            : op.type === TokenType.SLASH
+            ? "/"
+            : "MOD",
         left,
         right,
       } as Expression;
@@ -423,10 +444,10 @@ class GCodeParser {
    * Parse unary expression (negation)
    */
   private parseUnary(): Expression {
-    if (this.match("minus")) {
+    if (this.match(TokenType.MINUS)) {
       return {
-        type: "Unary",
-        operator: "-",
+        type: ExpressionType.Unary,
+        operator: GCODE_SYMBOLS.MINUS,
         operand: this.parseUnary(),
       };
     }
@@ -440,36 +461,39 @@ class GCodeParser {
     const token = this.peek();
 
     // Number
-    if (token?.type === "NUMBER") {
+    if (token?.type === TokenType.NUMBER) {
       this.advance();
-      return { type: "Number", value: Number(token.value) };
+      return {
+        type: ExpressionType.Number,
+        value: Number(token.value),
+      };
     }
 
     // Variable
-    if (token?.type === "VAR") {
+    if (token?.type === TokenType.VAR) {
       this.advance();
       return this.parseVariableExpr(token);
     }
 
     // Function call
-    if (token?.type === "FUNC") {
+    if (token?.type === TokenType.FUNC) {
       this.advance();
-      this.match("lBracket");
+      this.match(TokenType.LBRACKET);
       const args = this.parseArgList();
-      this.match("rBracket");
-      return { type: "FuncCall", name: token.value, args };
+      this.match(TokenType.RBRACKET);
+      return { type: ExpressionType.FuncCall, name: token.value, args };
     }
 
     // Parenthesized expression
-    if (token?.type === "lBracket") {
+    if (token?.type === TokenType.LBRACKET) {
       this.advance();
       const expr = this.parseExpression();
-      this.match("rBracket");
+      this.match(TokenType.RBRACKET);
       return expr;
     }
 
     // Default to zero
-    return { type: "Number", value: 0 };
+    return { type: ExpressionType.Number, value: 0 };
   }
 
   /**
@@ -477,7 +501,7 @@ class GCodeParser {
    */
   private parseArgList(): Expression[] {
     const args: Expression[] = [this.parseExpression()];
-    while (this.match("comma")) {
+    while (this.match(TokenType.COMMA)) {
       args.push(this.parseExpression());
     }
     return args;
@@ -488,7 +512,7 @@ class GCodeParser {
    */
   private parseAssignment(): Statement {
     const varToken = this.advance()!;
-    this.match("equals");
+    this.match(TokenType.EQUALS);
     const value = this.parseExpression();
 
     const v = varToken.value;
@@ -496,7 +520,7 @@ class GCodeParser {
       ? v.slice(2, -1)
       : Number(v.slice(1));
 
-    return { type: "Assign", variable, value };
+    return { type: StatementType.Assign, variable, value };
   }
 
   /**
@@ -504,14 +528,14 @@ class GCodeParser {
    */
   private parseComputedAssignment(): Statement {
     this.advance(); // #
-    this.match("lBracket");
+    this.match(TokenType.LBRACKET);
     const idx = this.parseExpression();
-    this.match("rBracket");
-    this.match("equals");
+    this.match(TokenType.RBRACKET);
+    this.match(TokenType.EQUALS);
     const value = this.parseExpression();
 
     return {
-      type: "Assign",
+      type: StatementType.Assign,
       variable: idx as unknown as number,
       value,
     };
@@ -522,8 +546,11 @@ class GCodeParser {
    */
   private parseGoto(): Statement {
     this.advance(); // GOTO
-    const num = this.match("NUMBER");
-    return { type: "Goto", target: num ? Number(num.value) : 0 };
+    const num = this.match(TokenType.NUMBER);
+    return {
+      type: StatementType.Goto,
+      target: num ? Number(num.value) : 0,
+    };
   }
 
   /**
@@ -531,23 +558,23 @@ class GCodeParser {
    */
   private parseWhileStart(): Statement {
     this.advance(); // WHILE
-    this.match("lBracket");
+    this.match(TokenType.LBRACKET);
     const condition = this.parseExpression();
-    this.match("rBracket");
+    this.match(TokenType.RBRACKET);
 
     let label: number | null = null;
-    const doToken = this.match("DO");
+    const doToken = this.match(TokenType.DO);
     if (doToken && doToken.value.length > 2) {
       label = Number(doToken.value.slice(2));
     }
 
     // Check for optional number after DO
-    const numToken = this.match("NUMBER");
+    const numToken = this.match(TokenType.NUMBER);
     if (numToken) {
       label = Number(numToken.value);
     }
 
-    return { type: "WhileStart", label, condition };
+    return { type: StatementType.WhileStart, label, condition };
   }
 
   /**
@@ -557,17 +584,17 @@ class GCodeParser {
     const token = this.advance()!;
     let label: number | null = null;
 
-    if (token.type === "END" && token.value.length > 3) {
+    if (token.type === TokenType.END && token.value.length > 3) {
       label = Number(token.value.slice(3));
     }
 
     // Check for optional number after END
-    const numToken = this.match("NUMBER");
+    const numToken = this.match(TokenType.NUMBER);
     if (numToken) {
       label = Number(numToken.value);
     }
 
-    return { type: "WhileEnd", label };
+    return { type: StatementType.WhileEnd, label };
   }
 
   /**
@@ -575,23 +602,23 @@ class GCodeParser {
    */
   private parseIfStatement(): Statement {
     this.advance(); // IF
-    this.match("lBracket");
+    this.match(TokenType.LBRACKET);
     const condition = this.parseExpression();
-    this.match("rBracket");
+    this.match(TokenType.RBRACKET);
 
     // Check for IF...GOTO (ternary)
-    if (this.match("GOTO")) {
-      const num = this.match("NUMBER");
+    if (this.match(TokenType.GOTO)) {
+      const num = this.match(TokenType.NUMBER);
       return {
-        type: "IfGoto",
+        type: StatementType.IfGoto,
         condition,
         target: num ? Number(num.value) : 0,
       };
     }
 
     // IF...THEN
-    this.match("THEN");
-    return { type: "IfStart", label: null, condition };
+    this.match(TokenType.THEN);
+    return { type: StatementType.IfStart, label: null, condition };
   }
 
   /**
@@ -599,11 +626,11 @@ class GCodeParser {
    */
   private parseElseIf(): Statement {
     this.advance(); // ELSEIF
-    this.match("lBracket");
+    this.match(TokenType.LBRACKET);
     const condition = this.parseExpression();
-    this.match("rBracket");
-    this.match("THEN");
-    return { type: "ElseIf", label: null, condition };
+    this.match(TokenType.RBRACKET);
+    this.match(TokenType.THEN);
+    return { type: StatementType.ElseIf, label: null, condition };
   }
 
   /**
@@ -615,55 +642,58 @@ class GCodeParser {
     const next = this.peek();
 
     // O-block WHILE
-    if (next?.type === "WHILE") {
+    if (next?.type === TokenType.WHILE) {
       this.advance();
-      this.match("lBracket");
+      this.match(TokenType.LBRACKET);
       const condition = this.parseExpression();
-      this.match("rBracket");
-      this.match("DO");
-      return { type: "WhileStart", label, condition };
+      this.match(TokenType.RBRACKET);
+      this.match(TokenType.DO);
+      return { type: StatementType.WhileStart, label, condition };
     }
 
     // O-block END / ENDWHILE
-    if (next?.type === "END" || next?.type === "ENDWHILE") {
+    if (
+      next?.type === TokenType.END ||
+      next?.type === TokenType.ENDWHILE
+    ) {
       this.advance();
-      return { type: "WhileEnd", label };
+      return { type: StatementType.WhileEnd, label };
     }
 
     // O-block IF
-    if (next?.type === "IF") {
+    if (next?.type === TokenType.IF) {
       this.advance();
-      this.match("lBracket");
+      this.match(TokenType.LBRACKET);
       const condition = this.parseExpression();
-      this.match("rBracket");
-      this.match("THEN");
-      return { type: "IfStart", label, condition };
+      this.match(TokenType.RBRACKET);
+      this.match(TokenType.THEN);
+      return { type: StatementType.IfStart, label, condition };
     }
 
     // O-block ELSEIF
-    if (next?.type === "ELSEIF") {
+    if (next?.type === TokenType.ELSEIF) {
       this.advance();
-      this.match("lBracket");
+      this.match(TokenType.LBRACKET);
       const condition = this.parseExpression();
-      this.match("rBracket");
-      this.match("THEN");
-      return { type: "ElseIf", label, condition };
+      this.match(TokenType.RBRACKET);
+      this.match(TokenType.THEN);
+      return { type: StatementType.ElseIf, label, condition };
     }
 
     // O-block ELSE
-    if (next?.type === "ELSE") {
+    if (next?.type === TokenType.ELSE) {
       this.advance();
-      return { type: "Else", label };
+      return { type: StatementType.Else, label };
     }
 
     // O-block ENDIF
-    if (next?.type === "ENDIF") {
+    if (next?.type === TokenType.ENDIF) {
       this.advance();
-      return { type: "EndIf", label };
+      return { type: StatementType.EndIf, label };
     }
 
     // Standalone O-block
-    return { type: "OBlock", id: label };
+    return { type: StatementType.OBlock, id: label };
   }
 }
 

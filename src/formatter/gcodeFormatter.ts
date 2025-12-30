@@ -22,39 +22,58 @@ import {
   ElseIfStatement,
   ElseStatement,
   EndIfStatement,
+  StatementType,
+  ExpressionType,
 } from "../parser/types";
 import { FormatterOptions } from "./types";
-
-/**
- * Default formatter options
- */
-export const defaultFormatterOptions: FormatterOptions = {
-  addLineNumbers: false,
-  lineNumberStart: 10,
-  lineNumberIncrement: 10,
-  prettyPrintCommands: true,
-  prettyPrintNumbers: true,
-  indentSize: 4,
-  useTabs: false,
-  indent: true,
-  compactOutput: false,
-};
+import {
+  GCODE_SYMBOLS,
+  GCODE_KEYWORDS,
+  DEFAULTS,
+  DEFAULT_FORMATTER_OPTIONS,
+} from "../constants";
 
 class GCodeFormatter {
   private options: FormatterOptions;
   private currentLineNumber: number;
   private indentLevel: number;
 
+  /**
+   * Static formatting methods for use throughout the codebase
+   */
+  public static formatLineNumber(num: number): string {
+    return `${GCODE_SYMBOLS.LINE_NUMBER_PREFIX}${num}`;
+  }
+
+  public static formatGCode(num: number): string {
+    return `${GCODE_SYMBOLS.GCODE_PREFIX}${num}`;
+  }
+
+  public static formatMCode(num: number): string {
+    return `${GCODE_SYMBOLS.MCODE_PREFIX}${num}`;
+  }
+
+  public static formatOBlock(num: number): string {
+    return `${GCODE_SYMBOLS.OBLOCK_PREFIX}${num}`;
+  }
+
+  public static formatNumericVariable(num: number): string {
+    return `${GCODE_SYMBOLS.VARIABLE_PREFIX}${num}`;
+  }
+
+  public static formatNamedVariable(name: string): string {
+    return `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${name}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
+  }
+
   constructor(options: Partial<FormatterOptions> = {}) {
-    this.options = { ...defaultFormatterOptions, ...options };
+    this.options = { ...DEFAULT_FORMATTER_OPTIONS, ...options };
     this.currentLineNumber = this.options.lineNumberStart;
-    this.indentLevel = 0;
+    this.indentLevel = DEFAULTS.MIN_INDENT_LEVEL;
   }
 
   public setOptions(options: Partial<FormatterOptions>): void {
     this.options = {
-      ...defaultFormatterOptions,
-      ...this.options,
+      ...DEFAULT_FORMATTER_OPTIONS,
       ...options,
     };
   }
@@ -65,14 +84,14 @@ class GCodeFormatter {
   public format(program: Program): string {
     // Reset state for each format call
     this.currentLineNumber = this.options.lineNumberStart;
-    this.indentLevel = 0;
+    this.indentLevel = DEFAULTS.MIN_INDENT_LEVEL;
 
     const lines: string[] = [];
     let lastWasEmptyLine = false;
 
     for (const statement of program.body) {
       // Handle empty lines based on options
-      if (statement.type === "EmptyLine") {
+      if (statement.type === StatementType.EmptyLine) {
         // In compact mode, skip all empty lines
         // When preserving empty lines, collapse consecutive empty lines to one
         if (!this.options.compactOutput && !lastWasEmptyLine) {
@@ -94,7 +113,7 @@ class GCodeFormatter {
       this.adjustIndentAfter(statement);
     }
 
-    return lines.join("\n");
+    return lines.join(GCODE_SYMBOLS.NEWLINE);
   }
 
   /**
@@ -102,11 +121,14 @@ class GCodeFormatter {
    */
   private adjustIndentBefore(statement: Statement): void {
     switch (statement.type) {
-      case "WhileEnd":
-      case "EndIf":
-      case "Else":
-      case "ElseIf":
-        this.indentLevel = Math.max(0, this.indentLevel - 1);
+      case StatementType.WhileEnd:
+      case StatementType.EndIf:
+      case StatementType.Else:
+      case StatementType.ElseIf:
+        this.indentLevel = Math.max(
+          DEFAULTS.MIN_INDENT_LEVEL,
+          this.indentLevel - 1
+        );
         break;
     }
   }
@@ -116,10 +138,10 @@ class GCodeFormatter {
    */
   private adjustIndentAfter(statement: Statement): void {
     switch (statement.type) {
-      case "WhileStart":
-      case "IfStart":
-      case "Else":
-      case "ElseIf":
+      case StatementType.WhileStart:
+      case StatementType.IfStart:
+      case StatementType.Else:
+      case StatementType.ElseIf:
         this.indentLevel++;
         break;
     }
@@ -134,8 +156,8 @@ class GCodeFormatter {
       return "";
     }
     const char = this.options.useTabs
-      ? "\t"
-      : " ".repeat(this.options.indentSize);
+      ? GCODE_SYMBOLS.TAB
+      : GCODE_SYMBOLS.SPACE.repeat(this.options.indentSize);
     return char.repeat(this.indentLevel);
   }
 
@@ -147,7 +169,9 @@ class GCodeFormatter {
 
     // Add line number if enabled
     if (this.options.addLineNumbers) {
-      parts.push(`N${this.currentLineNumber}`);
+      parts.push(
+        GCodeFormatter.formatLineNumber(this.currentLineNumber)
+      );
       this.currentLineNumber += this.options.lineNumberIncrement;
     }
 
@@ -167,15 +191,19 @@ class GCodeFormatter {
     }
 
     // Add comment if present and not a comment-only statement
-    if (statement.type !== "Comment" && statement.comment) {
+    if (statement.type !== StatementType.Comment && statement.comment) {
       if (statement.commentStyle === "parenthetical") {
-        parts.push(`(${statement.comment})`);
+        parts.push(
+          `${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_OPEN}${statement.comment}${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_CLOSE}`
+        );
       } else {
-        parts.push(`;${statement.comment}`);
+        parts.push(
+          `${GCODE_SYMBOLS.SEMICOLON_COMMENT}${statement.comment}`
+        );
       }
     }
 
-    return parts.join(" ");
+    return parts.join(GCODE_SYMBOLS.SPACE);
   }
 
   /**
@@ -183,46 +211,46 @@ class GCodeFormatter {
    */
   private formatStatementContent(statement: Statement): string {
     switch (statement.type) {
-      case "GCode":
+      case StatementType.GCode:
         return this.formatGCode(statement);
-      case "MCode":
+      case StatementType.MCode:
         return this.formatMCode(statement);
-      case "Block":
+      case StatementType.Block:
         return this.formatBlock(statement);
-      case "Param":
+      case StatementType.Param:
         return this.formatParamOnly(statement);
-      case "Comment":
+      case StatementType.Comment:
         return this.formatComment(statement);
-      case "Assign":
+      case StatementType.Assign:
         return this.formatAssign(statement);
-      case "Goto":
+      case StatementType.Goto:
         return this.formatGoto(statement);
-      case "SubprogramCall":
+      case StatementType.SubprogramCall:
         return this.formatSubprogramCall(statement);
-      case "OBlock":
+      case StatementType.OBlock:
         return this.formatOBlock(statement);
-      case "WhileStart":
+      case StatementType.WhileStart:
         return this.formatWhileStart(statement);
-      case "WhileEnd":
+      case StatementType.WhileEnd:
         return this.formatWhileEnd(statement);
-      case "IfStart":
+      case StatementType.IfStart:
         return this.formatIfStart(statement);
-      case "IfGoto":
+      case StatementType.IfGoto:
         return this.formatIfGoto(statement);
-      case "ElseIf":
+      case StatementType.ElseIf:
         return this.formatElseIf(statement);
-      case "Else":
+      case StatementType.Else:
         return this.formatElse(statement);
-      case "EndIf":
+      case StatementType.EndIf:
         return this.formatEndIf(statement);
-      case "ProgramDelimiter":
+      case StatementType.ProgramDelimiter:
         return this.formatProgramDelimiter();
-      case "Label":
-        return `N${statement.lineNumber}`;
-      case "EmptyLine":
-        return "";
+      case StatementType.Label:
+        return GCodeFormatter.formatLineNumber(statement.lineNumber!);
+      case StatementType.EmptyLine:
+        return GCODE_SYMBOLS.EMPTY_STRING;
       default:
-        return "";
+        return GCODE_SYMBOLS.EMPTY_STRING;
     }
   }
 
@@ -230,18 +258,24 @@ class GCodeFormatter {
    * Format a G-code command (G0, G1, G2, etc.)
    */
   private formatGCode(stmt: GCodeStatement): string {
-    const code = this.formatCommandCode("G", stmt.code);
+    const code = this.formatCommandCode(
+      GCODE_SYMBOLS.GCODE_PREFIX,
+      stmt.code
+    );
     const params = this.formatParams(stmt.params);
-    return params ? `${code} ${params}` : code;
+    return params ? `${code}${GCODE_SYMBOLS.SPACE}${params}` : code;
   }
 
   /**
    * Format an M-code command (M3, M5, M30, etc.)
    */
   private formatMCode(stmt: MCodeStatement): string {
-    const code = this.formatCommandCode("M", stmt.code);
+    const code = this.formatCommandCode(
+      GCODE_SYMBOLS.MCODE_PREFIX,
+      stmt.code
+    );
     const params = this.formatParams(stmt.params);
-    return params ? `${code} ${params}` : code;
+    return params ? `${code}${GCODE_SYMBOLS.SPACE}${params}` : code;
   }
 
   /**
@@ -249,17 +283,27 @@ class GCodeFormatter {
    */
   private formatBlock(stmt: BlockStatement): string {
     const codes = stmt.codes
-      .map((c) => this.formatCommandCode(c.type, c.code))
-      .join(" ");
+      .map((c) =>
+        this.formatCommandCode(
+          c.type === "G"
+            ? GCODE_SYMBOLS.GCODE_PREFIX
+            : GCODE_SYMBOLS.MCODE_PREFIX,
+          c.code
+        )
+      )
+      .join(GCODE_SYMBOLS.SPACE);
     const params = this.formatParams(stmt.params);
-    return params ? `${codes} ${params}` : codes;
+    return params ? `${codes}${GCODE_SYMBOLS.SPACE}${params}` : codes;
   }
 
   /**
    * Format a command code with optional pretty-printing (G1 -> G01)
    */
   private formatCommandCode(prefix: string, code: number): string {
-    if (this.options.prettyPrintCommands && code < 10) {
+    if (
+      this.options.prettyPrintCommands &&
+      code < DEFAULTS.PRETTY_PRINT_CODE_THRESHOLD
+    ) {
       return `${prefix}0${code}`;
     }
     return `${prefix}${code}`;
@@ -282,7 +326,7 @@ class GCodeFormatter {
       parts.push(`${key}${this.formatParamValue(value)}`);
     }
 
-    return parts.join(" ");
+    return parts.join(GCODE_SYMBOLS.SPACE);
   }
 
   /**
@@ -293,7 +337,11 @@ class GCodeFormatter {
       return this.formatNumber(value);
     }
     // Expression - wrap in brackets with no spaces
-    return `[${this.formatExpression(value)}]`;
+    return `${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(value)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    }`;
   }
 
   /**
@@ -315,36 +363,40 @@ class GCodeFormatter {
    */
   private formatExpression(expr: Expression): string {
     switch (expr.type) {
-      case "Number":
+      case ExpressionType.Number:
         return this.formatNumber(expr.value);
 
-      case "Variable":
+      case ExpressionType.Variable:
         if (expr.name !== undefined) {
-          return `#<${expr.name}>`;
+          return GCodeFormatter.formatNamedVariable(expr.name);
         }
-        return `#${expr.id}`;
+        return GCodeFormatter.formatNumericVariable(expr.id!);
 
-      case "Binary":
-        return `${this.formatExpression(expr.left)} ${
-          expr.operator
-        } ${this.formatExpression(expr.right)}`;
+      case ExpressionType.Binary:
+        return `${this.formatExpression(expr.left)}${
+          GCODE_SYMBOLS.SPACE
+        }${expr.operator}${GCODE_SYMBOLS.SPACE}${this.formatExpression(
+          expr.right
+        )}`;
 
-      case "Relational":
-        return `${this.formatExpression(expr.left)} ${
-          expr.operator
-        } ${this.formatExpression(expr.right)}`;
+      case ExpressionType.Relational:
+        return `${this.formatExpression(expr.left)}${
+          GCODE_SYMBOLS.SPACE
+        }${expr.operator}${GCODE_SYMBOLS.SPACE}${this.formatExpression(
+          expr.right
+        )}`;
 
-      case "FuncCall":
+      case ExpressionType.FuncCall:
         const args = expr.args
           .map((a) => this.formatExpression(a))
           .join(", ");
-        return `${expr.name}[${args}]`;
+        return `${expr.name}${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${args}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE}`;
 
-      case "Unary":
-        return `-${this.formatExpression(expr.operand)}`;
+      case ExpressionType.Unary:
+        return `${expr.operator}${this.formatExpression(expr.operand)}`;
 
       default:
-        return "";
+        return GCODE_SYMBOLS.EMPTY_STRING;
     }
   }
 
@@ -353,9 +405,9 @@ class GCodeFormatter {
    */
   private formatComment(stmt: CommentStatement): string {
     if (stmt.style === "parenthetical") {
-      return `(${stmt.value})`;
+      return `${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_OPEN}${stmt.value}${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_CLOSE}`;
     }
-    return `;${stmt.value}`;
+    return `${GCODE_SYMBOLS.SEMICOLON_COMMENT}${stmt.value}`;
   }
 
   /**
@@ -365,62 +417,89 @@ class GCodeFormatter {
     let variable: string;
     if (typeof stmt.variable === "string") {
       // Named variable: #<name>
-      variable = `#<${stmt.variable}>`;
+      variable = GCodeFormatter.formatNamedVariable(stmt.variable);
     } else if (typeof stmt.variable === "number") {
       // Numeric variable: #123
-      variable = `#${stmt.variable}`;
+      variable = GCodeFormatter.formatNumericVariable(stmt.variable);
     } else {
       // Computed variable: #[expression]
-      variable = `#[${this.formatExpression(stmt.variable)}]`;
+      variable = `${
+        GCODE_SYMBOLS.COMPUTED_VAR_OPEN
+      }${this.formatExpression(stmt.variable)}${
+        GCODE_SYMBOLS.COMPUTED_VAR_CLOSE
+      }`;
     }
-    return `${variable} = ${this.formatExpression(stmt.value)}`;
+    return `${variable}${GCODE_SYMBOLS.SPACE}${
+      GCODE_SYMBOLS.ASSIGNMENT_OPERATOR
+    }${GCODE_SYMBOLS.SPACE}${this.formatExpression(stmt.value)}`;
   }
 
   /**
    * Format GOTO statement
    */
   private formatGoto(stmt: GotoStatement): string {
-    return `GOTO ${stmt.target}`;
+    return `${GCODE_KEYWORDS.GOTO}${GCODE_SYMBOLS.SPACE}${stmt.target}`;
   }
 
   /**
    * Format subprogram call (M98)
    */
   private formatSubprogramCall(stmt: SubprogramCallStatement): string {
-    return `M98 ${stmt.id}`;
+    return `${GCODE_SYMBOLS.MCODE_PREFIX}98${GCODE_SYMBOLS.SPACE}${stmt.id}`;
   }
 
   /**
    * Format O-block statement
    */
   private formatOBlock(stmt: OBlockStatement): string {
-    return `O${stmt.id}`;
+    return GCodeFormatter.formatOBlock(stmt.id);
   }
 
   /**
    * Format WHILE start
    */
   private formatWhileStart(stmt: WhileStartStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}WHILE [${this.formatExpression(
-      stmt.condition
-    )}] DO`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.WHILE}${GCODE_SYMBOLS.SPACE}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(stmt.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.DO}`;
   }
 
   /**
    * Format WHILE end
    */
   private formatWhileEnd(stmt: WhileEndStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}END`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.END}`;
   }
 
   /**
    * Format IF start
    */
   private formatIfStart(stmt: IfStartStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}IF [${this.formatExpression(stmt.condition)}] THEN`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.IF}${GCODE_SYMBOLS.SPACE}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(stmt.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.THEN}`;
   }
 
   /**
@@ -430,43 +509,65 @@ class GCodeFormatter {
     condition: any;
     target: number;
   }): string {
-    return `IF [${this.formatExpression(stmt.condition)}] GOTO ${
-      stmt.target
-    }`;
+    return `${GCODE_KEYWORDS.IF}${GCODE_SYMBOLS.SPACE}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(stmt.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.GOTO}${
+      GCODE_SYMBOLS.SPACE
+    }${stmt.target}`;
   }
 
   /**
    * Format ELSEIF
    */
   private formatElseIf(stmt: ElseIfStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}ELSEIF [${this.formatExpression(
-      stmt.condition
-    )}] THEN`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.ELSEIF}${GCODE_SYMBOLS.SPACE}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
+    }${this.formatExpression(stmt.condition)}${
+      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
+    }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.THEN}`;
   }
 
   /**
    * Format ELSE
    */
   private formatElse(stmt: ElseStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}ELSE`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.ELSE}`;
   }
 
   /**
    * Format ENDIF
    */
   private formatEndIf(stmt: EndIfStatement): string {
-    const label = stmt.label !== null ? `O${stmt.label} ` : "";
-    return `${label}ENDIF`;
+    const label =
+      stmt.label !== null
+        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+            GCODE_SYMBOLS.SPACE
+          }`
+        : GCODE_SYMBOLS.EMPTY_STRING;
+    return `${label}${GCODE_KEYWORDS.ENDIF}`;
   }
 
   /**
    * Format program delimiter (%)
    */
   private formatProgramDelimiter(): string {
-    return "%";
+    return GCODE_SYMBOLS.PROGRAM_DELIMITER;
   }
 }
 
 export const gcodeFormatter = new GCodeFormatter();
+export { GCodeFormatter };

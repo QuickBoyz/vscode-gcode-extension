@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { gcodeParser } from "./gcodeParser";
-import { GCodeStatement } from "./types";
+import { GCodeStatement, Statement, StatementType } from "./types";
 
 describe("G-Code Parser", () => {
   test("parses simple G-code command", () => {
@@ -20,7 +20,7 @@ describe("G-Code Parser", () => {
     expect(result.body.length).toBeGreaterThan(0);
     // Check that GCode is present with at least some params
     const gcode = result.body.find(
-      (stmt: any) => stmt.type === "GCode"
+      (stmt: Statement) => stmt.type === StatementType.GCode
     );
     expect(gcode).toBeDefined();
     expect((gcode as GCodeStatement).code).toBe(0);
