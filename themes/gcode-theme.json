@@ -1,87 +1,91 @@
 {
   "$schema": "vscode://schemas/color-theme",
   "type": "dark",
+  "semanticHighlighting": true,
   "tokenColors": [
     {
-      "scope": "comment.block.gcode,comment.line.gcode",
+      "scope": "comment.block, comment.line",
       "settings": {
         "foreground": "#7d7d7d",
         "fontStyle": "italic"
       }
     },
     {
-      "scope": "keyword.operator.logical.gcode",
+      "scope": "keyword.operator",
       "settings": {
         "foreground": "#56B6C2"
       }
     },
     {
-      "scope": "variable.parameter.gcode,variable.other.gcode,variable.name.gcode",
+      "scope": "variable.parameter, variable.other.readwrite, variable.name",
       "settings": {
         "foreground": "#E06C75"
       }
     },
     {
-      "scope": "variable.name.gcode",
+      "scope": "variable.name",
       "settings": {
         "fontStyle": "italic"
       }
     },
     {
-      "scope": "constant.numeric.gcode",
+      "scope": "constant.numeric",
       "settings": {
         "foreground": "#D19A66"
       }
     },
     {
-      "scope": "entity.name.function.gcode",
+      "scope": "entity.name.function",
       "settings": {
         "foreground": "#C678DD",
         "fontStyle": "bold"
       }
     },
     {
-      "scope": "entity.name.function.mcode",
-      "settings": {
-        "foreground": "#d878dd",
-        "fontStyle": "bold"
-      }
-    },
-    {
-      "scope": "entity.name.label.gcode",
+      "scope": "entity.name.label",
       "settings": {
         "foreground": "#d5d5d5"
       }
     },
     {
-      "scope": "meta.tag.gcode",
+      "scope": "meta.tag",
       "settings": {
         "foreground": "#E5C07B"
       }
     },
     {
-      "scope": "keyword.control.gcode",
+      "scope": "keyword.control",
       "settings": {
         "foreground": "#C678DD"
       }
     },
     {
-      "scope": "keyword.operator.arithmetic.gcode",
-      "settings": {
-        "foreground": "#56B6C2"
-      }
-    },
-    {
-      "scope": "punctuation.definition.program.gcode",
+      "scope": "punctuation.definition",
       "settings": {
         "foreground": "#98C379"
       }
     },
     {
-      "scope": "support.function.math.gcode",
+      "scope": "support.function",
       "settings": {
         "foreground": "#56B6C2"
       }
     }
-  ]
+  ],
+  "semanticTokenColors": {
+    "variable": "#E06C75",
+    "variable.declaration": {
+      "foreground": "#E06C75",
+      "fontStyle": "bold"
+    },
+    "function": "#C678DD",
+    "label": "#d5d5d5",
+    "keyword": "#C678DD",
+    "number": "#D19A66",
+    "operator": "#56B6C2",
+    "comment": {
+      "foreground": "#7d7d7d",
+      "fontStyle": "italic"
+    }
+  }
 }

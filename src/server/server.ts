@@ -8,6 +8,8 @@
  * - Variable hover information
  * - Variable definition navigation
  * - Variable rename (F2 or context menu)
+ * - Variable completion (Ctrl+Space)
+ * - Semantic highlighting
  */
 import {
   createConnection,
@@ -28,12 +30,21 @@ import {
   Location,
   RenameParams,
   WorkspaceEdit,
+  CompletionParams,
+  CompletionItem,
+  CompletionItemKind,
+  SemanticTokensParams,
+  SemanticTokens,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { gcodeParser } from "../parser";
 import { gcodeFormatter, GCodeFormatter } from "../formatter";
 import { FormatterOptions } from "../formatter/types";
 import { VariableTracker } from "./variableTracker";
+import {
+  SemanticTokensProvider,
+  SEMANTIC_TOKENS_LEGEND,
+} from "./semanticTokensProvider";
 import {
   GCODE_SYMBOLS,
   REGEX_PATTERNS,
@@ -77,6 +88,11 @@ let globalSettings: GCodeSettings = defaultSettings;
 // Variable tracker instance
 const variableTracker = new VariableTracker();
 
+// Semantic tokens provider instance
+const semanticTokensProvider = new SemanticTokensProvider(
+  variableTracker
+);
+
 connection.onInitialize(
   (_params: InitializeParams): InitializeResult => {
     connection.console.log("G-code Language Server initializing...");
@@ -89,6 +105,13 @@ connection.onInitialize(
         hoverProvider: true,
         definitionProvider: true,
         renameProvider: true,
+        completionProvider: {
+          triggerCharacters: [GCODE_SYMBOLS.VARIABLE_PREFIX],
+        },
+        semanticTokensProvider: {
+          legend: SEMANTIC_TOKENS_LEGEND,
+          full: true,
+        },
       },
     };
   }
@@ -625,6 +648,161 @@ connection.onRenameRequest(
         }`
       );
       return null;
+    }
+  }
+);
+
+/**
+ * Handle completion requests (Ctrl+Space or typing)
+ */
+connection.onCompletion(
+  async (
+    params: CompletionParams
+  ): Promise<CompletionItem[] | null> => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    try {
+      const text = document.getText();
+      const ast = gcodeParser.parseGcode(text);
+      const definitions = variableTracker.findDefinitions(
+        ast,
+        document
+      );
+
+      const completionItems: CompletionItem[] = [];
+
+      for (const definition of definitions) {
+        const varName =
+          typeof definition.identifier === "string"
+            ? GCodeFormatter.formatNamedVariable(definition.identifier)
+            : GCodeFormatter.formatNumericVariable(
+                definition.identifier
+              );
+
+        const valueStr = variableTracker.formatVariableValue(
+          definition.value
+        );
+
+        // Get line number for display
+        const lineNumber = definition.statement.lineNumber
+          ? GCodeFormatter.formatLineNumber(
+              definition.statement.lineNumber
+            )
+          : `Line ${definition.line + 1}`;
+
+        completionItems.push({
+          label: varName,
+          kind: CompletionItemKind.Variable,
+          detail: `Value: ${valueStr}`,
+          documentation: `Defined at ${lineNumber}`,
+          insertText: varName,
+          // Sort numeric variables before named variables
+          sortText:
+            typeof definition.identifier === "string"
+              ? `1_${definition.identifier}`
+              : `0_${definition.identifier
+                  .toString()
+                  .padStart(6, "0")}`,
+        });
+      }
+
+      return completionItems;
+    } catch (error) {
+      connection.console.error(
+        `Completion error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      return null;
+    }
+  }
+);
+
+/**
+ * Handle semantic tokens requests for semantic highlighting
+ */
+connection.languages.semanticTokens.on(
+  async (params: SemanticTokensParams): Promise<SemanticTokens> => {
+    connection.console.log(
+      `Semantic tokens requested for: ${params.textDocument.uri}`
+    );
+
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      connection.console.warn("Document not found for semantic tokens");
+      return { data: [] };
+    }
+
+    try {
+      const text = document.getText();
+      const ast = gcodeParser.parseGcode(text);
+      const result =
+        semanticTokensProvider.provideDocumentSemanticTokens(
+          ast,
+          document
+        );
+
+      connection.console.log(
+        `Semantic tokens returned: ${result.data.length} bytes (${
+          result.data.length / 5
+        } tokens)`
+      );
+
+      // Decode and log sample tokens to verify they're correct
+      if (result.data.length > 0) {
+        const legend = SEMANTIC_TOKENS_LEGEND;
+        let currentLine = 0;
+        let currentChar = 0;
+        const sampleTokens: string[] = [];
+
+        for (let i = 0; i < Math.min(result.data.length, 15); i += 5) {
+          const deltaLine = result.data[i];
+          const deltaStart = result.data[i + 1];
+          const tokenLength = result.data[i + 2];
+          const tokenType = result.data[i + 3];
+          const tokenModifiers = result.data[i + 4];
+
+          currentLine += deltaLine;
+          if (deltaLine === 0) {
+            currentChar += deltaStart;
+          } else {
+            currentChar = deltaStart;
+          }
+
+          const typeName = legend.tokenTypes[tokenType] || "unknown";
+          const modifiers: string[] = [];
+          for (let j = 0; j < legend.tokenModifiers.length; j++) {
+            if (tokenModifiers & (1 << j)) {
+              modifiers.push(legend.tokenModifiers[j]);
+            }
+          }
+
+          sampleTokens.push(
+            `L${currentLine}:C${currentChar}+${tokenLength} ${typeName}${
+              modifiers.length > 0 ? ` [${modifiers.join(",")}]` : ""
+            }`
+          );
+        }
+
+        connection.console.log(
+          `Sample tokens: ${sampleTokens.join(", ")}`
+        );
+      }
+
+      return result;
+    } catch (error) {
+      connection.console.error(
+        `Semantic tokens error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      if (error instanceof Error) {
+        connection.console.error(`Stack: ${error.stack}`);
+      }
+      return { data: [] };
     }
   }
 );

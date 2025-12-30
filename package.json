@@ -146,6 +146,47 @@
         "category": "G-Code"
       }
     ],
+    "semanticTokenScopes": [
+      {
+        "language": "gcode",
+        "scopes": {
+          "variable": [
+            "variable.other.readwrite",
+            "entity.name.variable"
+          ],
+          "variable.declaration": [
+            "variable.other.readwrite",
+            "entity.name.variable"
+          ],
+          "function": [
+            "entity.name.function"
+          ],
+          "label": [
+            "entity.name.label"
+          ],
+          "keyword": [
+            "keyword.control",
+            "keyword"
+          ],
+          "number": [
+            "constant.numeric"
+          ],
+          "operator": [
+            "keyword.operator"
+          ],
+          "comment": [
+            "comment.line",
+            "comment.block",
+            "comment"
+          ]
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[gcode]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
     "configuration": {
       "title": "G-Code",
       "properties": {
