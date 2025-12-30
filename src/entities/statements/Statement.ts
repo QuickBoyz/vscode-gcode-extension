@@ -2,7 +2,8 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { Range } from "vscode-languageserver/node";
 
 import { GCodeFormatter } from "../../formatter";
-import { CommentStyle, StatementType, Expression } from "../../parser";
+import { StatementType, CommentStyle } from "./types";
+import { Expression } from "../expressions";
 
 /**
  * Base class for all statements

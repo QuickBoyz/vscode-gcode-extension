@@ -1,9 +1,5 @@
 import { GCODE_SYMBOLS } from "../../constants";
-import {
-  StatementType,
-  CommentStyle,
-  ParamBlock,
-} from "../../parser/types";
+import { StatementType, CommentStyle, ParamBlock } from "./types";
 
 import { Statement } from "./Statement";
 

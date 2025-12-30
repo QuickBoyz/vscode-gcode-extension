@@ -1,14 +1,13 @@
 import { gcodeFormatter } from "./gcodeFormatter";
 import { FormatterOptions } from "./types";
 import { gcodeParser } from "../parser";
-import { Program } from "../entities";
 
 describe("GCodeFormatter", () => {
   const parseAndFormat = (
     input: string,
     options: Partial<FormatterOptions> = {}
   ): string => {
-    const ast = gcodeParser.parseGcode(input) as Program;
+    const ast = gcodeParser.parseGcode(input);
     gcodeFormatter.setOptions(options);
     return gcodeFormatter.format(ast);
   };

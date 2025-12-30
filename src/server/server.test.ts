@@ -8,7 +8,6 @@
 import { gcodeParser } from "../parser";
 import { gcodeFormatter } from "../formatter";
 import { FormatterOptions } from "../formatter";
-import { Program } from "../entities";
 import { DEFAULT_FORMATTER_OPTIONS } from "../constants";
 
 /**
@@ -28,7 +27,7 @@ function formatGCode(
     ...options,
   };
 
-  const ast = gcodeParser.parseGcode(text) as Program;
+  const ast = gcodeParser.parseGcode(text);
   gcodeFormatter.setOptions(formatterOptions);
   return gcodeFormatter.format(ast);
 }

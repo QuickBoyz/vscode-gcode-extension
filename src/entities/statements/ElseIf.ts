@@ -1,5 +1,6 @@
 import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../../constants";
-import { StatementType, Expression, CommentStyle } from "../../parser";
+import { StatementType, CommentStyle } from "./types";
+import { Expression } from "../expressions";
 
 import { Statement } from "./Statement";
 

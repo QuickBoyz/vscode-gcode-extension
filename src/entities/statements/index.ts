@@ -18,3 +18,11 @@ export { ProgramDelimiter } from "./ProgramDelimiter";
 export { SubprogramCall } from "./SubprogramCall";
 export { WhileEnd } from "./WhileEnd";
 export { WhileStart } from "./WhileStart";
+export {
+  StatementType,
+  BlockCodeType,
+  type BlockCode,
+  type ParamBlock,
+  type ParamValue,
+  type CommentStyle,
+} from "./types";

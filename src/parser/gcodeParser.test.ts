@@ -229,13 +229,14 @@ describe("G-Code Parser", () => {
         "utf8"
       ).toString()
     );
-    expect(parsed).toEqual(
-      JSON.parse(
-        readFileSync(
-          `src/__tests__/fixtures/result${index}.json`,
-          "utf8"
-        ).toString()
-      )
+    // Serialize to JSON and back to compare structure (class instances serialize differently)
+    const parsedJson = JSON.parse(JSON.stringify(parsed));
+    const expected = JSON.parse(
+      readFileSync(
+        `src/__tests__/fixtures/result${index}.json`,
+        "utf8"
+      ).toString()
     );
+    expect(parsedJson).toEqual(expected);
   });
 });
