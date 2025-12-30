@@ -3,7 +3,7 @@
  *
  * This file contains class-based implementations of AST nodes.
  * Classes provide methods and properties that can be reused across the codebase.
- * 
+ *
  * Note: These classes implement the same structure as the interfaces in types.ts
  * and can be used interchangeably during the migration period.
  */
@@ -48,7 +48,12 @@ export class OBlockStatement extends Statement {
   type: StatementType.OBlock = StatementType.OBlock;
   id: number;
 
-  constructor(id: number, lineNumber?: number, comment?: string, commentStyle?: CommentStyle) {
+  constructor(
+    id: number,
+    lineNumber?: number,
+    comment?: string,
+    commentStyle?: CommentStyle
+  ) {
     super();
     this.id = id;
     this.lineNumber = lineNumber;
@@ -247,4 +252,3 @@ export class EndIfStatement extends Statement {
     return this.label;
   }
 }
-
