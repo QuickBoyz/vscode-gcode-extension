@@ -7,11 +7,9 @@
  */
 import { gcodeParser } from "../parser";
 import { gcodeFormatter } from "../formatter";
-import {
-  FormatterOptions,
-  defaultFormatterOptions,
-} from "../formatter";
-import { Program } from "../parser/types";
+import { FormatterOptions } from "../formatter";
+import { Program } from "../entities";
+import { DEFAULT_FORMATTER_OPTIONS } from "../constants";
 
 /**
  * Helper function that mimics what the server does when formatting
@@ -26,7 +24,7 @@ function formatGCode(
   }
 
   const formatterOptions: FormatterOptions = {
-    ...defaultFormatterOptions,
+    ...DEFAULT_FORMATTER_OPTIONS,
     ...options,
   };
 

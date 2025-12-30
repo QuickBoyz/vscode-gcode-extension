@@ -1,8 +1,3 @@
 export { gcodeParser } from "./gcodeParser";
-export type {
-  Program,
-  Statement,
-  Expression,
-  StatementType,
-  ExpressionType,
-} from "./types";
+export type { Expression, CommentStyle } from "./types";
+export { StatementType, ExpressionType, BlockCodeType } from "./types";

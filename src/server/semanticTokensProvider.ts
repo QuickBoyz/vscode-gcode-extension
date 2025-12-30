@@ -4,8 +4,15 @@
  * Provides semantic highlighting for G-code files by analyzing the AST
  * and returning semantic tokens for variables, G-codes, M-codes, and O-blocks.
  */
-import { Program, StatementType, Statement } from "../parser/types";
-import { Statement as StatementClass } from "../parser/statements";
+import { Program } from "../entities";
+import {
+  GCode,
+  MCode,
+  Block,
+  Statement,
+  EmptyLine,
+  Comment,
+} from "../entities/statements";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   SemanticTokens,
@@ -141,13 +148,13 @@ export class SemanticTokensProvider {
       const lineIndex =
         statement.lineNumber !== undefined
           ? statement.lineNumber - 1
-          : this.findStatementLine(statement, program, lines);
+          : this.findStatementLine(statement, program);
 
       if (lineIndex < 0 || lineIndex >= lines.length) continue;
       const line = lines[lineIndex];
 
       // Handle G-code statements
-      if (statement.type === StatementType.GCode) {
+      if (statement instanceof GCode) {
         const codeText = GCodeFormatter.formatGCode(statement.code);
         const index = this.findCodeInLine(line, codeText);
         if (index !== -1) {
@@ -162,7 +169,7 @@ export class SemanticTokensProvider {
       }
 
       // Handle M-code statements
-      if (statement.type === StatementType.MCode) {
+      if (statement instanceof MCode) {
         const codeText = GCodeFormatter.formatMCode(statement.code);
         const index = this.findCodeInLine(line, codeText);
         if (index !== -1) {
@@ -177,7 +184,7 @@ export class SemanticTokensProvider {
       }
 
       // Handle block statements (multiple G/M codes)
-      if (statement.type === StatementType.Block) {
+      if (statement instanceof Block) {
         for (const code of statement.codes) {
           const codeText =
             code.type === "G"
@@ -203,8 +210,7 @@ export class SemanticTokensProvider {
    */
   private findStatementLine(
     statement: Statement,
-    program: Program,
-    lines: string[]
+    program: Program
   ): number {
     // If statement has lineNumber, use it
     if (statement.lineNumber !== undefined) {
@@ -218,7 +224,7 @@ export class SemanticTokensProvider {
         return lineIndex;
       }
       // Count non-empty lines
-      if (stmt.type !== StatementType.EmptyLine) {
+      if (!(stmt instanceof EmptyLine)) {
         lineIndex++;
       }
     }
@@ -287,7 +293,7 @@ export class SemanticTokensProvider {
 
     for (const statement of program.body) {
       // All statements with labels are now class instances
-      if (statement instanceof StatementClass) {
+      if (statement instanceof Statement) {
         const label = statement.getLabel();
         if (label !== null) {
           oBlockIds.add(label);
@@ -371,11 +377,11 @@ export class SemanticTokensProvider {
   ): void {
     for (const statement of program.body) {
       // Handle standalone comment statements
-      if (statement.type === StatementType.Comment) {
+      if (statement instanceof Comment) {
         const lineIndex =
           statement.lineNumber !== undefined
             ? statement.lineNumber - 1
-            : this.findStatementLine(statement, program, lines);
+            : this.findStatementLine(statement, program);
 
         if (lineIndex >= 0 && lineIndex < lines.length) {
           const line = lines[lineIndex];

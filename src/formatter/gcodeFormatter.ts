@@ -2,32 +2,35 @@
  * G-code formatter that converts AST back to formatted G-code
  */
 import {
-  Program,
-  Statement,
   Expression,
   ParamValue,
   ParamBlock,
-  GCodeStatement,
-  MCodeStatement,
-  BlockStatement,
-  ParamStatement,
-  CommentStatement,
-  AssignStatement,
-  GotoStatement,
-  SubprogramCallStatement,
   StatementType,
   ExpressionType,
 } from "../parser/types";
 import {
-  Statement as StatementClass,
-  OBlockStatement,
-  WhileStartStatement,
-  WhileEndStatement,
-  IfStartStatement,
-  ElseIfStatement,
-  ElseStatement,
-  EndIfStatement,
-} from "../parser/statements";
+  GCode,
+  MCode,
+  Block,
+  Param,
+  Comment,
+  Assign,
+  Goto,
+  SubprogramCall,
+  OBlock,
+  WhileStart,
+  WhileEnd,
+  IfStart,
+  IfGoto,
+  ElseIf,
+  Else,
+  EndIf,
+  Statement,
+  EmptyLine,
+  ProgramDelimiter,
+  Label,
+} from "../entities/statements";
+import { Program } from "../entities";
 import { FormatterOptions } from "./types";
 import {
   GCODE_SYMBOLS,
@@ -135,7 +138,7 @@ class GCodeFormatter {
 
     for (const statement of program.body) {
       // Handle empty lines based on options
-      if (statement.type === StatementType.EmptyLine) {
+      if (statement instanceof EmptyLine) {
         // In compact mode, skip all empty lines
         // When preserving empty lines, collapse consecutive empty lines to one
         if (!this.options.compactOutput && !lastWasEmptyLine) {
@@ -164,7 +167,7 @@ class GCodeFormatter {
    * Adjust indent level before formatting a statement
    */
   private adjustIndentBefore(statement: Statement): void {
-    switch (statement.type) {
+    switch (statement.getType()) {
       case StatementType.WhileEnd:
       case StatementType.EndIf:
       case StatementType.Else:
@@ -181,7 +184,7 @@ class GCodeFormatter {
    * Adjust indent level after formatting a statement
    */
   private adjustIndentAfter(statement: Statement): void {
-    switch (statement.type) {
+    switch (statement.getType()) {
       case StatementType.WhileStart:
       case StatementType.IfStart:
       case StatementType.Else:
@@ -235,7 +238,7 @@ class GCodeFormatter {
     }
 
     // Add comment if present and not a comment-only statement
-    if (statement.type !== StatementType.Comment && statement.comment) {
+    if (!(statement instanceof Comment) && statement.comment) {
       if (statement.commentStyle === "parenthetical") {
         parts.push(
           `${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_OPEN}${statement.comment}${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_CLOSE}`
@@ -256,44 +259,44 @@ class GCodeFormatter {
   private formatStatementContent<T extends Statement>(
     statement: T
   ): string {
-    switch (statement.type) {
-      case StatementType.GCode:
+    switch (true) {
+      case statement instanceof GCode:
         return this.formatGCode(statement);
-      case StatementType.MCode:
+      case statement instanceof MCode:
         return this.formatMCode(statement);
-      case StatementType.Block:
+      case statement instanceof Block:
         return this.formatBlock(statement);
-      case StatementType.Param:
+      case statement instanceof Param:
         return this.formatParamOnly(statement);
-      case StatementType.Comment:
+      case statement instanceof Comment:
         return this.formatComment(statement);
-      case StatementType.Assign:
+      case statement instanceof Assign:
         return this.formatAssign(statement);
-      case StatementType.Goto:
+      case statement instanceof Goto:
         return this.formatGoto(statement);
-      case StatementType.SubprogramCall:
+      case statement instanceof SubprogramCall:
         return this.formatSubprogramCall(statement);
-      case StatementType.OBlock:
+      case statement instanceof OBlock:
         return this.formatOBlock(statement);
-      case StatementType.WhileStart:
+      case statement instanceof WhileStart:
         return this.formatWhileStart(statement);
-      case StatementType.WhileEnd:
+      case statement instanceof WhileEnd:
         return this.formatWhileEnd(statement);
-      case StatementType.IfStart:
+      case statement instanceof IfStart:
         return this.formatIfStart(statement);
-      case StatementType.IfGoto:
+      case statement instanceof IfGoto:
         return this.formatIfGoto(statement);
-      case StatementType.ElseIf:
+      case statement instanceof ElseIf:
         return this.formatElseIf(statement);
-      case StatementType.Else:
+      case statement instanceof Else:
         return this.formatElse(statement);
-      case StatementType.EndIf:
+      case statement instanceof EndIf:
         return this.formatEndIf(statement);
-      case StatementType.ProgramDelimiter:
+      case statement instanceof ProgramDelimiter:
         return this.formatProgramDelimiter();
-      case StatementType.Label:
+      case statement instanceof Label:
         return GCodeFormatter.formatLineNumber(statement.lineNumber!);
-      case StatementType.EmptyLine:
+      case statement instanceof EmptyLine:
         return GCODE_SYMBOLS.EMPTY_STRING;
       default:
         return GCODE_SYMBOLS.EMPTY_STRING;
@@ -303,7 +306,7 @@ class GCodeFormatter {
   /**
    * Format a G-code command (G0, G1, G2, etc.)
    */
-  private formatGCode(stmt: GCodeStatement): string {
+  private formatGCode(stmt: GCode): string {
     const code = this.formatCommandCode(
       GCODE_SYMBOLS.GCODE_PREFIX,
       stmt.code
@@ -315,7 +318,7 @@ class GCodeFormatter {
   /**
    * Format an M-code command (M3, M5, M30, etc.)
    */
-  private formatMCode(stmt: MCodeStatement): string {
+  private formatMCode(stmt: MCode): string {
     const code = this.formatCommandCode(
       GCODE_SYMBOLS.MCODE_PREFIX,
       stmt.code
@@ -327,7 +330,7 @@ class GCodeFormatter {
   /**
    * Format a block with multiple G/M codes
    */
-  private formatBlock(stmt: BlockStatement): string {
+  private formatBlock(stmt: Block): string {
     const codes = stmt.codes
       .map((c) =>
         this.formatCommandCode(
@@ -358,7 +361,7 @@ class GCodeFormatter {
   /**
    * Format parameter-only statement
    */
-  private formatParamOnly(stmt: ParamStatement): string {
+  private formatParamOnly(stmt: Param): string {
     return this.formatParams(stmt.params);
   }
 
@@ -449,17 +452,14 @@ class GCodeFormatter {
   /**
    * Format a comment-only statement
    */
-  private formatComment(stmt: CommentStatement): string {
-    if (stmt.style === "parenthetical") {
-      return `${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_OPEN}${stmt.value}${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_CLOSE}`;
-    }
-    return `${GCODE_SYMBOLS.SEMICOLON_COMMENT}${stmt.value}`;
+  private formatComment(stmt: Comment): string {
+    return stmt.toString();
   }
 
   /**
    * Format variable assignment
    */
-  private formatAssign(stmt: AssignStatement): string {
+  private formatAssign(stmt: Assign): string {
     let variable: string;
     if (typeof stmt.variable === "string") {
       // Named variable: #<name>
@@ -483,33 +483,31 @@ class GCodeFormatter {
   /**
    * Format GOTO statement
    */
-  private formatGoto(stmt: GotoStatement): string {
+  private formatGoto(stmt: Goto): string {
     return `${GCODE_KEYWORDS.GOTO}${GCODE_SYMBOLS.SPACE}${stmt.target}`;
   }
 
   /**
    * Format subprogram call (M98)
    */
-  private formatSubprogramCall(stmt: SubprogramCallStatement): string {
+  private formatSubprogramCall(stmt: SubprogramCall): string {
     return `${GCODE_SYMBOLS.MCODE_PREFIX}98${GCODE_SYMBOLS.SPACE}${stmt.id}`;
   }
 
   /**
    * Format O-block statement
    */
-  private formatOBlock(stmt: OBlockStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
+  private formatOBlock(stmt: OBlock): string {
+    const label = stmt.getLabel();
     return label !== null ? GCodeFormatter.formatOBlock(label) : "";
   }
 
   /**
    * Format WHILE start
    */
-  private formatWhileStart(
-    stmt: WhileStartStatement | Statement
-  ): string {
-    const label = (stmt as StatementClass).getLabel();
-    const condition = (stmt as WhileStartStatement).condition;
+  private formatWhileStart(stmt: WhileStart): string {
+    const label = stmt.getLabel();
+    const condition = (stmt as WhileStart).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -524,8 +522,8 @@ class GCodeFormatter {
   /**
    * Format WHILE end
    */
-  private formatWhileEnd(stmt: WhileEndStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
+  private formatWhileEnd(stmt: WhileEnd): string {
+    const label = stmt.getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -536,9 +534,9 @@ class GCodeFormatter {
   /**
    * Format IF start
    */
-  private formatIfStart(stmt: IfStartStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
-    const condition = (stmt as IfStartStatement).condition;
+  private formatIfStart(stmt: IfStart): string {
+    const label = stmt.getLabel();
+    const condition = (stmt as IfStart).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -569,9 +567,9 @@ class GCodeFormatter {
   /**
    * Format ELSEIF
    */
-  private formatElseIf(stmt: ElseIfStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
-    const condition = (stmt as ElseIfStatement).condition;
+  private formatElseIf(stmt: ElseIf): string {
+    const label = stmt.getLabel();
+    const condition = (stmt as ElseIf).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -586,8 +584,8 @@ class GCodeFormatter {
   /**
    * Format ELSE
    */
-  private formatElse(stmt: ElseStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
+  private formatElse(stmt: Else): string {
+    const label = stmt.getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -598,8 +596,8 @@ class GCodeFormatter {
   /**
    * Format ENDIF
    */
-  private formatEndIf(stmt: EndIfStatement | Statement): string {
-    const label = (stmt as StatementClass).getLabel();
+  private formatEndIf(stmt: EndIf): string {
+    const label = stmt.getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`

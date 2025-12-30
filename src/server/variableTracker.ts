@@ -4,8 +4,9 @@
  * Tracks variable definitions and usages in G-code programs.
  * Provides functionality to find variable definitions and get variable information.
  */
-import { Program, Expression, StatementType } from "../parser/types";
-import { AssignStatement } from "../parser/statements";
+import { Expression } from "../parser/types";
+import { Program } from "../entities";
+import { Assign } from "../entities/statements";
 import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
@@ -32,7 +33,7 @@ export interface VariableDefinition {
   /**
    * The assignment statement that defines this variable
    */
-  statement: AssignStatement;
+  statement: Assign;
 
   /**
    * The value expression assigned to the variable
@@ -77,12 +78,12 @@ export class VariableTracker {
 
     // Extract all assignment statements from the AST
     const assignments: Array<{
-      statement: AssignStatement;
+      statement: Assign;
       identifier: number | string;
     }> = [];
     for (const statement of program.body) {
-      if (statement.type === StatementType.Assign) {
-        const assignStmt = statement as AssignStatement;
+      if (statement instanceof Assign) {
+        const assignStmt = statement as Assign;
         // All assignment statements are now class instances
         assignments.push({
           statement: assignStmt,
