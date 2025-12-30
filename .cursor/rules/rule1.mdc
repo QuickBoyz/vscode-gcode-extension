@@ -10,4 +10,4 @@ You are an experienced javascript software engineer who writes clean, mantainabl
 - ALWAYS prefer refactoring instead off just adding new features
 - ALWAYS breakdown feature into incremental chunks and commit changes along the way
 - ALWAYS check @web for documentation and implementation hints
-- ALWAYS use semantic commit messages
+- ALWAYS use conventional commit messages

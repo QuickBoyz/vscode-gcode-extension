@@ -9,11 +9,11 @@ import {
   StatementType,
   Expression,
   CommentStyle,
-  ExpressionType,
 } from "./types";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Range } from "vscode-languageserver/node";
 import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../constants";
+import { GCodeFormatter } from "../formatter";
 
 /**
  * Base class for all statements
@@ -54,36 +54,10 @@ export abstract class Statement {
 
   /**
    * Helper method to format an expression for toString()
+   * Delegates to GCodeFormatter to avoid code duplication
    */
   protected formatExpression(expr: Expression): string {
-    switch (expr.type) {
-      case ExpressionType.Number:
-        return expr.value.toString();
-      case ExpressionType.Variable:
-        if (expr.id !== undefined) {
-          return `${GCODE_SYMBOLS.VARIABLE_PREFIX}${expr.id}`;
-        }
-        if (expr.name !== undefined) {
-          return `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${expr.name}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
-        }
-        return "?";
-      case ExpressionType.Binary:
-        return `${this.formatExpression(expr.left)} ${
-          expr.operator
-        } ${this.formatExpression(expr.right)}`;
-      case ExpressionType.Unary:
-        return `${expr.operator}${this.formatExpression(expr.operand)}`;
-      case ExpressionType.Relational:
-        return `${this.formatExpression(expr.left)} ${
-          expr.operator
-        } ${this.formatExpression(expr.right)}`;
-      case ExpressionType.FuncCall:
-        return `${expr.name}(${expr.args
-          .map((arg) => this.formatExpression(arg))
-          .join(", ")})`;
-      default:
-        return "?";
-    }
+    return GCodeFormatter.formatExpression(expr);
   }
 }
 
