@@ -218,6 +218,8 @@ export interface EmptyLineStatement extends BaseStatement {
 }
 
 // Union of all statement types
+// Note: Classes from statements.ts are compatible with interfaces due to structural typing
+// and both can be used interchangeably. Import classes directly from "./statements" when needed.
 export type Statement =
   | GCodeStatement
   | MCodeStatement
