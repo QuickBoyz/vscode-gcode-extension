@@ -29,12 +29,10 @@ import {
   ElseIfStatement,
   ElseStatement,
   EndIfStatement,
+  AssignStatement,
 } from "./statements";
 import { Token, TokenType, gcodeLexer } from "../lexer";
-import {
-  SPECIAL_MCODES,
-  GCODE_SYMBOLS,
-} from "../constants";
+import { SPECIAL_MCODES, GCODE_SYMBOLS } from "../constants";
 
 /**
  * Fast G-code parser using recursive descent
@@ -529,7 +527,7 @@ class GCodeParser {
       ? v.slice(2, -1)
       : Number(v.slice(1));
 
-    return { type: StatementType.Assign, variable, value };
+    return new AssignStatement(variable, value);
   }
 
   /**
@@ -543,11 +541,10 @@ class GCodeParser {
     this.match(TokenType.EQUALS);
     const value = this.parseExpression();
 
-    return {
-      type: StatementType.Assign,
-      variable: idx as unknown as number,
-      value,
-    };
+    return new AssignStatement(
+      idx as unknown as number,
+      value
+    );
   }
 
   /**
