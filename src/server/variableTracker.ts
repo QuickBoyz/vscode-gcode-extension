@@ -8,13 +8,11 @@ import {
   Program,
   Expression,
   StatementType,
-  ExpressionType,
 } from "../parser/types";
 import { AssignStatement } from "../parser/statements";
 import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
-import { GCodeFormatter } from "../formatter";
 
 /**
  * Information about a variable definition
@@ -261,39 +259,4 @@ export class VariableTracker {
     return usages;
   }
 
-  /**
-   * Format variable value expression for display
-   */
-  public formatVariableValue(value: Expression): string {
-    switch (value.type) {
-      case ExpressionType.Number:
-        return value.value.toString();
-      case ExpressionType.Variable:
-        if (value.id !== undefined) {
-          return GCodeFormatter.formatNumericVariable(value.id);
-        }
-        if (value.name !== undefined) {
-          return GCodeFormatter.formatNamedVariable(value.name);
-        }
-        return GCODE_SYMBOLS.UNKNOWN_VALUE;
-      case ExpressionType.Binary:
-        return `${this.formatVariableValue(value.left)} ${
-          value.operator
-        } ${this.formatVariableValue(value.right)}`;
-      case ExpressionType.Unary:
-        return `${value.operator}${this.formatVariableValue(
-          value.operand
-        )}`;
-      case ExpressionType.Relational:
-        return `${this.formatVariableValue(value.left)} ${
-          value.operator
-        } ${this.formatVariableValue(value.right)}`;
-      case ExpressionType.FuncCall:
-        return `${value.name}(${value.args
-          .map((arg) => this.formatVariableValue(arg))
-          .join(", ")})`;
-      default:
-        return GCODE_SYMBOLS.UNKNOWN_VALUE;
-    }
-  }
 }

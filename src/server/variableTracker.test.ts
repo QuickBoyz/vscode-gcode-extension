@@ -5,6 +5,7 @@ import { VariableTracker } from "./variableTracker";
 import { gcodeParser } from "../parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver/node";
+import { GCodeFormatter } from "../formatter";
 
 describe("VariableTracker", () => {
   const tracker = new VariableTracker();
@@ -155,7 +156,7 @@ describe("VariableTracker", () => {
     });
   });
 
-  describe("formatVariableValue", () => {
+  describe("formatExpression (via GCodeFormatter)", () => {
     it("should format number values", () => {
       const text = "#1=10";
       const document = TextDocument.create(
@@ -168,7 +169,7 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(1);
-      const formatted = tracker.formatVariableValue(definitions[0].value);
+      const formatted = GCodeFormatter.formatExpression(definitions[0].value);
       expect(formatted).toBe("10");
     });
 
@@ -184,7 +185,7 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(2);
-      const formatted = tracker.formatVariableValue(definitions[1].value);
+      const formatted = GCodeFormatter.formatExpression(definitions[1].value);
       expect(formatted).toBe("#1");
     });
 
@@ -200,7 +201,7 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(1);
-      const formatted = tracker.formatVariableValue(definitions[0].value);
+      const formatted = GCodeFormatter.formatExpression(definitions[0].value);
       expect(formatted).toBe("10 + 20");
     });
 
@@ -216,7 +217,7 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(2);
-      const formatted = tracker.formatVariableValue(definitions[1].value);
+      const formatted = GCodeFormatter.formatExpression(definitions[1].value);
       expect(formatted).toBe("#<depth>");
     });
   });
