@@ -1,7 +1,7 @@
 import { gcodeFormatter } from "./gcodeFormatter";
 import { FormatterOptions } from "./types";
 import { gcodeParser } from "../parser";
-import { Program } from "../parser/types";
+import { Program } from "../entities";
 
 describe("GCodeFormatter", () => {
   const parseAndFormat = (

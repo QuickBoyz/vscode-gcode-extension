@@ -11,8 +11,6 @@
  * - Works with any file size
  */
 import {
-  Program,
-  Statement,
   Expression,
   ParamBlock,
   ParamValue,
@@ -21,16 +19,29 @@ import {
   ExpressionType,
   BlockCodeType,
 } from "./types";
+import { Program } from "../entities";
 import {
-  OBlockStatement,
-  WhileStartStatement,
-  WhileEndStatement,
-  IfStartStatement,
-  ElseIfStatement,
-  ElseStatement,
-  EndIfStatement,
-  AssignStatement,
-} from "./statements";
+  OBlock,
+  WhileStart,
+  WhileEnd,
+  IfStart,
+  ElseIf,
+  Else,
+  EndIf,
+  Assign,
+  GCode,
+  MCode,
+  Block,
+  Param,
+  Comment,
+  Goto,
+  Statement,
+  SubprogramCall,
+  IfGoto,
+  ProgramDelimiter,
+  Label,
+  EmptyLine,
+} from "../entities/statements";
 import { Token, TokenType, gcodeLexer } from "../lexer";
 import { SPECIAL_MCODES, GCODE_SYMBOLS } from "../constants";
 
@@ -102,7 +113,7 @@ class GCodeParser {
     while (this.pos < this.tokens.length) {
       // Handle empty lines (consecutive newlines)
       if (this.match(TokenType.NL)) {
-        body.push({ type: StatementType.EmptyLine });
+        body.push(new EmptyLine());
         continue;
       }
 
@@ -151,15 +162,10 @@ class GCodeParser {
     // Handle comment-only or label-only lines
     if (!stmt) {
       if (comment !== undefined) {
-        return {
-          type: StatementType.Comment,
-          value: comment,
-          style: commentStyle!,
-          ...(lineNumber !== undefined ? { lineNumber } : {}),
-        };
+        return new Comment(comment, commentStyle!, lineNumber);
       }
       if (lineNumber !== undefined) {
-        return { type: StatementType.Label, lineNumber };
+        return new Label(lineNumber);
       }
       return null;
     }
@@ -189,7 +195,7 @@ class GCodeParser {
     switch (token.type) {
       case TokenType.PERCENT:
         this.advance();
-        return { type: StatementType.ProgramDelimiter };
+        return new ProgramDelimiter();
 
       case TokenType.COMMENT:
       case TokenType.PARENCOMMENT:
@@ -225,11 +231,11 @@ class GCodeParser {
 
       case TokenType.ELSE:
         this.advance();
-        return new ElseStatement(null);
+        return new Else(null);
 
       case TokenType.ENDIF:
         this.advance();
-        return new EndIfStatement(null);
+        return new EndIf(null);
 
       case TokenType.OSUB:
         return this.parseLabeledStatement();
@@ -266,10 +272,7 @@ class GCodeParser {
         ) {
           const numToken = this.match(TokenType.NUMBER);
           if (numToken) {
-            return {
-              type: StatementType.SubprogramCall,
-              id: Number(numToken.value),
-            };
+            return new SubprogramCall(Number(numToken.value));
           }
         }
         codes.push({
@@ -287,19 +290,14 @@ class GCodeParser {
 
     // Build appropriate statement type
     if (codes.length === 0) {
-      return { type: StatementType.Param, params };
+      return new Param(params);
     } else if (codes.length === 1) {
       const c = codes[0];
-      return {
-        type:
-          c.type === BlockCodeType.G
-            ? StatementType.GCode
-            : StatementType.MCode,
-        code: c.code,
-        params,
-      } as Statement;
+      return c.type === BlockCodeType.G
+        ? new GCode(c.code, params)
+        : new MCode(c.code, params);
     } else {
-      return { type: StatementType.Block, codes, params };
+      return new Block(codes, params);
     }
   }
 
@@ -527,7 +525,7 @@ class GCodeParser {
       ? v.slice(2, -1)
       : Number(v.slice(1));
 
-    return new AssignStatement(variable, value);
+    return new Assign(variable, value);
   }
 
   /**
@@ -541,7 +539,7 @@ class GCodeParser {
     this.match(TokenType.EQUALS);
     const value = this.parseExpression();
 
-    return new AssignStatement(idx as unknown as number, value);
+    return new Assign(idx as unknown as number, value);
   }
 
   /**
@@ -550,10 +548,7 @@ class GCodeParser {
   private parseGoto(): Statement {
     this.advance(); // GOTO
     const num = this.match(TokenType.NUMBER);
-    return {
-      type: StatementType.Goto,
-      target: num ? Number(num.value) : 0,
-    };
+    return new Goto(num ? Number(num.value) : 0);
   }
 
   /**
@@ -577,7 +572,7 @@ class GCodeParser {
       label = Number(numToken.value);
     }
 
-    return new WhileStartStatement(condition, label);
+    return new WhileStart(condition, label);
   }
 
   /**
@@ -597,7 +592,7 @@ class GCodeParser {
       label = Number(numToken.value);
     }
 
-    return new WhileEndStatement(label);
+    return new WhileEnd(label);
   }
 
   /**
@@ -612,16 +607,12 @@ class GCodeParser {
     // Check for IF...GOTO (ternary)
     if (this.match(TokenType.GOTO)) {
       const num = this.match(TokenType.NUMBER);
-      return {
-        type: StatementType.IfGoto,
-        condition,
-        target: num ? Number(num.value) : 0,
-      };
+      return new IfGoto(condition, num ? Number(num.value) : 0);
     }
 
     // IF...THEN
     this.match(TokenType.THEN);
-    return new IfStartStatement(condition, null);
+    return new IfStart(condition, null);
   }
 
   /**
@@ -633,7 +624,7 @@ class GCodeParser {
     const condition = this.parseExpression();
     this.match(TokenType.RBRACKET);
     this.match(TokenType.THEN);
-    return new ElseIfStatement(condition, null);
+    return new ElseIf(condition, null);
   }
 
   /**
@@ -651,7 +642,7 @@ class GCodeParser {
       const condition = this.parseExpression();
       this.match(TokenType.RBRACKET);
       this.match(TokenType.DO);
-      return new WhileStartStatement(condition, label);
+      return new WhileStart(condition, label);
     }
 
     // O-block END / ENDWHILE
@@ -660,7 +651,7 @@ class GCodeParser {
       next?.type === TokenType.ENDWHILE
     ) {
       this.advance();
-      return new WhileEndStatement(label);
+      return new WhileEnd(label);
     }
 
     // O-block IF
@@ -670,7 +661,7 @@ class GCodeParser {
       const condition = this.parseExpression();
       this.match(TokenType.RBRACKET);
       this.match(TokenType.THEN);
-      return { type: StatementType.IfStart, label, condition };
+      return new IfStart(condition, label);
     }
 
     // O-block ELSEIF
@@ -680,23 +671,23 @@ class GCodeParser {
       const condition = this.parseExpression();
       this.match(TokenType.RBRACKET);
       this.match(TokenType.THEN);
-      return { type: StatementType.ElseIf, label, condition };
+      return new ElseIf(condition, label);
     }
 
     // O-block ELSE
     if (next?.type === TokenType.ELSE) {
       this.advance();
-      return new ElseStatement(label);
+      return new Else(label);
     }
 
     // O-block ENDIF
     if (next?.type === TokenType.ENDIF) {
       this.advance();
-      return new EndIfStatement(label);
+      return new EndIf(label);
     }
 
     // Standalone O-block
-    return new OBlockStatement(label);
+    return new OBlock(label);
   }
 }
 
