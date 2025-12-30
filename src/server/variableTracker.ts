@@ -4,11 +4,12 @@
  * Tracks variable definitions and usages in G-code programs.
  * Provides functionality to find variable definitions and get variable information.
  */
-import { Expression } from "../parser/types";
-import { Program } from "../entities";
-import { Assign } from "../entities/statements";
 import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
+
+import { Program } from "../entities";
+import { Expression } from "../entities/expressions";
+import { Assign } from "../entities/statements";
 import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
 
 /**
@@ -83,11 +84,10 @@ export class VariableTracker {
     }> = [];
     for (const statement of program.body) {
       if (statement instanceof Assign) {
-        const assignStmt = statement as Assign;
         // All assignment statements are now class instances
         assignments.push({
-          statement: assignStmt,
-          identifier: assignStmt.getVariable(),
+          statement,
+          identifier: statement.getVariable(),
         });
       }
     }

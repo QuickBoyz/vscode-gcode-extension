@@ -1,5 +1,4 @@
-import { StatementType } from "../parser/types";
-import { Statement } from "./statements";
+import { Statement, StatementType } from "./statements";
 
 /**
  * Program entity

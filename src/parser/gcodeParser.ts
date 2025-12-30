@@ -11,14 +11,21 @@
  * - Works with any file size
  */
 import {
-  Expression,
   ParamBlock,
   ParamValue,
   CommentStyle,
-  StatementType,
-  ExpressionType,
   BlockCodeType,
-} from "./types";
+  BlockCode,
+} from "../entities/statements";
+import { RelationalOperatorType } from "../entities/expressions";
+import {
+  Number as NumberExpression,
+  Variable,
+  Binary,
+  Relational,
+  FuncCall,
+  Unary,
+} from "../entities/expressions";
 import { Program } from "../entities";
 import {
   OBlock,
@@ -44,6 +51,7 @@ import {
 } from "../entities/statements";
 import { Token, TokenType, gcodeLexer } from "../lexer";
 import { SPECIAL_MCODES, GCODE_SYMBOLS } from "../constants";
+import { Expression } from "../entities/expressions";
 
 /**
  * Fast G-code parser using recursive descent
@@ -126,7 +134,7 @@ class GCodeParser {
       this.match(TokenType.NL);
     }
 
-    return { type: StatementType.Program, body };
+    return new Program(body);
   }
 
   /**
@@ -172,14 +180,11 @@ class GCodeParser {
 
     // Attach metadata to statement
     if (lineNumber !== undefined) {
-      (stmt as Statement & { lineNumber?: number }).lineNumber =
-        lineNumber;
+      stmt.lineNumber = lineNumber;
     }
     if (comment !== undefined) {
-      (stmt as Statement & { comment?: string }).comment = comment;
-      (
-        stmt as Statement & { commentStyle?: CommentStyle }
-      ).commentStyle = commentStyle;
+      stmt.comment = comment;
+      stmt.commentStyle = commentStyle;
     }
 
     return stmt;
@@ -249,7 +254,7 @@ class GCodeParser {
    * Parse a code block (G/M codes with parameters)
    */
   private parseCodeBlock(): Statement {
-    const codes: Array<{ type: BlockCodeType; code: number }> = [];
+    const codes: BlockCode[] = [];
     const params: ParamBlock = {};
 
     // Parse G/M codes and parameters until end of statement
@@ -315,11 +320,7 @@ class GCodeParser {
       // Negative expression
       const expr = this.parseParamValue();
       if (typeof expr === "number") return -expr;
-      return {
-        type: ExpressionType.Unary,
-        operator: GCODE_SYMBOLS.MINUS,
-        operand: expr as Expression,
-      };
+      return new Unary(GCODE_SYMBOLS.MINUS, expr);
     }
 
     // Plain number
@@ -361,9 +362,9 @@ class GCodeParser {
   private parseVariableExpr(token: Token): Expression {
     const v = token.value;
     if (v.startsWith("#<")) {
-      return { type: ExpressionType.Variable, name: v.slice(2, -1) };
+      return new Variable(undefined, v.slice(2, -1));
     }
-    return { type: ExpressionType.Variable, id: Number(v.slice(1)) };
+    return new Variable(Number(v.slice(1)));
   }
 
   /**
@@ -383,12 +384,11 @@ class GCodeParser {
       const op = this.match(TokenType.RELOP);
       if (!op) break;
       const right = this.parseAdditive();
-      left = {
-        type: ExpressionType.Relational,
-        operator: op.value as "GT" | "LT" | "EQ" | "NE" | "LE" | "GE",
+      left = new Relational(
+        op.value as RelationalOperatorType,
         left,
-        right,
-      };
+        right
+      );
     }
 
     return left;
@@ -404,12 +404,11 @@ class GCodeParser {
       const op = this.match(TokenType.PLUS, TokenType.MINUS);
       if (!op) break;
       const right = this.parseMultiplicative();
-      left = {
-        type: ExpressionType.Binary,
-        operator: op.type === TokenType.PLUS ? "+" : "-",
+      left = new Binary(
+        op.type === TokenType.PLUS ? "+" : "-",
         left,
-        right,
-      };
+        right
+      );
     }
 
     return left;
@@ -429,17 +428,13 @@ class GCodeParser {
       );
       if (!op) break;
       const right = this.parseUnary();
-      left = {
-        type: ExpressionType.Binary,
-        operator:
-          op.type === TokenType.STAR
-            ? "*"
-            : op.type === TokenType.SLASH
-            ? "/"
-            : "MOD",
-        left,
-        right,
-      } as Expression;
+      const operator =
+        op.type === TokenType.STAR
+          ? "*"
+          : op.type === TokenType.SLASH
+          ? "/"
+          : "MOD"; // MOD operator
+      left = new Binary(operator, left, right);
     }
 
     return left;
@@ -450,11 +445,7 @@ class GCodeParser {
    */
   private parseUnary(): Expression {
     if (this.match(TokenType.MINUS)) {
-      return {
-        type: ExpressionType.Unary,
-        operator: GCODE_SYMBOLS.MINUS,
-        operand: this.parseUnary(),
-      };
+      return new Unary(GCODE_SYMBOLS.MINUS, this.parseUnary());
     }
     return this.parsePrimary();
   }
@@ -468,10 +459,7 @@ class GCodeParser {
     // Number
     if (token?.type === TokenType.NUMBER) {
       this.advance();
-      return {
-        type: ExpressionType.Number,
-        value: Number(token.value),
-      };
+      return new NumberExpression(Number(token.value));
     }
 
     // Variable
@@ -486,7 +474,7 @@ class GCodeParser {
       this.match(TokenType.LBRACKET);
       const args = this.parseArgList();
       this.match(TokenType.RBRACKET);
-      return { type: ExpressionType.FuncCall, name: token.value, args };
+      return new FuncCall(token.value, args);
     }
 
     // Parenthesized expression
@@ -498,7 +486,7 @@ class GCodeParser {
     }
 
     // Default to zero
-    return { type: ExpressionType.Number, value: 0 };
+    return new NumberExpression(0);
   }
 
   /**

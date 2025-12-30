@@ -3,8 +3,9 @@ import {
   StatementType,
   ParamBlock,
   BlockCodeType,
+  BlockCode,
   CommentStyle,
-} from "../../parser/types";
+} from "./types";
 
 import { Statement } from "./Statement";
 
@@ -13,11 +14,11 @@ import { Statement } from "./Statement";
  */
 export class Block extends Statement {
   type: StatementType.Block = StatementType.Block;
-  codes: Array<{ type: BlockCodeType; code: number }>;
+  codes: BlockCode[];
   params: ParamBlock;
 
   constructor(
-    codes: Array<{ type: BlockCodeType; code: number }>,
+    codes: BlockCode[],
     params: ParamBlock = {},
     lineNumber?: number,
     comment?: string,

@@ -1,8 +1,4 @@
-import {
-  StatementType,
-  ParamBlock,
-  CommentStyle,
-} from "../../parser/types";
+import { StatementType, ParamBlock, CommentStyle } from "./types";
 
 import { Statement } from "./Statement";
 

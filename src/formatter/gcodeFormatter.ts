@@ -1,13 +1,16 @@
 /**
  * G-code formatter that converts AST back to formatted G-code
  */
+import { ParamValue, ParamBlock } from "../entities/statements";
 import {
+  Number as NumberExpression,
+  Variable,
+  Binary,
+  Relational,
+  FuncCall,
+  Unary,
   Expression,
-  ParamValue,
-  ParamBlock,
-  StatementType,
-  ExpressionType,
-} from "../parser/types";
+} from "../entities/expressions";
 import {
   GCode,
   MCode,
@@ -76,40 +79,7 @@ class GCodeFormatter {
    * Used for hover, completion, and other UI features
    */
   public static formatExpression(expr: Expression): string {
-    switch (expr.type) {
-      case ExpressionType.Number:
-        return expr.value.toString();
-
-      case ExpressionType.Variable:
-        if (expr.name !== undefined) {
-          return GCodeFormatter.formatNamedVariable(expr.name);
-        }
-        return GCodeFormatter.formatNumericVariable(expr.id!);
-
-      case ExpressionType.Binary:
-        return `${GCodeFormatter.formatExpression(expr.left)} ${
-          expr.operator
-        } ${GCodeFormatter.formatExpression(expr.right)}`;
-
-      case ExpressionType.Unary:
-        return `${expr.operator}${GCodeFormatter.formatExpression(
-          expr.operand
-        )}`;
-
-      case ExpressionType.Relational:
-        return `${GCodeFormatter.formatExpression(expr.left)} ${
-          expr.operator
-        } ${GCodeFormatter.formatExpression(expr.right)}`;
-
-      case ExpressionType.FuncCall:
-        const args = expr.args
-          .map((arg) => GCodeFormatter.formatExpression(arg))
-          .join(", ");
-        return `${expr.name}(${args})`;
-
-      default:
-        return GCODE_SYMBOLS.UNKNOWN_VALUE;
-    }
+    return expr.toString();
   }
 
   constructor(options: Partial<FormatterOptions> = {}) {
@@ -167,11 +137,11 @@ class GCodeFormatter {
    * Adjust indent level before formatting a statement
    */
   private adjustIndentBefore(statement: Statement): void {
-    switch (statement.getType()) {
-      case StatementType.WhileEnd:
-      case StatementType.EndIf:
-      case StatementType.Else:
-      case StatementType.ElseIf:
+    switch (true) {
+      case statement instanceof WhileEnd:
+      case statement instanceof EndIf:
+      case statement instanceof Else:
+      case statement instanceof ElseIf:
         this.indentLevel = Math.max(
           DEFAULTS.MIN_INDENT_LEVEL,
           this.indentLevel - 1
@@ -184,11 +154,11 @@ class GCodeFormatter {
    * Adjust indent level after formatting a statement
    */
   private adjustIndentAfter(statement: Statement): void {
-    switch (statement.getType()) {
-      case StatementType.WhileStart:
-      case StatementType.IfStart:
-      case StatementType.Else:
-      case StatementType.ElseIf:
+    switch (true) {
+      case statement instanceof WhileStart:
+      case statement instanceof IfStart:
+      case statement instanceof Else:
+      case statement instanceof ElseIf:
         this.indentLevel++;
         break;
     }
@@ -411,37 +381,37 @@ class GCodeFormatter {
    * Format an expression
    */
   private formatExpression(expr: Expression): string {
-    switch (expr.type) {
-      case ExpressionType.Number:
+    switch (true) {
+      case expr instanceof NumberExpression:
         return this.formatNumber(expr.value);
 
-      case ExpressionType.Variable:
+      case expr instanceof Variable:
         if (expr.name !== undefined) {
           return GCodeFormatter.formatNamedVariable(expr.name);
         }
         return GCodeFormatter.formatNumericVariable(expr.id!);
 
-      case ExpressionType.Binary:
+      case expr instanceof Binary:
         return `${this.formatExpression(expr.left)}${
           GCODE_SYMBOLS.SPACE
         }${expr.operator}${GCODE_SYMBOLS.SPACE}${this.formatExpression(
           expr.right
         )}`;
 
-      case ExpressionType.Relational:
+      case expr instanceof Relational:
         return `${this.formatExpression(expr.left)}${
           GCODE_SYMBOLS.SPACE
         }${expr.operator}${GCODE_SYMBOLS.SPACE}${this.formatExpression(
           expr.right
         )}`;
 
-      case ExpressionType.FuncCall:
+      case expr instanceof FuncCall:
         const args = expr.args
           .map((a) => this.formatExpression(a))
           .join(", ");
         return `${expr.name}${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${args}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE}`;
 
-      case ExpressionType.Unary:
+      case expr instanceof Unary:
         return `${expr.operator}${this.formatExpression(expr.operand)}`;
 
       default:
@@ -507,7 +477,7 @@ class GCodeFormatter {
    */
   private formatWhileStart(stmt: WhileStart): string {
     const label = stmt.getLabel();
-    const condition = (stmt as WhileStart).condition;
+    const condition = stmt.condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -536,7 +506,7 @@ class GCodeFormatter {
    */
   private formatIfStart(stmt: IfStart): string {
     const label = stmt.getLabel();
-    const condition = (stmt as IfStart).condition;
+    const condition = stmt.condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -569,7 +539,7 @@ class GCodeFormatter {
    */
   private formatElseIf(stmt: ElseIf): string {
     const label = stmt.getLabel();
-    const condition = (stmt as ElseIf).condition;
+    const condition = stmt.condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
