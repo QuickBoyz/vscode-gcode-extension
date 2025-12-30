@@ -7,15 +7,11 @@
 import {
   Program,
   StatementType,
-  OBlockStatement,
-  WhileStartStatement,
-  WhileEndStatement,
-  IfStartStatement,
-  ElseIfStatement,
-  ElseStatement,
-  EndIfStatement,
   Statement,
 } from "../parser/types";
+import {
+  Statement as StatementClass,
+} from "../parser/statements";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   SemanticTokens,
@@ -200,9 +196,18 @@ export class SemanticTokensProvider {
     const oBlockIds = new Set<number>();
 
     for (const statement of program.body) {
-      const label = this.getStatementLabel(statement);
-      if (label !== null) {
-        oBlockIds.add(label);
+      // Use class method if available, otherwise fall back to type checking
+      if (statement instanceof StatementClass) {
+        const label = statement.getLabel();
+        if (label !== null) {
+          oBlockIds.add(label);
+        }
+      } else {
+        // Fallback for interface-based statements (during migration)
+        const label = this.getStatementLabelFallback(statement);
+        if (label !== null) {
+          oBlockIds.add(label);
+        }
       }
     }
 
@@ -210,24 +215,25 @@ export class SemanticTokensProvider {
   }
 
   /**
-   * Get the label from a statement if it has one
+   * Get the label from a statement if it has one (fallback for interfaces)
+   * This method will be removed once all statements are migrated to classes
    */
-  private getStatementLabel(statement: Statement): number | null {
+  private getStatementLabelFallback(statement: Statement): number | null {
     switch (statement.type) {
       case StatementType.OBlock:
-        return (statement as OBlockStatement).id;
+        return (statement as any).id;
       case StatementType.WhileStart:
-        return (statement as WhileStartStatement).label;
+        return (statement as any).label;
       case StatementType.WhileEnd:
-        return (statement as WhileEndStatement).label;
+        return (statement as any).label;
       case StatementType.IfStart:
-        return (statement as IfStartStatement).label;
+        return (statement as any).label;
       case StatementType.ElseIf:
-        return (statement as ElseIfStatement).label;
+        return (statement as any).label;
       case StatementType.Else:
-        return (statement as ElseStatement).label;
+        return (statement as any).label;
       case StatementType.EndIf:
-        return (statement as EndIfStatement).label;
+        return (statement as any).label;
       default:
         return null;
     }
