@@ -4,14 +4,8 @@
  * Provides semantic highlighting for G-code files by analyzing the AST
  * and returning semantic tokens for variables, G-codes, M-codes, and O-blocks.
  */
-import {
-  Program,
-  StatementType,
-  Statement,
-} from "../parser/types";
-import {
-  Statement as StatementClass,
-} from "../parser/statements";
+import { Program, StatementType, Statement } from "../parser/types";
+import { Statement as StatementClass } from "../parser/statements";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   SemanticTokens,
@@ -85,14 +79,14 @@ export class SemanticTokensProvider {
     // Add tokens for variables
     this.addVariableTokens(builder, program, document);
 
-    // Add tokens for G-codes and M-codes
-    this.addCodeTokens(builder, lines);
+    // Add tokens for G-codes and M-codes from AST
+    this.addCodeTokens(builder, program, lines);
 
     // Add tokens for O-blocks
     this.addOBlockTokens(builder, program, lines);
 
     // Add tokens for keywords, operators, numbers, and comments
-    this.addRegexBasedTokens(builder, lines);
+    this.addRegexBasedTokens(builder, program, lines);
 
     const result = builder.build();
     this.logTokenStats(result);
@@ -136,20 +130,96 @@ export class SemanticTokensProvider {
   }
 
   /**
-   * Add semantic tokens for G-codes and M-codes
+   * Add semantic tokens for G-codes and M-codes from AST
    */
   private addCodeTokens(
     builder: SemanticTokensBuilder,
+    program: Program,
     lines: string[]
   ): void {
-    const codeMatchers: TokenMatcher[] = [
-      { pattern: /\b[Gg]\d+/g, tokenType: "function" },
-      { pattern: /\b[Mm]\d+/g, tokenType: "function" },
-    ];
+    for (const statement of program.body) {
+      const lineIndex = statement.lineNumber !== undefined 
+        ? statement.lineNumber - 1 
+        : this.findStatementLine(statement, program, lines);
+      
+      if (lineIndex < 0 || lineIndex >= lines.length) continue;
+      const line = lines[lineIndex];
 
-    for (const matcher of codeMatchers) {
-      this.matchAndPushTokens(builder, lines, matcher);
+      // Handle G-code statements
+      if (statement.type === StatementType.GCode) {
+        const codeText = GCodeFormatter.formatGCode(statement.code);
+        const index = this.findCodeInLine(line, codeText);
+        if (index !== -1) {
+          this.pushToken(builder, lineIndex, index, codeText.length, "function");
+        }
+      }
+
+      // Handle M-code statements
+      if (statement.type === StatementType.MCode) {
+        const codeText = GCodeFormatter.formatMCode(statement.code);
+        const index = this.findCodeInLine(line, codeText);
+        if (index !== -1) {
+          this.pushToken(builder, lineIndex, index, codeText.length, "function");
+        }
+      }
+
+      // Handle block statements (multiple G/M codes)
+      if (statement.type === StatementType.Block) {
+        for (const code of statement.codes) {
+          const codeText = code.type === "G" 
+            ? GCodeFormatter.formatGCode(code.code)
+            : GCodeFormatter.formatMCode(code.code);
+          const index = this.findCodeInLine(line, codeText);
+          if (index !== -1) {
+            this.pushToken(builder, lineIndex, index, codeText.length, "function");
+          }
+        }
+      }
     }
+  }
+
+  /**
+   * Find the line index of a statement in the document
+   */
+  private findStatementLine(
+    statement: Statement,
+    program: Program,
+    lines: string[]
+  ): number {
+    // If statement has lineNumber, use it
+    if (statement.lineNumber !== undefined) {
+      return statement.lineNumber - 1;
+    }
+
+    // Otherwise, find it by searching through program body
+    let lineIndex = 0;
+    for (const stmt of program.body) {
+      if (stmt === statement) {
+        return lineIndex;
+      }
+      // Count non-empty lines
+      if (stmt.type !== StatementType.EmptyLine) {
+        lineIndex++;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Find a code (G or M) in a line, handling case-insensitive matching
+   */
+  private findCodeInLine(line: string, codeText: string): number {
+    // Try exact match first
+    let index = line.indexOf(codeText);
+    if (index !== -1) return index;
+
+    // Try case-insensitive match
+    const lowerLine = line.toLowerCase();
+    const lowerCode = codeText.toLowerCase();
+    index = lowerLine.indexOf(lowerCode);
+    if (index !== -1) return index;
+
+    return -1;
   }
 
   /**
@@ -218,7 +288,9 @@ export class SemanticTokensProvider {
    * Get the label from a statement if it has one (fallback for interfaces)
    * This method will be removed once all statements are migrated to classes
    */
-  private getStatementLabelFallback(statement: Statement): number | null {
+  private getStatementLabelFallback(
+    statement: Statement
+  ): number | null {
     switch (statement.type) {
       case StatementType.OBlock:
         return (statement as any).id;
@@ -266,6 +338,7 @@ export class SemanticTokensProvider {
    */
   private addRegexBasedTokens(
     builder: SemanticTokensBuilder,
+    program: Program,
     lines: string[]
   ): void {
     const matchers: TokenMatcher[] = [
@@ -297,43 +370,84 @@ export class SemanticTokensProvider {
       this.matchAndPushTokens(builder, lines, matcher);
     }
 
-    // Add comment tokens (special handling)
-    this.addCommentTokens(builder, lines);
+    // Add comment tokens from AST
+    this.addCommentTokens(builder, program, lines);
   }
 
   /**
-   * Add semantic tokens for comments
+   * Add semantic tokens for comments from AST
    */
   private addCommentTokens(
     builder: SemanticTokensBuilder,
+    program: Program,
     lines: string[]
   ): void {
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-
-      // Semicolon comments
-      const semicolonIndex = line.indexOf(";");
-      if (semicolonIndex !== -1) {
-        this.pushToken(
-          builder,
-          lineIndex,
-          semicolonIndex,
-          line.length - semicolonIndex,
-          "comment"
-        );
+    for (const statement of program.body) {
+      // Handle standalone comment statements
+      if (statement.type === StatementType.Comment) {
+        const lineIndex = statement.lineNumber !== undefined
+          ? statement.lineNumber - 1
+          : this.findStatementLine(statement, program, lines);
+        
+        if (lineIndex >= 0 && lineIndex < lines.length) {
+          const line = lines[lineIndex];
+          if (statement.style === "semicolon") {
+            const semicolonIndex = line.indexOf(";");
+            if (semicolonIndex !== -1) {
+              this.pushToken(
+                builder,
+                lineIndex,
+                semicolonIndex,
+                line.length - semicolonIndex,
+                "comment"
+              );
+            }
+          } else if (statement.style === "parenthetical") {
+            const parenPattern = /\([^)]*\)/g;
+            let parenMatch;
+            while ((parenMatch = parenPattern.exec(line)) !== null) {
+              this.pushToken(
+                builder,
+                lineIndex,
+                parenMatch.index,
+                parenMatch[0].length,
+                "comment"
+              );
+            }
+          }
+        }
       }
 
-      // Parenthetical comments
-      const parenPattern = /\([^)]*\)/g;
-      let parenMatch;
-      while ((parenMatch = parenPattern.exec(line)) !== null) {
-        this.pushToken(
-          builder,
-          lineIndex,
-          parenMatch.index,
-          parenMatch[0].length,
-          "comment"
-        );
+      // Handle trailing comments on statements
+      if (statement.comment && statement.lineNumber !== undefined) {
+        const lineIndex = statement.lineNumber - 1;
+        if (lineIndex >= 0 && lineIndex < lines.length) {
+          const line = lines[lineIndex];
+          if (statement.commentStyle === "semicolon") {
+            const semicolonIndex = line.indexOf(";");
+            if (semicolonIndex !== -1) {
+              this.pushToken(
+                builder,
+                lineIndex,
+                semicolonIndex,
+                line.length - semicolonIndex,
+                "comment"
+              );
+            }
+          } else if (statement.commentStyle === "parenthetical") {
+            const parenPattern = /\([^)]*\)/g;
+            let parenMatch;
+            while ((parenMatch = parenPattern.exec(line)) !== null) {
+              this.pushToken(
+                builder,
+                lineIndex,
+                parenMatch.index,
+                parenMatch[0].length,
+                "comment"
+              );
+            }
+          }
+        }
       }
     }
   }
