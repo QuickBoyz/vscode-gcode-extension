@@ -37,6 +37,11 @@ import {
   TextDocumentSyncKind,
   TextEdit,
   WorkspaceEdit,
+  CompletionParams,
+  CompletionItem,
+  CompletionItemKind,
+  SemanticTokensParams,
+  SemanticTokens,
 } from "vscode-languageserver/node";
 import {
   DEFAULT_FORMATTER_SETTINGS,
