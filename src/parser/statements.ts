@@ -5,9 +5,10 @@
  * Classes provide methods and properties that can be reused across the codebase.
  */
 
-import { StatementType, Expression, CommentStyle } from "./types";
+import { StatementType, Expression, CommentStyle, ExpressionType } from "./types";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Range } from "vscode-languageserver/node";
+import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../constants";
 
 /**
  * Base class for all statements
@@ -35,6 +36,43 @@ export abstract class Statement {
   getRange(_document: TextDocument): Range | null {
     // Default implementation - can be overridden by subclasses
     return null;
+  }
+
+  /**
+   * Convert statement to string representation
+   * Returns a simple string representation for debugging/logging
+   */
+  toString(): string {
+    // Default implementation - should be overridden by subclasses
+    return `${this.getType()}`;
+  }
+
+  /**
+   * Helper method to format an expression for toString()
+   */
+  protected formatExpression(expr: Expression): string {
+    switch (expr.type) {
+      case ExpressionType.Number:
+        return expr.value.toString();
+      case ExpressionType.Variable:
+        if (expr.id !== undefined) {
+          return `${GCODE_SYMBOLS.VARIABLE_PREFIX}${expr.id}`;
+        }
+        if (expr.name !== undefined) {
+          return `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${expr.name}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
+        }
+        return "?";
+      case ExpressionType.Binary:
+        return `${this.formatExpression(expr.left)} ${expr.operator} ${this.formatExpression(expr.right)}`;
+      case ExpressionType.Unary:
+        return `${expr.operator}${this.formatExpression(expr.operand)}`;
+      case ExpressionType.Relational:
+        return `${this.formatExpression(expr.left)} ${expr.operator} ${this.formatExpression(expr.right)}`;
+      case ExpressionType.FuncCall:
+        return `${expr.name}(${expr.args.map((arg) => this.formatExpression(arg)).join(", ")})`;
+      default:
+        return "?";
+    }
   }
 }
 
@@ -64,6 +102,10 @@ export class OBlockStatement extends Statement {
 
   getLabel(): number | null {
     return this.id;
+  }
+
+  toString(): string {
+    return `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.id}`;
   }
 }
 
@@ -97,6 +139,11 @@ export class WhileStartStatement extends Statement {
   getLabel(): number | null {
     return this.label;
   }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.WHILE} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.DO}`;
+  }
 }
 
 /**
@@ -125,6 +172,11 @@ export class WhileEndStatement extends Statement {
 
   getLabel(): number | null {
     return this.label;
+  }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.END}`;
   }
 }
 
@@ -158,6 +210,11 @@ export class IfStartStatement extends Statement {
   getLabel(): number | null {
     return this.label;
   }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.IF} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.THEN}`;
+  }
 }
 
 /**
@@ -190,6 +247,11 @@ export class ElseIfStatement extends Statement {
   getLabel(): number | null {
     return this.label;
   }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.ELSEIF} ${GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN}${this.formatExpression(this.condition)}${GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE} ${GCODE_KEYWORDS.THEN}`;
+  }
 }
 
 /**
@@ -219,6 +281,11 @@ export class ElseStatement extends Statement {
   getLabel(): number | null {
     return this.label;
   }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.ELSE}`;
+  }
 }
 
 /**
@@ -247,6 +314,11 @@ export class EndIfStatement extends Statement {
 
   getLabel(): number | null {
     return this.label;
+  }
+
+  toString(): string {
+    const labelText = this.label !== null ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} ` : "";
+    return `${labelText}${GCODE_KEYWORDS.ENDIF}`;
   }
 }
 
@@ -286,5 +358,13 @@ export class AssignStatement extends Statement {
    */
   getVariable(): number | string {
     return this.variable;
+  }
+
+  toString(): string {
+    const varText =
+      typeof this.variable === "string"
+        ? `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${this.variable}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
+        : `${GCODE_SYMBOLS.VARIABLE_PREFIX}${this.variable}`;
+    return `${varText}${GCODE_SYMBOLS.ASSIGNMENT_OPERATOR}${this.formatExpression(this.value)}`;
   }
 }
