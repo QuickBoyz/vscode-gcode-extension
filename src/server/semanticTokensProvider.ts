@@ -138,10 +138,11 @@ export class SemanticTokensProvider {
     lines: string[]
   ): void {
     for (const statement of program.body) {
-      const lineIndex = statement.lineNumber !== undefined 
-        ? statement.lineNumber - 1 
-        : this.findStatementLine(statement, program, lines);
-      
+      const lineIndex =
+        statement.lineNumber !== undefined
+          ? statement.lineNumber - 1
+          : this.findStatementLine(statement, program, lines);
+
       if (lineIndex < 0 || lineIndex >= lines.length) continue;
       const line = lines[lineIndex];
 
@@ -150,7 +151,13 @@ export class SemanticTokensProvider {
         const codeText = GCodeFormatter.formatGCode(statement.code);
         const index = this.findCodeInLine(line, codeText);
         if (index !== -1) {
-          this.pushToken(builder, lineIndex, index, codeText.length, "function");
+          this.pushToken(
+            builder,
+            lineIndex,
+            index,
+            codeText.length,
+            "function"
+          );
         }
       }
 
@@ -159,19 +166,32 @@ export class SemanticTokensProvider {
         const codeText = GCodeFormatter.formatMCode(statement.code);
         const index = this.findCodeInLine(line, codeText);
         if (index !== -1) {
-          this.pushToken(builder, lineIndex, index, codeText.length, "function");
+          this.pushToken(
+            builder,
+            lineIndex,
+            index,
+            codeText.length,
+            "function"
+          );
         }
       }
 
       // Handle block statements (multiple G/M codes)
       if (statement.type === StatementType.Block) {
         for (const code of statement.codes) {
-          const codeText = code.type === "G" 
-            ? GCodeFormatter.formatGCode(code.code)
-            : GCodeFormatter.formatMCode(code.code);
+          const codeText =
+            code.type === "G"
+              ? GCodeFormatter.formatGCode(code.code)
+              : GCodeFormatter.formatMCode(code.code);
           const index = this.findCodeInLine(line, codeText);
           if (index !== -1) {
-            this.pushToken(builder, lineIndex, index, codeText.length, "function");
+            this.pushToken(
+              builder,
+              lineIndex,
+              index,
+              codeText.length,
+              "function"
+            );
           }
         }
       }
@@ -266,15 +286,9 @@ export class SemanticTokensProvider {
     const oBlockIds = new Set<number>();
 
     for (const statement of program.body) {
-      // Use class method if available, otherwise fall back to type checking
+      // All statements with labels are now class instances
       if (statement instanceof StatementClass) {
         const label = statement.getLabel();
-        if (label !== null) {
-          oBlockIds.add(label);
-        }
-      } else {
-        // Fallback for interface-based statements (during migration)
-        const label = this.getStatementLabelFallback(statement);
         if (label !== null) {
           oBlockIds.add(label);
         }
@@ -282,33 +296,6 @@ export class SemanticTokensProvider {
     }
 
     return oBlockIds;
-  }
-
-  /**
-   * Get the label from a statement if it has one (fallback for interfaces)
-   * This method will be removed once all statements are migrated to classes
-   */
-  private getStatementLabelFallback(
-    statement: Statement
-  ): number | null {
-    switch (statement.type) {
-      case StatementType.OBlock:
-        return (statement as any).id;
-      case StatementType.WhileStart:
-        return (statement as any).label;
-      case StatementType.WhileEnd:
-        return (statement as any).label;
-      case StatementType.IfStart:
-        return (statement as any).label;
-      case StatementType.ElseIf:
-        return (statement as any).label;
-      case StatementType.Else:
-        return (statement as any).label;
-      case StatementType.EndIf:
-        return (statement as any).label;
-      default:
-        return null;
-    }
   }
 
   /**
@@ -385,10 +372,11 @@ export class SemanticTokensProvider {
     for (const statement of program.body) {
       // Handle standalone comment statements
       if (statement.type === StatementType.Comment) {
-        const lineIndex = statement.lineNumber !== undefined
-          ? statement.lineNumber - 1
-          : this.findStatementLine(statement, program, lines);
-        
+        const lineIndex =
+          statement.lineNumber !== undefined
+            ? statement.lineNumber - 1
+            : this.findStatementLine(statement, program, lines);
+
         if (lineIndex >= 0 && lineIndex < lines.length) {
           const line = lines[lineIndex];
           if (statement.style === "semicolon") {
