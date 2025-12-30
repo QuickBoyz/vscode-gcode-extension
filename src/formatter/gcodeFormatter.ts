@@ -457,12 +457,8 @@ class GCodeFormatter {
    * Format O-block statement
    */
   private formatOBlock(stmt: OBlockStatement | Statement): string {
-    if (stmt instanceof StatementClass) {
-      const label = stmt.getLabel();
-      return label !== null ? GCodeFormatter.formatOBlock(label) : "";
-    }
-    // Fallback for interface-based statements (shouldn't happen after migration)
-    return GCodeFormatter.formatOBlock((stmt as any).id);
+    const label = (stmt as StatementClass).getLabel();
+    return label !== null ? GCodeFormatter.formatOBlock(label) : "";
   }
 
   /**
@@ -471,11 +467,8 @@ class GCodeFormatter {
   private formatWhileStart(
     stmt: WhileStartStatement | Statement
   ): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
-    const condition = (stmt as any).condition;
+    const label = (stmt as StatementClass).getLabel();
+    const condition = (stmt as WhileStartStatement).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -491,10 +484,7 @@ class GCodeFormatter {
    * Format WHILE end
    */
   private formatWhileEnd(stmt: WhileEndStatement | Statement): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
+    const label = (stmt as StatementClass).getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -506,11 +496,8 @@ class GCodeFormatter {
    * Format IF start
    */
   private formatIfStart(stmt: IfStartStatement | Statement): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
-    const condition = (stmt as any).condition;
+    const label = (stmt as StatementClass).getLabel();
+    const condition = (stmt as IfStartStatement).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -542,11 +529,8 @@ class GCodeFormatter {
    * Format ELSEIF
    */
   private formatElseIf(stmt: ElseIfStatement | Statement): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
-    const condition = (stmt as any).condition;
+    const label = (stmt as StatementClass).getLabel();
+    const condition = (stmt as ElseIfStatement).condition;
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -562,10 +546,7 @@ class GCodeFormatter {
    * Format ELSE
    */
   private formatElse(stmt: ElseStatement | Statement): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
+    const label = (stmt as StatementClass).getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
@@ -577,10 +558,7 @@ class GCodeFormatter {
    * Format ENDIF
    */
   private formatEndIf(stmt: EndIfStatement | Statement): string {
-    const label =
-      stmt instanceof StatementClass
-        ? stmt.getLabel()
-        : (stmt as any).label;
+    const label = (stmt as StatementClass).getLabel();
     const labelText =
       label !== null
         ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
