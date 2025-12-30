@@ -110,10 +110,15 @@ export interface MCodeStatement extends BaseStatement {
   params: ParamBlock;
 }
 
+export enum BlockCodeType {
+  G = "G",
+  M = "M",
+}
+
 // Block statement: multiple G/M codes on a single line (e.g., G40 G49 G80)
 export interface BlockStatement extends BaseStatement {
   type: StatementType.Block;
-  codes: Array<{ type: "G" | "M"; code: number }>;
+  codes: Array<{ type: BlockCodeType; code: number }>;
   params: ParamBlock;
 }
 

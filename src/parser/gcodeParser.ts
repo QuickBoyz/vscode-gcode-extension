@@ -19,6 +19,7 @@ import {
   CommentStyle,
   StatementType,
   ExpressionType,
+  BlockCodeType,
 } from "./types";
 import {
   OBlockStatement,
@@ -31,7 +32,6 @@ import {
 } from "./statements";
 import { Token, TokenType, gcodeLexer } from "../lexer";
 import {
-  CODE_TYPES,
   SPECIAL_MCODES,
   GCODE_SYMBOLS,
 } from "../constants";
@@ -245,7 +245,7 @@ class GCodeParser {
    * Parse a code block (G/M codes with parameters)
    */
   private parseCodeBlock(): Statement {
-    const codes: Array<{ type: "G" | "M"; code: number }> = [];
+    const codes: Array<{ type: BlockCodeType; code: number }> = [];
     const params: ParamBlock = {};
 
     // Parse G/M codes and parameters until end of statement
@@ -256,7 +256,7 @@ class GCodeParser {
       if (token.type === TokenType.GCODE) {
         this.advance();
         codes.push({
-          type: CODE_TYPES.G,
+          type: BlockCodeType.G,
           code: Number(token.value.slice(1)),
         });
       } else if (token.type === TokenType.MCODE) {
@@ -275,7 +275,7 @@ class GCodeParser {
           }
         }
         codes.push({
-          type: CODE_TYPES.M,
+          type: BlockCodeType.M,
           code: Number(token.value.slice(1)),
         });
       } else if (token.type === TokenType.PARAM) {
@@ -294,7 +294,7 @@ class GCodeParser {
       const c = codes[0];
       return {
         type:
-          c.type === CODE_TYPES.G
+          c.type === BlockCodeType.G
             ? StatementType.GCode
             : StatementType.MCode,
         code: c.code,

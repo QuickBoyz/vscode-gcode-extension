@@ -15,6 +15,11 @@ import {
   AssignStatement,
   GotoStatement,
   SubprogramCallStatement,
+  StatementType,
+  ExpressionType,
+} from "../parser/types";
+import {
+  Statement as StatementClass,
   OBlockStatement,
   WhileStartStatement,
   WhileEndStatement,
@@ -22,9 +27,7 @@ import {
   ElseIfStatement,
   ElseStatement,
   EndIfStatement,
-  StatementType,
-  ExpressionType,
-} from "../parser/types";
+} from "../parser/statements";
 import { FormatterOptions } from "./types";
 import {
   GCODE_SYMBOLS,
@@ -209,7 +212,7 @@ class GCodeFormatter {
   /**
    * Format the content of a statement (without line number or trailing comment)
    */
-  private formatStatementContent(statement: Statement): string {
+  private formatStatementContent<T extends Statement>(statement: T): string {
     switch (statement.type) {
       case StatementType.GCode:
         return this.formatGCode(statement);
@@ -451,23 +454,31 @@ class GCodeFormatter {
   /**
    * Format O-block statement
    */
-  private formatOBlock(stmt: OBlockStatement): string {
-    return GCodeFormatter.formatOBlock(stmt.id);
+  private formatOBlock(stmt: OBlockStatement | Statement): string {
+    if (stmt instanceof StatementClass) {
+      const label = stmt.getLabel();
+      return label !== null ? GCodeFormatter.formatOBlock(label) : "";
+    }
+    // Fallback for interface-based statements (shouldn't happen after migration)
+    return GCodeFormatter.formatOBlock((stmt as any).id);
   }
 
   /**
    * Format WHILE start
    */
-  private formatWhileStart(stmt: WhileStartStatement): string {
+  private formatWhileStart(stmt: WhileStartStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const condition = (stmt as any).condition;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${
             GCODE_SYMBOLS.SPACE
           }`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.WHILE}${GCODE_SYMBOLS.SPACE}${
+    return `${labelText}${GCODE_KEYWORDS.WHILE}${GCODE_SYMBOLS.SPACE}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
-    }${this.formatExpression(stmt.condition)}${
+    }${this.formatExpression(condition)}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
     }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.DO}`;
   }
@@ -475,29 +486,30 @@ class GCodeFormatter {
   /**
    * Format WHILE end
    */
-  private formatWhileEnd(stmt: WhileEndStatement): string {
+  private formatWhileEnd(stmt: WhileEndStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
-            GCODE_SYMBOLS.SPACE
-          }`
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.END}`;
+    return `${labelText}${GCODE_KEYWORDS.END}`;
   }
 
   /**
    * Format IF start
    */
-  private formatIfStart(stmt: IfStartStatement): string {
+  private formatIfStart(stmt: IfStartStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
-            GCODE_SYMBOLS.SPACE
-          }`
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const condition = (stmt as any).condition;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.IF}${GCODE_SYMBOLS.SPACE}${
+    return `${labelText}${GCODE_KEYWORDS.IF}${GCODE_SYMBOLS.SPACE}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
-    }${this.formatExpression(stmt.condition)}${
+    }${this.formatExpression(condition)}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
     }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.THEN}`;
   }
@@ -521,16 +533,17 @@ class GCodeFormatter {
   /**
    * Format ELSEIF
    */
-  private formatElseIf(stmt: ElseIfStatement): string {
+  private formatElseIf(stmt: ElseIfStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
-            GCODE_SYMBOLS.SPACE
-          }`
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const condition = (stmt as any).condition;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.ELSEIF}${GCODE_SYMBOLS.SPACE}${
+    return `${labelText}${GCODE_KEYWORDS.ELSEIF}${GCODE_SYMBOLS.SPACE}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
-    }${this.formatExpression(stmt.condition)}${
+    }${this.formatExpression(condition)}${
       GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
     }${GCODE_SYMBOLS.SPACE}${GCODE_KEYWORDS.THEN}`;
   }
@@ -538,27 +551,27 @@ class GCodeFormatter {
   /**
    * Format ELSE
    */
-  private formatElse(stmt: ElseStatement): string {
+  private formatElse(stmt: ElseStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
-            GCODE_SYMBOLS.SPACE
-          }`
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.ELSE}`;
+    return `${labelText}${GCODE_KEYWORDS.ELSE}`;
   }
 
   /**
    * Format ENDIF
    */
-  private formatEndIf(stmt: EndIfStatement): string {
+  private formatEndIf(stmt: EndIfStatement | Statement): string {
     const label =
-      stmt.label !== null
-        ? `${GCodeFormatter.formatOBlock(stmt.label)}${
-            GCODE_SYMBOLS.SPACE
-          }`
+      stmt instanceof StatementClass ? stmt.getLabel() : (stmt as any).label;
+    const labelText =
+      label !== null
+        ? `${GCodeFormatter.formatOBlock(label)}${GCODE_SYMBOLS.SPACE}`
         : GCODE_SYMBOLS.EMPTY_STRING;
-    return `${label}${GCODE_KEYWORDS.ENDIF}`;
+    return `${labelText}${GCODE_KEYWORDS.ENDIF}`;
   }
 
   /**
