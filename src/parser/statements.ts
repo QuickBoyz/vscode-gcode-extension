@@ -3,9 +3,6 @@
  *
  * This file contains class-based implementations of AST nodes.
  * Classes provide methods and properties that can be reused across the codebase.
- *
- * Note: These classes implement the same structure as the interfaces in types.ts
- * and can be used interchangeably during the migration period.
  */
 
 import { StatementType, Expression, CommentStyle } from "./types";
