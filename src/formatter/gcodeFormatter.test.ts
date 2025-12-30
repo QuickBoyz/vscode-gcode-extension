@@ -1,18 +1,16 @@
-import { GCodeFormatter } from "./gcodeFormatter";
+import { gcodeFormatter } from "./gcodeFormatter";
 import { FormatterOptions } from "./types";
-import { GCodeParser } from "../parser";
-import { Program } from "../types/ast";
+import { gcodeParser } from "../parser";
+import { Program } from "../parser/types";
 
 describe("GCodeFormatter", () => {
-  const parser = new GCodeParser();
-
   const parseAndFormat = (
     input: string,
     options: Partial<FormatterOptions> = {}
   ): string => {
-    const ast = parser.parseGcode(input) as Program;
-    const formatter = new GCodeFormatter(options);
-    return formatter.format(ast);
+    const ast = gcodeParser.parseGcode(input) as Program;
+    gcodeFormatter.setOptions(options);
+    return gcodeFormatter.format(ast);
   };
 
   describe("pretty-print commands", () => {

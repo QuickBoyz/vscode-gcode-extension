@@ -1,1 +1,1 @@
-export { GCodeParser } from "./gcodeParser";
+export { gcodeParser } from "./gcodeParser";

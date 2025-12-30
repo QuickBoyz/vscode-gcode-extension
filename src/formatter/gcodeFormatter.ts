@@ -22,10 +22,25 @@ import {
   ElseIfStatement,
   ElseStatement,
   EndIfStatement,
-} from "../types/ast";
-import { FormatterOptions, defaultFormatterOptions } from "./types";
+} from "../parser/types";
+import { FormatterOptions } from "./types";
 
-export class GCodeFormatter {
+/**
+ * Default formatter options
+ */
+export const defaultFormatterOptions: FormatterOptions = {
+  addLineNumbers: false,
+  lineNumberStart: 10,
+  lineNumberIncrement: 10,
+  prettyPrintCommands: true,
+  prettyPrintNumbers: true,
+  indentSize: 4,
+  useTabs: false,
+  indent: true,
+  compactOutput: false,
+};
+
+class GCodeFormatter {
   private options: FormatterOptions;
   private currentLineNumber: number;
   private indentLevel: number;
@@ -34,6 +49,14 @@ export class GCodeFormatter {
     this.options = { ...defaultFormatterOptions, ...options };
     this.currentLineNumber = this.options.lineNumberStart;
     this.indentLevel = 0;
+  }
+
+  public setOptions(options: Partial<FormatterOptions>): void {
+    this.options = {
+      ...defaultFormatterOptions,
+      ...this.options,
+      ...options,
+    };
   }
 
   /**
@@ -445,3 +468,5 @@ export class GCodeFormatter {
     return "%";
   }
 }
+
+export const gcodeFormatter = new GCodeFormatter();

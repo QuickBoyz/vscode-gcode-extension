@@ -1,11 +1,10 @@
 import { readFileSync } from "node:fs";
-import { GCodeParser } from "./gcodeParser";
+import { gcodeParser } from "./gcodeParser";
+import { GCodeStatement } from "./types";
 
 describe("G-Code Parser", () => {
-  const parser = new GCodeParser();
-
   test("parses simple G-code command", () => {
-    const result = parser.parseGcode("G0");
+    const result = gcodeParser.parseGcode("G0");
     expect(result.type).toBe("Program");
     expect(result.body).toHaveLength(1);
     expect(result.body[0]).toEqual({
@@ -16,7 +15,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses G-code with parameters", () => {
-    const result = parser.parseGcode("G0 X10 Y20 Z30");
+    const result = gcodeParser.parseGcode("G0 X10 Y20 Z30");
     expect(result.type).toBe("Program");
     expect(result.body.length).toBeGreaterThan(0);
     // Check that GCode is present with at least some params
@@ -24,12 +23,12 @@ describe("G-Code Parser", () => {
       (stmt: any) => stmt.type === "GCode"
     );
     expect(gcode).toBeDefined();
-    expect(gcode.code).toBe(0);
-    expect(gcode.params).toHaveProperty("X");
+    expect((gcode as GCodeStatement).code).toBe(0);
+    expect((gcode as GCodeStatement).params).toHaveProperty("X");
   });
 
   test("parses M-code command", () => {
-    const result = parser.parseGcode("M5\n");
+    const result = gcodeParser.parseGcode("M5\n");
     expect(result).toEqual({
       type: "Program",
       body: [
@@ -43,13 +42,13 @@ describe("G-Code Parser", () => {
   });
 
   test("parses multiple commands", () => {
-    const result = parser.parseGcode("G0 X0\nM5\n");
+    const result = gcodeParser.parseGcode("G0 X0\nM5\n");
     expect(result.type).toBe("Program");
     expect(result.body.length).toBe(2);
   });
 
   test("captures line numbers on statements", () => {
-    const result = parser.parseGcode("N10 G1 X1\n");
+    const result = gcodeParser.parseGcode("N10 G1 X1\n");
     expect(result.body[0]).toEqual({
       type: "GCode",
       code: 1,
@@ -59,7 +58,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses standalone semicolon comments", () => {
-    const result = parser.parseGcode("; program start\n");
+    const result = gcodeParser.parseGcode("; program start\n");
     expect(result.body[0]).toEqual({
       type: "Comment",
       value: "program start",
@@ -68,7 +67,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses standalone parenthetical comments", () => {
-    const result = parser.parseGcode("( TOOL CHANGE )\n");
+    const result = gcodeParser.parseGcode("( TOOL CHANGE )\n");
     expect(result.body[0]).toEqual({
       type: "Comment",
       value: "TOOL CHANGE",
@@ -77,7 +76,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses trailing semicolon comments on statements", () => {
-    const result = parser.parseGcode("G0 X0 ; rapid move\n");
+    const result = gcodeParser.parseGcode("G0 X0 ; rapid move\n");
     expect(result.body[0]).toEqual({
       type: "GCode",
       code: 0,
@@ -88,7 +87,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses trailing parenthetical comments on statements", () => {
-    const result = parser.parseGcode("G0 X0 (rapid move)\n");
+    const result = gcodeParser.parseGcode("G0 X0 (rapid move)\n");
     expect(result.body[0]).toEqual({
       type: "GCode",
       code: 0,
@@ -99,7 +98,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses O-block declarations", () => {
-    const result = parser.parseGcode("O1234\n");
+    const result = gcodeParser.parseGcode("O1234\n");
     expect(result.body[0]).toEqual({
       type: "OBlock",
       id: 1234,
@@ -107,7 +106,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses multiple G-codes on same line", () => {
-    const result = parser.parseGcode("G40 G49 G80\n");
+    const result = gcodeParser.parseGcode("G40 G49 G80\n");
     expect(result.body[0]).toEqual({
       type: "Block",
       codes: [
@@ -120,7 +119,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses mixed G and M codes with params", () => {
-    const result = parser.parseGcode("G20 T17 M6\n");
+    const result = gcodeParser.parseGcode("G20 T17 M6\n");
     expect(result.body[0]).toEqual({
       type: "Block",
       codes: [
@@ -132,7 +131,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses variable assignment", () => {
-    const result = parser.parseGcode("#1=10\n");
+    const result = gcodeParser.parseGcode("#1=10\n");
     expect(result.body[0]).toEqual({
       type: "Assign",
       variable: 1,
@@ -141,7 +140,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses expression in parameter", () => {
-    const result = parser.parseGcode("X[#1+10]\n");
+    const result = gcodeParser.parseGcode("X[#1+10]\n");
     expect(result.body[0]).toEqual({
       type: "Param",
       params: {
@@ -156,7 +155,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses ternary IF GOTO statement", () => {
-    const result = parser.parseGcode("IF [#1 EQ 100] GOTO 500\n");
+    const result = gcodeParser.parseGcode("IF [#1 EQ 100] GOTO 500\n");
     expect(result.body[0]).toEqual({
       type: "IfGoto",
       condition: {
@@ -170,14 +169,14 @@ describe("G-Code Parser", () => {
   });
 
   test("parses program delimiter (%)", () => {
-    const result = parser.parseGcode("%\n");
+    const result = gcodeParser.parseGcode("%\n");
     expect(result.body[0]).toEqual({
       type: "ProgramDelimiter",
     });
   });
 
   test("parses program with % delimiters", () => {
-    const result = parser.parseGcode(`
+    const result = gcodeParser.parseGcode(`
       %
       O1234
       G0 X0 Y0
@@ -192,7 +191,7 @@ describe("G-Code Parser", () => {
   });
 
   test("parses real program", () => {
-    const result = parser.parseGcode(`
+    const result = gcodeParser.parseGcode(`
       N10 G0 X0 Y0 Z0
       N20 G1 X10 Y20 F100
       N25 X[#1+10] Y[#2+20]
@@ -224,16 +223,16 @@ describe("G-Code Parser", () => {
   });
 
   test.each([1, 2, 3])("parses real file %s", (index) => {
-    const parsed = parser.parseGcode(
+    const parsed = gcodeParser.parseGcode(
       readFileSync(
-        `src/parser/__tests__/fixtures/test${index}.nc`,
+        `src/__tests__/fixtures/test${index}.nc`,
         "utf8"
       ).toString()
     );
     expect(parsed).toEqual(
       JSON.parse(
         readFileSync(
-          `src/parser/__tests__/fixtures/result${index}.json`,
+          `src/__tests__/fixtures/result${index}.json`,
           "utf8"
         ).toString()
       )

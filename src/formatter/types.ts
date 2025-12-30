@@ -59,18 +59,3 @@ export interface FormatterOptions {
    */
   compactOutput: boolean;
 }
-
-/**
- * Default formatter options
- */
-export const defaultFormatterOptions: FormatterOptions = {
-  addLineNumbers: false,
-  lineNumberStart: 10,
-  lineNumberIncrement: 10,
-  prettyPrintCommands: true,
-  prettyPrintNumbers: true,
-  indentSize: 4,
-  useTabs: false,
-  indent: true,
-  compactOutput: false,
-};

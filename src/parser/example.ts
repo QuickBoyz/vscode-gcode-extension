@@ -2,7 +2,7 @@
  * Example usage of the G-code parser
  */
 
-import { GCodeParser } from "./gcodeParser";
+import { gcodeParser } from "./gcodeParser";
 
 // Example G-code program
 const exampleGcode =
@@ -38,14 +38,12 @@ const exampleGcode =
   "N200 O100 END\n" +
   "N210 M30\n";
 
-const parser = new GCodeParser();
-
 try {
   console.log("Parsing G-code:");
   console.log(exampleGcode);
   console.log("\n---\n");
 
-  const ast = parser.parseGcode(exampleGcode);
+  const ast = gcodeParser.parseGcode(exampleGcode);
   console.log("Parsed AST:");
   console.log(JSON.stringify(ast, null, 2));
 } catch (error: any) {
