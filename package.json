@@ -2,7 +2,7 @@
   "name": "vscode-gcode-extension",
   "displayName": "G-Code Language Support",
   "description": "G-Code language support with syntax highlighting and formatting",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "QuickBoyz",
   "engines": {
     "vscode": "^1.85.0"
