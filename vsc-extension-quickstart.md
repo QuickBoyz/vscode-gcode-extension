@@ -1,29 +1,77 @@
-# Welcome to your VS Code Extension
+# Quick Start Guide
 
-## What's in the folder
+This is a quick reference for common development tasks. For detailed documentation, see [README.md](README.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
-* This folder contains all of the files necessary for your extension.
-* `package.json` - this is the manifest file in which you declare your language support and define the location of the grammar file that has been copied into your extension.
-* `syntaxes/gcode.tmLanguage.json` - this is the Text mate grammar file that is used for tokenization.
-* `language-configuration.json` - this is the language configuration, defining the tokens that are used for comments and brackets.
+## Quick Setup
 
-## Get up and running straight away
+```bash
+# Install dependencies
+npm install
 
-* Make sure the language configuration settings in `language-configuration.json` are accurate.
-* Press `F5` to open a new window with your extension loaded.
-* Create a new file with a file name suffix matching your language.
-* Verify that syntax highlighting works and that the language configuration settings are working.
+# Build the project
+npm run build
 
-## Make changes
+# Run tests
+npm test
+```
 
-* You can relaunch the extension from the debug toolbar after making changes to the files listed above.
-* You can also reload (`Ctrl+R` or `Cmd+R` on Mac) the VS Code window with your extension to load your changes.
+## Development
 
-## Add more language features
+1. **Launch Extension Development Host:**
+   - Press `F5` in VS Code
+   - A new window will open with the extension loaded
 
-* To add features such as IntelliSense, hovers and validators check out the VS Code extenders documentation at https://code.visualstudio.com/api/language-extensions/overview
+2. **Test your changes:**
+   - Open a G-Code file (`.nc`, `.gcode`, etc.)
+   - Test formatting with `Shift+Alt+F` or Command Palette → "Format G-Code Document"
 
-## Install your extension
+3. **Debug:**
+   - Set breakpoints in your code
+   - The debugger will attach automatically
+   - Check Debug Console for logs
 
-* To start using your extension with Visual Studio Code copy it into the `<user home>/.vscode/extensions` folder and restart Code.
-* To share your extension with the world, read on https://code.visualstudio.com/api/working-with-extensions/publishing-extension about publishing an extension.
+## Project Structure Quick Reference
+
+- `src/client/extension.ts` - Extension entry point
+- `src/server/server.ts` - LSP server
+- `src/parser/gcodeParser.ts` - G-Code parser
+- `src/formatter/gcodeFormatter.ts` - Code formatter
+- `src/lexer/gcodeLexer.ts` - Tokenizer
+
+## Common Commands
+
+```bash
+npm run build          # Compile TypeScript
+npm run typecheck      # Type check only
+npm test               # Run tests
+npm run test:watch     # Watch mode
+npm run package        # Create .vsix file
+```
+
+## File Locations
+
+- **Syntax highlighting**: `syntaxes/gcode.tmLanguage.json`
+- **Theme**: `themes/gcode-theme.json`
+- **Language config**: `language-configuration.json`
+- **Extension manifest**: `package.json`
+
+## Testing
+
+- Test files: `**/*.test.ts` (alongside source files)
+- Test fixtures: `src/__tests__/fixtures/`
+- Run: `npm test`
+
+## Packaging
+
+```bash
+npm run package        # Production build
+npm run package:pre    # Pre-release build
+```
+
+Output: `vscode-gcode-extension-X.X.X.vsix`
+
+## Need Help?
+
+- See [README.md](README.md) for full documentation
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines
+- Open an issue on GitHub for questions
