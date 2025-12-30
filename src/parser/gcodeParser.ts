@@ -541,10 +541,7 @@ class GCodeParser {
     this.match(TokenType.EQUALS);
     const value = this.parseExpression();
 
-    return new AssignStatement(
-      idx as unknown as number,
-      value
-    );
+    return new AssignStatement(idx as unknown as number, value);
   }
 
   /**

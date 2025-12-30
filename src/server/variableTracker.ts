@@ -70,12 +70,10 @@ export class VariableTracker {
       if (statement.type === StatementType.Assign) {
         const assignStmt = statement as AssignStatement;
         // All assignment statements are now class instances
-        if (assignStmt instanceof AssignStatement) {
-          assignments.push({
-            statement: assignStmt,
-            identifier: assignStmt.getVariable(),
-          });
-        }
+        assignments.push({
+          statement: assignStmt,
+          identifier: assignStmt.getVariable(),
+        });
       }
     }
 
