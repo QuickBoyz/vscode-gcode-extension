@@ -1,9 +1,9 @@
 import moo from "moo";
+import { Lexer, Token, TokenType } from "./types";
 
 /**
  * Token type exported from moo
  */
-export type Token = moo.Token;
 
 /**
  * G-code Lexer
@@ -18,7 +18,7 @@ export type Token = moo.Token;
  * - Variables
  */
 class GCodeLexer {
-  private lexer: moo.Lexer;
+  private lexer: Lexer;
 
   constructor() {
     this.lexer = moo.compile({
@@ -100,7 +100,7 @@ class GCodeLexer {
 
       // Parameters (single uppercase letter like X, Y, Z, F, S, etc.)
       PARAM: /[A-Z]/,
-    });
+    }) as Lexer;
   }
 
   /**
@@ -113,7 +113,7 @@ class GCodeLexer {
     let token: Token | undefined;
     while ((token = this.lexer.next())) {
       // Skip whitespace but keep newlines as line separators
-      if (token.type !== "ws") {
+      if (token.type !== TokenType.WS) {
         tokens.push(token);
       }
     }

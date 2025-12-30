@@ -5,6 +5,9 @@
  * Currently supports:
  * - Document formatting
  * - Range formatting
+ * - Variable hover information
+ * - Variable definition navigation
+ * - Variable rename (F2 or context menu)
  */
 import {
   createConnection,
@@ -18,11 +21,24 @@ import {
   TextEdit,
   Range,
   Position,
+  HoverParams,
+  Hover,
+  DefinitionParams,
+  DefinitionLink,
+  Location,
+  RenameParams,
+  WorkspaceEdit,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { gcodeParser } from "../parser";
-import { defaultFormatterOptions, gcodeFormatter } from "../formatter";
+import { gcodeFormatter, GCodeFormatter } from "../formatter";
 import { FormatterOptions } from "../formatter/types";
+import { VariableTracker } from "./variableTracker";
+import {
+  GCODE_SYMBOLS,
+  REGEX_PATTERNS,
+  DEFAULT_FORMATTER_OPTIONS,
+} from "../constants";
 
 // Create a connection for the server using Node's IPC as transport
 const connection = createConnection(ProposedFeatures.all);
@@ -46,15 +62,7 @@ interface GCodeSettings {
 }
 
 const defaultSettings: GCodeSettings = {
-  formatter: {
-    addLineNumbers: defaultFormatterOptions.addLineNumbers,
-    lineNumberStart: defaultFormatterOptions.lineNumberStart,
-    lineNumberIncrement: defaultFormatterOptions.lineNumberIncrement,
-    prettyPrintCommands: defaultFormatterOptions.prettyPrintCommands,
-    prettyPrintNumbers: defaultFormatterOptions.prettyPrintNumbers,
-    indent: defaultFormatterOptions.indent,
-    compactOutput: defaultFormatterOptions.compactOutput,
-  },
+  formatter: DEFAULT_FORMATTER_OPTIONS,
 };
 
 // Cache document settings
@@ -66,6 +74,9 @@ const documentSettings: Map<
 // Global settings (used when document-specific settings are not available)
 let globalSettings: GCodeSettings = defaultSettings;
 
+// Variable tracker instance
+const variableTracker = new VariableTracker();
+
 connection.onInitialize(
   (_params: InitializeParams): InitializeResult => {
     connection.console.log("G-code Language Server initializing...");
@@ -75,6 +86,9 @@ connection.onInitialize(
         textDocumentSync: TextDocumentSyncKind.Incremental,
         documentFormattingProvider: true,
         documentRangeFormattingProvider: true,
+        hoverProvider: true,
+        definitionProvider: true,
+        renameProvider: true,
       },
     };
   }
@@ -234,6 +248,386 @@ async function formatDocument(
     return null;
   }
 }
+
+/**
+ * Handle hover requests to show variable information
+ */
+connection.onHover(
+  async (params: HoverParams): Promise<Hover | null> => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    try {
+      const text = document.getText();
+      const ast = gcodeParser.parseGcode(text);
+      const definition = variableTracker.findDefinitionAtPosition(
+        ast,
+        document,
+        params.position
+      );
+
+      if (!definition) {
+        return null;
+      }
+
+      // Format variable identifier
+      const varName =
+        typeof definition.identifier === "string"
+          ? GCodeFormatter.formatNamedVariable(definition.identifier)
+          : GCodeFormatter.formatNumericVariable(definition.identifier);
+
+      // Format value
+      const valueStr = variableTracker.formatVariableValue(
+        definition.value
+      );
+
+      // Get line number for display (1-based)
+      const lineNumber = definition.statement.lineNumber
+        ? GCodeFormatter.formatLineNumber(
+            definition.statement.lineNumber
+          )
+        : `Line ${definition.line + 1}`;
+
+      // Build hover content
+      const contents = [
+        `**Variable:** \`${varName}\``,
+        `**Value:** \`${valueStr}\``,
+        `**Defined at:** ${lineNumber}`,
+      ];
+
+      // Find the variable range in the current line for highlighting
+      const line = document.getText().split(REGEX_PATTERNS.NEWLINE)[
+        params.position.line
+      ];
+      const varMatch = line.match(
+        typeof definition.identifier === "string"
+          ? new RegExp(
+              `${
+                GCODE_SYMBOLS.NAMED_VAR_OPEN
+              }${definition.identifier.replace(
+                REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
+                "\\$&"
+              )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
+            )
+          : new RegExp(
+              `${GCODE_SYMBOLS.VARIABLE_PREFIX}${definition.identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`
+            )
+      );
+
+      let range: Range | undefined;
+      if (varMatch && varMatch.index !== undefined) {
+        range = Range.create(
+          params.position.line,
+          varMatch.index,
+          params.position.line,
+          varMatch.index + varMatch[0].length
+        );
+      }
+
+      return {
+        contents: {
+          kind: "markdown",
+          value: contents.join(
+            `${GCODE_SYMBOLS.NEWLINE}${GCODE_SYMBOLS.NEWLINE}`
+          ),
+        },
+        range,
+      };
+    } catch (error) {
+      connection.console.error(
+        `Hover error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      return null;
+    }
+  }
+);
+
+/**
+ * Handle definition requests for Ctrl+click navigation
+ */
+connection.onDefinition(
+  async (
+    params: DefinitionParams
+  ): Promise<DefinitionLink[] | Location[] | null> => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    try {
+      const text = document.getText();
+      const ast = gcodeParser.parseGcode(text);
+      const definition = variableTracker.findDefinitionAtPosition(
+        ast,
+        document,
+        params.position
+      );
+
+      if (!definition) {
+        return null;
+      }
+
+      // Check if we're clicking on the definition itself
+      const isAtDefinition =
+        params.position.line === definition.line &&
+        params.position.character >= definition.column &&
+        params.position.character <
+          definition.column +
+            (typeof definition.identifier === "string"
+              ? GCodeFormatter.formatNamedVariable(
+                  definition.identifier
+                ).length
+              : GCodeFormatter.formatNumericVariable(
+                  definition.identifier
+                ).length);
+
+      if (isAtDefinition) {
+        // We're at the definition - find all usages
+        const usages = variableTracker.findUsages(
+          ast,
+          document,
+          definition.identifier
+        );
+
+        // If there are multiple usages (definition + others), do nothing
+        if (usages.length > 2) {
+          return null;
+        }
+
+        // If there's exactly one usage elsewhere (definition + 1 usage = 2 total),
+        // navigate to that usage
+        if (usages.length === 2) {
+          // Find the usage that's not the definition
+          const usage = usages.find(
+            (u) =>
+              !(
+                u.line === definition.line &&
+                u.character === definition.column
+              )
+          );
+
+          if (usage) {
+            const range = Range.create(
+              usage.line,
+              usage.character,
+              usage.line,
+              usage.character + usage.length
+            );
+
+            return [
+              {
+                uri: params.textDocument.uri,
+                range,
+              },
+            ];
+          }
+        }
+
+        // If only the definition exists (1 usage), do nothing
+        return null;
+      }
+
+      // We're not at the definition - navigate to it (normal behavior)
+      const range = Range.create(
+        definition.line,
+        definition.column,
+        definition.line,
+        definition.column +
+          (typeof definition.identifier === "string"
+            ? `#<${definition.identifier}>`.length
+            : `#${definition.identifier}`.length)
+      );
+
+      return [
+        {
+          uri: params.textDocument.uri,
+          range,
+        },
+      ];
+    } catch (error) {
+      connection.console.error(
+        `Definition error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      return null;
+    }
+  }
+);
+
+/**
+ * Handle rename requests (F2 or context menu)
+ */
+connection.onRenameRequest(
+  async (params: RenameParams): Promise<WorkspaceEdit | null> => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    try {
+      const text = document.getText();
+      const ast = gcodeParser.parseGcode(text);
+
+      // Find the variable at the position
+      const variable = variableTracker.findDefinitionAtPosition(
+        ast,
+        document,
+        params.position
+      );
+
+      if (!variable) {
+        // Try to find variable usage if not at definition
+        const line = document.getText().split(/\r?\n/)[
+          params.position.line
+        ];
+        if (!line) return null;
+
+        const varAtPos = variableTracker.findVariableAtPosition(
+          line,
+          params.position.character
+        );
+        if (!varAtPos) return null;
+
+        // Find definition to get the identifier
+        const definitions = variableTracker.findDefinitions(
+          ast,
+          document
+        );
+        const def = definitions.find((d) => {
+          if (
+            typeof varAtPos.identifier === "string" &&
+            typeof d.identifier === "string"
+          ) {
+            return varAtPos.identifier === d.identifier;
+          }
+          if (
+            typeof varAtPos.identifier === "number" &&
+            typeof d.identifier === "number"
+          ) {
+            return varAtPos.identifier === d.identifier;
+          }
+          return false;
+        });
+
+        if (!def) return null;
+
+        // Find all usages
+        const usages = variableTracker.findUsages(
+          ast,
+          document,
+          def.identifier
+        );
+
+        // Validate new name
+        const newName = params.newName.trim();
+        if (typeof def.identifier === "string") {
+          // Named variable: validate name format
+          if (!REGEX_PATTERNS.VALID_NAMED_VARIABLE.test(newName)) {
+            connection.window.showErrorMessage(
+              "Invalid variable name. Must start with a letter or underscore and contain only letters, numbers, and underscores."
+            );
+            return null;
+          }
+        } else {
+          // Numeric variable: validate it's a number
+          if (!REGEX_PATTERNS.VALID_NUMERIC_VARIABLE.test(newName)) {
+            connection.window.showErrorMessage(
+              "Invalid variable number. Must be a positive integer."
+            );
+            return null;
+          }
+        }
+
+        // Create text edits for all usages
+        const edits: TextEdit[] = usages.map((usage) => {
+          const range = Range.create(
+            usage.line,
+            usage.character,
+            usage.line,
+            usage.character + usage.length
+          );
+
+          // Format new variable name
+          const newVarName =
+            typeof def.identifier === "string"
+              ? GCodeFormatter.formatNamedVariable(newName)
+              : GCodeFormatter.formatNumericVariable(Number(newName));
+
+          return TextEdit.replace(range, newVarName);
+        });
+
+        return {
+          changes: {
+            [params.textDocument.uri]: edits,
+          },
+        };
+      }
+
+      // We're at the definition, find all usages
+      const usages = variableTracker.findUsages(
+        ast,
+        document,
+        variable.identifier
+      );
+
+      // Validate new name
+      const newName = params.newName.trim();
+      if (typeof variable.identifier === "string") {
+        // Named variable: validate name format
+        if (!REGEX_PATTERNS.VALID_NAMED_VARIABLE.test(newName)) {
+          connection.window.showErrorMessage(
+            "Invalid variable name. Must start with a letter or underscore and contain only letters, numbers, and underscores."
+          );
+          return null;
+        }
+      } else {
+        // Numeric variable: validate it's a number
+        if (!REGEX_PATTERNS.VALID_NUMERIC_VARIABLE.test(newName)) {
+          connection.window.showErrorMessage(
+            "Invalid variable number. Must be a positive integer."
+          );
+          return null;
+        }
+      }
+
+      // Create text edits for all usages (including definition)
+      const edits: TextEdit[] = usages.map((usage) => {
+        const range = Range.create(
+          usage.line,
+          usage.character,
+          usage.line,
+          usage.character + usage.length
+        );
+
+        // Format new variable name
+        const newVarName =
+          typeof variable.identifier === "string"
+            ? GCodeFormatter.formatNamedVariable(newName)
+            : GCodeFormatter.formatNumericVariable(Number(newName));
+
+        return TextEdit.replace(range, newVarName);
+      });
+
+      return {
+        changes: {
+          [params.textDocument.uri]: edits,
+        },
+      };
+    } catch (error) {
+      connection.console.error(
+        `Rename error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      return null;
+    }
+  }
+);
 
 // Make the text document manager listen on the connection
 documents.listen(connection);
