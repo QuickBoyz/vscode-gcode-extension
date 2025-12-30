@@ -7,10 +7,10 @@
 import {
   Program,
   Expression,
-  AssignStatement,
   StatementType,
   ExpressionType,
 } from "../parser/types";
+import { AssignStatement } from "../parser/statements";
 import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
@@ -69,10 +69,13 @@ export class VariableTracker {
     for (const statement of program.body) {
       if (statement.type === StatementType.Assign) {
         const assignStmt = statement as AssignStatement;
-        assignments.push({
-          statement: assignStmt,
-          identifier: assignStmt.variable,
-        });
+        // All assignment statements are now class instances
+        if (assignStmt instanceof AssignStatement) {
+          assignments.push({
+            statement: assignStmt,
+            identifier: assignStmt.getVariable(),
+          });
+        }
       }
     }
 

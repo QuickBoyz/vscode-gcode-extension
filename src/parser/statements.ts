@@ -249,3 +249,42 @@ export class EndIfStatement extends Statement {
     return this.label;
   }
 }
+
+/**
+ * Variable assignment statement
+ */
+export class AssignStatement extends Statement {
+  type: StatementType.Assign = StatementType.Assign;
+  variable: number | string;
+  value: Expression;
+
+  constructor(
+    variable: number | string,
+    value: Expression,
+    lineNumber?: number,
+    comment?: string,
+    commentStyle?: CommentStyle
+  ) {
+    super();
+    this.variable = variable;
+    this.value = value;
+    this.lineNumber = lineNumber;
+    this.comment = comment;
+    this.commentStyle = commentStyle;
+  }
+
+  getType(): StatementType {
+    return StatementType.Assign;
+  }
+
+  getLabel(): number | null {
+    return null;
+  }
+
+  /**
+   * Get the variable identifier
+   */
+  getVariable(): number | string {
+    return this.variable;
+  }
+}
