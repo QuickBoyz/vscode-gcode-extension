@@ -302,7 +302,9 @@ connection.onHover(
           : GCodeFormatter.formatNumericVariable(definition.identifier);
 
       // Format value
-      const valueStr = GCodeFormatter.formatExpression(definition.value);
+      const valueStr = GCodeFormatter.formatExpression(
+        definition.value
+      );
 
       // Get line number for display (1-based)
       const lineNumber = definition.statement.lineNumber
@@ -680,7 +682,9 @@ connection.onCompletion(
                 definition.identifier
               );
 
-        const valueStr = GCodeFormatter.formatExpression(definition.value);
+        const valueStr = GCodeFormatter.formatExpression(
+          definition.value
+        );
 
         // Get line number for display
         const lineNumber = definition.statement.lineNumber

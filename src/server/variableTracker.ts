@@ -4,11 +4,7 @@
  * Tracks variable definitions and usages in G-code programs.
  * Provides functionality to find variable definitions and get variable information.
  */
-import {
-  Program,
-  Expression,
-  StatementType,
-} from "../parser/types";
+import { Program, Expression, StatementType } from "../parser/types";
 import { AssignStatement } from "../parser/statements";
 import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -49,6 +45,26 @@ export interface VariableDefinition {
  */
 export class VariableTracker {
   /**
+   * Build a regex pattern for matching a variable identifier
+   */
+  private buildVariablePattern(
+    identifier: number | string,
+    global: boolean = false
+  ): RegExp {
+    return typeof identifier === "string"
+      ? new RegExp(
+          `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${identifier.replace(
+            REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
+            "\\$&"
+          )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`,
+          global ? "g" : ""
+        )
+      : new RegExp(
+          `${GCODE_SYMBOLS.VARIABLE_PREFIX}${identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`,
+          global ? "g" : ""
+        );
+  }
+  /**
    * Find all variable definitions in a program
    */
   public findDefinitions(
@@ -78,17 +94,7 @@ export class VariableTracker {
     // Find each assignment in the document text
     for (const { statement, identifier } of assignments) {
       // Use regex for both numeric and named variables for consistency
-      const varPattern =
-        typeof identifier === "string"
-          ? new RegExp(
-              `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${identifier.replace(
-                REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
-                "\\$&"
-              )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
-            )
-          : new RegExp(
-              `${GCODE_SYMBOLS.VARIABLE_PREFIX}${identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`
-            );
+      const varPattern = this.buildVariablePattern(identifier);
 
       // Search through all lines
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -225,19 +231,7 @@ export class VariableTracker {
     const lines = text.split(/\r?\n/);
 
     // Determine the pattern to search for
-    const varPattern =
-      typeof identifier === "string"
-        ? new RegExp(
-            `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${identifier.replace(
-              REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
-              "\\$&"
-            )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`,
-            "g"
-          )
-        : new RegExp(
-            `${GCODE_SYMBOLS.VARIABLE_PREFIX}${identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`,
-            "g"
-          );
+    const varPattern = this.buildVariablePattern(identifier, true);
 
     // Search through all lines
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -258,5 +252,4 @@ export class VariableTracker {
 
     return usages;
   }
-
 }
