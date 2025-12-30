@@ -269,3 +269,4 @@ class GCodeFormatter {
 }
 
 export const gcodeFormatter = new GCodeFormatter();
+export { GCodeFormatter };
