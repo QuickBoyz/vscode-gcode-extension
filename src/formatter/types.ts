@@ -1,7 +1,7 @@
 /**
  * Formatter configuration options
  */
-export interface FormatterOptions {
+export interface FormatterSettings {
   /**
    * Add N-block line numbers to each line
    * @default false
@@ -58,4 +58,10 @@ export interface FormatterOptions {
    * @default false
    */
   compactOutput: boolean;
+
+  /**
+   * Add program delimiters (%) at the beginning and end of the program if not present
+   * @default true
+   */
+  addProgramDelimiters: boolean;
 }

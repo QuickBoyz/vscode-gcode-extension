@@ -1,232 +1,242 @@
 /**
  * Variable Tracker
  *
- * Tracks variable definitions and usages in G-code programs.
- * Provides functionality to find variable definitions and get variable information.
+ * Tracks variable assignments and usages in G-code programs.
+ * Uses AST features to efficiently find variable assignments and usages.
  */
-import { Position } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
-
+import { Position } from "vscode-languageserver";
 import { Program } from "../entities";
-import { Assignment } from "../entities/statements";
-import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
+import {
+  ElseIfConditional,
+  IfStartConditional,
+  WhileStartConditional,
+} from "../entities/conditionals";
+import {
+  BinaryExpression,
+  Expression,
+  FuncCallExpression,
+  RelationalExpression,
+  UnaryExpression,
+  VariableExpression,
+  VariableReference,
+} from "../entities/expressions";
+import {
+  AssignmentStatement,
+  BlockStatement,
+  CommandStatement,
+  Statement,
+} from "../entities/statements";
+import { BaseVariable } from "../entities/expressions/variables/BaseVariable";
 
 /**
- * Information about a variable definition
- */
-export interface VariableDefinition {
-  /**
-   * Variable identifier (number for #123, string for #<name>)
-   */
-  identifier: number | string;
-
-  /**
-   * The assignment statement that defines this variable
-   */
-  statement: Assignment;
-}
-
-/**
- * Variable tracker that analyzes G-code programs to find variable definitions
+ * Variable tracker that analyzes G-code programs to find variable assignments
  */
 export class VariableTracker {
-  /**
-   * Build a regex pattern for matching a variable identifier
-   */
-  private buildVariablePattern(
-    identifier: number | string,
-    global: boolean = false
-  ): RegExp {
-    return typeof identifier === "string"
-      ? new RegExp(
-          `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${identifier.replace(
-            REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
-            "\\$&"
-          )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`,
-          global ? "g" : ""
-        )
-      : new RegExp(
-          `${GCODE_SYMBOLS.VARIABLE_PREFIX}${identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`,
-          global ? "g" : ""
-        );
+  public getProgramVariables(program: Program): VariableExpression[] {
+    return program.getVariables();
   }
-  /**
-   * Find all variable definitions in a program
-   */
-  public findDefinitions(
-    program: Program,
-    document: TextDocument
-  ): VariableDefinition[] {
-    const variables: VariableDefinition[] = [];
-    const text = document.getText();
-    const lines = text.split(REGEX_PATTERNS.NEWLINE);
 
-    // Extract all assignment statements from the AST
-    const assignments: Assignment[] = [];
+  public getProgramVariableReferences(
+    program: Program
+  ): VariableReference[] {
+    return program.getVariableReferences();
+  }
+
+  public getProgramVariableAtPosition(
+    program: Program,
+    position: Position
+  ): VariableExpression | null {
+    return (
+      program
+        .getVariables()
+        .find((v) => v.isPositionInRange(position)) ?? null
+    );
+  }
+
+  public getProgramVariableReferenceAtPosition(
+    program: Program,
+    position: Position
+  ): VariableReference | null {
+    return (
+      program
+        .getVariableReferences()
+        .find((v) => v.isPositionInRange(position)) ?? null
+    );
+  }
+
+  /**
+   * Find all variable assignments in a program
+   */
+  public findAssignments(program: Program): AssignmentStatement[] {
+    const assignments: AssignmentStatement[] = [];
+
+    // Extract all assignment statements directly from the AST
     for (const statement of program.getBody()) {
-      if (statement instanceof Assignment) {
-        // All assignment statements are now class instances
+      if (statement instanceof AssignmentStatement) {
         assignments.push(statement);
       }
     }
 
-    // Find each assignment in the document text
-    for (const statement of assignments) {
-      const identifier = statement.getVariable() as number | string;
-      // Use regex for both numeric and named variables for consistency
-      const varPattern = this.buildVariablePattern(identifier);
-
-      // Search through all lines
-      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        const line = lines[lineIndex];
-
-        // Use regex matching for both variable types
-        const match = line.match(varPattern);
-        if (match && match.index !== undefined) {
-          // Check if it's followed by = (assignment)
-          const afterVar = line
-            .slice(match.index + match[0].length)
-            .trim();
-          if (afterVar.startsWith(GCODE_SYMBOLS.ASSIGNMENT_OPERATOR)) {
-            // Found the assignment, add to definitions
-            variables.push({
-              identifier,
-              statement,
-            });
-            break; // Found this assignment, move to next
-          }
-        }
-      }
-    }
-
-    return variables;
+    return assignments;
   }
 
   /**
-   * Find the definition of a variable at a given position
+   * Find all usages of a variable in a program using AST traversal
+   * Traverses the entire AST to find all VariableReference instances
    */
-  public findDefinitionAtPosition(
+  public findVariableUsages(
     program: Program,
-    document: TextDocument,
-    position: Position
-  ): VariableDefinition | null {
-    const line = document.getText().split(REGEX_PATTERNS.NEWLINE)[
-      position.line
-    ];
-    if (!line) return null;
-
-    // Find variable at cursor position
-    const variable = this.findVariableAtPosition(
-      line,
-      position.character
-    );
-    if (!variable) return null;
-
-    // Find all definitions
-    const definitions = this.findDefinitions(program, document);
-
-    // Find matching definition
-    return (
-      definitions.find((def) => {
-        if (
-          typeof variable.identifier === "string" &&
-          typeof def.identifier === "string"
-        ) {
-          return variable.identifier === def.identifier;
-        }
-        if (
-          typeof variable.identifier === "number" &&
-          typeof def.identifier === "number"
-        ) {
-          return variable.identifier === def.identifier;
-        }
-        return false;
-      }) || null
-    );
-  }
-
-  /**
-   * Find variable at a specific character position in a line
-   */
-  public findVariableAtPosition(
-    line: string,
-    character: number
-  ): {
-    identifier: number | string;
-    start: number;
-    end: number;
-  } | null {
-    // Match numeric variables: #123
-    const numericVarRegex = REGEX_PATTERNS.NUMERIC_VARIABLE;
-    let match: RegExpExecArray | null;
-
-    while ((match = numericVarRegex.exec(line)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
-
-      if (character >= start && character < end) {
-        return {
-          identifier: Number(match[1]),
-          start,
-          end,
-        };
-      }
-    }
-
-    // Match named variables: #<name>
-    const namedVarRegex = REGEX_PATTERNS.NAMED_VARIABLE;
-    while ((match = namedVarRegex.exec(line)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
-
-      if (character >= start && character < end) {
-        return {
-          identifier: match[1],
-          start,
-          end,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Find all usages of a variable in the document
-   */
-  public findUsages(
-    program: Program,
-    document: TextDocument,
-    identifier: number | string
+    variable: BaseVariable
   ): Array<{ line: number; character: number; length: number }> {
     const usages: Array<{
       line: number;
       character: number;
       length: number;
     }> = [];
-    const text = document.getText();
-    const lines = text.split(/\r?\n/);
 
-    // Determine the pattern to search for
-    const varPattern = this.buildVariablePattern(identifier, true);
+    const variableId = variable.getId();
 
-    // Search through all lines
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      let match: RegExpExecArray | null;
+    // Traverse AST to find all variable references
+    this.traverseForVariableUsages(program, variableId, usages);
 
-      // Reset regex lastIndex for each line
-      varPattern.lastIndex = 0;
+    return usages;
+  }
 
-      while ((match = varPattern.exec(line)) !== null) {
+  /**
+   * Traverse AST to collect all usages of a variable
+   */
+  private traverseForVariableUsages(
+    program: Program,
+    variableId: number | string,
+    usages: Array<{ line: number; character: number; length: number }>
+  ): void {
+    for (const statement of program.getBody()) {
+      this.traverseStatementForVariable(statement, variableId, usages);
+    }
+  }
+
+  /**
+   * Traverse a statement to find variable usages
+   */
+  private traverseStatementForVariable(
+    statement: Statement,
+    variableId: number | string,
+    usages: Array<{ line: number; character: number; length: number }>
+  ): void {
+    // Check if statement contains the variable
+    if (statement instanceof AssignmentStatement) {
+      const variable = statement.getVariable();
+      if (variable.getId() === variableId) {
+        const range = variable.getRange();
         usages.push({
-          line: lineIndex,
-          character: match.index,
-          length: match[0].length,
+          line: range.start.line,
+          character: range.start.character,
+          length: range.end.character - range.start.character,
         });
+      }
+      // Also check the value expression
+      this.traverseExpressionForVariable(
+        statement.getValue(),
+        variableId,
+        usages
+      );
+    } else if (statement instanceof BlockStatement) {
+      for (const command of statement.getCommands()) {
+        this.traverseStatementForVariable(command, variableId, usages);
+      }
+      const paramsBlock = statement.getParamsBlock();
+      if (!paramsBlock) {
+        return;
+      }
+      // Check parameters
+      for (const paramValue of Object.values(paramsBlock.getParams())) {
+        if (paramValue instanceof Expression) {
+          this.traverseExpressionForVariable(
+            paramValue,
+            variableId,
+            usages
+          );
+        }
+      }
+    } else if (statement instanceof CommandStatement) {
+      const paramsBlock = statement.getParamsBlock();
+      if (!paramsBlock) {
+        return;
+      }
+      // Check parameters
+      for (const paramValue of Object.values(paramsBlock.getParams())) {
+        if (paramValue instanceof Expression) {
+          this.traverseExpressionForVariable(
+            paramValue,
+            variableId,
+            usages
+          );
+        }
       }
     }
 
-    return usages;
+    // Check conditionals
+    if (
+      statement instanceof IfStartConditional ||
+      statement instanceof WhileStartConditional ||
+      statement instanceof ElseIfConditional
+    ) {
+      this.traverseExpressionForVariable(
+        statement.getCondition(),
+        variableId,
+        usages
+      );
+    }
+  }
+
+  /**
+   * Traverse an expression to find variable usages
+   */
+  private traverseExpressionForVariable(
+    expression: Expression,
+    variableId: number | string,
+    usages: Array<{ line: number; character: number; length: number }>
+  ): void {
+    if (!expression) return;
+
+    // Check if this expression is the variable we're looking for
+    if (
+      expression instanceof BaseVariable &&
+      expression.getId() === variableId
+    ) {
+      const range = expression.getRange();
+      usages.push({
+        line: range.start.line,
+        character: range.start.character,
+        length: range.end.character - range.start.character,
+      });
+    }
+
+    // Traverse nested expressions
+    if (
+      expression instanceof BinaryExpression ||
+      expression instanceof RelationalExpression
+    ) {
+      this.traverseExpressionForVariable(
+        expression.getLeft(),
+        variableId,
+        usages
+      );
+      this.traverseExpressionForVariable(
+        expression.getRight(),
+        variableId,
+        usages
+      );
+    } else if (expression instanceof UnaryExpression) {
+      this.traverseExpressionForVariable(
+        expression.getOperand(),
+        variableId,
+        usages
+      );
+    } else if (expression instanceof FuncCallExpression) {
+      for (const arg of expression.getArgs()) {
+        this.traverseExpressionForVariable(arg, variableId, usages);
+      }
+    }
   }
 }

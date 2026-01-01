@@ -5,22 +5,24 @@
  * Extracts hover logic from the main server file for better organization and reusability.
  */
 
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Position, Range, Hover, MarkupKind } from "vscode-languageserver";
+import {
+  Hover,
+  MarkupKind,
+  Position,
+  Range,
+} from "vscode-languageserver";
+import { GCODE_SYMBOLS } from "../constants";
 import { Program } from "../entities";
-import { Statement } from "../entities/statements";
-import { Expression } from "../entities/expressions";
-import { Command } from "../entities/statements";
-import { FuncCall } from "../entities/expressions";
+import { FuncCallExpression } from "../entities/expressions";
+import { CommandStatement } from "../entities/statements";
+import { getHoveredToken } from "./astPositionFinder";
 import { ASTTraverser } from "./astTraverser";
-import { VariableTracker } from "./variableTracker";
-import { gcodeFormatter } from "../formatter";
-import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
 import {
   formatCodeDescription,
   formatFunctionDescription,
 } from "./codeDescriptions";
-import { getHoveredToken } from "./astPositionFinder";
+import { VariableTracker } from "./variableTracker";
+import { BaseVariable } from "../entities/expressions/variables/BaseVariable";
 
 /**
  * Hover Provider for G-code language features
@@ -33,36 +35,58 @@ export class HoverProvider extends ASTTraverser {
   /**
    * Get hover information for a position in the document
    */
-  public getHover(
-    program: Program,
-    document: TextDocument,
-    position: Position
-  ): Hover | null {
+  public getHover(program: Program, position: Position): Hover | null {
     try {
-      const text = document.getText();
-      const lines = text.split(REGEX_PATTERNS.NEWLINE);
-      const line = lines[position.line];
+      // First, check for variable references at the position (for variable usages)
+      const variableReferenceAtPosition =
+        this.variableTracker.getProgramVariableReferenceAtPosition(
+          program,
+          position
+        );
+      if (variableReferenceAtPosition) {
+        return this.getVariableHoverFromAST(
+          program,
+          variableReferenceAtPosition
+        );
+      }
 
-      // Use parser/AST to find what's at the hover position
+      // Check for variable expressions at the position (for variable declarations)
+      const variableAtPosition =
+        this.variableTracker.getProgramVariableAtPosition(
+          program,
+          position
+        );
+      if (variableAtPosition) {
+        return this.getVariableHoverFromAST(
+          program,
+          variableAtPosition
+        );
+      }
+
+      // Use AST to find what's at the hover position for other tokens
       const hoveredToken = getHoveredToken(program, position);
       if (hoveredToken) {
-        if (hoveredToken instanceof Command) {
+        if (hoveredToken instanceof CommandStatement) {
           return this.createHoverContents(
             hoveredToken.getRange(),
             formatCodeDescription(hoveredToken)
           );
         }
 
-        if (hoveredToken instanceof FuncCall) {
+        if (hoveredToken instanceof FuncCallExpression) {
           return this.createHoverContents(
             hoveredToken.getRange(),
             formatFunctionDescription(hoveredToken)
           );
         }
+
+        // Check if it's a variable expression/reference (fallback)
+        if (hoveredToken instanceof BaseVariable) {
+          return this.getVariableHoverFromAST(program, hoveredToken);
+        }
       }
 
-      // If not a G/M code or function, check for variables
-      return this.getVariableHover(program, document, position, line);
+      return null;
     } catch (error) {
       console.error(
         `Hover error: ${
@@ -74,42 +98,29 @@ export class HoverProvider extends ASTTraverser {
   }
 
   /**
-   * Get hover information for variables
+   * Get hover information for variables using AST
    */
-  private getVariableHover(
+  private getVariableHoverFromAST(
     program: Program,
-    document: TextDocument,
-    position: Position,
-    line: string
+    variable: BaseVariable
   ): Hover | null {
-    const definition = this.variableTracker.findDefinitionAtPosition(
-      program,
-      document,
-      position
-    );
+    // Find the assignment for this variable
+    const assignments = this.variableTracker.findAssignments(program);
+    const assignment = assignments.find((a) => {
+      const assignmentVariable = a.getVariable();
+      if (!assignmentVariable) return false;
+      return assignmentVariable.getId() === variable.getId();
+    });
 
-    if (!definition) {
+    if (!assignment) {
       return null;
     }
 
-    // Format variable identifier
-    const varName =
-      typeof definition.identifier === "string"
-        ? gcodeFormatter.formatNamedVariable(definition.identifier)
-        : gcodeFormatter.formatNumericVariable(definition.identifier);
-
-    // Format value
-    const valueStr = gcodeFormatter.formatExpression(
-      definition.statement.getValue()
-    );
+    const varName = variable.toString();
+    const valueStr = assignment.getValue().toString();
 
     // Get line number for display
-    const lineNumber =
-      definition.statement.getPosition().line + 1
-        ? gcodeFormatter.formatLineNumber(
-            definition.statement.getPosition().line + 1
-          )
-        : `Line ${definition.statement.getPosition().line + 1}`;
+    const lineNumber = `Line ${assignment.getPosition().line + 1}`;
 
     // Build hover content
     const contents = [
@@ -118,31 +129,8 @@ export class HoverProvider extends ASTTraverser {
       `**Defined at:** ${lineNumber}`,
     ];
 
-    // Find the variable range in the current line for highlighting
-    const varMatch = line.match(
-      typeof definition.identifier === "string"
-        ? new RegExp(
-            `${
-              GCODE_SYMBOLS.NAMED_VAR_OPEN
-            }${definition.identifier.replace(
-              REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
-              "\\$&"
-            )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
-          )
-        : new RegExp(
-            `${GCODE_SYMBOLS.VARIABLE_PREFIX}${definition.identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`
-          )
-    );
-
-    let range: Range | undefined;
-    if (varMatch && varMatch.index !== undefined) {
-      range = Range.create(
-        position.line,
-        varMatch.index,
-        position.line,
-        varMatch.index + varMatch[0].length
-      );
-    }
+    // Use the range from the variable expression for accurate highlighting
+    const range = variable.getRange();
 
     return {
       contents: {
@@ -158,7 +146,10 @@ export class HoverProvider extends ASTTraverser {
   /**
    * Create hover contents with consistent formatting
    */
-  private createHoverContents(range: Range, description: string): Hover {
+  private createHoverContents(
+    range: Range,
+    description: string
+  ): Hover {
     return {
       contents: {
         kind: MarkupKind.Markdown,
@@ -166,22 +157,5 @@ export class HoverProvider extends ASTTraverser {
       },
       range,
     };
-  }
-
-  // Implement abstract methods from ASTTraverser (not used in hover provider)
-  protected processStatement(
-    statement: Statement,
-    document: TextDocument,
-    context?: any
-  ): void {
-    // Not used in hover provider
-  }
-
-  protected processExpression(
-    expression: Expression,
-    document: TextDocument,
-    context?: any
-  ): void {
-    // Not used in hover provider
   }
 }

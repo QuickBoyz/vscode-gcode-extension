@@ -1,5 +1,3 @@
-import { Expression } from "../expressions";
-
 export enum StatementType {
   Program = "Program",
   GCode = "GCode",
@@ -18,21 +16,15 @@ export enum StatementType {
   ElseIf = "ElseIf",
   Else = "Else",
   EndIf = "EndIf",
-  ProgramDelimiter = "ProgramDelimiter",
   LineNumber = "LineNumber",
   EmptyLine = "EmptyLine",
+  ParamsBlock = "ParamsBlock",
 }
 
 export enum CommandType {
   G = "G",
   M = "M",
 }
-
-// Parameter value can be a simple number or an expression
-export type ParamValue = number | Expression;
-
-// Parameter block is a record of parameter letters to their values
-export type ParamBlock = Record<string, ParamValue>;
 
 // Comment style type
 export enum CommentStyle {

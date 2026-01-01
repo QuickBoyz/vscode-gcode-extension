@@ -226,6 +226,11 @@
           "type": "boolean",
           "default": false,
           "description": "Compact output mode - removes all empty lines"
+        },
+        "gcode.formatter.addProgramDelimiters": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add program delimiters (%) at the beginning and end of the program if not present"
         }
       }
     }

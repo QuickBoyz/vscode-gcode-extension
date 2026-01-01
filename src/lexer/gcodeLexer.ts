@@ -1,5 +1,5 @@
-import moo from "moo";
-import { Lexer, Token, TokenType } from "./types";
+import moo, { Lexer, Token as MooToken } from "moo";
+import { Token, TokenType } from "../entities/tokens";
 import {
   BinaryOperatorType,
   FunctionName,
@@ -100,10 +100,10 @@ class GCodeLexer {
    * Tokenize G-code input, filtering out whitespace but keeping newlines
    */
   tokenize(input: string): Token[] {
-    const tokens: Token[] = [];
+    const tokens: MooToken[] = [];
     this.lexer.reset(input);
 
-    let token: Token | undefined;
+    let token: MooToken | undefined;
     while ((token = this.lexer.next())) {
       // Skip whitespace but keep newlines as line separators
       if (token.type !== TokenType.WS) {
@@ -136,17 +136,33 @@ class GCodeLexer {
 
         if (!isSubtraction) {
           // Combine MINUS + NUMBER into a single NUMBER token
-          processedTokens.push({
-            ...nextToken,
-            type: TokenType.NUMBER,
-            value: `-${nextToken.value}`,
-          });
+          processedTokens.push(
+            new Token(
+              nextToken.type,
+              `-${nextToken.value}`,
+              nextToken.offset,
+              nextToken.text,
+              nextToken.lineBreaks,
+              nextToken.line,
+              nextToken.col
+            )
+          );
           i++; // Skip the next token (NUMBER) since we've combined it
           continue;
         }
       }
 
-      processedTokens.push(currentToken);
+      processedTokens.push(
+        new Token(
+          currentToken.type as TokenType,
+          currentToken.value,
+          currentToken.offset,
+          currentToken.text,
+          currentToken.lineBreaks,
+          currentToken.line,
+          currentToken.col
+        )
+      );
     }
 
     return processedTokens;

@@ -2,8 +2,11 @@
  * G-code and M-code descriptions for hover tooltips
  */
 
-import { FuncCall, FunctionType } from "../entities/expressions";
-import { Command } from "../entities/statements";
+import {
+  FuncCallExpression,
+  FunctionName,
+} from "../entities/expressions";
+import { CommandStatement } from "../entities/statements";
 
 /**
  * Mapping of G-code numbers to their descriptions
@@ -184,7 +187,7 @@ export function getMCodeDescription(code: number): string | undefined {
 /**
  * Mapping of built-in function names to their descriptions
  */
-export const FUNCTION_DESCRIPTIONS: Record<FunctionType, string> = {
+export const FUNCTION_DESCRIPTIONS: Record<FunctionName, string> = {
   // Trigonometric functions
   SIN: "Sine function - returns the sine of an angle in radians",
   COS: "Cosine function - returns the cosine of an angle in radians",
@@ -215,7 +218,7 @@ export const FUNCTION_DESCRIPTIONS: Record<FunctionType, string> = {
  * Get description for a built-in function
  */
 export function getFunctionDescription(
-  functionName: FunctionType
+  functionName: FunctionName
 ): string | undefined {
   return FUNCTION_DESCRIPTIONS[functionName];
 }
@@ -223,7 +226,7 @@ export function getFunctionDescription(
 /**
  * Format a code description for hover display
  */
-export function formatCodeDescription(stmt: Command): string {
+export function formatCodeDescription(stmt: CommandStatement): string {
   const codeText = `${stmt.getType().charAt(0)}${stmt
     .getCode()
     .toString()
@@ -234,7 +237,9 @@ export function formatCodeDescription(stmt: Command): string {
 /**
  * Format a function description for hover display
  */
-export function formatFunctionDescription(stmt: FuncCall): string {
+export function formatFunctionDescription(
+  stmt: FuncCallExpression
+): string {
   return `**${stmt
     .getFunctionName()
     .toUpperCase()}:** ${stmt.getDescription()}`;

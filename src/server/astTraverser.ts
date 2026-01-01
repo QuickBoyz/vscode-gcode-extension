@@ -6,31 +6,32 @@
  */
 
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Program } from "../entities";
-import { Statement } from "../entities/statements";
-import { Expression } from "../entities/expressions";
+import { Program, ParamsBlock } from "../entities";
 import {
-  Block,
-  Command,
-  IfStart,
-  WhileStart,
-  ElseIf,
-  Assignment,
+  AssignmentStatement,
+  BlockStatement,
+  CommandStatement,
+  Statement,
 } from "../entities/statements";
 import {
-  Binary,
-  Relational,
-  FuncCall,
-  Unary,
+  BinaryExpression,
+  Expression,
+  FuncCallExpression,
+  RelationalExpression,
+  UnaryExpression,
 } from "../entities/expressions";
+import {} from "../entities/statements";
+import {} from "../entities/expressions";
+import { ConditionalStatement } from "../entities/conditionals";
+import { VariableTracker } from "./variableTracker";
 
 /**
  * Base class for AST traversal operations
  */
-export abstract class ASTTraverser {
-  protected variableTracker: any; // Will be typed properly when imported
+export abstract class ASTTraverser<Context extends unknown = unknown> {
+  protected variableTracker: VariableTracker;
 
-  constructor(variableTracker: any) {
+  constructor(variableTracker: VariableTracker) {
     this.variableTracker = variableTracker;
   }
 
@@ -40,7 +41,7 @@ export abstract class ASTTraverser {
   public traverseProgram(
     program: Program,
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
     for (const statement of program.getBody()) {
       this.traverseStatement(statement, document, context);
@@ -53,7 +54,7 @@ export abstract class ASTTraverser {
   protected traverseStatement(
     statement: Statement,
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
     // Call the abstract method for statement processing
     this.processStatement(statement, document, context);
@@ -65,41 +66,57 @@ export abstract class ASTTraverser {
   /**
    * Abstract method to be implemented by subclasses for statement processing
    */
-  protected abstract processStatement(
+  protected processStatement(
     statement: Statement,
     document: TextDocument,
-    context?: any
-  ): void;
+    context?: Context
+  ): void {}
 
   /**
    * Handle nested structures within statements
    */
-  private handleStatementNesting(
+  protected handleStatementNesting(
     statement: Statement,
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
     // Handle control flow statements with conditions
-    if (
-      statement instanceof IfStart ||
-      statement instanceof WhileStart ||
-      statement instanceof ElseIf
-    ) {
-      this.traverseExpression(statement.getCondition(), document, context);
+    if (statement instanceof ConditionalStatement) {
+      this.traverseExpression(
+        statement.getCondition(),
+        document,
+        context
+      );
     }
 
     // Handle blocks and commands with parameters
-    if (statement instanceof Block) {
-      for (const command of statement.getCodes()) {
+    if (statement instanceof BlockStatement) {
+      for (const command of statement.getCommands()) {
         this.traverseStatement(command, document, context);
       }
-      this.traverseParamBlock(statement.getParams(), document, context);
-    } else if (statement instanceof Command) {
-      this.traverseParamBlock(statement.getParams(), document, context);
+      const paramsBlock = statement.getParamsBlock();
+      if (!paramsBlock) {
+        return;
+      }
+      this.traverseParamsBlock(
+        paramsBlock.getParams(),
+        document,
+        context
+      );
+    } else if (statement instanceof CommandStatement) {
+      const paramsBlock = statement.getParamsBlock();
+      if (!paramsBlock) {
+        return;
+      }
+      this.traverseParamsBlock(
+        paramsBlock.getParams(),
+        document,
+        context
+      );
     }
 
     // Handle assignments
-    if (statement instanceof Assignment) {
+    if (statement instanceof AssignmentStatement) {
       this.traverseExpression(statement.getValue(), document, context);
     }
   }
@@ -110,7 +127,7 @@ export abstract class ASTTraverser {
   protected traverseExpression(
     expression: Expression,
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
     // Call the abstract method for expression processing
     this.processExpression(expression, document, context);
@@ -122,29 +139,33 @@ export abstract class ASTTraverser {
   /**
    * Abstract method to be implemented by subclasses for expression processing
    */
-  protected abstract processExpression(
+  protected processExpression(
     expression: Expression,
     document: TextDocument,
-    context?: any
-  ): void;
+    context?: Context
+  ): void {}
 
   /**
    * Handle nested structures within expressions
    */
-  private handleExpressionNesting(
+  protected handleExpressionNesting(
     expression: Expression,
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
-    if (expression instanceof Binary) {
+    if (expression instanceof BinaryExpression) {
       this.traverseExpression(expression.getLeft(), document, context);
       this.traverseExpression(expression.getRight(), document, context);
-    } else if (expression instanceof Relational) {
+    } else if (expression instanceof RelationalExpression) {
       this.traverseExpression(expression.getLeft(), document, context);
       this.traverseExpression(expression.getRight(), document, context);
-    } else if (expression instanceof Unary) {
-      this.traverseExpression(expression.getOperand(), document, context);
-    } else if (expression instanceof FuncCall) {
+    } else if (expression instanceof UnaryExpression) {
+      this.traverseExpression(
+        expression.getOperand(),
+        document,
+        context
+      );
+    } else if (expression instanceof FuncCallExpression) {
       for (const arg of expression.getArgs()) {
         this.traverseExpression(arg, document, context);
       }
@@ -154,19 +175,15 @@ export abstract class ASTTraverser {
   /**
    * Traverse parameter block
    */
-  protected traverseParamBlock(
-    params: any,
+  protected traverseParamsBlock(
+    params: ParamsBlock["params"],
     document: TextDocument,
-    context?: any
+    context?: Context
   ): void {
     for (const [, value] of Object.entries(params)) {
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        "getType" in value
-      ) {
+      if (value instanceof Expression) {
         // It's an Expression
-        this.traverseExpression(value as Expression, document, context);
+        this.traverseExpression(value, document, context);
       }
     }
   }
