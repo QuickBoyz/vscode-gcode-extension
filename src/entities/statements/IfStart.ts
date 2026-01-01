@@ -1,49 +1,25 @@
-import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 import { Expression } from "../expressions";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * IF start statement
  */
 export class IfStart extends Statement {
-  type: StatementType.IfStart = StatementType.IfStart;
-  label: number | null;
-  condition: Expression;
-
   constructor(
-    condition: Expression,
-    label: number | null = null,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
+    range: Range,
+    private condition: Expression,
+    private label: number | null = null
   ) {
-    super();
-    this.label = label;
-    this.condition = condition;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
-  }
-
-  getType(): StatementType {
-    return StatementType.IfStart;
+    super(range, StatementType.IfStart);
   }
 
   getLabel(): number | null {
     return this.label;
   }
 
-  toString(): string {
-    const labelText =
-      this.label !== null
-        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
-        : "";
-    return `${labelText}${GCODE_KEYWORDS.IF} ${
-      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
-    }${this.formatExpression(this.condition)}${
-      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
-    } ${GCODE_KEYWORDS.THEN}`;
+  getCondition(): Expression {
+    return this.condition;
   }
 }

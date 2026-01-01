@@ -1,37 +1,20 @@
-import { GCODE_SYMBOLS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * O-block statement
  */
 export class OBlock extends Statement {
-  type: StatementType.OBlock = StatementType.OBlock;
-  id: number;
-
-  constructor(
-    id: number,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
-  ) {
-    super();
-    this.id = id;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
+  constructor(range: Range, private id: number) {
+    super(range, StatementType.OBlock);
   }
 
-  getType(): StatementType {
-    return StatementType.OBlock;
+  getId(): number {
+    return this.id;
   }
 
   getLabel(): number | null {
     return this.id;
-  }
-
-  toString(): string {
-    return `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.id}`;
   }
 }

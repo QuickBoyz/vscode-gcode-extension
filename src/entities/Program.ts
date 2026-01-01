@@ -4,10 +4,15 @@ import { Statement, StatementType } from "./statements";
  * Program entity
  */
 export class Program {
-  type: StatementType.Program = StatementType.Program;
-  body: Statement[];
+  private type: StatementType.Program = StatementType.Program;
 
-  constructor(body: Statement[]) {
-    this.body = body;
+  constructor(private body: Statement[]) {}
+
+  getBody(): Statement[] {
+    return this.body;
+  }
+
+  getType(): StatementType.Program {
+    return this.type;
   }
 }

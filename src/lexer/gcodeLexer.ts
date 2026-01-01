@@ -1,5 +1,11 @@
 import moo from "moo";
 import { Lexer, Token, TokenType } from "./types";
+import {
+  BinaryOperatorType,
+  FunctionName,
+  RelationalOperatorType,
+  UnaryOperatorType,
+} from "../entities/expressions/types";
 
 /**
  * Token type exported from moo
@@ -57,34 +63,18 @@ class GCodeLexer {
       MCODE: /[Mm][0-9]+/,
 
       // Relational operators
-      RELOP: ["GT", "LT", "EQ", "NE", "LE", "GE"],
-      MOD: "MOD",
+      RELOP: Object.values(RelationalOperatorType),
+      MOD: BinaryOperatorType.Mod,
 
       // Built-in functions
-      FUNC: [
-        "SIN",
-        "COS",
-        "TAN",
-        "ASIN",
-        "ACOS",
-        "ATAN",
-        "FIX",
-        "FUP",
-        "LN",
-        "ROUND",
-        "SQRT",
-        "ABS",
-        "MIN",
-        "MAX",
-      ],
+      FUNC: Object.values(FunctionName),
 
       // Punctuation and operators
       comma: ",",
       equals: "=",
-      plus: "+",
-      minus: "-",
-      star: "*",
-      slash: "/",
+      plus: BinaryOperatorType.Add,
+      star: BinaryOperatorType.Multiply,
+      slash: BinaryOperatorType.Divide,
       lBracket: "[",
       rBracket: "]",
 
@@ -94,6 +84,9 @@ class GCodeLexer {
 
       // Numbers (integers, decimals, leading decimal)
       NUMBER: /[0-9]+\.?[0-9]*|\.[0-9]+/,
+
+      // Minus operator
+      minus: UnaryOperatorType.Minus,
 
       // Dot (for E.#234 style parameter values)
       dot: ".",
@@ -118,7 +111,45 @@ class GCodeLexer {
       }
     }
 
-    return tokens;
+    // Post-process: combine MINUS + NUMBER into a single NUMBER token for negative numbers
+    const processedTokens: Token[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const currentToken = tokens[i];
+      const nextToken = tokens[i + 1];
+
+      // Check if this is MINUS followed by NUMBER (negative number)
+      if (
+        currentToken.type === TokenType.MINUS &&
+        nextToken?.type === TokenType.NUMBER
+      ) {
+        const prevToken = tokens[i - 1];
+
+        // It's subtraction (not negative number) if previous token is:
+        // - A number
+        // - A variable
+        // - A closing bracket
+        const isSubtraction =
+          prevToken &&
+          (prevToken.type === TokenType.NUMBER ||
+            prevToken.type === TokenType.VAR ||
+            prevToken.type === TokenType.RBRACKET);
+
+        if (!isSubtraction) {
+          // Combine MINUS + NUMBER into a single NUMBER token
+          processedTokens.push({
+            ...nextToken,
+            type: TokenType.NUMBER,
+            value: `-${nextToken.value}`,
+          });
+          i++; // Skip the next token (NUMBER) since we've combined it
+          continue;
+        }
+      }
+
+      processedTokens.push(currentToken);
+    }
+
+    return processedTokens;
   }
 }
 

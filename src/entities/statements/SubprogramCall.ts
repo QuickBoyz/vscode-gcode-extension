@@ -1,37 +1,16 @@
-import { GCODE_SYMBOLS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * Subprogram call statement (M98)
  */
 export class SubprogramCall extends Statement {
-  type: StatementType.SubprogramCall = StatementType.SubprogramCall;
-  id: number;
-
-  constructor(
-    id: number,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
-  ) {
-    super();
-    this.id = id;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
+  constructor(range: Range, private id: number) {
+    super(range, StatementType.SubprogramCall);
   }
 
-  getType(): StatementType {
-    return StatementType.SubprogramCall;
-  }
-
-  getLabel(): number | null {
-    return null;
-  }
-
-  toString(): string {
-    return `${GCODE_SYMBOLS.MCODE_PREFIX}98 ${this.id}`;
+  getId(): number {
+    return this.id;
   }
 }

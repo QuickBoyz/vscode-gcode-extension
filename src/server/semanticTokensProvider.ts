@@ -4,72 +4,58 @@
  * Provides semantic highlighting for G-code files by analyzing the AST
  * and returning semantic tokens for variables, G-codes, M-codes, and O-blocks.
  */
-import { Program } from "../entities";
-import {
-  GCode,
-  MCode,
-  Block,
-  Statement,
-  EmptyLine,
-  Comment,
-} from "../entities/statements";
+import { SemanticTokensLegend } from "vscode";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   SemanticTokens,
   SemanticTokensBuilder,
 } from "vscode-languageserver/node";
+import { Program } from "../entities";
 import { VariableTracker } from "./variableTracker";
-import { REGEX_PATTERNS, GCODE_KEYWORDS } from "../constants";
-import { GCodeFormatter } from "../formatter";
-import { SemanticTokensLegend } from "vscode";
+import { TokenCollector } from "./tokenCollector";
+import { deduplicateTokens } from "./tokenUtils";
 
 /**
  * Semantic token types
  */
-const TOKEN_TYPES = [
-  "variable",
-  "function",
-  "label",
-  "keyword",
-  "number",
-  "operator",
-  "comment",
-] as const;
+enum TokenTypes {
+  VARIABLE = "variable",
+  FUNCTION = "function",
+  LABEL = "label",
+  KEYWORD = "keyword",
+  NUMBER = "number",
+  OPERATOR = "operator",
+  COMMENT = "comment",
+}
+
+const tokenTypesArray = Object.values(TokenTypes);
 
 /**
  * Semantic token modifiers
  */
-const TOKEN_MODIFIERS = ["declaration", "readonly"] as const;
+enum TokenModifiers {
+  DECLARATION = "declaration",
+  READONLY = "readonly",
+}
+
+const tokenModifiersArray = Object.values(TokenModifiers);
 
 /**
  * Semantic tokens legend
  */
 export const SEMANTIC_TOKENS_LEGEND: SemanticTokensLegend = {
-  tokenTypes: TOKEN_TYPES as unknown as string[],
-  tokenModifiers: TOKEN_MODIFIERS as unknown as string[],
+  tokenTypes: tokenTypesArray,
+  tokenModifiers: tokenModifiersArray,
 };
-
-/**
- * Interface for regex-based token matcher
- */
-interface TokenMatcher {
-  pattern: RegExp;
-  tokenType: (typeof TOKEN_TYPES)[number];
-  filter?: (
-    match: RegExpExecArray,
-    line: string,
-    lineIndex: number
-  ) => boolean;
-}
 
 /**
  * Semantic Tokens Provider for G-code
  */
 export class SemanticTokensProvider {
-  private variableTracker: VariableTracker;
+  private tokenCollector: TokenCollector;
 
   constructor(variableTracker: VariableTracker) {
-    this.variableTracker = variableTracker;
+    this.tokenCollector = new TokenCollector(variableTracker);
   }
 
   /**
@@ -79,411 +65,48 @@ export class SemanticTokensProvider {
     program: Program,
     document: TextDocument
   ): SemanticTokens {
+    // Collect all tokens using the TokenCollector
+    const tokens = this.tokenCollector.collectTokens(program, document);
+
+    // Sort tokens by line, then by character position
+    tokens.sort((a, b) => {
+      if (a.line !== b.line) {
+        return a.line - b.line;
+      }
+      return a.character - b.character;
+    });
+
+    // Remove overlapping tokens - keep the longer one
+    const deduplicatedTokens = deduplicateTokens(tokens);
+
+    // Build semantic tokens
     const builder = new SemanticTokensBuilder();
-    const text = document.getText();
-    const lines = text.split(REGEX_PATTERNS.NEWLINE);
-
-    // Add tokens for variables
-    this.addVariableTokens(builder, program, document);
-
-    // Add tokens for G-codes and M-codes from AST
-    this.addCodeTokens(builder, program, lines);
-
-    // Add tokens for O-blocks
-    this.addOBlockTokens(builder, program, lines);
-
-    // Add tokens for keywords, operators, numbers, and comments
-    this.addRegexBasedTokens(builder, program, lines);
-
-    const result = builder.build();
-    this.logTokenStats(result);
-    return result;
-  }
-
-  /**
-   * Add semantic tokens for variables
-   */
-  private addVariableTokens(
-    builder: SemanticTokensBuilder,
-    program: Program,
-    document: TextDocument
-  ): void {
-    const definitions = this.variableTracker.findDefinitions(
-      program,
-      document
-    );
-
-    for (const def of definitions) {
-      const usages = this.variableTracker.findUsages(
-        program,
-        document,
-        def.identifier
+    for (const token of deduplicatedTokens) {
+      this.pushToken(
+        builder,
+        token.line,
+        token.character,
+        token.length,
+        token.tokenType,
+        token.modifiers
       );
-
-      for (const usage of usages) {
-        const isDefinition =
-          usage.line === def.line && usage.character === def.column;
-        const modifiers = isDefinition ? ["declaration"] : [];
-        this.pushToken(
-          builder,
-          usage.line,
-          usage.character,
-          usage.length,
-          "variable",
-          modifiers
-        );
-      }
-    }
-  }
-
-  /**
-   * Add semantic tokens for G-codes and M-codes from AST
-   */
-  private addCodeTokens(
-    builder: SemanticTokensBuilder,
-    program: Program,
-    lines: string[]
-  ): void {
-    for (const statement of program.body) {
-      const lineIndex =
-        statement.lineNumber !== undefined
-          ? statement.lineNumber - 1
-          : this.findStatementLine(statement, program);
-
-      if (lineIndex < 0 || lineIndex >= lines.length) continue;
-      const line = lines[lineIndex];
-
-      // Handle G-code statements
-      if (statement instanceof GCode) {
-        const codeText = GCodeFormatter.formatGCode(statement.code);
-        const index = this.findCodeInLine(line, codeText);
-        if (index !== -1) {
-          this.pushToken(
-            builder,
-            lineIndex,
-            index,
-            codeText.length,
-            "function"
-          );
-        }
-      }
-
-      // Handle M-code statements
-      if (statement instanceof MCode) {
-        const codeText = GCodeFormatter.formatMCode(statement.code);
-        const index = this.findCodeInLine(line, codeText);
-        if (index !== -1) {
-          this.pushToken(
-            builder,
-            lineIndex,
-            index,
-            codeText.length,
-            "function"
-          );
-        }
-      }
-
-      // Handle block statements (multiple G/M codes)
-      if (statement instanceof Block) {
-        for (const code of statement.codes) {
-          const codeText =
-            code.type === "G"
-              ? GCodeFormatter.formatGCode(code.code)
-              : GCodeFormatter.formatMCode(code.code);
-          const index = this.findCodeInLine(line, codeText);
-          if (index !== -1) {
-            this.pushToken(
-              builder,
-              lineIndex,
-              index,
-              codeText.length,
-              "function"
-            );
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Find the line index of a statement in the document
-   */
-  private findStatementLine(
-    statement: Statement,
-    program: Program
-  ): number {
-    // If statement has lineNumber, use it
-    if (statement.lineNumber !== undefined) {
-      return statement.lineNumber - 1;
     }
 
-    // Otherwise, find it by searching through program body
-    let lineIndex = 0;
-    for (const stmt of program.body) {
-      if (stmt === statement) {
-        return lineIndex;
-      }
-      // Count non-empty lines
-      if (!(stmt instanceof EmptyLine)) {
-        lineIndex++;
-      }
-    }
-    return -1;
+    return builder.build();
   }
 
   /**
-   * Find a code (G or M) in a line, handling case-insensitive matching
-   */
-  private findCodeInLine(line: string, codeText: string): number {
-    // Try exact match first
-    let index = line.indexOf(codeText);
-    if (index !== -1) return index;
-
-    // Try case-insensitive match
-    const lowerLine = line.toLowerCase();
-    const lowerCode = codeText.toLowerCase();
-    index = lowerLine.indexOf(lowerCode);
-    if (index !== -1) return index;
-
-    return -1;
-  }
-
-  /**
-   * Add semantic tokens for O-blocks from AST
-   */
-  private addOBlockTokens(
-    builder: SemanticTokensBuilder,
-    program: Program,
-    lines: string[]
-  ): void {
-    const oBlockIds = this.extractOBlockIds(program);
-
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-
-      for (const oBlockId of oBlockIds) {
-        const oBlockText = GCodeFormatter.formatOBlock(oBlockId);
-        let searchIndex = 0;
-
-        while (
-          (searchIndex = line.indexOf(oBlockText, searchIndex)) !== -1
-        ) {
-          if (
-            this.isWordBoundary(line, searchIndex, oBlockText.length)
-          ) {
-            this.pushToken(
-              builder,
-              lineIndex,
-              searchIndex,
-              oBlockText.length,
-              "label"
-            );
-          }
-          searchIndex += oBlockText.length;
-        }
-      }
-    }
-  }
-
-  /**
-   * Extract all O-block IDs from the AST
-   */
-  private extractOBlockIds(program: Program): Set<number> {
-    const oBlockIds = new Set<number>();
-
-    for (const statement of program.body) {
-      // All statements with labels are now class instances
-      if (statement instanceof Statement) {
-        const label = statement.getLabel();
-        if (label !== null) {
-          oBlockIds.add(label);
-        }
-      }
-    }
-
-    return oBlockIds;
-  }
-
-  /**
-   * Check if a position is at a word boundary
-   */
-  private isWordBoundary(
-    line: string,
-    index: number,
-    length: number
-  ): boolean {
-    const before = index === 0 ? " " : line[index - 1];
-    const after =
-      index + length >= line.length ? " " : line[index + length];
-
-    return (
-      (before === " " || before === "\t" || index === 0) &&
-      (after === " " ||
-        after === "\t" ||
-        after === "W" ||
-        after === "E" ||
-        index + length === line.length)
-    );
-  }
-
-  /**
-   * Add semantic tokens using regex-based matchers
-   */
-  private addRegexBasedTokens(
-    builder: SemanticTokensBuilder,
-    program: Program,
-    lines: string[]
-  ): void {
-    const matchers: TokenMatcher[] = [
-      {
-        pattern: new RegExp(
-          `\\b(${Object.values(GCODE_KEYWORDS).join("|")})\\b`,
-          "gi"
-        ),
-        tokenType: "keyword",
-      },
-      {
-        pattern:
-          /(\+|\-|\*|\/|\*\*|=|GT|LT|EQ|NE|LE|GE|AND|OR|XOR|MOD)\b/gi,
-        tokenType: "operator",
-      },
-      {
-        pattern: /\b\d+\.?\d*\b/g,
-        tokenType: "number",
-        filter: (match, line) => {
-          const before = match.index > 0 ? line[match.index - 1] : " ";
-          return !["G", "g", "M", "m", "O", "o", "N", "n"].includes(
-            before
-          );
-        },
-      },
-    ];
-
-    for (const matcher of matchers) {
-      this.matchAndPushTokens(builder, lines, matcher);
-    }
-
-    // Add comment tokens from AST
-    this.addCommentTokens(builder, program, lines);
-  }
-
-  /**
-   * Add semantic tokens for comments from AST
-   */
-  private addCommentTokens(
-    builder: SemanticTokensBuilder,
-    program: Program,
-    lines: string[]
-  ): void {
-    for (const statement of program.body) {
-      // Handle standalone comment statements
-      if (statement instanceof Comment) {
-        const lineIndex =
-          statement.lineNumber !== undefined
-            ? statement.lineNumber - 1
-            : this.findStatementLine(statement, program);
-
-        if (lineIndex >= 0 && lineIndex < lines.length) {
-          const line = lines[lineIndex];
-          if (statement.style === "semicolon") {
-            const semicolonIndex = line.indexOf(";");
-            if (semicolonIndex !== -1) {
-              this.pushToken(
-                builder,
-                lineIndex,
-                semicolonIndex,
-                line.length - semicolonIndex,
-                "comment"
-              );
-            }
-          } else if (statement.style === "parenthetical") {
-            const parenPattern = /\([^)]*\)/g;
-            let parenMatch;
-            while ((parenMatch = parenPattern.exec(line)) !== null) {
-              this.pushToken(
-                builder,
-                lineIndex,
-                parenMatch.index,
-                parenMatch[0].length,
-                "comment"
-              );
-            }
-          }
-        }
-      }
-
-      // Handle trailing comments on statements
-      if (statement.comment && statement.lineNumber !== undefined) {
-        const lineIndex = statement.lineNumber - 1;
-        if (lineIndex >= 0 && lineIndex < lines.length) {
-          const line = lines[lineIndex];
-          if (statement.commentStyle === "semicolon") {
-            const semicolonIndex = line.indexOf(";");
-            if (semicolonIndex !== -1) {
-              this.pushToken(
-                builder,
-                lineIndex,
-                semicolonIndex,
-                line.length - semicolonIndex,
-                "comment"
-              );
-            }
-          } else if (statement.commentStyle === "parenthetical") {
-            const parenPattern = /\([^)]*\)/g;
-            let parenMatch;
-            while ((parenMatch = parenPattern.exec(line)) !== null) {
-              this.pushToken(
-                builder,
-                lineIndex,
-                parenMatch.index,
-                parenMatch[0].length,
-                "comment"
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Match patterns and push tokens to builder
-   */
-  private matchAndPushTokens(
-    builder: SemanticTokensBuilder,
-    lines: string[],
-    matcher: TokenMatcher
-  ): void {
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      let match: RegExpExecArray | null;
-
-      while ((match = matcher.pattern.exec(line)) !== null) {
-        if (!matcher.filter || matcher.filter(match, line, lineIndex)) {
-          this.pushToken(
-            builder,
-            lineIndex,
-            match.index,
-            match[0].length,
-            matcher.tokenType
-          );
-        }
-      }
-    }
-  }
-
-  /**
-   * Push a token to the builder with validation
+   * Push a token to the builder
    */
   private pushToken(
     builder: SemanticTokensBuilder,
     line: number,
     character: number,
     length: number,
-    tokenType: (typeof TOKEN_TYPES)[number],
+    tokenType: TokenTypes,
     modifiers: string[] = []
   ): void {
-    const tokenTypeIndex = TOKEN_TYPES.indexOf(tokenType);
+    const tokenTypeIndex = tokenTypesArray.indexOf(tokenType);
     if (tokenTypeIndex === -1) {
       console.error(`Invalid token type index for '${tokenType}'`);
       return;
@@ -505,77 +128,13 @@ export class SemanticTokensProvider {
   private getModifierBitmask(modifiers: string[]): number {
     let bitmask = 0;
     for (const modifier of modifiers) {
-      const index = TOKEN_MODIFIERS.indexOf(
-        modifier as (typeof TOKEN_MODIFIERS)[number]
+      const index = tokenModifiersArray.indexOf(
+        modifier as TokenModifiers
       );
       if (index !== -1) {
         bitmask |= 1 << index;
       }
     }
     return bitmask;
-  }
-
-  /**
-   * Log token statistics for debugging
-   */
-  private logTokenStats(result: SemanticTokens): void {
-    if (result.data.length === 0) {
-      return;
-    }
-
-    const tokenCount = result.data.length / 5;
-    console.log(`Generated ${tokenCount} semantic tokens`);
-
-    const typeCounts: Record<string, number> = {};
-    let currentLine = 0;
-    let currentChar = 0;
-    const sampleTokens: Array<{
-      line: number;
-      char: number;
-      length: number;
-      type: string;
-      modifiers: string[];
-    }> = [];
-
-    for (let i = 0; i < result.data.length; i += 5) {
-      const deltaLine = result.data[i];
-      const deltaStart = result.data[i + 1];
-      const length = result.data[i + 2];
-      const tokenType = result.data[i + 3];
-      const tokenModifiers = result.data[i + 4];
-
-      currentLine += deltaLine;
-      if (deltaLine === 0) {
-        currentChar += deltaStart;
-      } else {
-        currentChar = deltaStart;
-      }
-
-      const typeName = TOKEN_TYPES[tokenType] || "unknown";
-      typeCounts[typeName] = (typeCounts[typeName] || 0) + 1;
-
-      const modifiers: string[] = [];
-      for (let j = 0; j < TOKEN_MODIFIERS.length; j++) {
-        if (tokenModifiers & (1 << j)) {
-          modifiers.push(TOKEN_MODIFIERS[j]);
-        }
-      }
-
-      if (sampleTokens.length < 25) {
-        sampleTokens.push({
-          line: currentLine,
-          char: currentChar,
-          length,
-          type: typeName,
-          modifiers,
-        });
-      }
-    }
-
-    console.log("Token type counts:", typeCounts);
-    console.log(
-      "Sample tokens:",
-      JSON.stringify(sampleTokens, null, 2)
-    );
   }
 }

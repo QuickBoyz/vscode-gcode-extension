@@ -1,37 +1,16 @@
-import { GCODE_KEYWORDS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * GOTO statement
  */
 export class Goto extends Statement {
-  type: StatementType.Goto = StatementType.Goto;
-  target: number;
-
-  constructor(
-    target: number,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
-  ) {
-    super();
-    this.target = target;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
+  constructor(range: Range, private target: number) {
+    super(range, StatementType.Goto);
   }
 
-  getType(): StatementType {
-    return StatementType.Goto;
-  }
-
-  getLabel(): number | null {
-    return null;
-  }
-
-  toString(): string {
-    return `${GCODE_KEYWORDS.GOTO} ${this.target}`;
+  getTarget(): number {
+    return this.target;
   }
 }

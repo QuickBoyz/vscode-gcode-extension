@@ -1,21 +1,20 @@
 import { ExpressionType } from "./types";
-import { GCodeFormatter } from "../../formatter";
+import { gcodeFormatter } from "../../formatter";
+import { BaseToken } from "../BaseToken";
 
 /**
  * Base class for all expressions
  */
-export abstract class Expression {
-  /**
-   * Get the expression type
-   */
-  abstract getType(): ExpressionType;
-
+export abstract class Expression extends BaseToken<ExpressionType> {
   /**
    * Convert expression to string representation
    * Returns a simple string representation for debugging/logging
    */
   toString(): string {
-    // Default implementation - delegates to GCodeFormatter
-    return GCodeFormatter.formatExpression(this);
+    return gcodeFormatter.formatExpression(this);
+  }
+
+  getDescription(): string {
+    return "";
   }
 }

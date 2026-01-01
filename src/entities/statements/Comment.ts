@@ -1,43 +1,24 @@
-import { GCODE_SYMBOLS } from "../../constants";
 import { StatementType, CommentStyle } from "./types";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * Comment-only statement
  */
-export class Comment extends Statement {
-  type: StatementType.Comment = StatementType.Comment;
-  value: string;
-  style: CommentStyle;
-
+export abstract class Comment extends Statement {
   constructor(
-    value: string,
-    style: CommentStyle,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
+    range: Range,
+    protected value: string,
+    protected style: CommentStyle
   ) {
-    super();
-    this.value = value;
-    this.style = style;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
+    super(range, StatementType.Comment);
   }
 
-  getType(): StatementType {
-    return StatementType.Comment;
+  getValue(): string {
+    return this.value;
   }
 
-  getLabel(): number | null {
-    return null;
-  }
-
-  toString(): string {
-    if (this.style === "parenthetical") {
-      return `${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_OPEN}${this.value}${GCODE_SYMBOLS.PARENTHETICAL_COMMENT_CLOSE}`;
-    }
-    return `${GCODE_SYMBOLS.SEMICOLON_COMMENT}${this.value}`;
+  getStyle(): CommentStyle {
+    return this.style;
   }
 }

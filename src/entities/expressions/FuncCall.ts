@@ -1,26 +1,29 @@
-import { ExpressionType } from "./types";
 import { Expression } from "./Expression";
+import { Range } from "vscode-languageserver";
+import { ExpressionType, FunctionName } from "./types";
+import { getFunctionDescription } from "../../server/codeDescriptions";
 
 /**
  * Function call expression
  */
 export class FuncCall extends Expression {
-  type: ExpressionType.FuncCall = ExpressionType.FuncCall;
-  name: string;
-  args: Expression[];
-
-  constructor(name: string, args: Expression[]) {
-    super();
-    this.name = name;
-    this.args = args;
+  constructor(
+    range: Range,
+    private functionName: FunctionName,
+    private args: Expression[]
+  ) {
+    super(range, ExpressionType.FuncCall);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.FuncCall;
+  getFunctionName(): FunctionName {
+    return this.functionName;
   }
 
-  toString(): string {
-    const argsStr = this.args.map((arg) => arg.toString()).join(", ");
-    return `${this.name}(${argsStr})`;
+  getArgs(): Expression[] {
+    return this.args;
+  }
+
+  getDescription(): string {
+    return getFunctionDescription(this.functionName) ?? "";
   }
 }

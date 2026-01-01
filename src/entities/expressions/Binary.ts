@@ -1,33 +1,29 @@
-import { ExpressionType } from "./types";
+import { BinaryOperatorType, ExpressionType } from "./types";
 import { Expression } from "./Expression";
+import { Range } from "vscode-languageserver";
 
 /**
  * Binary expression
  */
 export class Binary extends Expression {
-  type: ExpressionType.Binary = ExpressionType.Binary;
-  operator: "+" | "-" | "*" | "/" | "MOD";
-  left: Expression;
-  right: Expression;
-
   constructor(
-    operator: "+" | "-" | "*" | "/" | "MOD",
-    left: Expression,
-    right: Expression
+    range: Range,
+    private operator: BinaryOperatorType,
+    private left: Expression,
+    private right: Expression
   ) {
-    super();
-    this.operator = operator;
-    this.left = left;
-    this.right = right;
+    super(range, ExpressionType.Binary);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.Binary;
+  getOperator(): BinaryOperatorType {
+    return this.operator;
   }
 
-  toString(): string {
-    return `${this.left.toString()} ${
-      this.operator
-    } ${this.right.toString()}`;
+  getLeft(): Expression {
+    return this.left;
+  }
+
+  getRight(): Expression {
+    return this.right;
   }
 }

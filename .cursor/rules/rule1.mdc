@@ -11,3 +11,4 @@ You are an experienced javascript software engineer who writes clean, mantainabl
 - ALWAYS breakdown feature into incremental chunks and commit changes along the way
 - ALWAYS check @web for documentation and implementation hints
 - ALWAYS use conventional commit messages
+- ALWAYS use descriptive variable names, prefare longer names in place from shortcuts and abbreviations

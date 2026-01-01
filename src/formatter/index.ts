@@ -1,2 +1,2 @@
-export { gcodeFormatter, GCodeFormatter } from "./gcodeFormatter";
+export { gcodeFormatter } from "./gcodeFormatter";
 export type { FormatterOptions } from "./types";

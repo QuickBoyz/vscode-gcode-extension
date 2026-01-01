@@ -2,12 +2,13 @@
  * Constants used throughout the G-code extension
  */
 
+import { CommandType } from "./entities/statements";
 import { FormatterOptions } from "./formatter/types";
 
 /**
  * G-code syntax symbols
  */
-export const GCODE_SYMBOLS = {
+export const GCODE_SYMBOLS: Record<string, string> = {
   /** Variable prefix */
   VARIABLE_PREFIX: "#",
   /** Named variable opening delimiter */
@@ -23,9 +24,9 @@ export const GCODE_SYMBOLS = {
   /** Line number prefix */
   LINE_NUMBER_PREFIX: "N",
   /** G-code prefix */
-  GCODE_PREFIX: "G",
+  GCODE_PREFIX: CommandType.G.toString(),
   /** M-code prefix */
-  MCODE_PREFIX: "M",
+  MCODE_PREFIX: CommandType.M.toString(),
   /** O-block prefix */
   OBLOCK_PREFIX: "O",
   /** Program delimiter */
@@ -105,14 +106,6 @@ export const REGEX_PATTERNS = {
   VALID_NAMED_VARIABLE: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
   /** Valid numeric variable pattern */
   VALID_NUMERIC_VARIABLE: /^\d+$/,
-} as const;
-
-/**
- * Code type identifiers
- */
-export const CODE_TYPES = {
-  G: "G",
-  M: "M",
 } as const;
 
 /**

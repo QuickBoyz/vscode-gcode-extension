@@ -1,45 +1,25 @@
-import { GCODE_KEYWORDS, GCODE_SYMBOLS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 import { Expression } from "../expressions";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * Ternary IF GOTO statement (single-line conditional jump)
  */
 export class IfGoto extends Statement {
-  type: StatementType.IfGoto = StatementType.IfGoto;
-  condition: Expression;
-  target: number;
-
   constructor(
-    condition: Expression,
-    target: number,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
+    range: Range,
+    private condition: Expression,
+    private target: number
   ) {
-    super();
-    this.condition = condition;
-    this.target = target;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
+    super(range, StatementType.IfGoto);
   }
 
-  getType(): StatementType {
-    return StatementType.IfGoto;
+  getCondition(): Expression {
+    return this.condition;
   }
 
-  getLabel(): number | null {
-    return null;
-  }
-
-  toString(): string {
-    return `${GCODE_KEYWORDS.IF} ${
-      GCODE_SYMBOLS.EXPRESSION_BRACKET_OPEN
-    }${this.formatExpression(this.condition)}${
-      GCODE_SYMBOLS.EXPRESSION_BRACKET_CLOSE
-    } ${GCODE_KEYWORDS.GOTO} ${this.target}`;
+  getTarget(): number {
+    return this.target;
   }
 }
