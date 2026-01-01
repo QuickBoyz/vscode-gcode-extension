@@ -1,33 +1,28 @@
 import { ExpressionType, RelationalOperatorType } from "./types";
 import { Expression } from "./Expression";
-
+import { Range } from "vscode-languageserver";
 /**
  * Relational expression
  */
 export class Relational extends Expression {
-  type: ExpressionType.Relational = ExpressionType.Relational;
-  operator: RelationalOperatorType;
-  left: Expression;
-  right: Expression;
-
   constructor(
-    operator: RelationalOperatorType,
-    left: Expression,
-    right: Expression
+    range: Range,
+    private operator: RelationalOperatorType,
+    private left: Expression,
+    private right: Expression
   ) {
-    super();
-    this.operator = operator;
-    this.left = left;
-    this.right = right;
+    super(range, ExpressionType.Relational);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.Relational;
+  getOperator(): RelationalOperatorType {
+    return this.operator;
   }
 
-  toString(): string {
-    return `${this.left.toString()} ${
-      this.operator
-    } ${this.right.toString()}`;
+  getLeft(): Expression {
+    return this.left;
+  }
+
+  getRight(): Expression {
+    return this.right;
   }
 }

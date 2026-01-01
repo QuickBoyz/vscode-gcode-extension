@@ -5,7 +5,7 @@ import { VariableTracker } from "./variableTracker";
 import { gcodeParser } from "../parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Position } from "vscode-languageserver/node";
-import { GCodeFormatter } from "../formatter";
+import { gcodeFormatter } from "../formatter";
 
 describe("VariableTracker", () => {
   const tracker = new VariableTracker();
@@ -25,9 +25,7 @@ describe("VariableTracker", () => {
 
       expect(definitions).toHaveLength(2);
       expect(definitions[0].identifier).toBe(1);
-      expect(definitions[0].line).toBe(0);
       expect(definitions[1].identifier).toBe(2);
-      expect(definitions[1].line).toBe(1);
     });
 
     it("should find named variable definitions", () => {
@@ -44,9 +42,7 @@ describe("VariableTracker", () => {
 
       expect(definitions).toHaveLength(2);
       expect(definitions[0].identifier).toBe("depth");
-      expect(definitions[0].line).toBe(0);
       expect(definitions[1].identifier).toBe("x_spacing");
-      expect(definitions[1].line).toBe(1);
     });
 
     it("should find definitions with line numbers", () => {
@@ -95,11 +91,14 @@ describe("VariableTracker", () => {
 
       // Position at #1 in the second line
       const position = Position.create(1, 5);
-      const definition = tracker.findDefinitionAtPosition(ast, document, position);
+      const definition = tracker.findDefinitionAtPosition(
+        ast,
+        document,
+        position
+      );
 
       expect(definition).not.toBeNull();
       expect(definition!.identifier).toBe(1);
-      expect(definition!.line).toBe(0);
     });
 
     it("should find definition for named variable at position", () => {
@@ -114,11 +113,14 @@ describe("VariableTracker", () => {
 
       // Position at #<depth> in the second line
       const position = Position.create(1, 5);
-      const definition = tracker.findDefinitionAtPosition(ast, document, position);
+      const definition = tracker.findDefinitionAtPosition(
+        ast,
+        document,
+        position
+      );
 
       expect(definition).not.toBeNull();
       expect(definition!.identifier).toBe("depth");
-      expect(definition!.line).toBe(0);
     });
 
     it("should return null for position not on a variable", () => {
@@ -133,7 +135,11 @@ describe("VariableTracker", () => {
 
       // Position at "X10" (not a variable)
       const position = Position.create(1, 3);
-      const definition = tracker.findDefinitionAtPosition(ast, document, position);
+      const definition = tracker.findDefinitionAtPosition(
+        ast,
+        document,
+        position
+      );
 
       expect(definition).toBeNull();
     });
@@ -150,7 +156,11 @@ describe("VariableTracker", () => {
 
       // Position at #1 which is not defined
       const position = Position.create(0, 5);
-      const definition = tracker.findDefinitionAtPosition(ast, document, position);
+      const definition = tracker.findDefinitionAtPosition(
+        ast,
+        document,
+        position
+      );
 
       expect(definition).toBeNull();
     });
@@ -169,8 +179,10 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(1);
-      const formatted = GCodeFormatter.formatExpression(definitions[0].value);
-      expect(formatted).toBe("10");
+      const formatted = gcodeFormatter.formatExpression(
+        definitions[0].statement.getValue()
+      );
+      expect(formatted).toBe("10.0");
     });
 
     it("should format variable references", () => {
@@ -185,7 +197,9 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(2);
-      const formatted = GCodeFormatter.formatExpression(definitions[1].value);
+      const formatted = gcodeFormatter.formatExpression(
+        definitions[1].statement.getValue()
+      );
       expect(formatted).toBe("#1");
     });
 
@@ -201,8 +215,10 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(1);
-      const formatted = GCodeFormatter.formatExpression(definitions[0].value);
-      expect(formatted).toBe("10 + 20");
+      const formatted = gcodeFormatter.formatExpression(
+        definitions[0].statement.getValue()
+      );
+      expect(formatted).toBe("10.0 + 20.0");
     });
 
     it("should format named variable references", () => {
@@ -217,7 +233,9 @@ describe("VariableTracker", () => {
       const definitions = tracker.findDefinitions(ast, document);
 
       expect(definitions).toHaveLength(2);
-      const formatted = GCodeFormatter.formatExpression(definitions[1].value);
+      const formatted = gcodeFormatter.formatExpression(
+        definitions[1].statement.getValue()
+      );
       expect(formatted).toBe("#<depth>");
     });
   });
@@ -237,9 +255,15 @@ describe("VariableTracker", () => {
 
       expect(usages.length).toBeGreaterThanOrEqual(3);
       // Should find #1 in assignments and usages
-      expect(usages.some(u => u.line === 0 && u.character === 0)).toBe(true);
-      expect(usages.some(u => u.line === 1 && u.character >= 0)).toBe(true);
-      expect(usages.some(u => u.line === 2 && u.character >= 0)).toBe(true);
+      expect(
+        usages.some((u) => u.line === 0 && u.character === 0)
+      ).toBe(true);
+      expect(usages.some((u) => u.line === 1 && u.character >= 0)).toBe(
+        true
+      );
+      expect(usages.some((u) => u.line === 2 && u.character >= 0)).toBe(
+        true
+      );
     });
 
     it("should find all usages of a named variable", () => {
@@ -256,7 +280,9 @@ describe("VariableTracker", () => {
 
       expect(usages.length).toBeGreaterThanOrEqual(3);
       // Should find #<depth> in assignment and usages
-      expect(usages.some(u => u.line === 0 && u.character === 0)).toBe(true);
+      expect(
+        usages.some((u) => u.line === 0 && u.character === 0)
+      ).toBe(true);
     });
 
     it("should return empty array for undefined variable", () => {
@@ -290,4 +316,3 @@ describe("VariableTracker", () => {
     });
   });
 });
-

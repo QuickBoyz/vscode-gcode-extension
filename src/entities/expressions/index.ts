@@ -5,4 +5,10 @@ export { Binary } from "./Binary";
 export { Relational } from "./Relational";
 export { FuncCall } from "./FuncCall";
 export { Unary } from "./Unary";
-export { ExpressionType, RelationalOperatorType } from "./types";
+export {
+  ExpressionType,
+  RelationalOperatorType,
+  BinaryOperatorType,
+  UnaryOperatorType,
+  FunctionName as FunctionType,
+} from "./types";

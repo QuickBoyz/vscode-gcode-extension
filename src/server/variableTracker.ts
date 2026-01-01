@@ -8,8 +8,7 @@ import { Position } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 import { Program } from "../entities";
-import { Expression } from "../entities/expressions";
-import { Assign } from "../entities/statements";
+import { Assignment } from "../entities/statements";
 import { GCODE_SYMBOLS, REGEX_PATTERNS } from "../constants";
 
 /**
@@ -22,24 +21,9 @@ export interface VariableDefinition {
   identifier: number | string;
 
   /**
-   * Line number where variable is defined (0-based)
-   */
-  line: number;
-
-  /**
-   * Column position where variable starts (0-based)
-   */
-  column: number;
-
-  /**
    * The assignment statement that defines this variable
    */
-  statement: Assign;
-
-  /**
-   * The value expression assigned to the variable
-   */
-  value: Expression;
+  statement: Assignment;
 }
 
 /**
@@ -73,27 +57,22 @@ export class VariableTracker {
     program: Program,
     document: TextDocument
   ): VariableDefinition[] {
-    const definitions: VariableDefinition[] = [];
+    const variables: VariableDefinition[] = [];
     const text = document.getText();
     const lines = text.split(REGEX_PATTERNS.NEWLINE);
 
     // Extract all assignment statements from the AST
-    const assignments: Array<{
-      statement: Assign;
-      identifier: number | string;
-    }> = [];
-    for (const statement of program.body) {
-      if (statement instanceof Assign) {
+    const assignments: Assignment[] = [];
+    for (const statement of program.getBody()) {
+      if (statement instanceof Assignment) {
         // All assignment statements are now class instances
-        assignments.push({
-          statement,
-          identifier: statement.getVariable(),
-        });
+        assignments.push(statement);
       }
     }
 
     // Find each assignment in the document text
-    for (const { statement, identifier } of assignments) {
+    for (const statement of assignments) {
+      const identifier = statement.getVariable() as number | string;
       // Use regex for both numeric and named variables for consistency
       const varPattern = this.buildVariablePattern(identifier);
 
@@ -110,12 +89,9 @@ export class VariableTracker {
             .trim();
           if (afterVar.startsWith(GCODE_SYMBOLS.ASSIGNMENT_OPERATOR)) {
             // Found the assignment, add to definitions
-            definitions.push({
+            variables.push({
               identifier,
-              line: lineIndex,
-              column: match.index,
               statement,
-              value: statement.value,
             });
             break; // Found this assignment, move to next
           }
@@ -123,7 +99,7 @@ export class VariableTracker {
       }
     }
 
-    return definitions;
+    return variables;
   }
 
   /**

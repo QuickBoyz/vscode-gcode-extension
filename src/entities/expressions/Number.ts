@@ -1,23 +1,15 @@
 import { ExpressionType } from "./types";
 import { Expression } from "./Expression";
-
+import { Range } from "vscode-languageserver";
 /**
  * Number expression
  */
 export class Number extends Expression {
-  type: ExpressionType.Number = ExpressionType.Number;
-  value: number;
-
-  constructor(value: number) {
-    super();
-    this.value = value;
+  constructor(range: Range, private value: number) {
+    super(range, ExpressionType.Number);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.Number;
-  }
-
-  toString(): string {
-    return this.value.toString();
+  getValue(): number {
+    return this.value;
   }
 }

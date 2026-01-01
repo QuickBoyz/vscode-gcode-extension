@@ -1,41 +1,16 @@
-import { GCODE_SYMBOLS, GCODE_KEYWORDS } from "../../constants";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 
 import { Statement } from "./Statement";
-
+import { Range } from "vscode-languageserver";
 /**
  * ENDIF statement
  */
 export class EndIf extends Statement {
-  type: StatementType.EndIf = StatementType.EndIf;
-  label: number | null;
-
-  constructor(
-    label: number | null = null,
-    lineNumber?: number,
-    comment?: string,
-    commentStyle?: CommentStyle
-  ) {
-    super();
-    this.label = label;
-    this.lineNumber = lineNumber;
-    this.comment = comment;
-    this.commentStyle = commentStyle;
-  }
-
-  getType(): StatementType {
-    return StatementType.EndIf;
+  constructor(range: Range, private label: number | null = null) {
+    super(range, StatementType.EndIf);
   }
 
   getLabel(): number | null {
     return this.label;
-  }
-
-  toString(): string {
-    const labelText =
-      this.label !== null
-        ? `${GCODE_SYMBOLS.OBLOCK_PREFIX}${this.label} `
-        : "";
-    return `${labelText}${GCODE_KEYWORDS.ENDIF}`;
   }
 }

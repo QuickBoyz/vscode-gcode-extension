@@ -1,25 +1,23 @@
-import { ExpressionType } from "./types";
+import { ExpressionType, UnaryOperatorType } from "./types";
 import { Expression } from "./Expression";
-
+import { Range } from "vscode-languageserver";
 /**
  * Unary expression
  */
 export class Unary extends Expression {
-  type: ExpressionType.Unary = ExpressionType.Unary;
-  operator: "-";
-  operand: Expression;
-
-  constructor(operator: "-", operand: Expression) {
-    super();
-    this.operator = operator;
-    this.operand = operand;
+  constructor(
+    range: Range,
+    private operator: UnaryOperatorType,
+    private operand: Expression
+  ) {
+    super(range, ExpressionType.Unary);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.Unary;
+  getOperator(): UnaryOperatorType {
+    return this.operator;
   }
 
-  toString(): string {
-    return `${this.operator}${this.operand.toString()}`;
+  getOperand(): Expression {
+    return this.operand;
   }
 }

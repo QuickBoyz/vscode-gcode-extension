@@ -1,31 +1,23 @@
 import { ExpressionType } from "./types";
 import { Expression } from "./Expression";
-
+import { Range } from "vscode-languageserver";
 /**
  * Variable expression
  */
 export class Variable extends Expression {
-  type: ExpressionType.Variable = ExpressionType.Variable;
-  id?: number;
-  name?: string;
-
-  constructor(id?: number, name?: string) {
-    super();
-    this.id = id;
-    this.name = name;
+  constructor(
+    range: Range,
+    private id?: number,
+    private name?: string
+  ) {
+    super(range, ExpressionType.Variable);
   }
 
-  getType(): ExpressionType {
-    return ExpressionType.Variable;
+  getId(): number | undefined {
+    return this.id;
   }
 
-  toString(): string {
-    if (this.name !== undefined) {
-      return `#<${this.name}>`;
-    }
-    if (this.id !== undefined) {
-      return `#${this.id}`;
-    }
-    return "?";
+  getName(): string | undefined {
+    return this.name;
   }
 }

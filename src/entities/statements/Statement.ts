@@ -1,36 +1,36 @@
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Range } from "vscode-languageserver/node";
-
-import { GCodeFormatter } from "../../formatter";
-import { StatementType, CommentStyle } from "./types";
+import { StatementType } from "./types";
 import { Expression } from "../expressions";
+import { BaseToken } from "../BaseToken";
+
+/**
+ * Lazy getter for gcodeFormatter to avoid circular dependency
+ * Statement -> formatter -> Statement creates a circular dependency
+ * By loading the formatter lazily, we break the cycle
+ */
+function getFormatter() {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { gcodeFormatter } = require("../../formatter");
+  return gcodeFormatter;
+}
 
 /**
  * Base class for all statements
  */
-export abstract class Statement {
-  lineNumber?: number;
-  comment?: string;
-  commentStyle?: CommentStyle;
-
-  /**
-   * Get the statement type
-   */
-  abstract getType(): StatementType;
-
+export abstract class Statement extends BaseToken<StatementType> {
   /**
    * Get the O-block label if this statement has one
    * Returns null if the statement doesn't have a label
    */
-  abstract getLabel(): number | null;
+  getLabel(): number | null {
+    return null;
+  }
 
   /**
-   * Get the range of this statement in the document
-   * Returns null if position information is not available
+   * Get the description of the statement
+   * Returns undefined by default
    */
-  getRange(_document: TextDocument): Range | null {
-    // Default implementation - can be overridden by subclasses
-    return null;
+  getDescription(): string {
+    return "";
   }
 
   /**
@@ -39,7 +39,7 @@ export abstract class Statement {
    */
   toString(): string {
     // Default implementation - should be overridden by subclasses
-    return `${this.getType()}`;
+    return getFormatter().formatStatementContent(this);
   }
 
   /**
@@ -47,6 +47,6 @@ export abstract class Statement {
    * Delegates to GCodeFormatter to avoid code duplication
    */
   protected formatExpression(expr: Expression): string {
-    return GCodeFormatter.formatExpression(expr);
+    return getFormatter().formatExpression(expr);
   }
 }

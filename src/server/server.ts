@@ -6,6 +6,7 @@
  * - Document formatting
  * - Range formatting
  * - Variable hover information
+ * - G/M code hover descriptions
  * - Variable definition navigation
  * - Variable rename (F2 or context menu)
  * - Variable completion (Ctrl+Space)
@@ -22,7 +23,6 @@ import {
   DocumentRangeFormattingParams,
   TextEdit,
   Range,
-  Position,
   HoverParams,
   Hover,
   DefinitionParams,
@@ -38,7 +38,7 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { gcodeParser } from "../parser";
-import { gcodeFormatter, GCodeFormatter } from "../formatter";
+import { gcodeFormatter } from "../formatter";
 import { FormatterOptions } from "../formatter/types";
 import { VariableTracker } from "./variableTracker";
 import {
@@ -50,8 +50,7 @@ import {
   REGEX_PATTERNS,
   DEFAULT_FORMATTER_OPTIONS,
 } from "../constants";
-
-// Create a connection for the server using Node's IPC as transport
+import { HoverProvider } from "./hoverProvider";
 const connection = createConnection(ProposedFeatures.all);
 
 // Create a text document manager
@@ -92,6 +91,9 @@ const variableTracker = new VariableTracker();
 const semanticTokensProvider = new SemanticTokensProvider(
   variableTracker
 );
+
+// Hover provider instance
+const hoverProvider = new HoverProvider(variableTracker);
 
 connection.onInitialize(
   (_params: InitializeParams): InitializeResult => {
@@ -252,10 +254,7 @@ async function formatDocument(
     const formattedText = gcodeFormatter.format(ast);
 
     // Return a single edit replacing the entire document
-    const fullRange: Range = {
-      start: Position.create(0, 0),
-      end: Position.create(document.lineCount, 0),
-    };
+    const fullRange = Range.create(0, 0, document.lineCount - 1, 0);
 
     return [TextEdit.replace(fullRange, formattedText)];
   } catch (error) {
@@ -273,7 +272,7 @@ async function formatDocument(
 }
 
 /**
- * Handle hover requests to show variable information
+ * Handle hover requests to show variable information or G/M code descriptions
  */
 connection.onHover(
   async (params: HoverParams): Promise<Hover | null> => {
@@ -284,80 +283,9 @@ connection.onHover(
 
     try {
       const text = document.getText();
-      const ast = gcodeParser.parseGcode(text);
-      const definition = variableTracker.findDefinitionAtPosition(
-        ast,
-        document,
-        params.position
-      );
+      const program = gcodeParser.parseGcode(text);
 
-      if (!definition) {
-        return null;
-      }
-
-      // Format variable identifier
-      const varName =
-        typeof definition.identifier === "string"
-          ? GCodeFormatter.formatNamedVariable(definition.identifier)
-          : GCodeFormatter.formatNumericVariable(definition.identifier);
-
-      // Format value
-      const valueStr = GCodeFormatter.formatExpression(
-        definition.value
-      );
-
-      // Get line number for display (1-based)
-      const lineNumber = definition.statement.lineNumber
-        ? GCodeFormatter.formatLineNumber(
-            definition.statement.lineNumber
-          )
-        : `Line ${definition.line + 1}`;
-
-      // Build hover content
-      const contents = [
-        `**Variable:** \`${varName}\``,
-        `**Value:** \`${valueStr}\``,
-        `**Defined at:** ${lineNumber}`,
-      ];
-
-      // Find the variable range in the current line for highlighting
-      const line = document.getText().split(REGEX_PATTERNS.NEWLINE)[
-        params.position.line
-      ];
-      const varMatch = line.match(
-        typeof definition.identifier === "string"
-          ? new RegExp(
-              `${
-                GCODE_SYMBOLS.NAMED_VAR_OPEN
-              }${definition.identifier.replace(
-                REGEX_PATTERNS.REGEX_SPECIAL_CHARS,
-                "\\$&"
-              )}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`
-            )
-          : new RegExp(
-              `${GCODE_SYMBOLS.VARIABLE_PREFIX}${definition.identifier}${REGEX_PATTERNS.WORD_BOUNDARY}`
-            )
-      );
-
-      let range: Range | undefined;
-      if (varMatch && varMatch.index !== undefined) {
-        range = Range.create(
-          params.position.line,
-          varMatch.index,
-          params.position.line,
-          varMatch.index + varMatch[0].length
-        );
-      }
-
-      return {
-        contents: {
-          kind: "markdown",
-          value: contents.join(
-            `${GCODE_SYMBOLS.NEWLINE}${GCODE_SYMBOLS.NEWLINE}`
-          ),
-        },
-        range,
-      };
+      return hoverProvider.getHover(program, document, params.position);
     } catch (error) {
       connection.console.error(
         `Hover error: ${
@@ -396,17 +324,12 @@ connection.onDefinition(
 
       // Check if we're clicking on the definition itself
       const isAtDefinition =
-        params.position.line === definition.line &&
-        params.position.character >= definition.column &&
+        params.position.line ===
+          definition.statement.getPosition().line &&
+        params.position.character >=
+          definition.statement.getPosition().character &&
         params.position.character <
-          definition.column +
-            (typeof definition.identifier === "string"
-              ? GCodeFormatter.formatNamedVariable(
-                  definition.identifier
-                ).length
-              : GCodeFormatter.formatNumericVariable(
-                  definition.identifier
-                ).length);
+          definition.statement.getEndPosition().character;
 
       if (isAtDefinition) {
         // We're at the definition - find all usages
@@ -428,8 +351,9 @@ connection.onDefinition(
           const usage = usages.find(
             (u) =>
               !(
-                u.line === definition.line &&
-                u.character === definition.column
+                u.line === definition.statement.getPosition().line &&
+                u.character ===
+                  definition.statement.getPosition().character
               )
           );
 
@@ -454,15 +378,20 @@ connection.onDefinition(
         return null;
       }
 
+      const position = definition.statement.getPosition();
+
       // We're not at the definition - navigate to it (normal behavior)
       const range = Range.create(
-        definition.line,
-        definition.column,
-        definition.line,
-        definition.column +
+        position.line,
+        position.character,
+        position.line,
+        position.character +
           (typeof definition.identifier === "string"
-            ? `#<${definition.identifier}>`.length
-            : `#${definition.identifier}`.length)
+            ? gcodeFormatter.formatNamedVariable(definition.identifier)
+                .length
+            : gcodeFormatter.formatNumericVariable(
+                definition.identifier
+              ).length)
       );
 
       return [
@@ -578,8 +507,8 @@ connection.onRenameRequest(
           // Format new variable name
           const newVarName =
             typeof def.identifier === "string"
-              ? GCodeFormatter.formatNamedVariable(newName)
-              : GCodeFormatter.formatNumericVariable(Number(newName));
+              ? gcodeFormatter.formatNamedVariable(newName)
+              : gcodeFormatter.formatNumericVariable(Number(newName));
 
           return TextEdit.replace(range, newVarName);
         });
@@ -630,8 +559,8 @@ connection.onRenameRequest(
         // Format new variable name
         const newVarName =
           typeof variable.identifier === "string"
-            ? GCodeFormatter.formatNamedVariable(newName)
-            : GCodeFormatter.formatNumericVariable(Number(newName));
+            ? gcodeFormatter.formatNamedVariable(newName)
+            : gcodeFormatter.formatNumericVariable(Number(newName));
 
         return TextEdit.replace(range, newVarName);
       });
@@ -677,21 +606,21 @@ connection.onCompletion(
       for (const definition of definitions) {
         const varName =
           typeof definition.identifier === "string"
-            ? GCodeFormatter.formatNamedVariable(definition.identifier)
-            : GCodeFormatter.formatNumericVariable(
+            ? gcodeFormatter.formatNamedVariable(definition.identifier)
+            : gcodeFormatter.formatNumericVariable(
                 definition.identifier
               );
 
-        const valueStr = GCodeFormatter.formatExpression(
-          definition.value
+        const valueStr = gcodeFormatter.formatExpression(
+          definition.statement.getValue()
         );
 
         // Get line number for display
-        const lineNumber = definition.statement.lineNumber
-          ? GCodeFormatter.formatLineNumber(
-              definition.statement.lineNumber
+        const lineNumber = definition.statement.getPosition().line
+          ? gcodeFormatter.formatLineNumber(
+              definition.statement.getPosition().line + 1
             )
-          : `Line ${definition.line + 1}`;
+          : `Line ${definition.statement.getPosition().line + 1}`;
 
         completionItems.push({
           label: varName,
@@ -738,10 +667,10 @@ connection.languages.semanticTokens.on(
 
     try {
       const text = document.getText();
-      const ast = gcodeParser.parseGcode(text);
+      const program = gcodeParser.parseGcode(text);
       const result =
         semanticTokensProvider.provideDocumentSemanticTokens(
-          ast,
+          program,
           document
         );
 

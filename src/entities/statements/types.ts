@@ -7,7 +7,7 @@ export enum StatementType {
   Block = "Block",
   Param = "Param",
   Comment = "Comment",
-  Assign = "Assign",
+  Assignment = "Assignment",
   Goto = "Goto",
   SubprogramCall = "SubprogramCall",
   OBlock = "OBlock",
@@ -19,18 +19,13 @@ export enum StatementType {
   Else = "Else",
   EndIf = "EndIf",
   ProgramDelimiter = "ProgramDelimiter",
-  Label = "Label",
+  LineNumber = "LineNumber",
   EmptyLine = "EmptyLine",
 }
 
-export enum BlockCodeType {
+export enum CommandType {
   G = "G",
   M = "M",
-}
-
-export interface BlockCode {
-  type: BlockCodeType;
-  code: number;
 }
 
 // Parameter value can be a simple number or an expression
@@ -40,4 +35,7 @@ export type ParamValue = number | Expression;
 export type ParamBlock = Record<string, ParamValue>;
 
 // Comment style type
-export type CommentStyle = "semicolon" | "parenthetical";
+export enum CommentStyle {
+  Semicolon = "semicolon",
+  Parenthetical = "parenthetical",
+}
