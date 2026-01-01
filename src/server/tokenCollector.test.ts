@@ -1,7 +1,7 @@
 /**
  * Tests for Token Collector
  */
-import { TokenCollector } from "./tokenCollector";
+import { SemanticToken, TokenCollector } from "./tokenCollector";
 import { VariableTracker } from "./variableTracker";
 import { gcodeParser } from "../parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -27,7 +27,9 @@ describe("TokenCollector", () => {
 
       // Check that G-codes are marked as "function" type
       const gCodeTokens = tokens.filter(
-        (t) => t.tokenType === "function" && /^G\d+/i.test(getTokenText(t, text))
+        (t) =>
+          t.tokenType === "function" &&
+          /^G\d+/i.test(getTokenText(t, text))
       );
       expect(gCodeTokens.length).toBeGreaterThanOrEqual(4); // G21, G90, G54, G17
     });
@@ -45,7 +47,9 @@ describe("TokenCollector", () => {
       const tokens = collector.collectTokens(ast, document);
 
       const mCodeTokens = tokens.filter(
-        (t) => t.tokenType === "function" && /^M\d+/i.test(getTokenText(t, text))
+        (t) =>
+          t.tokenType === "function" &&
+          /^M\d+/i.test(getTokenText(t, text))
       );
       expect(mCodeTokens.length).toBeGreaterThanOrEqual(3); // M3, M5, M30
     });
@@ -64,13 +68,17 @@ describe("TokenCollector", () => {
 
       // Check for variable declarations
       const declarations = tokens.filter(
-        (t) => t.tokenType === "variable" && t.modifiers.includes("declaration")
+        (t) =>
+          t.tokenType === "variable" &&
+          t.modifiers.includes("declaration")
       );
       expect(declarations.length).toBe(2); // #1 and #2 declarations
 
       // Check for variable usages
       const usages = tokens.filter(
-        (t) => t.tokenType === "variable" && !t.modifiers.includes("declaration")
+        (t) =>
+          t.tokenType === "variable" &&
+          !t.modifiers.includes("declaration")
       );
       expect(usages.length).toBe(1); // #1 usage in X#1
     });
@@ -87,7 +95,9 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const oBlockTokens = tokens.filter((t) => t.tokenType === "label");
+      const oBlockTokens = tokens.filter(
+        (t) => t.tokenType === "label"
+      );
       expect(oBlockTokens.length).toBe(2); // O100 and O200
     });
 
@@ -103,7 +113,9 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const keywordTokens = tokens.filter((t) => t.tokenType === "keyword");
+      const keywordTokens = tokens.filter(
+        (t) => t.tokenType === "keyword"
+      );
       expect(keywordTokens.length).toBeGreaterThanOrEqual(2); // WHILE and END (DO might be separate)
     });
 
@@ -119,7 +131,9 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const operatorTokens = tokens.filter((t) => t.tokenType === "operator");
+      const operatorTokens = tokens.filter(
+        (t) => t.tokenType === "operator"
+      );
       expect(operatorTokens.length).toBeGreaterThanOrEqual(3); // =, +, *
     });
 
@@ -135,7 +149,9 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const numberTokens = tokens.filter((t) => t.tokenType === "number");
+      const numberTokens = tokens.filter(
+        (t) => t.tokenType === "number"
+      );
       expect(numberTokens.length).toBeGreaterThanOrEqual(3); // 10.5, -5, 0
     });
 
@@ -151,12 +167,15 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const functionTokens = tokens.filter((t) => t.tokenType === "function");
+      const functionTokens = tokens.filter(
+        (t) => t.tokenType === "function"
+      );
       expect(functionTokens.length).toBeGreaterThanOrEqual(2); // SIN and COS
     });
 
     it("should collect semantic tokens for comments", () => {
-      const text = "G0 X0 (This is a comment)\nG1 X10 ; Another comment";
+      const text =
+        "G0 X0 (This is a comment)\nG1 X10 ; Another comment";
       const document = TextDocument.create(
         "file:///test.nc",
         "gcode",
@@ -167,7 +186,9 @@ describe("TokenCollector", () => {
 
       const tokens = collector.collectTokens(ast, document);
 
-      const commentTokens = tokens.filter((t) => t.tokenType === "comment");
+      const commentTokens = tokens.filter(
+        (t) => t.tokenType === "comment"
+      );
       expect(commentTokens.length).toBe(2); // Both comments
     });
 
@@ -195,7 +216,7 @@ M30
       expect(tokens.length).toBeGreaterThan(0);
 
       // Check for various token types - be more flexible about what's present
-      const tokenTypes = tokens.map(t => t.tokenType);
+      const tokenTypes = tokens.map((t) => t.tokenType);
       const uniqueTokenTypes = [...new Set(tokenTypes)];
 
       // The test data should produce at least these token types
@@ -216,7 +237,9 @@ M30
 
       const tokens = collector.collectTokens(ast, document);
 
-      const functionTokens = tokens.filter((t) => t.tokenType === "function");
+      const functionTokens = tokens.filter(
+        (t) => t.tokenType === "function"
+      );
       expect(functionTokens.length).toBe(3); // G21, G90, G54
     });
   });
@@ -225,67 +248,12 @@ M30
 /**
  * Helper function to get token text from document
  */
-function getTokenText(token: any, documentText: string): string {
+function getTokenText(
+  token: SemanticToken,
+  documentText: string
+): string {
   const lines = documentText.split(/\r?\n/);
   const line = lines[token.line];
   if (!line) return "";
   return line.slice(token.character, token.character + token.length);
-}
-
-/**
- * Helper function to decode semantic tokens (copied from semanticTokensProvider.test.ts)
- */
-function decodeSemanticTokens(data: number[]): any[] {
-  const tokens: any[] = [];
-  let currentLine = 0;
-  let currentChar = 0;
-
-  for (let i = 0; i < data.length; i += 5) {
-    const deltaLine = data[i];
-    const deltaStart = data[i + 1];
-    const length = data[i + 2];
-    const tokenType = data[i + 3];
-    const tokenModifiers = data[i + 4];
-
-    currentLine += deltaLine;
-    if (deltaLine === 0) {
-      currentChar += deltaStart;
-    } else {
-      currentChar = deltaStart;
-    }
-
-    tokens.push({
-      line: currentLine,
-      character: currentChar,
-      length,
-      type: getTokenTypeName(tokenType),
-      modifiers: getTokenModifierNames(tokenModifiers),
-    });
-  }
-
-  return tokens;
-}
-
-function getTokenTypeName(index: number): string {
-  const types = [
-    "variable",
-    "function",
-    "label",
-    "keyword",
-    "number",
-    "operator",
-    "comment",
-  ];
-  return types[index] || "unknown";
-}
-
-function getTokenModifierNames(bitmask: number): string[] {
-  const modifiers = ["declaration", "readonly"];
-  const result: string[] = [];
-  for (let i = 0; i < modifiers.length; i++) {
-    if (bitmask & (1 << i)) {
-      result.push(modifiers[i]);
-    }
-  }
-  return result;
 }

@@ -1,139 +1,230 @@
 {
+  "range": {
+    "start": {
+      "line": 0,
+      "character": 0
+    },
+    "end": {
+      "line": 62,
+      "character": 32
+    }
+  },
   "type": "Program",
   "body": [
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 0
+          "line": 0,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 0
+          "line": 0,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 4
+        },
+        "end": {
+          "line": 0,
+          "character": 6
         }
       },
       "type": "GCode",
       "code": 0,
-      "params": {
-        "X": 0,
-        "Y": 0,
-        "Z": 0
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 0,
+            "character": 7
+          },
+          "end": {
+            "line": 0,
+            "character": 15
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 0,
+          "Y": 0,
+          "Z": 0
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 1
+          "line": 1,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 1
+          "line": 1,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 1,
+          "character": 4
+        },
+        "end": {
+          "line": 1,
+          "character": 6
         }
       },
       "type": "GCode",
       "code": 1,
-      "params": {
-        "X": 10,
-        "Y": 20,
-        "F": 100
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 1,
+            "character": 7
+          },
+          "end": {
+            "line": 1,
+            "character": 19
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 10,
+          "Y": 20,
+          "F": 100
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 21,
-          "line": 2
+          "line": 2,
+          "character": 0
         },
         "end": {
-          "character": 13,
-          "line": 2
+          "line": 2,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 4
+        },
+        "end": {
+          "line": 2,
+          "character": 21
         }
       },
       "type": "Param",
-      "params": {
-        "X": {
-          "range": {
-            "start": {
-              "character": 6,
-              "line": 2
-            },
-            "end": {
-              "character": 10,
-              "line": 2
-            }
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 2,
+            "character": 4
           },
-          "type": "Binary",
-          "operator": "+",
-          "left": {
-            "range": {
-              "start": {
-                "character": 6,
-                "line": 2
-              },
-              "end": {
-                "character": 7,
-                "line": 2
-              }
-            },
-            "type": "Variable",
-            "id": 1
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 9,
-                "line": 2
-              },
-              "end": {
-                "character": 10,
-                "line": 2
-              }
-            },
-            "type": "Number",
-            "value": 10
+          "end": {
+            "line": 2,
+            "character": 21
           }
         },
-        "Y": {
-          "range": {
-            "start": {
-              "character": 15,
-              "line": 2
+        "type": "ParamsBlock",
+        "params": {
+          "X": {
+            "range": {
+              "start": {
+                "line": 2,
+                "character": 6
+              },
+              "end": {
+                "line": 2,
+                "character": 11
+              }
             },
-            "end": {
-              "character": 19,
-              "line": 2
+            "type": "Binary",
+            "operator": "+",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 2,
+                  "character": 6
+                },
+                "end": {
+                  "line": 2,
+                  "character": 8
+                }
+              },
+              "type": "NumberVariable",
+              "id": 1
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 2,
+                  "character": 9
+                },
+                "end": {
+                  "line": 2,
+                  "character": 11
+                }
+              },
+              "type": "Number",
+              "value": 10
             }
           },
-          "type": "Binary",
-          "operator": "+",
-          "left": {
+          "Y": {
             "range": {
               "start": {
-                "character": 15,
-                "line": 2
+                "line": 2,
+                "character": 15
               },
               "end": {
-                "character": 16,
-                "line": 2
+                "line": 2,
+                "character": 20
               }
             },
-            "type": "Variable",
-            "id": 2
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 18,
-                "line": 2
+            "type": "Binary",
+            "operator": "+",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 2,
+                  "character": 15
+                },
+                "end": {
+                  "line": 2,
+                  "character": 17
+                }
               },
-              "end": {
-                "character": 19,
-                "line": 2
-              }
+              "type": "NumberVariable",
+              "id": 2
             },
-            "type": "Number",
-            "value": 20
+            "right": {
+              "range": {
+                "start": {
+                  "line": 2,
+                  "character": 18
+                },
+                "end": {
+                  "line": 2,
+                  "character": 20
+                }
+              },
+              "type": "Number",
+              "value": 20
+            }
           }
         }
       }
@@ -141,109 +232,232 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 3
+          "line": 3,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 3
+          "line": 3,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 3,
+          "character": 4
+        },
+        "end": {
+          "line": 3,
+          "character": 6
         }
       },
       "type": "MCode",
       "code": 3,
-      "params": {
-        "S": 1000
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 3,
+            "character": 7
+          },
+          "end": {
+            "line": 3,
+            "character": 12
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 1000
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 4
+          "line": 4,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 4
+          "line": 4,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 4,
+          "character": 4
+        },
+        "end": {
+          "line": 4,
+          "character": 6
         }
       },
       "type": "GCode",
       "code": 2,
-      "params": {
-        "X": {
-          "range": {
-            "start": {
-              "character": 9,
-              "line": 4
-            },
-            "end": {
-              "character": 14,
-              "line": 4
-            }
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 7
           },
-          "type": "Variable",
-          "name": "var"
+          "end": {
+            "line": 4,
+            "character": 16
+          }
         },
-        "Y": 30,
-        "I": 5,
-        "J": 5
+        "type": "ParamsBlock",
+        "params": {
+          "X": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          },
+          "Y": 30,
+          "I": 5,
+          "J": 5
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 5
+          "line": 5,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 5
+          "line": 5,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 5,
+          "character": 4
+        },
+        "end": {
+          "line": 5,
+          "character": 6
         }
       },
       "type": "MCode",
       "code": 5,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 6
+          "line": 6,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 6
+          "line": 6,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 6,
+          "character": 4
+        },
+        "end": {
+          "line": 6,
+          "character": 6
         }
       },
       "type": "MCode",
       "code": 6,
-      "params": {
-        "T": 1
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 6,
+            "character": 7
+          },
+          "end": {
+            "line": 6,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 1
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 7
+          "line": 7,
+          "character": 0
         },
         "end": {
-          "character": 6,
-          "line": 7
+          "line": 7,
+          "character": 3
         }
       },
-      "type": "MCode",
-      "code": 30,
-      "params": {}
+      "type": "LineNumber",
+      "value": null
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 8
+          "line": 7,
+          "character": 4
         },
         "end": {
-          "character": 27,
-          "line": 8
+          "line": 7,
+          "character": 7
+        }
+      },
+      "type": "MCode",
+      "code": 30,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 8,
+          "character": 0
+        },
+        "end": {
+          "line": 8,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 8,
+          "character": 4
+        },
+        "end": {
+          "line": 8,
+          "character": 28
         }
       },
       "type": "WhileStart",
@@ -251,12 +465,12 @@
       "condition": {
         "range": {
           "start": {
-            "character": 11,
-            "line": 8
+            "line": 8,
+            "character": 11
           },
           "end": {
-            "character": 23,
-            "line": 8
+            "line": 8,
+            "character": 24
           }
         },
         "type": "Relational",
@@ -264,26 +478,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 11,
-              "line": 8
+              "line": 8,
+              "character": 11
             },
             "end": {
-              "character": 16,
-              "line": 8
+              "line": 8,
+              "character": 17
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 21,
-              "line": 8
+              "line": 8,
+              "character": 21
             },
             "end": {
-              "character": 23,
-              "line": 8
+              "line": 8,
+              "character": 24
             }
           },
           "type": "Number",
@@ -294,31 +522,72 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 9
+          "line": 9,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 9
+          "line": 9,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 9,
+          "character": 4
+        },
+        "end": {
+          "line": 9,
+          "character": 6
         }
       },
       "type": "GCode",
       "code": 1,
-      "params": {
-        "X": 10,
-        "Y": 20,
-        "F": 100
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 9,
+            "character": 7
+          },
+          "end": {
+            "line": 9,
+            "character": 19
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 10,
+          "Y": 20,
+          "F": 100
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 10
+          "line": 10,
+          "character": 0
         },
         "end": {
-          "character": 26,
-          "line": 10
+          "line": 10,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 10,
+          "character": 4
+        },
+        "end": {
+          "line": 10,
+          "character": 27
         }
       },
       "type": "IfStart",
@@ -326,12 +595,12 @@
       "condition": {
         "range": {
           "start": {
-            "character": 8,
-            "line": 10
+            "line": 10,
+            "character": 8
           },
           "end": {
-            "character": 20,
-            "line": 10
+            "line": 10,
+            "character": 21
           }
         },
         "type": "Relational",
@@ -339,26 +608,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 8,
-              "line": 10
+              "line": 10,
+              "character": 8
             },
             "end": {
-              "character": 13,
-              "line": 10
+              "line": 10,
+              "character": 14
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 18,
-              "line": 10
+              "line": 10,
+              "character": 18
             },
             "end": {
-              "character": 20,
-              "line": 10
+              "line": 10,
+              "character": 21
             }
           },
           "type": "Number",
@@ -369,12 +652,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 11
+          "line": 11,
+          "character": 0
         },
         "end": {
-          "character": 11,
-          "line": 11
+          "line": 11,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 11,
+          "character": 4
+        },
+        "end": {
+          "line": 11,
+          "character": 12
         }
       },
       "type": "Goto",
@@ -383,12 +680,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 12
+          "line": 12,
+          "character": 0
         },
         "end": {
-          "character": 30,
-          "line": 12
+          "line": 12,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 12,
+          "character": 4
+        },
+        "end": {
+          "line": 12,
+          "character": 31
         }
       },
       "type": "ElseIf",
@@ -396,12 +707,12 @@
       "condition": {
         "range": {
           "start": {
-            "character": 12,
-            "line": 12
+            "line": 12,
+            "character": 12
           },
           "end": {
-            "character": 24,
-            "line": 12
+            "line": 12,
+            "character": 25
           }
         },
         "type": "Relational",
@@ -409,26 +720,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 12,
-              "line": 12
+              "line": 12,
+              "character": 12
             },
             "end": {
-              "character": 17,
-              "line": 12
+              "line": 12,
+              "character": 18
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 22,
-              "line": 12
+              "line": 12,
+              "character": 22
             },
             "end": {
-              "character": 24,
-              "line": 12
+              "line": 12,
+              "character": 25
             }
           },
           "type": "Number",
@@ -439,12 +764,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 13
+          "line": 13,
+          "character": 0
         },
         "end": {
-          "character": 11,
-          "line": 13
+          "line": 13,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 13,
+          "character": 4
+        },
+        "end": {
+          "line": 13,
+          "character": 12
         }
       },
       "type": "Goto",
@@ -453,12 +792,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 14
+          "line": 14,
+          "character": 0
         },
         "end": {
-          "character": 7,
-          "line": 14
+          "line": 14,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 14,
+          "character": 4
+        },
+        "end": {
+          "line": 14,
+          "character": 8
         }
       },
       "type": "Else",
@@ -467,12 +820,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 15
+          "line": 15,
+          "character": 0
         },
         "end": {
-          "character": 11,
-          "line": 15
+          "line": 15,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 15,
+          "character": 4
+        },
+        "end": {
+          "line": 15,
+          "character": 12
         }
       },
       "type": "Goto",
@@ -481,12 +848,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 16
+          "line": 16,
+          "character": 0
         },
         "end": {
-          "character": 8,
-          "line": 16
+          "line": 16,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 16,
+          "character": 4
+        },
+        "end": {
+          "line": 16,
+          "character": 9
         }
       },
       "type": "EndIf",
@@ -495,12 +876,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 17
+          "line": 17,
+          "character": 0
         },
         "end": {
-          "character": 11,
-          "line": 17
+          "line": 17,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 17,
+          "character": 4
+        },
+        "end": {
+          "line": 17,
+          "character": 12
         }
       },
       "type": "Goto",
@@ -509,12 +904,26 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 18
+          "line": 18,
+          "character": 0
         },
         "end": {
-          "character": 6,
-          "line": 18
+          "line": 18,
+          "character": 3
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 18,
+          "character": 4
+        },
+        "end": {
+          "line": 18,
+          "character": 7
         }
       },
       "type": "WhileEnd",
@@ -523,25 +932,52 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 19
+          "line": 19,
+          "character": 0
         },
         "end": {
-          "character": 33,
-          "line": 19
+          "line": 19,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 19,
+          "character": 5
+        },
+        "end": {
+          "line": 19,
+          "character": 34
         }
       },
       "type": "WhileStart",
-      "label": 100,
+      "label": {
+        "range": {
+          "start": {
+            "line": 19,
+            "character": 5
+          },
+          "end": {
+            "line": 19,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 100
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 17,
-            "line": 19
+            "line": 19,
+            "character": 17
           },
           "end": {
-            "character": 29,
-            "line": 19
+            "line": 19,
+            "character": 30
           }
         },
         "type": "Relational",
@@ -549,26 +985,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 17,
-              "line": 19
+              "line": 19,
+              "character": 17
             },
             "end": {
-              "character": 22,
-              "line": 19
+              "line": 19,
+              "character": 23
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 27,
-              "line": 19
+              "line": 19,
+              "character": 27
             },
             "end": {
-              "character": 29,
-              "line": 19
+              "line": 19,
+              "character": 30
             }
           },
           "type": "Number",
@@ -579,44 +1029,98 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 20
+          "line": 20,
+          "character": 0
         },
         "end": {
-          "character": 6,
-          "line": 20
+          "line": 20,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 20,
+          "character": 5
+        },
+        "end": {
+          "line": 20,
+          "character": 7
         }
       },
       "type": "GCode",
       "code": 1,
-      "params": {
-        "X": 10,
-        "Y": 20,
-        "F": 100
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 20,
+            "character": 8
+          },
+          "end": {
+            "line": 20,
+            "character": 20
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 10,
+          "Y": 20,
+          "F": 100
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 21
+          "line": 21,
+          "character": 0
         },
         "end": {
-          "character": 32,
-          "line": 21
+          "line": 21,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 21,
+          "character": 5
+        },
+        "end": {
+          "line": 21,
+          "character": 33
         }
       },
       "type": "IfStart",
-      "label": 111,
+      "label": {
+        "range": {
+          "start": {
+            "line": 21,
+            "character": 5
+          },
+          "end": {
+            "line": 21,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 111
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 14,
-            "line": 21
+            "line": 21,
+            "character": 14
           },
           "end": {
-            "character": 26,
-            "line": 21
+            "line": 21,
+            "character": 27
           }
         },
         "type": "Relational",
@@ -624,26 +1128,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 14,
-              "line": 21
+              "line": 21,
+              "character": 14
             },
             "end": {
-              "character": 19,
-              "line": 21
+              "line": 21,
+              "character": 20
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 24,
-              "line": 21
+              "line": 21,
+              "character": 24
             },
             "end": {
-              "character": 26,
-              "line": 21
+              "line": 21,
+              "character": 27
             }
           },
           "type": "Number",
@@ -654,12 +1172,26 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 22
+          "line": 22,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 22
+          "line": 22,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 22,
+          "character": 5
+        },
+        "end": {
+          "line": 22,
+          "character": 13
         }
       },
       "type": "Goto",
@@ -668,25 +1200,52 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 23
+          "line": 23,
+          "character": 0
         },
         "end": {
-          "character": 36,
-          "line": 23
+          "line": 23,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 23,
+          "character": 5
+        },
+        "end": {
+          "line": 23,
+          "character": 37
         }
       },
       "type": "ElseIf",
-      "label": 111,
+      "label": {
+        "range": {
+          "start": {
+            "line": 23,
+            "character": 5
+          },
+          "end": {
+            "line": 23,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 111
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 18,
-            "line": 23
+            "line": 23,
+            "character": 18
           },
           "end": {
-            "character": 30,
-            "line": 23
+            "line": 23,
+            "character": 31
           }
         },
         "type": "Relational",
@@ -694,26 +1253,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 18,
-              "line": 23
+              "line": 23,
+              "character": 18
             },
             "end": {
-              "character": 23,
-              "line": 23
+              "line": 23,
+              "character": 24
             }
           },
-          "type": "Variable",
-          "name": "var"
+          "type": "VariableReference",
+          "id": "var",
+          "variable": {
+            "range": {
+              "start": {
+                "line": 4,
+                "character": 9
+              },
+              "end": {
+                "line": 4,
+                "character": 15
+              }
+            },
+            "type": "NamedVariable",
+            "id": "var"
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 28,
-              "line": 23
+              "line": 23,
+              "character": 28
             },
             "end": {
-              "character": 30,
-              "line": 23
+              "line": 23,
+              "character": 31
             }
           },
           "type": "Number",
@@ -724,12 +1297,26 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 24
+          "line": 24,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 24
+          "line": 24,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 24,
+          "character": 5
+        },
+        "end": {
+          "line": 24,
+          "character": 13
         }
       },
       "type": "Goto",
@@ -738,26 +1325,67 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 25
+          "line": 25,
+          "character": 0
         },
         "end": {
-          "character": 13,
-          "line": 25
+          "line": 25,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 25,
+          "character": 5
+        },
+        "end": {
+          "line": 25,
+          "character": 14
         }
       },
       "type": "Else",
-      "label": 111
+      "label": {
+        "range": {
+          "start": {
+            "line": 25,
+            "character": 5
+          },
+          "end": {
+            "line": 25,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 111
+      }
     },
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 26
+          "line": 26,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 26
+          "line": 26,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 26,
+          "character": 5
+        },
+        "end": {
+          "line": 26,
+          "character": 13
         }
       },
       "type": "Goto",
@@ -766,26 +1394,67 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 27
+          "line": 27,
+          "character": 0
         },
         "end": {
-          "character": 14,
-          "line": 27
+          "line": 27,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 27,
+          "character": 5
+        },
+        "end": {
+          "line": 27,
+          "character": 15
         }
       },
       "type": "EndIf",
-      "label": 111
+      "label": {
+        "range": {
+          "start": {
+            "line": 27,
+            "character": 5
+          },
+          "end": {
+            "line": 27,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 111
+      }
     },
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 28
+          "line": 28,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 28
+          "line": 28,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 28,
+          "character": 5
+        },
+        "end": {
+          "line": 28,
+          "character": 13
         }
       },
       "type": "Goto",
@@ -794,31 +1463,286 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 29
+          "line": 29,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 29
+          "line": 29,
+          "character": 4
         }
       },
-      "type": "WhileEnd",
-      "label": 100
+      "type": "LineNumber",
+      "value": null
     },
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 30
+          "line": 29,
+          "character": 5
         },
         "end": {
-          "character": 7,
-          "line": 30
+          "line": 29,
+          "character": 13
+        }
+      },
+      "type": "WhileEnd",
+      "label": {
+        "range": {
+          "start": {
+            "line": 29,
+            "character": 5
+          },
+          "end": {
+            "line": 29,
+            "character": 9
+          }
+        },
+        "type": "OBlock",
+        "label": 100
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 30,
+          "character": 0
+        },
+        "end": {
+          "line": 30,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 30,
+          "character": 5
+        },
+        "end": {
+          "line": 30,
+          "character": 8
         }
       },
       "type": "MCode",
       "code": 30,
-      "params": {}
+      "paramsBlock": null
+    }
+  ],
+  "variables": [
+    {
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 6
+        },
+        "end": {
+          "line": 2,
+          "character": 8
+        }
+      },
+      "type": "NumberVariable",
+      "id": 1
+    },
+    {
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 15
+        },
+        "end": {
+          "line": 2,
+          "character": 17
+        }
+      },
+      "type": "NumberVariable",
+      "id": 2
+    },
+    {
+      "range": {
+        "start": {
+          "line": 4,
+          "character": 9
+        },
+        "end": {
+          "line": 4,
+          "character": 15
+        }
+      },
+      "type": "NamedVariable",
+      "id": "var"
+    }
+  ],
+  "variableReferences": [
+    {
+      "range": {
+        "start": {
+          "line": 8,
+          "character": 11
+        },
+        "end": {
+          "line": 8,
+          "character": 17
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 10,
+          "character": 8
+        },
+        "end": {
+          "line": 10,
+          "character": 14
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 12,
+          "character": 12
+        },
+        "end": {
+          "line": 12,
+          "character": 18
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 19,
+          "character": 17
+        },
+        "end": {
+          "line": 19,
+          "character": 23
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 21,
+          "character": 14
+        },
+        "end": {
+          "line": 21,
+          "character": 20
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 23,
+          "character": 18
+        },
+        "end": {
+          "line": 23,
+          "character": 24
+        }
+      },
+      "type": "VariableReference",
+      "id": "var",
+      "variable": {
+        "range": {
+          "start": {
+            "line": 4,
+            "character": 9
+          },
+          "end": {
+            "line": 4,
+            "character": 15
+          }
+        },
+        "type": "NamedVariable",
+        "id": "var"
+      }
     }
   ]
 }

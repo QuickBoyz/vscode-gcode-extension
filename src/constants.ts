@@ -2,8 +2,7 @@
  * Constants used throughout the G-code extension
  */
 
-import { CommandType } from "./entities/statements";
-import { FormatterOptions } from "./formatter/types";
+import { FormatterSettings } from "./formatter/types";
 
 /**
  * G-code syntax symbols
@@ -24,9 +23,9 @@ export const GCODE_SYMBOLS: Record<string, string> = {
   /** Line number prefix */
   LINE_NUMBER_PREFIX: "N",
   /** G-code prefix */
-  GCODE_PREFIX: CommandType.G.toString(),
+  GCODE_PREFIX: "G",
   /** M-code prefix */
-  MCODE_PREFIX: CommandType.M.toString(),
+  MCODE_PREFIX: "M",
   /** O-block prefix */
   OBLOCK_PREFIX: "O",
   /** Program delimiter */
@@ -79,11 +78,9 @@ export const DEFAULTS = {
   /** Default line number increment */
   LINE_NUMBER_INCREMENT: 10,
   /** Default indent size */
-  INDENT_SIZE: 4,
+  INDENT_SIZE: 2,
   /** Minimum indent level */
   MIN_INDENT_LEVEL: 0,
-  /** Pretty print threshold for single-digit codes */
-  PRETTY_PRINT_CODE_THRESHOLD: 10,
 } as const;
 
 /**
@@ -119,7 +116,7 @@ export const SPECIAL_MCODES = {
 /**
  * Default formatter options
  */
-export const DEFAULT_FORMATTER_OPTIONS: FormatterOptions = {
+export const DEFAULT_FORMATTER_SETTINGS: FormatterSettings = {
   addLineNumbers: false,
   lineNumberStart: DEFAULTS.LINE_NUMBER_START,
   lineNumberIncrement: DEFAULTS.LINE_NUMBER_INCREMENT,
@@ -129,4 +126,5 @@ export const DEFAULT_FORMATTER_OPTIONS: FormatterOptions = {
   useTabs: false,
   indent: true,
   compactOutput: false,
+  addProgramDelimiters: true,
 };

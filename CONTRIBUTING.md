@@ -21,27 +21,32 @@ Thank you for your interest in contributing to the G-Code Language Support exten
 ### Development Setup
 
 1. **Fork and clone the repository:**
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/vscode-gcode-extension.git
 cd vscode-gcode-extension
 ```
 
 2. **Install dependencies:**
+
 ```bash
 npm install
 ```
 
 3. **Build the project:**
+
 ```bash
 npm run build
 ```
 
 4. **Run tests to verify setup:**
+
 ```bash
 npm test
 ```
 
 5. **Open in VS Code:**
+
 ```bash
 code .
 ```
@@ -51,6 +56,7 @@ code .
 ### Making Changes
 
 1. **Create a branch** for your changes:
+
 ```bash
 git checkout -b feature/your-feature-name
 # or
@@ -60,23 +66,27 @@ git checkout -b fix/your-bug-fix
 2. **Make your changes** following the coding standards below
 
 3. **Test your changes:**
+
 ```bash
 npm run build
 npm test
 ```
 
 4. **Test manually in VS Code:**
+
    - Press `F5` to launch Extension Development Host
    - Open a G-Code file and test your changes
    - Verify formatting, syntax highlighting, etc.
 
 5. **Commit your changes:**
+
 ```bash
 git add .
 git commit -m "feat: add your feature description"
 ```
 
 6. **Push and create a Pull Request:**
+
 ```bash
 git push origin feature/your-feature-name
 ```
@@ -95,7 +105,7 @@ We follow **SOLID**, **DRY**, and **KISS** principles:
 
 - **TypeScript**: Use strict TypeScript with proper types
 - **Formatting**: Use consistent indentation (2 spaces)
-- **Naming**: 
+- **Naming**:
   - Use descriptive names
   - camelCase for variables and functions
   - PascalCase for classes and types
@@ -114,7 +124,7 @@ We follow **SOLID**, **DRY**, and **KISS** principles:
  */
 export function formatDocument(
   document: TextDocument,
-  options: FormatterOptions
+  options: FormatterSettings
 ): string {
   // Implementation
 }
@@ -145,10 +155,10 @@ describe("FeatureName", () => {
   it("should do something specific", () => {
     // Arrange
     const input = "...";
-    
+
     // Act
     const result = functionUnderTest(input);
-    
+
     // Assert
     expect(result).toBe(expected);
   });
@@ -262,7 +272,7 @@ Understanding the codebase:
 ### Adding a New Formatter Option
 
 1. Add option to `src/formatter/types.ts`
-2. Update `defaultFormatterOptions` in `gcodeFormatter.ts`
+2. Update `defaultFormatterSettings` in `gcodeFormatter.ts`
 3. Implement the option in the formatter
 4. Add to `package.json` configuration section
 5. Update server settings interface
@@ -295,4 +305,3 @@ By contributing, you agree that your contributions will be licensed under the MI
 ---
 
 Thank you for contributing! 🎉
-

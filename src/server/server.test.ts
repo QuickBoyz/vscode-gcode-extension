@@ -7,29 +7,64 @@
  */
 import { gcodeParser } from "../parser";
 import { gcodeFormatter } from "../formatter";
-import { FormatterOptions } from "../formatter";
-import { DEFAULT_FORMATTER_OPTIONS } from "../constants";
+import { FormatterSettings } from "../formatter";
+import {
+  DEFAULT_FORMATTER_SETTINGS,
+  GCODE_SYMBOLS,
+} from "../constants";
 
 /**
  * Helper function that mimics what the server does when formatting
  */
 function formatGCode(
   text: string,
-  options: Partial<FormatterOptions> = {}
+  options: Partial<FormatterSettings> = {}
 ): string | null {
   // Skip empty documents (same as server behavior)
   if (!text.trim()) {
     return null;
   }
 
-  const formatterOptions: FormatterOptions = {
-    ...DEFAULT_FORMATTER_OPTIONS,
+  const formatterOptions: FormatterSettings = {
+    ...DEFAULT_FORMATTER_SETTINGS,
     ...options,
   };
 
   const ast = gcodeParser.parseGcode(text);
   gcodeFormatter.setOptions(formatterOptions);
-  return gcodeFormatter.format(ast);
+  let formattedText = gcodeFormatter.format(ast);
+
+  // Add program delimiters if enabled (same as server behavior)
+  if (formatterOptions.addProgramDelimiters) {
+    const trimmedFormatted = formattedText.trim();
+
+    // Check if formatted text starts with % (ignoring leading whitespace)
+    const startsWithDelimiter = trimmedFormatted.startsWith(
+      GCODE_SYMBOLS.PROGRAM_DELIMITER
+    );
+    // Check if formatted text ends with % (ignoring trailing whitespace)
+    const endsWithDelimiter = trimmedFormatted.endsWith(
+      GCODE_SYMBOLS.PROGRAM_DELIMITER
+    );
+
+    // Add delimiter at the beginning if not present
+    if (!startsWithDelimiter) {
+      formattedText =
+        GCODE_SYMBOLS.PROGRAM_DELIMITER +
+        GCODE_SYMBOLS.NEWLINE +
+        formattedText;
+    }
+
+    // Add delimiter at the end if not present
+    if (!endsWithDelimiter) {
+      formattedText =
+        formattedText +
+        GCODE_SYMBOLS.NEWLINE +
+        GCODE_SYMBOLS.PROGRAM_DELIMITER;
+    }
+  }
+
+  return formattedText;
 }
 
 describe("Language Server Formatting", () => {
@@ -39,6 +74,7 @@ describe("Language Server Formatting", () => {
       const result = formatGCode(input, {
         prettyPrintCommands: true,
         prettyPrintNumbers: true,
+        addProgramDelimiters: false,
       });
 
       expect(result).toBe("G01 X10.0 Y20.0 F100.0");
@@ -80,6 +116,7 @@ describe("Language Server Formatting", () => {
         indent: true,
         indentSize: 4,
         useTabs: false,
+        addProgramDelimiters: false,
       });
       expect(with4Spaces?.split("\n")[1]).toMatch(/^    G/);
 
@@ -87,12 +124,14 @@ describe("Language Server Formatting", () => {
       const withTabs = formatGCode(input, {
         indent: true,
         useTabs: true,
+        addProgramDelimiters: false,
       });
       expect(withTabs?.split("\n")[1]).toMatch(/^\tG/);
 
       // With indentation disabled
       const noIndent = formatGCode(input, {
         indent: false,
+        addProgramDelimiters: false,
       });
       expect(noIndent?.split("\n")[1]).not.toMatch(/^\s/);
     });
@@ -130,6 +169,61 @@ describe("Language Server Formatting", () => {
         compactOutput: true,
       });
       expect(compactOutput).not.toContain("\n\n");
+    });
+
+    it("should add program delimiters when enabled and not present", () => {
+      const input = "G0 X0\nG1 X10\nM30";
+
+      // With delimiters enabled (default)
+      const withDelimiters = formatGCode(input, {
+        addProgramDelimiters: true,
+      });
+      expect(withDelimiters).toMatch(/^%\n/);
+      expect(withDelimiters).toMatch(/\n%$/);
+
+      // With delimiters disabled
+      const withoutDelimiters = formatGCode(input, {
+        addProgramDelimiters: false,
+      });
+      expect(withoutDelimiters).not.toMatch(/^%/);
+      expect(withoutDelimiters).not.toMatch(/%$/);
+    });
+
+    it("should not duplicate program delimiters when already present", () => {
+      const input = "%\nG0 X0\nG1 X10\nM30\n%";
+
+      const result = formatGCode(input, {
+        addProgramDelimiters: true,
+      });
+
+      // Should have exactly one % at the beginning and one at the end
+      const lines = result!.split("\n");
+      expect(lines[0]).toBe("%");
+      expect(lines[lines.length - 1]).toBe("%");
+      // Should not have multiple % in a row
+      expect(result).not.toMatch(/%%/);
+    });
+
+    it("should add missing delimiter at beginning only", () => {
+      const input = "G0 X0\nG1 X10\nM30\n%";
+
+      const result = formatGCode(input, {
+        addProgramDelimiters: true,
+      });
+
+      expect(result).toMatch(/^%\n/);
+      expect(result).toMatch(/\n%$/);
+    });
+
+    it("should add missing delimiter at end only", () => {
+      const input = "%\nG0 X0\nG1 X10\nM30";
+
+      const result = formatGCode(input, {
+        addProgramDelimiters: true,
+      });
+
+      expect(result).toMatch(/^%\n/);
+      expect(result).toMatch(/\n%$/);
     });
   });
 

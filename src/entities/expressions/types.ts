@@ -1,10 +1,14 @@
 export enum ExpressionType {
   Number = "Number",
-  Variable = "Variable",
   Binary = "Binary",
   Relational = "Relational",
   FuncCall = "FuncCall",
   Unary = "Unary",
+  VariableExpression = "VariableExpression",
+  NamedVariable = "NamedVariable",
+  NumberVariable = "NumberVariable",
+  VariableReference = "VariableReference",
+  ComputedVariable = "ComputedVariable",
 }
 
 export enum BinaryOperatorType {

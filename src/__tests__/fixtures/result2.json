@@ -1,15 +1,25 @@
 {
+  "range": {
+    "start": {
+      "line": 0,
+      "character": 0
+    },
+    "end": {
+      "line": 148,
+      "character": 62
+    }
+  },
   "type": "Program",
   "body": [
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 0
+          "line": 0,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 0
+          "line": 0,
+          "character": 1
         }
       },
       "type": "ProgramDelimiter"
@@ -17,26 +27,40 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 1
+          "line": 1,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 1
+          "line": 1,
+          "character": 6
         }
       },
       "type": "OBlock",
-      "id": 1234
+      "label": 1234
     },
     {
       "range": {
         "start": {
-          "character": 17,
-          "line": 2
+          "line": 2,
+          "character": 0
         },
         "end": {
-          "character": 15,
-          "line": 2
+          "line": 2,
+          "character": 4
+        }
+      },
+      "type": "LineNumber",
+      "value": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 5
+        },
+        "end": {
+          "line": 2,
+          "character": 16
         }
       },
       "type": "Block",
@@ -44,60 +68,60 @@
         {
           "range": {
             "start": {
-              "character": 5,
-              "line": 2
+              "line": 2,
+              "character": 5
             },
             "end": {
-              "character": 7,
-              "line": 2
+              "line": 2,
+              "character": 8
             }
           },
           "type": "GCode",
           "code": 40,
-          "params": {}
+          "paramsBlock": null
         },
         {
           "range": {
             "start": {
-              "character": 9,
-              "line": 2
+              "line": 2,
+              "character": 9
             },
             "end": {
-              "character": 11,
-              "line": 2
+              "line": 2,
+              "character": 12
             }
           },
           "type": "GCode",
           "code": 49,
-          "params": {}
+          "paramsBlock": null
         },
         {
           "range": {
             "start": {
-              "character": 13,
-              "line": 2
+              "line": 2,
+              "character": 13
             },
             "end": {
-              "character": 15,
-              "line": 2
+              "line": 2,
+              "character": 16
             }
           },
           "type": "GCode",
           "code": 80,
-          "params": {}
+          "paramsBlock": null
         }
       ],
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 17,
-          "line": 2
+          "line": 2,
+          "character": 17
         },
         "end": {
-          "character": 63,
-          "line": 2
+          "line": 2,
+          "character": 64
         }
       },
       "type": "Comment",
@@ -107,12 +131,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 3
+          "line": 3,
+          "character": 0
         },
         "end": {
-          "character": 18,
-          "line": 3
+          "line": 3,
+          "character": 19
         }
       },
       "type": "Comment",
@@ -122,12 +146,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 4
+          "line": 4,
+          "character": 0
         },
         "end": {
-          "character": 61,
-          "line": 4
+          "line": 4,
+          "character": 62
         }
       },
       "type": "Comment",
@@ -137,12 +161,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 5
+          "line": 5,
+          "character": 0
         },
         "end": {
-          "character": 18,
-          "line": 5
+          "line": 5,
+          "character": 19
         }
       },
       "type": "Comment",
@@ -152,12 +176,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 6
+          "line": 6,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 6
+          "line": 6,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -165,12 +189,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 7
+          "line": 7,
+          "character": 0
         },
         "end": {
-          "character": 12,
-          "line": 7
+          "line": 7,
+          "character": 13
         }
       },
       "type": "Comment",
@@ -180,27 +204,27 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 8
+          "line": 8,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 8
+          "line": 8,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 54,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 9
+          "line": 9,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 9
+          "line": 9,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -208,12 +232,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 10
+          "line": 10,
+          "character": 0
         },
         "end": {
-          "character": 13,
-          "line": 10
+          "line": 10,
+          "character": 14
         }
       },
       "type": "Comment",
@@ -223,12 +247,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 11
+          "line": 11,
+          "character": 0
         },
         "end": {
-          "character": 37,
-          "line": 11
+          "line": 11,
+          "character": 38
         }
       },
       "type": "Comment",
@@ -238,12 +262,12 @@
     {
       "range": {
         "start": {
-          "character": 10,
-          "line": 12
+          "line": 12,
+          "character": 0
         },
         "end": {
-          "character": 9,
-          "line": 12
+          "line": 12,
+          "character": 10
         }
       },
       "type": "Block",
@@ -251,63 +275,89 @@
         {
           "range": {
             "start": {
-              "character": 0,
-              "line": 12
+              "line": 12,
+              "character": 0
             },
             "end": {
-              "character": 2,
-              "line": 12
+              "line": 12,
+              "character": 3
             }
           },
           "type": "GCode",
           "code": 20,
-          "params": {}
+          "paramsBlock": null
         },
         {
           "range": {
             "start": {
-              "character": 8,
-              "line": 12
+              "line": 12,
+              "character": 8
             },
             "end": {
-              "character": 9,
-              "line": 12
+              "line": 12,
+              "character": 10
             }
           },
           "type": "MCode",
           "code": 6,
-          "params": {}
+          "paramsBlock": null
         }
       ],
-      "params": {
-        "T": 17
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 12,
+            "character": 4
+          },
+          "end": {
+            "line": 12,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 17
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 13
+          "line": 13,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 13
+          "line": 13,
+          "character": 4
         }
       },
       "type": "Param",
-      "params": {
-        "T": 808
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 13,
+            "character": 0
+          },
+          "end": {
+            "line": 13,
+            "character": 4
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 808
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 14
+          "line": 14,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 14
+          "line": 14,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -315,86 +365,57 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 15
+          "line": 15,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 15
+          "line": 15,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 8,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 7,
-          "line": 16
+          "line": 16,
+          "character": 7
         },
         "end": {
-          "character": 9,
-          "line": 16
+          "line": 16,
+          "character": 10
         }
       },
       "type": "MCode",
       "code": 3,
-      "params": {
-        "S": 12000
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 17
-        },
-        "end": {
-          "character": 0,
-          "line": 17
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 5,
-          "line": 18
-        },
-        "end": {
-          "character": 0,
-          "line": 18
-        }
-      },
-      "type": "Param",
-      "params": {
-        "T": {
-          "range": {
-            "start": {
-              "character": 1,
-              "line": 18
-            },
-            "end": {
-              "character": 4,
-              "line": 18
-            }
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 16,
+            "character": 0
           },
-          "type": "Variable",
-          "id": 123
+          "end": {
+            "line": 16,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 12000
         }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 19
+          "line": 17,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 19
+          "line": 17,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -402,931 +423,40 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 20
+          "line": 18,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 20
+          "line": 18,
+          "character": 6
         }
       },
       "type": "Param",
-      "params": {
-        "H": {
-          "range": {
-            "start": {
-              "character": 1,
-              "line": 20
-            },
-            "end": {
-              "character": 4,
-              "line": 20
-            }
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 0
           },
-          "type": "Variable",
-          "id": 123
-        }
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 21
+          "end": {
+            "line": 18,
+            "character": 6
+          }
         },
-        "end": {
-          "character": 0,
-          "line": 21
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 5,
-          "line": 22
-        },
-        "end": {
-          "character": 0,
-          "line": 22
-        }
-      },
-      "type": "Param",
-      "params": {
-        "H": 27.4
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 23
-        },
-        "end": {
-          "character": 0,
-          "line": 23
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 6,
-          "line": 24
-        },
-        "end": {
-          "character": 8,
-          "line": 24
-        }
-      },
-      "type": "MCode",
-      "code": 4,
-      "params": {
-        "S": 3200
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 24,
-          "line": 25
-        },
-        "end": {
-          "character": 16,
-          "line": 25
-        }
-      },
-      "type": "Block",
-      "codes": [
-        {
-          "range": {
-            "start": {
-              "character": 0,
-              "line": 25
-            },
-            "end": {
-              "character": 2,
-              "line": 25
-            }
-          },
-          "type": "GCode",
-          "code": 90,
-          "params": {}
-        },
-        {
-          "range": {
-            "start": {
-              "character": 4,
-              "line": 25
-            },
-            "end": {
-              "character": 5,
-              "line": 25
-            }
-          },
-          "type": "GCode",
-          "code": 0,
-          "params": {}
-        }
-      ],
-      "params": {
-        "X": -1.9996,
-        "Y": -6.2902
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 26
-        },
-        "end": {
-          "character": 2,
-          "line": 26
-        }
-      },
-      "type": "GCode",
-      "code": 43,
-      "params": {
-        "Z": -2.8833,
-        "H": 17
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 27
-        },
-        "end": {
-          "character": 1,
-          "line": 27
-        }
-      },
-      "type": "GCode",
-      "code": 1,
-      "params": {
-        "Z": -3.1333,
-        "F": 45
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 32,
-          "line": 28
-        },
-        "end": {
-          "character": 27,
-          "line": 28
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -2.0486,
-        "Y": -6.2744,
-        "Z": -3.1378,
-        "F": 67.5
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 26,
-          "line": 29
-        },
-        "end": {
-          "character": 18,
-          "line": 29
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -2.1029,
-        "Y": -6.2565,
-        "Z": -3.1428
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 24,
-          "line": 30
-        },
-        "end": {
-          "character": 16,
-          "line": 30
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -2.157,
-        "Y": -6.238,
-        "Z": -3.1478
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 26,
-          "line": 31
-        },
-        "end": {
-          "character": 18,
-          "line": 31
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -2.2109,
-        "Y": -6.2191,
-        "Z": -3.1528
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 26,
-          "line": 32
-        },
-        "end": {
-          "character": 18,
-          "line": 32
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -2.2647,
-        "Y": -6.1997,
-        "Z": -3.1578
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 33
-        },
-        "end": {
-          "character": 2,
-          "line": 33
-        }
-      },
-      "type": "GCode",
-      "code": 2,
-      "params": {
-        "X": 5,
-        "Y": 6,
-        "R": 2
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 34
-        },
-        "end": {
-          "character": 2,
-          "line": 34
-        }
-      },
-      "type": "GCode",
-      "code": 3,
-      "params": {
-        "X": 5,
-        "Y": 6,
-        "R": 3.5
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 35
-        },
-        "end": {
-          "character": 0,
-          "line": 35
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 36
-        },
-        "end": {
-          "character": 2,
-          "line": 36
-        }
-      },
-      "type": "GCode",
-      "code": 4,
-      "params": {
-        "P": 50
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 37
-        },
-        "end": {
-          "character": 0,
-          "line": 37
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 38
-        },
-        "end": {
-          "character": 3,
-          "line": 38
-        }
-      },
-      "type": "GCode",
-      "code": 154,
-      "params": {
-        "P": 25
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 39
-        },
-        "end": {
-          "character": 0,
-          "line": 39
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 40
-        },
-        "end": {
-          "character": 4,
-          "line": 40
-        }
-      },
-      "type": "GCode",
-      "code": 54.1,
-      "params": {
-        "P": 35
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 41
-        },
-        "end": {
-          "character": 0,
-          "line": 41
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 42
-        },
-        "end": {
-          "character": 4,
-          "line": 42
-        }
-      },
-      "type": "GCode",
-      "code": 5.1,
-      "params": {}
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 43
-        },
-        "end": {
-          "character": 0,
-          "line": 43
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 44
-        },
-        "end": {
-          "character": 4,
-          "line": 44
-        }
-      },
-      "type": "GCode",
-      "code": 68.2,
-      "params": {}
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 45
-        },
-        "end": {
-          "character": 0,
-          "line": 45
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 46
-        },
-        "end": {
-          "character": 4,
-          "line": 46
-        }
-      },
-      "type": "GCode",
-      "code": 53.1,
-      "params": {}
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 47
-        },
-        "end": {
-          "character": 0,
-          "line": 47
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 48
-        },
-        "end": {
-          "character": 2,
-          "line": 48
-        }
-      },
-      "type": "GCode",
-      "code": 59,
-      "params": {
-        "P": 25
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 49
-        },
-        "end": {
-          "character": 0,
-          "line": 49
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 50
-        },
-        "end": {
-          "character": 3,
-          "line": 50
-        }
-      },
-      "type": "GCode",
-      "code": 112,
-      "params": {}
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 51
-        },
-        "end": {
-          "character": 0,
-          "line": 51
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 52
-        },
-        "end": {
-          "character": 2,
-          "line": 52
-        }
-      },
-      "type": "GCode",
-      "code": 15,
-      "params": {
-        "H": 10
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 53
-        },
-        "end": {
-          "character": 0,
-          "line": 53
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 6,
-          "line": 54
-        },
-        "end": {
-          "character": 0,
-          "line": 54
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": 0.1234
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 55
-        },
-        "end": {
-          "character": 0,
-          "line": 55
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 7,
-          "line": 56
-        },
-        "end": {
-          "character": 0,
-          "line": 56
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -0.1242
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 57
-        },
-        "end": {
-          "character": 0,
-          "line": 57
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 6,
-          "line": 58
-        },
-        "end": {
-          "character": 0,
-          "line": 58
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": 10.01
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 59
-        },
-        "end": {
-          "character": 0,
-          "line": 59
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 8,
-          "line": 60
-        },
-        "end": {
-          "character": 0,
-          "line": 60
-        }
-      },
-      "type": "Param",
-      "params": {
-        "X": -25.231
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 61
-        },
-        "end": {
-          "character": 0,
-          "line": 61
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 62
-        },
-        "end": {
-          "character": 2,
-          "line": 62
-        }
-      },
-      "type": "MCode",
-      "code": 4,
-      "params": {
-        "S": 5000
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 63
-        },
-        "end": {
-          "character": 0,
-          "line": 63
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 64
-        },
-        "end": {
-          "character": 13,
-          "line": 64
-        }
-      },
-      "type": "Comment",
-      "value": "POCKET SLOTS",
-      "style": "parenthetical"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 65
-        },
-        "end": {
-          "character": 37,
-          "line": 65
-        }
-      },
-      "type": "Comment",
-      "value": "Tool Diameter = 0.3771 Length = 1.5",
-      "style": "parenthetical"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 66
-        },
-        "end": {
-          "character": 2,
-          "line": 66
-        }
-      },
-      "type": "MCode",
-      "code": 6,
-      "params": {
-        "T": 12
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 67
-        },
-        "end": {
-          "character": 2,
-          "line": 67
-        }
-      },
-      "type": "MCode",
-      "code": 8,
-      "params": {}
-    },
-    {
-      "range": {
-        "start": {
-          "character": 7,
-          "line": 68
-        },
-        "end": {
-          "character": 9,
-          "line": 68
-        }
-      },
-      "type": "MCode",
-      "code": 3,
-      "params": {
-        "S": 12000
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 69
-        },
-        "end": {
-          "character": 0,
-          "line": 69
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 6,
-          "line": 70
-        },
-        "end": {
-          "character": 8,
-          "line": 70
-        }
-      },
-      "type": "MCode",
-      "code": 3,
-      "params": {
-        "S": 5000
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 71
-        },
-        "end": {
-          "character": 1,
-          "line": 71
-        }
-      },
-      "type": "MCode",
-      "code": 3,
-      "params": {
-        "S": {
-          "range": {
-            "start": {
-              "character": 4,
-              "line": 71
-            },
-            "end": {
-              "character": 8,
-              "line": 71
-            }
-          },
-          "type": "Variable",
-          "id": 1243
-        }
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 72
-        },
-        "end": {
-          "character": 0,
-          "line": 72
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 73
-        },
-        "end": {
-          "character": 1,
-          "line": 73
-        }
-      },
-      "type": "MCode",
-      "code": 3,
-      "params": {
-        "S": {
-          "range": {
-            "start": {
-              "character": 5,
-              "line": 73
-            },
-            "end": {
-              "character": 15,
-              "line": 73
-            }
-          },
-          "type": "Binary",
-          "operator": "/",
-          "left": {
+        "type": "ParamsBlock",
+        "params": {
+          "T": {
             "range": {
               "start": {
-                "character": 5,
-                "line": 73
+                "line": 18,
+                "character": 1
               },
               "end": {
-                "character": 8,
-                "line": 73
+                "line": 18,
+                "character": 5
               }
             },
-            "type": "Number",
-            "value": 1234
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 12,
-                "line": 73
-              },
-              "end": {
-                "character": 15,
-                "line": 73
-              }
-            },
-            "type": "Variable",
+            "type": "NumberVariable",
             "id": 123
           }
         }
@@ -1335,12 +465,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 74
+          "line": 19,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 74
+          "line": 19,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -1348,29 +478,1380 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 75
+          "line": 20,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 75
+          "line": 20,
+          "character": 6
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 20,
+            "character": 0
+          },
+          "end": {
+            "line": 20,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "H": {
+            "range": {
+              "start": {
+                "line": 20,
+                "character": 1
+              },
+              "end": {
+                "line": 20,
+                "character": 5
+              }
+            },
+            "type": "VariableReference",
+            "id": 123,
+            "variable": {
+              "range": {
+                "start": {
+                  "line": 18,
+                  "character": 1
+                },
+                "end": {
+                  "line": 18,
+                  "character": 5
+                }
+              },
+              "type": "NumberVariable",
+              "id": 123
+            }
+          }
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 21,
+          "character": 0
+        },
+        "end": {
+          "line": 21,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 22,
+          "character": 0
+        },
+        "end": {
+          "line": 22,
+          "character": 5
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 22,
+            "character": 0
+          },
+          "end": {
+            "line": 22,
+            "character": 5
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "H": 27.4
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 23,
+          "character": 0
+        },
+        "end": {
+          "line": 23,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 24,
+          "character": 6
+        },
+        "end": {
+          "line": 24,
+          "character": 9
+        }
+      },
+      "type": "MCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 24,
+            "character": 0
+          },
+          "end": {
+            "line": 24,
+            "character": 5
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 3200
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 25,
+          "character": 0
+        },
+        "end": {
+          "line": 25,
+          "character": 6
+        }
+      },
+      "type": "Block",
+      "codes": [
+        {
+          "range": {
+            "start": {
+              "line": 25,
+              "character": 0
+            },
+            "end": {
+              "line": 25,
+              "character": 3
+            }
+          },
+          "type": "GCode",
+          "code": 90,
+          "paramsBlock": null
+        },
+        {
+          "range": {
+            "start": {
+              "line": 25,
+              "character": 4
+            },
+            "end": {
+              "line": 25,
+              "character": 6
+            }
+          },
+          "type": "GCode",
+          "code": 0,
+          "paramsBlock": null
+        }
+      ],
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 25,
+            "character": 7
+          },
+          "end": {
+            "line": 25,
+            "character": 25
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -1.9996,
+          "Y": -6.2902
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 26,
+          "character": 0
+        },
+        "end": {
+          "line": 26,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 43,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 26,
+            "character": 4
+          },
+          "end": {
+            "line": 26,
+            "character": 16
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "Z": -2.8833,
+          "H": 17
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 27,
+          "character": 0
+        },
+        "end": {
+          "line": 27,
+          "character": 2
+        }
+      },
+      "type": "GCode",
+      "code": 1,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 27,
+            "character": 3
+          },
+          "end": {
+            "line": 27,
+            "character": 16
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "Z": -3.1333,
+          "F": 45
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 28,
+          "character": 0
+        },
+        "end": {
+          "line": 28,
+          "character": 32
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 28,
+            "character": 0
+          },
+          "end": {
+            "line": 28,
+            "character": 32
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -2.0486,
+          "Y": -6.2744,
+          "Z": -3.1378,
+          "F": 67.5
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 29,
+          "character": 0
+        },
+        "end": {
+          "line": 29,
+          "character": 27
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 29,
+            "character": 0
+          },
+          "end": {
+            "line": 29,
+            "character": 27
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -2.1029,
+          "Y": -6.2565,
+          "Z": -3.1428
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 30,
+          "character": 0
+        },
+        "end": {
+          "line": 30,
+          "character": 25
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 30,
+            "character": 0
+          },
+          "end": {
+            "line": 30,
+            "character": 25
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -2.157,
+          "Y": -6.238,
+          "Z": -3.1478
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 31,
+          "character": 0
+        },
+        "end": {
+          "line": 31,
+          "character": 27
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 31,
+            "character": 0
+          },
+          "end": {
+            "line": 31,
+            "character": 27
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -2.2109,
+          "Y": -6.2191,
+          "Z": -3.1528
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 32,
+          "character": 0
+        },
+        "end": {
+          "line": 32,
+          "character": 27
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 32,
+            "character": 0
+          },
+          "end": {
+            "line": 32,
+            "character": 27
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -2.2647,
+          "Y": -6.1997,
+          "Z": -3.1578
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 33,
+          "character": 0
+        },
+        "end": {
+          "line": 33,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 2,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 33,
+            "character": 4
+          },
+          "end": {
+            "line": 33,
+            "character": 16
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 5,
+          "Y": 6,
+          "R": 2
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 34,
+          "character": 0
+        },
+        "end": {
+          "line": 34,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 3,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 34,
+            "character": 4
+          },
+          "end": {
+            "line": 34,
+            "character": 16
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 5,
+          "Y": 6,
+          "R": 3.5
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 35,
+          "character": 0
+        },
+        "end": {
+          "line": 35,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 36,
+          "character": 0
+        },
+        "end": {
+          "line": 36,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 36,
+            "character": 4
+          },
+          "end": {
+            "line": 36,
+            "character": 8
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 50
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 37,
+          "character": 0
+        },
+        "end": {
+          "line": 37,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 38,
+          "character": 0
+        },
+        "end": {
+          "line": 38,
+          "character": 4
+        }
+      },
+      "type": "GCode",
+      "code": 154,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 38,
+            "character": 5
+          },
+          "end": {
+            "line": 38,
+            "character": 8
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 25
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 39,
+          "character": 0
+        },
+        "end": {
+          "line": 39,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 40,
+          "character": 0
+        },
+        "end": {
+          "line": 40,
+          "character": 5
+        }
+      },
+      "type": "GCode",
+      "code": 54.1,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 40,
+            "character": 6
+          },
+          "end": {
+            "line": 40,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 35
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 41,
+          "character": 0
+        },
+        "end": {
+          "line": 41,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 42,
+          "character": 0
+        },
+        "end": {
+          "line": 42,
+          "character": 5
+        }
+      },
+      "type": "GCode",
+      "code": 5.1,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 43,
+          "character": 0
+        },
+        "end": {
+          "line": 43,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 44,
+          "character": 0
+        },
+        "end": {
+          "line": 44,
+          "character": 5
+        }
+      },
+      "type": "GCode",
+      "code": 68.2,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 45,
+          "character": 0
+        },
+        "end": {
+          "line": 45,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 46,
+          "character": 0
+        },
+        "end": {
+          "line": 46,
+          "character": 5
+        }
+      },
+      "type": "GCode",
+      "code": 53.1,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 47,
+          "character": 0
+        },
+        "end": {
+          "line": 47,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 48,
+          "character": 0
+        },
+        "end": {
+          "line": 48,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 59,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 48,
+            "character": 4
+          },
+          "end": {
+            "line": 48,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 25
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 49,
+          "character": 0
+        },
+        "end": {
+          "line": 49,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 50,
+          "character": 0
+        },
+        "end": {
+          "line": 50,
+          "character": 4
+        }
+      },
+      "type": "GCode",
+      "code": 112,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 51,
+          "character": 0
+        },
+        "end": {
+          "line": 51,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 52,
+          "character": 0
+        },
+        "end": {
+          "line": 52,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 15,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 52,
+            "character": 4
+          },
+          "end": {
+            "line": 52,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "H": 10
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 53,
+          "character": 0
+        },
+        "end": {
+          "line": 53,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 54,
+          "character": 0
+        },
+        "end": {
+          "line": 54,
+          "character": 6
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 54,
+            "character": 0
+          },
+          "end": {
+            "line": 54,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 0.1234
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 55,
+          "character": 0
+        },
+        "end": {
+          "line": 55,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 56,
+          "character": 0
+        },
+        "end": {
+          "line": 56,
+          "character": 8
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 56,
+            "character": 0
+          },
+          "end": {
+            "line": 56,
+            "character": 8
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -0.1242
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 57,
+          "character": 0
+        },
+        "end": {
+          "line": 57,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 58,
+          "character": 0
+        },
+        "end": {
+          "line": 58,
+          "character": 6
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 58,
+            "character": 0
+          },
+          "end": {
+            "line": 58,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 10.01
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 59,
+          "character": 0
+        },
+        "end": {
+          "line": 59,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 60,
+          "character": 0
+        },
+        "end": {
+          "line": 60,
+          "character": 9
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 60,
+            "character": 0
+          },
+          "end": {
+            "line": 60,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": -25.231
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 61,
+          "character": 0
+        },
+        "end": {
+          "line": 61,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 62,
+          "character": 0
+        },
+        "end": {
+          "line": 62,
+          "character": 3
+        }
+      },
+      "type": "MCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 62,
+            "character": 4
+          },
+          "end": {
+            "line": 62,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 5000
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 63,
+          "character": 0
+        },
+        "end": {
+          "line": 63,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 64,
+          "character": 0
+        },
+        "end": {
+          "line": 64,
+          "character": 14
+        }
+      },
+      "type": "Comment",
+      "value": "POCKET SLOTS",
+      "style": "parenthetical"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 65,
+          "character": 0
+        },
+        "end": {
+          "line": 65,
+          "character": 38
+        }
+      },
+      "type": "Comment",
+      "value": "Tool Diameter = 0.3771 Length = 1.5",
+      "style": "parenthetical"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 66,
+          "character": 0
+        },
+        "end": {
+          "line": 66,
+          "character": 3
+        }
+      },
+      "type": "MCode",
+      "code": 6,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 66,
+            "character": 4
+          },
+          "end": {
+            "line": 66,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 12
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 67,
+          "character": 0
+        },
+        "end": {
+          "line": 67,
+          "character": 3
+        }
+      },
+      "type": "MCode",
+      "code": 8,
+      "paramsBlock": null
+    },
+    {
+      "range": {
+        "start": {
+          "line": 68,
+          "character": 7
+        },
+        "end": {
+          "line": 68,
+          "character": 10
+        }
+      },
+      "type": "MCode",
+      "code": 3,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 68,
+            "character": 0
+          },
+          "end": {
+            "line": 68,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 12000
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 69,
+          "character": 0
+        },
+        "end": {
+          "line": 69,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 70,
+          "character": 6
+        },
+        "end": {
+          "line": 70,
+          "character": 9
+        }
+      },
+      "type": "MCode",
+      "code": 3,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 70,
+            "character": 0
+          },
+          "end": {
+            "line": 70,
+            "character": 5
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 5000
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 71,
+          "character": 0
+        },
+        "end": {
+          "line": 71,
+          "character": 2
+        }
+      },
+      "type": "MCode",
+      "code": 3,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 71,
+            "character": 3
+          },
+          "end": {
+            "line": 71,
+            "character": 10
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": {
+            "range": {
+              "start": {
+                "line": 71,
+                "character": 4
+              },
+              "end": {
+                "line": 71,
+                "character": 9
+              }
+            },
+            "type": "NumberVariable",
+            "id": 1243
+          }
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 72,
+          "character": 0
+        },
+        "end": {
+          "line": 72,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 73,
+          "character": 0
+        },
+        "end": {
+          "line": 73,
+          "character": 2
+        }
+      },
+      "type": "MCode",
+      "code": 3,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 73,
+            "character": 3
+          },
+          "end": {
+            "line": 73,
+            "character": 17
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": {
+            "range": {
+              "start": {
+                "line": 73,
+                "character": 5
+              },
+              "end": {
+                "line": 73,
+                "character": 16
+              }
+            },
+            "type": "Binary",
+            "operator": "/",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 73,
+                  "character": 5
+                },
+                "end": {
+                  "line": 73,
+                  "character": 9
+                }
+              },
+              "type": "Number",
+              "value": 1234
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 73,
+                  "character": 12
+                },
+                "end": {
+                  "line": 73,
+                  "character": 16
+                }
+              },
+              "type": "VariableReference",
+              "id": 123,
+              "variable": {
+                "range": {
+                  "start": {
+                    "line": 18,
+                    "character": 1
+                  },
+                  "end": {
+                    "line": 18,
+                    "character": 5
+                  }
+                },
+                "type": "NumberVariable",
+                "id": 123
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 74,
+          "character": 0
+        },
+        "end": {
+          "line": 74,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 75,
+          "character": 0
+        },
+        "end": {
+          "line": 75,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 41,
-      "params": {
-        "D": 2
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 75,
+            "character": 4
+          },
+          "end": {
+            "line": 75,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "D": 2
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 76
+          "line": 76,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 76
+          "line": 76,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -1378,25 +1859,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 77
+          "line": 77,
+          "character": 0
         },
         "end": {
-          "character": 6,
-          "line": 77
+          "line": 77,
+          "character": 7
         }
       },
       "type": "Assignment",
-      "variable": 3004,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 77,
+            "character": 0
+          },
+          "end": {
+            "line": 77,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 3004
+      },
       "value": {
         "range": {
           "start": {
-            "character": 6,
-            "line": 77
+            "line": 77,
+            "character": 6
           },
           "end": {
-            "character": 6,
-            "line": 77
+            "line": 77,
+            "character": 7
           }
         },
         "type": "Number",
@@ -1406,25 +1900,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 78
+          "line": 78,
+          "character": 0
         },
         "end": {
-          "character": 4,
-          "line": 78
+          "line": 78,
+          "character": 5
         }
       },
       "type": "Assignment",
-      "variable": 28,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 78,
+            "character": 0
+          },
+          "end": {
+            "line": 78,
+            "character": 3
+          }
+        },
+        "type": "NumberVariable",
+        "id": 28
+      },
       "value": {
         "range": {
           "start": {
-            "character": 4,
-            "line": 78
+            "line": 78,
+            "character": 4
           },
           "end": {
-            "character": 4,
-            "line": 78
+            "line": 78,
+            "character": 5
           }
         },
         "type": "Number",
@@ -1434,12 +1941,12 @@
     {
       "range": {
         "start": {
-          "character": 5,
-          "line": 78
+          "line": 78,
+          "character": 5
         },
         "end": {
-          "character": 19,
-          "line": 78
+          "line": 78,
+          "character": 20
         }
       },
       "type": "Comment",
@@ -1449,25 +1956,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 79
+          "line": 79,
+          "character": 0
         },
         "end": {
-          "character": 24,
-          "line": 79
+          "line": 79,
+          "character": 25
         }
       },
       "type": "WhileStart",
-      "label": 2,
+      "label": {
+        "range": {
+          "start": {
+            "line": 79,
+            "character": 0
+          },
+          "end": {
+            "line": 79,
+            "character": 5
+          }
+        },
+        "type": "OBlock",
+        "label": 2
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 6,
-            "line": 79
+            "line": 79,
+            "character": 6
           },
           "end": {
-            "character": 20,
-            "line": 79
+            "line": 79,
+            "character": 21
           }
         },
         "type": "Relational",
@@ -1475,12 +1995,12 @@
         "left": {
           "range": {
             "start": {
-              "character": 6,
-              "line": 79
+              "line": 79,
+              "character": 6
             },
             "end": {
-              "character": 15,
-              "line": 79
+              "line": 79,
+              "character": 16
             }
           },
           "type": "FuncCall",
@@ -1489,12 +2009,12 @@
             {
               "range": {
                 "start": {
-                  "character": 10,
-                  "line": 79
+                  "line": 79,
+                  "character": 10
                 },
                 "end": {
-                  "character": 14,
-                  "line": 79
+                  "line": 79,
+                  "character": 15
                 }
               },
               "type": "Binary",
@@ -1502,26 +2022,26 @@
               "left": {
                 "range": {
                   "start": {
-                    "character": 10,
-                    "line": 79
+                    "line": 79,
+                    "character": 10
                   },
                   "end": {
-                    "character": 11,
-                    "line": 79
+                    "line": 79,
+                    "character": 12
                   }
                 },
-                "type": "Variable",
+                "type": "NumberVariable",
                 "id": 5
               },
               "right": {
                 "range": {
                   "start": {
-                    "character": 13,
-                    "line": 79
+                    "line": 79,
+                    "character": 13
                   },
                   "end": {
-                    "character": 14,
-                    "line": 79
+                    "line": 79,
+                    "character": 15
                   }
                 },
                 "type": "Number",
@@ -1533,12 +2053,12 @@
         "right": {
           "range": {
             "start": {
-              "character": 18,
-              "line": 79
+              "line": 79,
+              "character": 18
             },
             "end": {
-              "character": 20,
-              "line": 79
+              "line": 79,
+              "character": 21
             }
           },
           "type": "Number",
@@ -1549,12 +2069,12 @@
     {
       "range": {
         "start": {
-          "character": 25,
-          "line": 79
+          "line": 79,
+          "character": 25
         },
         "end": {
-          "character": 41,
-          "line": 79
+          "line": 79,
+          "character": 42
         }
       },
       "type": "Comment",
@@ -1564,57 +2084,70 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 80
+          "line": 80,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 80
+          "line": 80,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 2,
-      "params": {
-        "X": {
-          "range": {
-            "start": {
-              "character": 5,
-              "line": 80
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 80,
+            "character": 3
+          },
+          "end": {
+            "line": 80,
+            "character": 13
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": {
+            "range": {
+              "start": {
+                "line": 80,
+                "character": 5
+              },
+              "end": {
+                "line": 80,
+                "character": 12
+              }
             },
-            "end": {
-              "character": 11,
-              "line": 80
+            "type": "Binary",
+            "operator": "+",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 80,
+                  "character": 5
+                },
+                "end": {
+                  "line": 80,
+                  "character": 8
+                }
+              },
+              "type": "NumberVariable",
+              "id": 31
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 80,
+                  "character": 9
+                },
+                "end": {
+                  "line": 80,
+                  "character": 12
+                }
+              },
+              "type": "Number",
+              "value": 10
             }
-          },
-          "type": "Binary",
-          "operator": "+",
-          "left": {
-            "range": {
-              "start": {
-                "character": 5,
-                "line": 80
-              },
-              "end": {
-                "character": 7,
-                "line": 80
-              }
-            },
-            "type": "Variable",
-            "id": 31
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 9,
-                "line": 80
-              },
-              "end": {
-                "character": 11,
-                "line": 80
-              }
-            },
-            "type": "Number",
-            "value": 10
           }
         }
       }
@@ -1622,25 +2155,52 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 81
+          "line": 81,
+          "character": 0
         },
         "end": {
-          "character": 8,
-          "line": 81
+          "line": 81,
+          "character": 9
         }
       },
       "type": "Assignment",
-      "variable": 28,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 81,
+            "character": 0
+          },
+          "end": {
+            "line": 81,
+            "character": 3
+          }
+        },
+        "type": "VariableReference",
+        "id": 28,
+        "variable": {
+          "range": {
+            "start": {
+              "line": 78,
+              "character": 0
+            },
+            "end": {
+              "line": 78,
+              "character": 3
+            }
+          },
+          "type": "NumberVariable",
+          "id": 28
+        }
+      },
       "value": {
         "range": {
           "start": {
-            "character": 4,
-            "line": 81
+            "line": 81,
+            "character": 4
           },
           "end": {
-            "character": 8,
-            "line": 81
+            "line": 81,
+            "character": 9
           }
         },
         "type": "Binary",
@@ -1648,26 +2208,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 4,
-              "line": 81
+              "line": 81,
+              "character": 4
             },
             "end": {
-              "character": 6,
-              "line": 81
+              "line": 81,
+              "character": 7
             }
           },
-          "type": "Variable",
-          "id": 28
+          "type": "VariableReference",
+          "id": 28,
+          "variable": {
+            "range": {
+              "start": {
+                "line": 78,
+                "character": 0
+              },
+              "end": {
+                "line": 78,
+                "character": 3
+              }
+            },
+            "type": "NumberVariable",
+            "id": 28
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 8,
-              "line": 81
+              "line": 81,
+              "character": 8
             },
             "end": {
-              "character": 8,
-              "line": 81
+              "line": 81,
+              "character": 9
             }
           },
           "type": "Number",
@@ -1678,25 +2252,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 82
+          "line": 82,
+          "character": 0
         },
         "end": {
-          "character": 5,
-          "line": 82
+          "line": 82,
+          "character": 6
         }
       },
       "type": "Assignment",
-      "variable": 33,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 82,
+            "character": 0
+          },
+          "end": {
+            "line": 82,
+            "character": 3
+          }
+        },
+        "type": "NumberVariable",
+        "id": 33
+      },
       "value": {
         "range": {
           "start": {
-            "character": 4,
-            "line": 82
+            "line": 82,
+            "character": 4
           },
           "end": {
-            "character": 5,
-            "line": 82
+            "line": 82,
+            "character": 6
           }
         },
         "type": "Number",
@@ -1706,224 +2293,82 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 83
+          "line": 83,
+          "character": 0
         },
         "end": {
-          "character": 3,
-          "line": 83
+          "line": 83,
+          "character": 4
         }
       },
-      "type": "EmptyLine"
+      "type": "LineNumber",
+      "value": 0
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 84
+          "line": 84,
+          "character": 0
         },
         "end": {
-          "character": 3,
-          "line": 84
+          "line": 84,
+          "character": 4
         }
       },
       "type": "WhileEnd",
-      "label": 2
-    },
-    {
-      "range": {
-        "start": {
-          "character": 6,
-          "line": 85
-        },
-        "end": {
-          "character": 0,
-          "line": 85
-        }
-      },
-      "type": "Param",
-      "params": {
-        "E": {
-          "range": {
-            "start": {
-              "character": 2,
-              "line": 85
-            },
-            "end": {
-              "character": 5,
-              "line": 85
-            }
+      "label": {
+        "range": {
+          "start": {
+            "line": 84,
+            "character": 0
           },
-          "type": "Variable",
-          "id": 234
-        }
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 5,
-          "line": 86
-        },
-        "end": {
-          "character": 0,
-          "line": 86
-        }
-      },
-      "type": "Param",
-      "params": {
-        "E": {
-          "range": {
-            "start": {
-              "character": 1,
-              "line": 86
-            },
-            "end": {
-              "character": 4,
-              "line": 86
-            }
-          },
-          "type": "Variable",
-          "id": 234
-        }
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 87
-        },
-        "end": {
-          "character": 0,
-          "line": 87
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 9,
-          "line": 88
-        },
-        "end": {
-          "character": 0,
-          "line": 88
-        }
-      },
-      "type": "Param",
-      "params": {
-        "F": {
-          "range": {
-            "start": {
-              "character": 2,
-              "line": 88
-            },
-            "end": {
-              "character": 7,
-              "line": 88
-            }
-          },
-          "type": "Binary",
-          "operator": "/",
-          "left": {
-            "range": {
-              "start": {
-                "character": 2,
-                "line": 88
-              },
-              "end": {
-                "character": 5,
-                "line": 88
-              }
-            },
-            "type": "Variable",
-            "id": 123
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 7,
-                "line": 88
-              },
-              "end": {
-                "character": 7,
-                "line": 88
-              }
-            },
-            "type": "Number",
-            "value": 2
+          "end": {
+            "line": 84,
+            "character": 4
           }
-        }
+        },
+        "type": "OBlock",
+        "label": 2
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 89
+          "line": 85,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 89
-        }
-      },
-      "type": "EmptyLine"
-    },
-    {
-      "range": {
-        "start": {
-          "character": 11,
-          "line": 90
-        },
-        "end": {
-          "character": 0,
-          "line": 90
+          "line": 85,
+          "character": 7
         }
       },
       "type": "Param",
-      "params": {
-        "X": {
-          "range": {
-            "start": {
-              "character": 2,
-              "line": 90
-            },
-            "end": {
-              "character": 9,
-              "line": 90
-            }
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 85,
+            "character": 0
           },
-          "type": "Binary",
-          "operator": "/",
-          "left": {
+          "end": {
+            "line": 85,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "E": {
             "range": {
               "start": {
-                "character": 2,
-                "line": 90
+                "line": 85,
+                "character": 2
               },
               "end": {
-                "character": 5,
-                "line": 90
+                "line": 85,
+                "character": 6
               }
             },
-            "type": "Variable",
+            "type": "NumberVariable",
             "id": 234
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 9,
-                "line": 90
-              },
-              "end": {
-                "character": 9,
-                "line": 90
-              }
-            },
-            "type": "Number",
-            "value": 2
           }
         }
       }
@@ -1931,12 +2376,68 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 91
+          "line": 86,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 91
+          "line": 86,
+          "character": 6
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 86,
+            "character": 0
+          },
+          "end": {
+            "line": 86,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "E": {
+            "range": {
+              "start": {
+                "line": 86,
+                "character": 1
+              },
+              "end": {
+                "line": 86,
+                "character": 5
+              }
+            },
+            "type": "VariableReference",
+            "id": 234,
+            "variable": {
+              "range": {
+                "start": {
+                  "line": 85,
+                  "character": 2
+                },
+                "end": {
+                  "line": 85,
+                  "character": 6
+                }
+              },
+              "type": "NumberVariable",
+              "id": 234
+            }
+          }
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 87,
+          "character": 0
+        },
+        "end": {
+          "line": 87,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -1944,63 +2445,96 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 92
+          "line": 88,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 92
+          "line": 88,
+          "character": 9
         }
       },
-      "type": "GCode",
-      "code": 4,
-      "params": {
-        "P": 1
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 88,
+            "character": 0
+          },
+          "end": {
+            "line": 88,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "F": {
+            "range": {
+              "start": {
+                "line": 88,
+                "character": 2
+              },
+              "end": {
+                "line": 88,
+                "character": 8
+              }
+            },
+            "type": "Binary",
+            "operator": "/",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 88,
+                  "character": 2
+                },
+                "end": {
+                  "line": 88,
+                  "character": 6
+                }
+              },
+              "type": "VariableReference",
+              "id": 123,
+              "variable": {
+                "range": {
+                  "start": {
+                    "line": 18,
+                    "character": 1
+                  },
+                  "end": {
+                    "line": 18,
+                    "character": 5
+                  }
+                },
+                "type": "NumberVariable",
+                "id": 123
+              }
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 88,
+                  "character": 7
+                },
+                "end": {
+                  "line": 88,
+                  "character": 8
+                }
+              },
+              "type": "Number",
+              "value": 2
+            }
+          }
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 93
+          "line": 89,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 93
-        }
-      },
-      "type": "GCode",
-      "code": 4,
-      "params": {
-        "P": 0.5
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 94
-        },
-        "end": {
-          "character": 2,
-          "line": 94
-        }
-      },
-      "type": "GCode",
-      "code": 4,
-      "params": {
-        "P": 500
-      }
-    },
-    {
-      "range": {
-        "start": {
-          "character": 0,
-          "line": 95
-        },
-        "end": {
-          "character": 0,
-          "line": 95
+          "line": 89,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2008,24 +2542,225 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 96
+          "line": 90,
+          "character": 0
         },
         "end": {
-          "character": 22,
-          "line": 96
+          "line": 90,
+          "character": 11
+        }
+      },
+      "type": "Param",
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 90,
+            "character": 0
+          },
+          "end": {
+            "line": 90,
+            "character": 11
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": {
+            "range": {
+              "start": {
+                "line": 90,
+                "character": 2
+              },
+              "end": {
+                "line": 90,
+                "character": 10
+              }
+            },
+            "type": "Binary",
+            "operator": "/",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 90,
+                  "character": 2
+                },
+                "end": {
+                  "line": 90,
+                  "character": 6
+                }
+              },
+              "type": "VariableReference",
+              "id": 234,
+              "variable": {
+                "range": {
+                  "start": {
+                    "line": 85,
+                    "character": 2
+                  },
+                  "end": {
+                    "line": 85,
+                    "character": 6
+                  }
+                },
+                "type": "NumberVariable",
+                "id": 234
+              }
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 90,
+                  "character": 9
+                },
+                "end": {
+                  "line": 90,
+                  "character": 10
+                }
+              },
+              "type": "Number",
+              "value": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 91,
+          "character": 0
+        },
+        "end": {
+          "line": 91,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 92,
+          "character": 0
+        },
+        "end": {
+          "line": 92,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 92,
+            "character": 4
+          },
+          "end": {
+            "line": 92,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 1
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 93,
+          "character": 0
+        },
+        "end": {
+          "line": 93,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 93,
+            "character": 4
+          },
+          "end": {
+            "line": 93,
+            "character": 7
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 0.5
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 94,
+          "character": 0
+        },
+        "end": {
+          "line": 94,
+          "character": 3
+        }
+      },
+      "type": "GCode",
+      "code": 4,
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 94,
+            "character": 4
+          },
+          "end": {
+            "line": 94,
+            "character": 8
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 500
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 95,
+          "character": 0
+        },
+        "end": {
+          "line": 95,
+          "character": 0
+        }
+      },
+      "type": "EmptyLine"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 96,
+          "character": 0
+        },
+        "end": {
+          "line": 96,
+          "character": 23
         }
       },
       "type": "IfGoto",
+      "label": null,
       "condition": {
         "range": {
           "start": {
-            "character": 3,
-            "line": 96
+            "line": 96,
+            "character": 3
           },
           "end": {
-            "character": 12,
-            "line": 96
+            "line": 96,
+            "character": 13
           }
         },
         "type": "Relational",
@@ -2033,29 +2768,29 @@
         "left": {
           "range": {
             "start": {
-              "character": 3,
-              "line": 96
+              "line": 96,
+              "character": 3
             },
             "end": {
-              "character": 6,
-              "line": 96
+              "line": 96,
+              "character": 7
             }
           },
-          "type": "Variable",
+          "type": "NumberVariable",
           "id": 898
         },
         "right": {
           "range": {
             "start": {
-              "character": 9,
-              "line": 96
+              "line": 96,
+              "character": 9
             },
             "end": {
-              "character": 12,
-              "line": 96
+              "line": 96,
+              "character": 13
             }
           },
-          "type": "Variable",
+          "type": "NumberVariable",
           "id": 996
         }
       },
@@ -2064,12 +2799,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 97
+          "line": 97,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 97
+          "line": 97,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2077,12 +2812,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 98
+          "line": 98,
+          "character": 0
         },
         "end": {
-          "character": 32,
-          "line": 98
+          "line": 98,
+          "character": 33
         }
       },
       "type": "IfStart",
@@ -2090,12 +2825,12 @@
       "condition": {
         "range": {
           "start": {
-            "character": 4,
-            "line": 98
+            "line": 98,
+            "character": 4
           },
           "end": {
-            "character": 26,
-            "line": 98
+            "line": 98,
+            "character": 27
           }
         },
         "type": "Relational",
@@ -2103,12 +2838,12 @@
         "left": {
           "range": {
             "start": {
-              "character": 4,
-              "line": 98
+              "line": 98,
+              "character": 4
             },
             "end": {
-              "character": 6,
-              "line": 98
+              "line": 98,
+              "character": 7
             }
           },
           "type": "Number",
@@ -2117,12 +2852,12 @@
         "right": {
           "range": {
             "start": {
-              "character": 11,
-              "line": 98
+              "line": 98,
+              "character": 11
             },
             "end": {
-              "character": 26,
-              "line": 98
+              "line": 98,
+              "character": 27
             }
           },
           "type": "FuncCall",
@@ -2131,12 +2866,12 @@
             {
               "range": {
                 "start": {
-                  "character": 15,
-                  "line": 98
+                  "line": 98,
+                  "character": 15
                 },
                 "end": {
-                  "character": 25,
-                  "line": 98
+                  "line": 98,
+                  "character": 26
                 }
               },
               "type": "Binary",
@@ -2144,26 +2879,26 @@
               "left": {
                 "range": {
                   "start": {
-                    "character": 15,
-                    "line": 98
+                    "line": 98,
+                    "character": 15
                   },
                   "end": {
-                    "character": 18,
-                    "line": 98
+                    "line": 98,
+                    "character": 19
                   }
                 },
-                "type": "Variable",
+                "type": "NumberVariable",
                 "id": 452
               },
               "right": {
                 "range": {
                   "start": {
-                    "character": 22,
-                    "line": 98
+                    "line": 98,
+                    "character": 22
                   },
                   "end": {
-                    "character": 25,
-                    "line": 98
+                    "line": 98,
+                    "character": 26
                   }
                 },
                 "type": "Number",
@@ -2177,12 +2912,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 99
+          "line": 99,
+          "character": 0
         },
         "end": {
-          "character": 10,
-          "line": 99
+          "line": 99,
+          "character": 11
         }
       },
       "type": "Comment",
@@ -2192,12 +2927,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 100
+          "line": 100,
+          "character": 0
         },
         "end": {
-          "character": 3,
-          "line": 100
+          "line": 100,
+          "character": 4
         }
       },
       "type": "Else",
@@ -2206,12 +2941,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 101
+          "line": 101,
+          "character": 0
         },
         "end": {
-          "character": 15,
-          "line": 101
+          "line": 101,
+          "character": 16
         }
       },
       "type": "Comment",
@@ -2221,12 +2956,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 102
+          "line": 102,
+          "character": 0
         },
         "end": {
-          "character": 4,
-          "line": 102
+          "line": 102,
+          "character": 5
         }
       },
       "type": "EndIf",
@@ -2235,12 +2970,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 103
+          "line": 103,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 103
+          "line": 103,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2248,25 +2983,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 104
+          "line": 104,
+          "character": 0
         },
         "end": {
-          "character": 23,
-          "line": 104
+          "line": 104,
+          "character": 24
         }
       },
       "type": "WhileStart",
-      "label": 5,
+      "label": {
+        "range": {
+          "start": {
+            "line": 104,
+            "character": 0
+          },
+          "end": {
+            "line": 104,
+            "character": 5
+          }
+        },
+        "type": "OBlock",
+        "label": 5
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 7,
-            "line": 104
+            "line": 104,
+            "character": 7
           },
           "end": {
-            "character": 17,
-            "line": 104
+            "line": 104,
+            "character": 18
           }
         },
         "type": "Relational",
@@ -2274,26 +3022,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 7,
-              "line": 104
+              "line": 104,
+              "character": 7
             },
             "end": {
-              "character": 10,
-              "line": 104
+              "line": 104,
+              "character": 11
             }
           },
-          "type": "Variable",
-          "id": 123
+          "type": "VariableReference",
+          "id": 123,
+          "variable": {
+            "range": {
+              "start": {
+                "line": 18,
+                "character": 1
+              },
+              "end": {
+                "line": 18,
+                "character": 5
+              }
+            },
+            "type": "NumberVariable",
+            "id": 123
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 15,
-              "line": 104
+              "line": 104,
+              "character": 15
             },
             "end": {
-              "character": 17,
-              "line": 104
+              "line": 104,
+              "character": 18
             }
           },
           "type": "Number",
@@ -2304,12 +3066,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 105
+          "line": 105,
+          "character": 0
         },
         "end": {
-          "character": 15,
-          "line": 105
+          "line": 105,
+          "character": 16
         }
       },
       "type": "Comment",
@@ -2319,26 +3081,39 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 106
+          "line": 106,
+          "character": 0
         },
         "end": {
-          "character": 4,
-          "line": 106
+          "line": 106,
+          "character": 5
         }
       },
       "type": "WhileEnd",
-      "label": 5
+      "label": {
+        "range": {
+          "start": {
+            "line": 106,
+            "character": 0
+          },
+          "end": {
+            "line": 106,
+            "character": 3
+          }
+        },
+        "type": "OBlock",
+        "label": 5
+      }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 107
+          "line": 107,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 107
+          "line": 107,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2346,25 +3121,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 108
+          "line": 108,
+          "character": 0
         },
         "end": {
-          "character": 22,
-          "line": 108
+          "line": 108,
+          "character": 23
         }
       },
       "type": "WhileStart",
-      "label": 5,
+      "label": {
+        "range": {
+          "start": {
+            "line": 108,
+            "character": 0
+          },
+          "end": {
+            "line": 108,
+            "character": 5
+          }
+        },
+        "type": "OBlock",
+        "label": 5
+      },
       "condition": {
         "range": {
           "start": {
-            "character": 7,
-            "line": 108
+            "line": 108,
+            "character": 7
           },
           "end": {
-            "character": 17,
-            "line": 108
+            "line": 108,
+            "character": 18
           }
         },
         "type": "Relational",
@@ -2372,26 +3160,40 @@
         "left": {
           "range": {
             "start": {
-              "character": 7,
-              "line": 108
+              "line": 108,
+              "character": 7
             },
             "end": {
-              "character": 10,
-              "line": 108
+              "line": 108,
+              "character": 11
             }
           },
-          "type": "Variable",
-          "id": 123
+          "type": "VariableReference",
+          "id": 123,
+          "variable": {
+            "range": {
+              "start": {
+                "line": 18,
+                "character": 1
+              },
+              "end": {
+                "line": 18,
+                "character": 5
+              }
+            },
+            "type": "NumberVariable",
+            "id": 123
+          }
         },
         "right": {
           "range": {
             "start": {
-              "character": 15,
-              "line": 108
+              "line": 108,
+              "character": 15
             },
             "end": {
-              "character": 17,
-              "line": 108
+              "line": 108,
+              "character": 18
             }
           },
           "type": "Number",
@@ -2402,12 +3204,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 109
+          "line": 109,
+          "character": 0
         },
         "end": {
-          "character": 15,
-          "line": 109
+          "line": 109,
+          "character": 16
         }
       },
       "type": "Comment",
@@ -2417,26 +3219,39 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 110
+          "line": 110,
+          "character": 0
         },
         "end": {
-          "character": 3,
-          "line": 110
+          "line": 110,
+          "character": 4
         }
       },
       "type": "WhileEnd",
-      "label": 5
+      "label": {
+        "range": {
+          "start": {
+            "line": 110,
+            "character": 0
+          },
+          "end": {
+            "line": 110,
+            "character": 4
+          }
+        },
+        "type": "OBlock",
+        "label": 5
+      }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 111
+          "line": 111,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 111
+          "line": 111,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2444,66 +3259,80 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 112
+          "line": 112,
+          "character": 0
         },
         "end": {
-          "character": 11,
-          "line": 112
+          "line": 112,
+          "character": 12
         }
       },
       "type": "Assignment",
       "variable": {
         "range": {
           "start": {
-            "character": 2,
-            "line": 112
+            "line": 112,
+            "character": 0
           },
           "end": {
-            "character": 8,
-            "line": 112
+            "line": 112,
+            "character": 10
           }
         },
-        "type": "Binary",
-        "operator": "+",
-        "left": {
+        "type": "ComputedVariable",
+        "id": "#8 + 7.0",
+        "expression": {
           "range": {
             "start": {
-              "character": 2,
-              "line": 112
+              "line": 112,
+              "character": 2
             },
             "end": {
-              "character": 3,
-              "line": 112
+              "line": 112,
+              "character": 9
             }
           },
-          "type": "Variable",
-          "id": 8
-        },
-        "right": {
-          "range": {
-            "start": {
-              "character": 7,
-              "line": 112
+          "type": "Binary",
+          "operator": "+",
+          "left": {
+            "range": {
+              "start": {
+                "line": 112,
+                "character": 2
+              },
+              "end": {
+                "line": 112,
+                "character": 4
+              }
             },
-            "end": {
-              "character": 8,
-              "line": 112
-            }
+            "type": "NumberVariable",
+            "id": 8
           },
-          "type": "Number",
-          "value": 7
+          "right": {
+            "range": {
+              "start": {
+                "line": 112,
+                "character": 7
+              },
+              "end": {
+                "line": 112,
+                "character": 9
+              }
+            },
+            "type": "Number",
+            "value": 7
+          }
         }
       },
       "value": {
         "range": {
           "start": {
-            "character": 11,
-            "line": 112
+            "line": 112,
+            "character": 11
           },
           "end": {
-            "character": 11,
-            "line": 112
+            "line": 112,
+            "character": 12
           }
         },
         "type": "Number",
@@ -2513,12 +3342,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 113
+          "line": 113,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 113
+          "line": 113,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2526,57 +3355,84 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 114
+          "line": 114,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 114
+          "line": 114,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 51,
-      "params": {
-        "P": {
-          "range": {
-            "start": {
-              "character": 7,
-              "line": 114
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 114,
+            "character": 4
+          },
+          "end": {
+            "line": 114,
+            "character": 17
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": {
+            "range": {
+              "start": {
+                "line": 114,
+                "character": 7
+              },
+              "end": {
+                "line": 114,
+                "character": 16
+              }
             },
-            "end": {
-              "character": 15,
-              "line": 114
+            "type": "Binary",
+            "operator": "*",
+            "left": {
+              "range": {
+                "start": {
+                  "line": 114,
+                  "character": 7
+                },
+                "end": {
+                  "line": 114,
+                  "character": 9
+                }
+              },
+              "type": "VariableReference",
+              "id": 5,
+              "variable": {
+                "range": {
+                  "start": {
+                    "line": 79,
+                    "character": 10
+                  },
+                  "end": {
+                    "line": 79,
+                    "character": 12
+                  }
+                },
+                "type": "NumberVariable",
+                "id": 5
+              }
+            },
+            "right": {
+              "range": {
+                "start": {
+                  "line": 114,
+                  "character": 12
+                },
+                "end": {
+                  "line": 114,
+                  "character": 16
+                }
+              },
+              "type": "Number",
+              "value": 1000
             }
-          },
-          "type": "Binary",
-          "operator": "*",
-          "left": {
-            "range": {
-              "start": {
-                "character": 7,
-                "line": 114
-              },
-              "end": {
-                "character": 8,
-                "line": 114
-              }
-            },
-            "type": "Variable",
-            "id": 5
-          },
-          "right": {
-            "range": {
-              "start": {
-                "character": 12,
-                "line": 114
-              },
-              "end": {
-                "character": 15,
-                "line": 114
-              }
-            },
-            "type": "Number",
-            "value": 1000
           }
         }
       }
@@ -2584,12 +3440,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 115
+          "line": 115,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 115
+          "line": 115,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2597,25 +3453,38 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 116
+          "line": 116,
+          "character": 0
         },
         "end": {
-          "character": 24,
-          "line": 116
+          "line": 116,
+          "character": 25
         }
       },
       "type": "Assignment",
-      "variable": 101,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 116,
+            "character": 0
+          },
+          "end": {
+            "line": 116,
+            "character": 4
+          }
+        },
+        "type": "NumberVariable",
+        "id": 101
+      },
       "value": {
         "range": {
           "start": {
-            "character": 7,
-            "line": 116
+            "line": 116,
+            "character": 7
           },
           "end": {
-            "character": 24,
-            "line": 116
+            "line": 116,
+            "character": 25
           }
         },
         "type": "FuncCall",
@@ -2624,12 +3493,12 @@
           {
             "range": {
               "start": {
-                "character": 12,
-                "line": 116
+                "line": 116,
+                "character": 12
               },
               "end": {
-                "character": 22,
-                "line": 116
+                "line": 116,
+                "character": 23
               }
             },
             "type": "Binary",
@@ -2637,26 +3506,26 @@
             "left": {
               "range": {
                 "start": {
-                  "character": 12,
-                  "line": 116
+                  "line": 116,
+                  "character": 12
                 },
                 "end": {
-                  "character": 13,
-                  "line": 116
+                  "line": 116,
+                  "character": 14
                 }
               },
-              "type": "Variable",
+              "type": "NumberVariable",
               "id": 1
             },
             "right": {
               "range": {
                 "start": {
-                  "character": 19,
-                  "line": 116
+                  "line": 116,
+                  "character": 19
                 },
                 "end": {
-                  "character": 22,
-                  "line": 116
+                  "line": 116,
+                  "character": 23
                 }
               },
               "type": "Number",
@@ -2669,12 +3538,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 117
+          "line": 117,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 117
+          "line": 117,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2682,32 +3551,45 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 118
+          "line": 118,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 118
+          "line": 118,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 65,
-      "params": {
-        "P": 5000,
-        "A": 1,
-        "B": 2,
-        "C": 3
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 118,
+            "character": 4
+          },
+          "end": {
+            "line": 118,
+            "character": 21
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 5000,
+          "A": 1,
+          "B": 2,
+          "C": 3
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 119
+          "line": 119,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 119
+          "line": 119,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2715,27 +3597,27 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 120
+          "line": 120,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 120
+          "line": 120,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 9,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 121
+          "line": 121,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 121
+          "line": 121,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2743,12 +3625,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 122
+          "line": 122,
+          "character": 0
         },
         "end": {
-          "character": 13,
-          "line": 122
+          "line": 122,
+          "character": 14
         }
       },
       "type": "Comment",
@@ -2758,12 +3640,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 123
+          "line": 123,
+          "character": 0
         },
         "end": {
-          "character": 37,
-          "line": 123
+          "line": 123,
+          "character": 38
         }
       },
       "type": "Comment",
@@ -2773,12 +3655,12 @@
     {
       "range": {
         "start": {
-          "character": 10,
-          "line": 124
+          "line": 124,
+          "character": 0
         },
         "end": {
-          "character": 9,
-          "line": 124
+          "line": 124,
+          "character": 10
         }
       },
       "type": "Block",
@@ -2786,79 +3668,105 @@
         {
           "range": {
             "start": {
-              "character": 0,
-              "line": 124
+              "line": 124,
+              "character": 0
             },
             "end": {
-              "character": 2,
-              "line": 124
+              "line": 124,
+              "character": 3
             }
           },
           "type": "GCode",
           "code": 20,
-          "params": {}
+          "paramsBlock": null
         },
         {
           "range": {
             "start": {
-              "character": 7,
-              "line": 124
+              "line": 124,
+              "character": 7
             },
             "end": {
-              "character": 9,
-              "line": 124
+              "line": 124,
+              "character": 10
             }
           },
           "type": "MCode",
           "code": 6,
-          "params": {}
+          "paramsBlock": null
         }
       ],
-      "params": {
-        "T": 1
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 124,
+            "character": 4
+          },
+          "end": {
+            "line": 124,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 1
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 125
+          "line": 125,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 125
+          "line": 125,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 8,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 7,
-          "line": 126
+          "line": 126,
+          "character": 7
         },
         "end": {
-          "character": 9,
-          "line": 126
+          "line": 126,
+          "character": 10
         }
       },
       "type": "MCode",
       "code": 3,
-      "params": {
-        "S": 12000
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 126,
+            "character": 0
+          },
+          "end": {
+            "line": 126,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "S": 12000
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 127
+          "line": 127,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 127
+          "line": 127,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2866,29 +3774,42 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 128
+          "line": 128,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 128
+          "line": 128,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 97,
-      "params": {
-        "P": 1000
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 128,
+            "character": 4
+          },
+          "end": {
+            "line": 128,
+            "character": 9
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "P": 1000
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 129
+          "line": 129,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 129
+          "line": 129,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2896,29 +3817,42 @@
     {
       "range": {
         "start": {
-          "character": 4,
-          "line": 130
+          "line": 130,
+          "character": 4
         },
         "end": {
-          "character": 5,
-          "line": 130
+          "line": 130,
+          "character": 6
         }
       },
       "type": "MCode",
       "code": 6,
-      "params": {
-        "T": 13
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 130,
+            "character": 0
+          },
+          "end": {
+            "line": 130,
+            "character": 3
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 13
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 131
+          "line": 131,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 131
+          "line": 131,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2926,27 +3860,27 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 132
+          "line": 132,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 132
+          "line": 132,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 30,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 133
+          "line": 133,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 133
+          "line": 133,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2954,25 +3888,26 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 135
+          "line": 135,
+          "character": 0
         },
         "end": {
-          "character": 4,
-          "line": 135
+          "line": 135,
+          "character": 5
         }
       },
-      "type": "EmptyLine"
+      "type": "LineNumber",
+      "value": 0
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 136
+          "line": 136,
+          "character": 0
         },
         "end": {
-          "character": 19,
-          "line": 136
+          "line": 136,
+          "character": 20
         }
       },
       "type": "Comment",
@@ -2982,12 +3917,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 137
+          "line": 137,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 137
+          "line": 137,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -2995,30 +3930,43 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 138
+          "line": 138,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 138
+          "line": 138,
+          "character": 3
         }
       },
       "type": "GCode",
       "code": 0,
-      "params": {
-        "X": 0,
-        "Y": 0
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 138,
+            "character": 4
+          },
+          "end": {
+            "line": 138,
+            "character": 11
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "X": 0,
+          "Y": 0
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 139
+          "line": 139,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 139
+          "line": 139,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -3026,29 +3974,42 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 140
+          "line": 140,
+          "character": 0
         },
         "end": {
-          "character": 1,
-          "line": 140
+          "line": 140,
+          "character": 2
         }
       },
       "type": "MCode",
       "code": 6,
-      "params": {
-        "T": 25
+      "paramsBlock": {
+        "range": {
+          "start": {
+            "line": 140,
+            "character": 3
+          },
+          "end": {
+            "line": 140,
+            "character": 6
+          }
+        },
+        "type": "ParamsBlock",
+        "params": {
+          "T": 25
+        }
       }
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 141
+          "line": 141,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 141
+          "line": 141,
+          "character": 0
         }
       },
       "type": "EmptyLine"
@@ -3056,12 +4017,12 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 142
+          "line": 142,
+          "character": 0
         },
         "end": {
-          "character": 15,
-          "line": 142
+          "line": 142,
+          "character": 16
         }
       },
       "type": "Comment",
@@ -3071,30 +4032,510 @@
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 143
+          "line": 143,
+          "character": 0
         },
         "end": {
-          "character": 2,
-          "line": 143
+          "line": 143,
+          "character": 3
         }
       },
       "type": "MCode",
       "code": 30,
-      "params": {}
+      "paramsBlock": null
     },
     {
       "range": {
         "start": {
-          "character": 0,
-          "line": 144
+          "line": 144,
+          "character": 0
         },
         "end": {
-          "character": 0,
-          "line": 144
+          "line": 144,
+          "character": 1
         }
       },
       "type": "ProgramDelimiter"
+    }
+  ],
+  "variables": [
+    {
+      "range": {
+        "start": {
+          "line": 18,
+          "character": 1
+        },
+        "end": {
+          "line": 18,
+          "character": 5
+        }
+      },
+      "type": "NumberVariable",
+      "id": 123
+    },
+    {
+      "range": {
+        "start": {
+          "line": 71,
+          "character": 4
+        },
+        "end": {
+          "line": 71,
+          "character": 9
+        }
+      },
+      "type": "NumberVariable",
+      "id": 1243
+    },
+    {
+      "range": {
+        "start": {
+          "line": 77,
+          "character": 0
+        },
+        "end": {
+          "line": 77,
+          "character": 5
+        }
+      },
+      "type": "NumberVariable",
+      "id": 3004
+    },
+    {
+      "range": {
+        "start": {
+          "line": 78,
+          "character": 0
+        },
+        "end": {
+          "line": 78,
+          "character": 3
+        }
+      },
+      "type": "NumberVariable",
+      "id": 28
+    },
+    {
+      "range": {
+        "start": {
+          "line": 79,
+          "character": 10
+        },
+        "end": {
+          "line": 79,
+          "character": 12
+        }
+      },
+      "type": "NumberVariable",
+      "id": 5
+    },
+    {
+      "range": {
+        "start": {
+          "line": 80,
+          "character": 5
+        },
+        "end": {
+          "line": 80,
+          "character": 8
+        }
+      },
+      "type": "NumberVariable",
+      "id": 31
+    },
+    {
+      "range": {
+        "start": {
+          "line": 82,
+          "character": 0
+        },
+        "end": {
+          "line": 82,
+          "character": 3
+        }
+      },
+      "type": "NumberVariable",
+      "id": 33
+    },
+    {
+      "range": {
+        "start": {
+          "line": 85,
+          "character": 2
+        },
+        "end": {
+          "line": 85,
+          "character": 6
+        }
+      },
+      "type": "NumberVariable",
+      "id": 234
+    },
+    {
+      "range": {
+        "start": {
+          "line": 96,
+          "character": 3
+        },
+        "end": {
+          "line": 96,
+          "character": 7
+        }
+      },
+      "type": "NumberVariable",
+      "id": 898
+    },
+    {
+      "range": {
+        "start": {
+          "line": 96,
+          "character": 9
+        },
+        "end": {
+          "line": 96,
+          "character": 13
+        }
+      },
+      "type": "NumberVariable",
+      "id": 996
+    },
+    {
+      "range": {
+        "start": {
+          "line": 98,
+          "character": 15
+        },
+        "end": {
+          "line": 98,
+          "character": 19
+        }
+      },
+      "type": "NumberVariable",
+      "id": 452
+    },
+    {
+      "range": {
+        "start": {
+          "line": 112,
+          "character": 2
+        },
+        "end": {
+          "line": 112,
+          "character": 4
+        }
+      },
+      "type": "NumberVariable",
+      "id": 8
+    },
+    {
+      "range": {
+        "start": {
+          "line": 116,
+          "character": 12
+        },
+        "end": {
+          "line": 116,
+          "character": 14
+        }
+      },
+      "type": "NumberVariable",
+      "id": 1
+    },
+    {
+      "range": {
+        "start": {
+          "line": 116,
+          "character": 0
+        },
+        "end": {
+          "line": 116,
+          "character": 4
+        }
+      },
+      "type": "NumberVariable",
+      "id": 101
+    }
+  ],
+  "variableReferences": [
+    {
+      "range": {
+        "start": {
+          "line": 20,
+          "character": 1
+        },
+        "end": {
+          "line": 20,
+          "character": 5
+        }
+      },
+      "type": "VariableReference",
+      "id": 123,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 1
+          },
+          "end": {
+            "line": 18,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 123
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 73,
+          "character": 12
+        },
+        "end": {
+          "line": 73,
+          "character": 16
+        }
+      },
+      "type": "VariableReference",
+      "id": 123,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 1
+          },
+          "end": {
+            "line": 18,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 123
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 81,
+          "character": 4
+        },
+        "end": {
+          "line": 81,
+          "character": 7
+        }
+      },
+      "type": "VariableReference",
+      "id": 28,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 78,
+            "character": 0
+          },
+          "end": {
+            "line": 78,
+            "character": 3
+          }
+        },
+        "type": "NumberVariable",
+        "id": 28
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 81,
+          "character": 0
+        },
+        "end": {
+          "line": 81,
+          "character": 3
+        }
+      },
+      "type": "VariableReference",
+      "id": 28,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 78,
+            "character": 0
+          },
+          "end": {
+            "line": 78,
+            "character": 3
+          }
+        },
+        "type": "NumberVariable",
+        "id": 28
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 86,
+          "character": 1
+        },
+        "end": {
+          "line": 86,
+          "character": 5
+        }
+      },
+      "type": "VariableReference",
+      "id": 234,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 85,
+            "character": 2
+          },
+          "end": {
+            "line": 85,
+            "character": 6
+          }
+        },
+        "type": "NumberVariable",
+        "id": 234
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 88,
+          "character": 2
+        },
+        "end": {
+          "line": 88,
+          "character": 6
+        }
+      },
+      "type": "VariableReference",
+      "id": 123,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 1
+          },
+          "end": {
+            "line": 18,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 123
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 90,
+          "character": 2
+        },
+        "end": {
+          "line": 90,
+          "character": 6
+        }
+      },
+      "type": "VariableReference",
+      "id": 234,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 85,
+            "character": 2
+          },
+          "end": {
+            "line": 85,
+            "character": 6
+          }
+        },
+        "type": "NumberVariable",
+        "id": 234
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 104,
+          "character": 7
+        },
+        "end": {
+          "line": 104,
+          "character": 11
+        }
+      },
+      "type": "VariableReference",
+      "id": 123,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 1
+          },
+          "end": {
+            "line": 18,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 123
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 108,
+          "character": 7
+        },
+        "end": {
+          "line": 108,
+          "character": 11
+        }
+      },
+      "type": "VariableReference",
+      "id": 123,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 18,
+            "character": 1
+          },
+          "end": {
+            "line": 18,
+            "character": 5
+          }
+        },
+        "type": "NumberVariable",
+        "id": 123
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 114,
+          "character": 7
+        },
+        "end": {
+          "line": 114,
+          "character": 9
+        }
+      },
+      "type": "VariableReference",
+      "id": 5,
+      "variable": {
+        "range": {
+          "start": {
+            "line": 79,
+            "character": 10
+          },
+          "end": {
+            "line": 79,
+            "character": 12
+          }
+        },
+        "type": "NumberVariable",
+        "id": 5
+      }
     }
   ]
 }

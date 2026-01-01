@@ -12,8 +12,7 @@ import {
 } from "vscode-languageserver/node";
 import { Program } from "../entities";
 import { VariableTracker } from "./variableTracker";
-import { TokenCollector } from "./tokenCollector";
-import { deduplicateTokens } from "./tokenUtils";
+import { SemanticToken, TokenCollector } from "./tokenCollector";
 
 /**
  * Semantic token types
@@ -28,7 +27,7 @@ enum TokenTypes {
   COMMENT = "comment",
 }
 
-const tokenTypesArray = Object.values(TokenTypes);
+const tokenTypesArray = Object.values(TokenTypes).sort();
 
 /**
  * Semantic token modifiers
@@ -77,7 +76,7 @@ export class SemanticTokensProvider {
     });
 
     // Remove overlapping tokens - keep the longer one
-    const deduplicatedTokens = deduplicateTokens(tokens);
+    const deduplicatedTokens = this.deduplicateTokens(tokens);
 
     // Build semantic tokens
     const builder = new SemanticTokensBuilder();
@@ -136,5 +135,38 @@ export class SemanticTokensProvider {
       }
     }
     return bitmask;
+  }
+
+  private deduplicateTokens(tokens: SemanticToken[]): SemanticToken[] {
+    const result: SemanticToken[] = [];
+
+    for (const currentToken of tokens) {
+      let shouldAdd = true;
+
+      for (let j = 0; j < result.length; j++) {
+        const existingToken = result[j];
+
+        if (
+          currentToken.line === existingToken.line &&
+          currentToken.character <
+            existingToken.character + existingToken.length &&
+          currentToken.character + currentToken.length >
+            existingToken.character
+        ) {
+          // Tokens overlap - keep the longer one
+          if (currentToken.length > existingToken.length) {
+            result[j] = currentToken;
+          }
+          shouldAdd = false;
+          break;
+        }
+      }
+
+      if (shouldAdd) {
+        result.push(currentToken);
+      }
+    }
+
+    return result;
   }
 }

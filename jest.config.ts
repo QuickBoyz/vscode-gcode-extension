@@ -3,7 +3,7 @@ import type { Config } from "jest";
 const config: Config = {
   clearMocks: true,
   coverageProvider: "v8",
-  moduleFileExtensions: ["js", "ts"],
+  moduleFileExtensions: ["js", "ts", "json"],
   testMatch: ["**/*.test.ts"],
   transform: {
     "^.+\\.ts$": "ts-jest",

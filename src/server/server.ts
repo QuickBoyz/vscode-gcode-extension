@@ -12,47 +12,48 @@
  * - Variable completion (Ctrl+Space)
  * - Semantic highlighting
  */
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
-  createConnection,
-  TextDocuments,
-  ProposedFeatures,
-  InitializeParams,
-  InitializeResult,
-  TextDocumentSyncKind,
-  DocumentFormattingParams,
-  DocumentRangeFormattingParams,
-  TextEdit,
-  Range,
-  HoverParams,
-  Hover,
-  DefinitionParams,
-  DefinitionLink,
-  Location,
-  RenameParams,
-  WorkspaceEdit,
-  CompletionParams,
   CompletionItem,
   CompletionItemKind,
-  SemanticTokensParams,
+  CompletionParams,
+  createConnection,
+  DefinitionLink,
+  DefinitionParams,
+  DocumentFormattingParams,
+  DocumentRangeFormattingParams,
+  Hover,
+  HoverParams,
+  InitializeParams,
+  InitializeResult,
+  Location,
+  ProposedFeatures,
+  Range,
+  ReferenceParams,
+  RenameParams,
   SemanticTokens,
+  SemanticTokensParams,
+  TextDocuments,
+  TextDocumentSyncKind,
+  TextEdit,
+  WorkspaceEdit,
 } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { gcodeParser } from "../parser";
-import { gcodeFormatter } from "../formatter";
-import { FormatterOptions } from "../formatter/types";
-import { VariableTracker } from "./variableTracker";
 import {
-  SemanticTokensProvider,
-  SEMANTIC_TOKENS_LEGEND,
-} from "./semanticTokensProvider";
-import {
+  DEFAULT_FORMATTER_SETTINGS,
   GCODE_SYMBOLS,
-  REGEX_PATTERNS,
-  DEFAULT_FORMATTER_OPTIONS,
 } from "../constants";
+import { gcodeFormatter } from "../formatter";
+import { FormatterSettings } from "../formatter/types";
+import { gcodeParser } from "../parser";
 import { HoverProvider } from "./hoverProvider";
-const connection = createConnection(ProposedFeatures.all);
+import {
+  SEMANTIC_TOKENS_LEGEND,
+  SemanticTokensProvider,
+} from "./semanticTokensProvider";
+import { VariableTracker } from "./variableTracker";
 
+// Create a connection to the client
+const connection = createConnection(ProposedFeatures.all);
 // Create a text document manager
 const documents: TextDocuments<TextDocument> = new TextDocuments(
   TextDocument
@@ -60,19 +61,11 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(
 
 // Server settings synced from the client
 interface GCodeSettings {
-  formatter: {
-    addLineNumbers: boolean;
-    lineNumberStart: number;
-    lineNumberIncrement: number;
-    prettyPrintCommands: boolean;
-    prettyPrintNumbers: boolean;
-    indent: boolean;
-    compactOutput: boolean;
-  };
+  formatter: FormatterSettings;
 }
 
 const defaultSettings: GCodeSettings = {
-  formatter: DEFAULT_FORMATTER_OPTIONS,
+  formatter: DEFAULT_FORMATTER_SETTINGS,
 };
 
 // Cache document settings
@@ -106,6 +99,7 @@ connection.onInitialize(
         documentRangeFormattingProvider: true,
         hoverProvider: true,
         definitionProvider: true,
+        referencesProvider: true,
         renameProvider: true,
         completionProvider: {
           triggerCharacters: [GCODE_SYMBOLS.VARIABLE_PREFIX],
@@ -236,7 +230,7 @@ async function formatDocument(
     const settings = await getDocumentSettings(document.uri);
 
     // Create formatter options from settings
-    const formatterOptions: FormatterOptions = {
+    const formatterOptions: FormatterSettings = {
       addLineNumbers: settings.formatter.addLineNumbers,
       lineNumberStart: settings.formatter.lineNumberStart,
       lineNumberIncrement: settings.formatter.lineNumberIncrement,
@@ -244,17 +238,52 @@ async function formatDocument(
       prettyPrintNumbers: settings.formatter.prettyPrintNumbers,
       indent: settings.formatter.indent,
       compactOutput: settings.formatter.compactOutput,
+      addProgramDelimiters: settings.formatter.addProgramDelimiters,
       indentSize: tabSize,
       useTabs: !insertSpaces,
     };
 
     // Parse and format
-    const ast = gcodeParser.parseGcode(text);
+    const program = gcodeParser.parseGcode(text);
     gcodeFormatter.setOptions(formatterOptions);
-    const formattedText = gcodeFormatter.format(ast);
+    let formattedText = gcodeFormatter.format(program);
+
+    // Add program delimiters if enabled
+    if (formatterOptions.addProgramDelimiters) {
+      const trimmedFormatted = formattedText.trim();
+
+      // Check if formatted text starts with % (ignoring leading whitespace)
+      const startsWithDelimiter = trimmedFormatted.startsWith(
+        GCODE_SYMBOLS.PROGRAM_DELIMITER
+      );
+      // Check if formatted text ends with % (ignoring trailing whitespace)
+      const endsWithDelimiter = trimmedFormatted.endsWith(
+        GCODE_SYMBOLS.PROGRAM_DELIMITER
+      );
+
+      // Add delimiter at the beginning if not present
+      if (!startsWithDelimiter) {
+        formattedText =
+          GCODE_SYMBOLS.PROGRAM_DELIMITER +
+          GCODE_SYMBOLS.NEWLINE +
+          formattedText;
+      }
+
+      // Add delimiter at the end if not present
+      if (!endsWithDelimiter) {
+        formattedText =
+          formattedText +
+          GCODE_SYMBOLS.NEWLINE +
+          GCODE_SYMBOLS.PROGRAM_DELIMITER;
+      }
+    }
 
     // Return a single edit replacing the entire document
-    const fullRange = Range.create(0, 0, document.lineCount - 1, 0);
+    // Get the length of the last line to properly replace the entire document
+    const lastLine = document.lineCount - 1;
+    const lastLineLength =
+      document.getText().split(/\r?\n/)[lastLine]?.length ?? 0;
+    const fullRange = Range.create(0, 0, lastLine, lastLineLength);
 
     return [TextEdit.replace(fullRange, formattedText)];
   } catch (error) {
@@ -285,7 +314,7 @@ connection.onHover(
       const text = document.getText();
       const program = gcodeParser.parseGcode(text);
 
-      return hoverProvider.getHover(program, document, params.position);
+      return hoverProvider.getHover(program, params.position);
     } catch (error) {
       connection.console.error(
         `Hover error: ${
@@ -311,98 +340,140 @@ connection.onDefinition(
 
     try {
       const text = document.getText();
-      const ast = gcodeParser.parseGcode(text);
-      const definition = variableTracker.findDefinitionAtPosition(
-        ast,
-        document,
-        params.position
-      );
-
-      if (!definition) {
-        return null;
-      }
-
-      // Check if we're clicking on the definition itself
-      const isAtDefinition =
-        params.position.line ===
-          definition.statement.getPosition().line &&
-        params.position.character >=
-          definition.statement.getPosition().character &&
-        params.position.character <
-          definition.statement.getEndPosition().character;
-
-      if (isAtDefinition) {
-        // We're at the definition - find all usages
-        const usages = variableTracker.findUsages(
-          ast,
-          document,
-          definition.identifier
+      const program = gcodeParser.parseGcode(text);
+      const variableAtPosition =
+        variableTracker.getProgramVariableAtPosition(
+          program,
+          params.position
         );
 
-        // If there are multiple usages (definition + others), do nothing
-        if (usages.length > 2) {
+      if (variableAtPosition) {
+        // We're at the declaration - find all usages
+        const references = program.getVariableReferenceForVariable(
+          variableAtPosition.getId()
+        );
+
+        // If there are multiple usages (declaration + others), do nothing
+        if (references.length > 1) {
           return null;
         }
 
-        // If there's exactly one usage elsewhere (definition + 1 usage = 2 total),
+        // If there's exactly one usage elsewhere (declaration + 1 usage = 2 total),
         // navigate to that usage
-        if (usages.length === 2) {
-          // Find the usage that's not the definition
-          const usage = usages.find(
-            (u) =>
-              !(
-                u.line === definition.statement.getPosition().line &&
-                u.character ===
-                  definition.statement.getPosition().character
-              )
-          );
+        const reference = references[0];
 
-          if (usage) {
-            const range = Range.create(
-              usage.line,
-              usage.character,
-              usage.line,
-              usage.character + usage.length
-            );
+        if (reference) {
+          const range = reference.getRange();
 
-            return [
-              {
-                uri: params.textDocument.uri,
-                range,
-              },
-            ];
-          }
+          return [
+            {
+              uri: params.textDocument.uri,
+              range,
+            },
+          ];
         }
 
-        // If only the definition exists (1 usage), do nothing
+        // If only the declaration exists (1 usage), do nothing
         return null;
       }
 
-      const position = definition.statement.getPosition();
+      const variableReferenceAtPosition =
+        variableTracker.getProgramVariableReferenceAtPosition(
+          program,
+          params.position
+        );
 
-      // We're not at the definition - navigate to it (normal behavior)
-      const range = Range.create(
-        position.line,
-        position.character,
-        position.line,
-        position.character +
-          (typeof definition.identifier === "string"
-            ? gcodeFormatter.formatNamedVariable(definition.identifier)
-                .length
-            : gcodeFormatter.formatNumericVariable(
-                definition.identifier
-              ).length)
-      );
+      if (variableReferenceAtPosition) {
+        const variable = program.getVariable(
+          variableReferenceAtPosition.getId()
+        );
 
-      return [
-        {
-          uri: params.textDocument.uri,
-          range,
-        },
-      ];
+        if (!variable) return null;
+
+        // Return the variable definition's range, not the reference's range
+        const range = variable.getRange();
+
+        return [
+          {
+            uri: params.textDocument.uri,
+            range,
+          },
+        ];
+      }
+
+      return null;
     } catch (error) {
       connection.console.error(
         `Definition error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+      return null;
+    }
+  }
+);
+
+/**
+ * Handle references requests (Find All References)
+ */
+connection.onReferences(
+  async (params: ReferenceParams): Promise<Location[] | null> => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+
+    try {
+      const text = document.getText();
+      const program = gcodeParser.parseGcode(text);
+      const variableAtPosition =
+        variableTracker.getProgramVariableAtPosition(
+          program,
+          params.position
+        );
+      const variableReferenceAtPosition =
+        variableTracker.getProgramVariableReferenceAtPosition(
+          program,
+          params.position
+        );
+
+      let variableId: number | string | null = null;
+
+      if (variableAtPosition) {
+        variableId = variableAtPosition.getId();
+      } else if (variableReferenceAtPosition) {
+        variableId = variableReferenceAtPosition.getId();
+      }
+
+      if (!variableId) {
+        return null;
+      }
+
+      const locations: Location[] = [];
+
+      // Add the variable definition
+      const variable = program.getVariable(variableId);
+      if (variable) {
+        locations.push({
+          uri: params.textDocument.uri,
+          range: variable.getRange(),
+        });
+      }
+
+      // Add all references
+      const references =
+        program.getVariableReferenceForVariable(variableId);
+      for (const reference of references) {
+        locations.push({
+          uri: params.textDocument.uri,
+          range: reference.getRange(),
+        });
+      }
+
+      return locations.length > 0 ? locations : null;
+    } catch (error) {
+      connection.console.error(
+        `References error: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
@@ -423,147 +494,70 @@ connection.onRenameRequest(
 
     try {
       const text = document.getText();
-      const ast = gcodeParser.parseGcode(text);
+      const program = gcodeParser.parseGcode(text);
+      const variableAtPosition =
+        variableTracker.getProgramVariableAtPosition(
+          program,
+          params.position
+        );
+      const variableReferenceAtPosition =
+        variableTracker.getProgramVariableReferenceAtPosition(
+          program,
+          params.position
+        );
 
-      // Find the variable at the position
-      const variable = variableTracker.findDefinitionAtPosition(
-        ast,
-        document,
-        params.position
-      );
+      // Determine which variable is being renamed
+      let variableId: number | string | null = null;
+      if (variableAtPosition) {
+        variableId = variableAtPosition.getId();
+      } else if (variableReferenceAtPosition) {
+        variableId = variableReferenceAtPosition.getId();
+      }
 
+      if (!variableId) {
+        return null;
+      }
+
+      // Get only the references for this specific variable
+      const variable = program.getVariable(variableId);
       if (!variable) {
-        // Try to find variable usage if not at definition
-        const line = document.getText().split(/\r?\n/)[
-          params.position.line
-        ];
-        if (!line) return null;
-
-        const varAtPos = variableTracker.findVariableAtPosition(
-          line,
-          params.position.character
-        );
-        if (!varAtPos) return null;
-
-        // Find definition to get the identifier
-        const definitions = variableTracker.findDefinitions(
-          ast,
-          document
-        );
-        const def = definitions.find((d) => {
-          if (
-            typeof varAtPos.identifier === "string" &&
-            typeof d.identifier === "string"
-          ) {
-            return varAtPos.identifier === d.identifier;
-          }
-          if (
-            typeof varAtPos.identifier === "number" &&
-            typeof d.identifier === "number"
-          ) {
-            return varAtPos.identifier === d.identifier;
-          }
-          return false;
-        });
-
-        if (!def) return null;
-
-        // Find all usages
-        const usages = variableTracker.findUsages(
-          ast,
-          document,
-          def.identifier
-        );
-
-        // Validate new name
-        const newName = params.newName.trim();
-        if (typeof def.identifier === "string") {
-          // Named variable: validate name format
-          if (!REGEX_PATTERNS.VALID_NAMED_VARIABLE.test(newName)) {
-            connection.window.showErrorMessage(
-              "Invalid variable name. Must start with a letter or underscore and contain only letters, numbers, and underscores."
-            );
-            return null;
-          }
-        } else {
-          // Numeric variable: validate it's a number
-          if (!REGEX_PATTERNS.VALID_NUMERIC_VARIABLE.test(newName)) {
-            connection.window.showErrorMessage(
-              "Invalid variable number. Must be a positive integer."
-            );
-            return null;
-          }
-        }
-
-        // Create text edits for all usages
-        const edits: TextEdit[] = usages.map((usage) => {
-          const range = Range.create(
-            usage.line,
-            usage.character,
-            usage.line,
-            usage.character + usage.length
-          );
-
-          // Format new variable name
-          const newVarName =
-            typeof def.identifier === "string"
-              ? gcodeFormatter.formatNamedVariable(newName)
-              : gcodeFormatter.formatNumericVariable(Number(newName));
-
-          return TextEdit.replace(range, newVarName);
-        });
-
-        return {
-          changes: {
-            [params.textDocument.uri]: edits,
-          },
-        };
+        return null;
       }
 
-      // We're at the definition, find all usages
-      const usages = variableTracker.findUsages(
-        ast,
-        document,
-        variable.identifier
-      );
-
-      // Validate new name
+      // Format the new name based on variable type
+      let formattedNewName: string;
       const newName = params.newName.trim();
-      if (typeof variable.identifier === "string") {
-        // Named variable: validate name format
-        if (!REGEX_PATTERNS.VALID_NAMED_VARIABLE.test(newName)) {
-          connection.window.showErrorMessage(
-            "Invalid variable name. Must start with a letter or underscore and contain only letters, numbers, and underscores."
-          );
-          return null;
-        }
+
+      // Check if it's a named variable (string ID) or number variable (number ID)
+      if (typeof variableId === "string") {
+        // Named variable: format as #<name>
+        formattedNewName = `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${newName}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
       } else {
-        // Numeric variable: validate it's a number
-        if (!REGEX_PATTERNS.VALID_NUMERIC_VARIABLE.test(newName)) {
-          connection.window.showErrorMessage(
-            "Invalid variable number. Must be a positive integer."
-          );
-          return null;
+        // Number variable: format as #number
+        // Try to parse as number, fallback to original if invalid
+        const numValue = Number(newName);
+        if (isNaN(numValue)) {
+          // Invalid number, use the original format
+          formattedNewName = variable.toString();
+        } else {
+          formattedNewName = `${GCODE_SYMBOLS.VARIABLE_PREFIX}${numValue}`;
         }
       }
 
-      // Create text edits for all usages (including definition)
-      const edits: TextEdit[] = usages.map((usage) => {
-        const range = Range.create(
-          usage.line,
-          usage.character,
-          usage.line,
-          usage.character + usage.length
-        );
+      const variableReferences =
+        program.getVariableReferenceForVariable(variableId);
 
-        // Format new variable name
-        const newVarName =
-          typeof variable.identifier === "string"
-            ? gcodeFormatter.formatNamedVariable(newName)
-            : gcodeFormatter.formatNumericVariable(Number(newName));
+      const edits: TextEdit[] = [];
 
-        return TextEdit.replace(range, newVarName);
-      });
+      // Add edit for the variable definition
+      const variableRange = variable.getRange();
+      edits.push(TextEdit.replace(variableRange, formattedNewName));
+
+      // Add edits for all references to this variable
+      for (const variableReference of variableReferences) {
+        const range = variableReference.getRange();
+        edits.push(TextEdit.replace(range, formattedNewName));
+      }
 
       return {
         changes: {
@@ -595,46 +589,24 @@ connection.onCompletion(
 
     try {
       const text = document.getText();
-      const ast = gcodeParser.parseGcode(text);
-      const definitions = variableTracker.findDefinitions(
-        ast,
-        document
-      );
+      const program = gcodeParser.parseGcode(text);
+      const variables = variableTracker.getProgramVariables(program);
 
       const completionItems: CompletionItem[] = [];
 
-      for (const definition of definitions) {
-        const varName =
-          typeof definition.identifier === "string"
-            ? gcodeFormatter.formatNamedVariable(definition.identifier)
-            : gcodeFormatter.formatNumericVariable(
-                definition.identifier
-              );
-
-        const valueStr = gcodeFormatter.formatExpression(
-          definition.statement.getValue()
-        );
-
-        // Get line number for display
-        const lineNumber = definition.statement.getPosition().line
-          ? gcodeFormatter.formatLineNumber(
-              definition.statement.getPosition().line + 1
-            )
-          : `Line ${definition.statement.getPosition().line + 1}`;
-
+      for (const variable of variables) {
+        const varName = variable.toString();
+        // const valueStr = assignment.getValue().toString();
         completionItems.push({
           label: varName,
           kind: CompletionItemKind.Variable,
-          detail: `Value: ${valueStr}`,
-          documentation: `Defined at ${lineNumber}`,
+          detail: `Value: ${varName}`,
+          documentation: `Defined at ${
+            variable.getPosition().line + 1
+          }`,
           insertText: varName,
           // Sort numeric variables before named variables
-          sortText:
-            typeof definition.identifier === "string"
-              ? `1_${definition.identifier}`
-              : `0_${definition.identifier
-                  .toString()
-                  .padStart(6, "0")}`,
+          sortText: `0_${varName.padStart(6, "0")}`,
         });
       }
 
