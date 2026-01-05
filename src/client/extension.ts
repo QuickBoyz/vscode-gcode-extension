@@ -14,57 +14,7 @@ import {
 } from "vscode-languageclient/node";
 
 const GCODE_LANGUAGE_ID = "gcode";
-const GCODE_FILE_EXTENSIONS = [
-  ".001",
-  ".apt",
-  ".aptcl",
-  ".cls",
-  ".cnc",
-  ".din",
-  ".dnc",
-  ".ecs",
-  ".eia",
-  ".fan",
-  ".fgc",
-  ".fnc",
-  ".g",
-  ".g00",
-  ".gc",
-  ".gcd",
-  ".gcode",
-  ".gp",
-  ".hnc",
-  ".knc",
-  ".lib",
-  ".m",
-  ".min",
-  ".mpf",
-  ".mpr",
-  ".msb",
-  ".nc",
-  ".ncc",
-  ".ncd",
-  ".ncf",
-  ".ncg",
-  ".nci",
-  ".ncp",
-  ".ngc",
-  ".out",
-  ".pim",
-  ".pit",
-  ".plt",
-  ".ply",
-  ".prg",
-  ".pu1",
-  ".rol",
-  ".S",
-  ".sbp",
-  ".spf",
-  ".ssb",
-  ".sub",
-  ".tap",
-  ".xpi",
-];
+// Reads G-code file extensions from package.json contributes.languages configuration
 
 let client: LanguageClient;
 
@@ -100,11 +50,8 @@ export function activate(context: vscode.ExtensionContext): void {
     documentSelector: [{ scheme: "file", language: GCODE_LANGUAGE_ID }],
     synchronize: {
       // Notify the server about file changes to G-code files
-      fileEvents: vscode.workspace.createFileSystemWatcher(
-        `**/*.{${GCODE_FILE_EXTENSIONS.join(",")}}`
-      ),
       // Sync configuration section
-      configurationSection: "gcode",
+      configurationSection: GCODE_LANGUAGE_ID,
     },
   };
 
@@ -118,28 +65,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Start the client (which also launches the server)
   client.start();
-
-  // Register format document command
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "gcode.formatDocument",
-      async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (
-          editor &&
-          editor.document.languageId === GCODE_LANGUAGE_ID
-        ) {
-          await vscode.commands.executeCommand(
-            "editor.action.formatDocument"
-          );
-        } else {
-          vscode.window.showWarningMessage(
-            "Please open a G-code file to format"
-          );
-        }
-      }
-    )
-  );
+  context.subscriptions.push(client);
 }
 
 /**
