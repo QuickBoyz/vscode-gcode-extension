@@ -1,0 +1,528 @@
+{
+  "statements": [
+    {
+      "range": {
+        "start": {
+          "line": 1,
+          "character": 0
+        },
+        "end": {
+          "line": 1,
+          "character": 12
+        }
+      },
+      "text": "; Tool setup"
+    },
+    {
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 0
+        },
+        "end": {
+          "line": 2,
+          "character": 12
+        }
+      },
+      "name": "#<depth>",
+      "value": {
+        "range": {
+          "start": {
+            "line": 2,
+            "character": 10
+          },
+          "end": {
+            "line": 2,
+            "character": 12
+          }
+        },
+        "value": "-17"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 3,
+          "character": 0
+        },
+        "end": {
+          "line": 3,
+          "character": 12
+        }
+      },
+      "name": "#<feed>",
+      "value": {
+        "range": {
+          "start": {
+            "line": 3,
+            "character": 8
+          },
+          "end": {
+            "line": 3,
+            "character": 12
+          }
+        },
+        "value": "1000"
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 5,
+          "character": 5
+        },
+        "end": {
+          "line": 12,
+          "character": 13
+        }
+      },
+      "body": [
+        {
+          "range": {
+            "start": {
+              "line": 6,
+              "character": 2
+            },
+            "end": {
+              "line": 6,
+              "character": 18
+            }
+          },
+          "name": "#<col_count>",
+          "value": {
+            "range": {
+              "start": {
+                "line": 6,
+                "character": 17
+              },
+              "end": {
+                "line": 6,
+                "character": 18
+              }
+            },
+            "value": "0"
+          }
+        },
+        {
+          "range": {
+            "start": {
+              "line": 7,
+              "character": 7
+            },
+            "end": {
+              "line": 10,
+              "character": 15
+            }
+          },
+          "body": [
+            {
+              "range": {
+                "start": {
+                  "line": 8,
+                  "character": 4
+                },
+                "end": {
+                  "line": 8,
+                  "character": 55
+                }
+              },
+              "name": "#<xpos>",
+              "value": {
+                "range": {
+                  "start": {
+                    "line": 8,
+                    "character": 15
+                  },
+                  "end": {
+                    "line": 8,
+                    "character": 55
+                  }
+                },
+                "left": {
+                  "range": {
+                    "start": {
+                      "line": 8,
+                      "character": 15
+                    },
+                    "end": {
+                      "line": 8,
+                      "character": 25
+                    }
+                  },
+                  "name": "#<start_x>"
+                },
+                "operator": "+",
+                "right": {
+                  "range": {
+                    "start": {
+                      "line": 8,
+                      "character": 28
+                    },
+                    "end": {
+                      "line": 8,
+                      "character": 55
+                    }
+                  },
+                  "left": {
+                    "range": {
+                      "start": {
+                        "line": 8,
+                        "character": 28
+                      },
+                      "end": {
+                        "line": 8,
+                        "character": 40
+                      }
+                    },
+                    "name": "#<col_count>"
+                  },
+                  "operator": "*",
+                  "right": {
+                    "range": {
+                      "start": {
+                        "line": 8,
+                        "character": 43
+                      },
+                      "end": {
+                        "line": 8,
+                        "character": 55
+                      }
+                    },
+                    "name": "#<x_spacing>"
+                  }
+                }
+              }
+            },
+            {
+              "range": {
+                "start": {
+                  "line": 9,
+                  "character": 4
+                },
+                "end": {
+                  "line": 9,
+                  "character": 53
+                }
+              },
+              "command": "G00",
+              "parameters": [
+                {
+                  "range": {
+                    "start": {
+                      "line": 9,
+                      "character": 8
+                    },
+                    "end": {
+                      "line": 9,
+                      "character": 34
+                    }
+                  },
+                  "axis": "X",
+                  "value": {
+                    "range": {
+                      "start": {
+                        "line": 9,
+                        "character": 10
+                      },
+                      "end": {
+                        "line": 9,
+                        "character": 34
+                      }
+                    },
+                    "left": {
+                      "range": {
+                        "start": {
+                          "line": 9,
+                          "character": 10
+                        },
+                        "end": {
+                          "line": 9,
+                          "character": 17
+                        }
+                      },
+                      "name": "#<xpos>"
+                    },
+                    "operator": "-",
+                    "right": {
+                      "range": {
+                        "start": {
+                          "line": 9,
+                          "character": 20
+                        },
+                        "end": {
+                          "line": 9,
+                          "character": 34
+                        }
+                      },
+                      "name": "#<tool_radius>"
+                    }
+                  }
+                },
+                {
+                  "range": {
+                    "start": {
+                      "line": 9,
+                      "character": 36
+                    },
+                    "end": {
+                      "line": 9,
+                      "character": 44
+                    }
+                  },
+                  "axis": "Y",
+                  "value": {
+                    "range": {
+                      "start": {
+                        "line": 9,
+                        "character": 37
+                      },
+                      "end": {
+                        "line": 9,
+                        "character": 44
+                      }
+                    },
+                    "name": "#<ypos>"
+                  }
+                },
+                {
+                  "range": {
+                    "start": {
+                      "line": 9,
+                      "character": 45
+                    },
+                    "end": {
+                      "line": 9,
+                      "character": 53
+                    }
+                  },
+                  "axis": "F",
+                  "value": {
+                    "range": {
+                      "start": {
+                        "line": 9,
+                        "character": 46
+                      },
+                      "end": {
+                        "line": 9,
+                        "character": 53
+                      }
+                    },
+                    "name": "#<feed>"
+                  }
+                }
+              ]
+            }
+          ],
+          "label": "o110",
+          "endLabel": "o110",
+          "condition": {
+            "range": {
+              "start": {
+                "line": 7,
+                "character": 14
+              },
+              "end": {
+                "line": 7,
+                "character": 31
+              }
+            },
+            "left": {
+              "range": {
+                "start": {
+                  "line": 7,
+                  "character": 14
+                },
+                "end": {
+                  "line": 7,
+                  "character": 26
+                }
+              },
+              "name": "#<col_count>"
+            },
+            "operator": "LT",
+            "right": {
+              "range": {
+                "start": {
+                  "line": 7,
+                  "character": 30
+                },
+                "end": {
+                  "line": 7,
+                  "character": 31
+                }
+              },
+              "value": "2"
+            }
+          },
+          "whileKeywordRange": {
+            "start": {
+              "line": 7,
+              "character": 7
+            },
+            "end": {
+              "line": 7,
+              "character": 12
+            }
+          },
+          "doKeywordRange": {
+            "start": {
+              "line": 7,
+              "character": 33
+            },
+            "end": {
+              "line": 7,
+              "character": 35
+            }
+          },
+          "endWhileKeywordRange": {
+            "start": {
+              "line": 10,
+              "character": 7
+            },
+            "end": {
+              "line": 10,
+              "character": 15
+            }
+          }
+        },
+        {
+          "range": {
+            "start": {
+              "line": 11,
+              "character": 2
+            },
+            "end": {
+              "line": 11,
+              "character": 34
+            }
+          },
+          "name": "#<row_count>",
+          "value": {
+            "range": {
+              "start": {
+                "line": 11,
+                "character": 18
+              },
+              "end": {
+                "line": 11,
+                "character": 34
+              }
+            },
+            "left": {
+              "range": {
+                "start": {
+                  "line": 11,
+                  "character": 18
+                },
+                "end": {
+                  "line": 11,
+                  "character": 30
+                }
+              },
+              "name": "#<row_count>"
+            },
+            "operator": "+",
+            "right": {
+              "range": {
+                "start": {
+                  "line": 11,
+                  "character": 33
+                },
+                "end": {
+                  "line": 11,
+                  "character": 34
+                }
+              },
+              "value": "1"
+            }
+          }
+        }
+      ],
+      "label": "o100",
+      "endLabel": "o100",
+      "condition": {
+        "range": {
+          "start": {
+            "line": 5,
+            "character": 12
+          },
+          "end": {
+            "line": 5,
+            "character": 29
+          }
+        },
+        "left": {
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 12
+            },
+            "end": {
+              "line": 5,
+              "character": 24
+            }
+          },
+          "name": "#<row_count>"
+        },
+        "operator": "LT",
+        "right": {
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 28
+            },
+            "end": {
+              "line": 5,
+              "character": 29
+            }
+          },
+          "value": "2"
+        }
+      },
+      "whileKeywordRange": {
+        "start": {
+          "line": 5,
+          "character": 5
+        },
+        "end": {
+          "line": 5,
+          "character": 10
+        }
+      },
+      "doKeywordRange": {
+        "start": {
+          "line": 5,
+          "character": 31
+        },
+        "end": {
+          "line": 5,
+          "character": 33
+        }
+      },
+      "endWhileKeywordRange": {
+        "start": {
+          "line": 12,
+          "character": 5
+        },
+        "end": {
+          "line": 12,
+          "character": 13
+        }
+      }
+    },
+    {
+      "range": {
+        "start": {
+          "line": 14,
+          "character": 0
+        },
+        "end": {
+          "line": 14,
+          "character": 3
+        }
+      },
+      "command": "M30",
+      "parameters": []
+    }
+  ]
+}
