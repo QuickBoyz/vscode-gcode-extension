@@ -5,6 +5,7 @@ import {
   StatementNode,
   ExpressionNode,
   VariableAssignmentNode,
+  VariableReferenceNode,
   WhileStatementNode,
   FunctionCallNode,
   MotionCommandNode,
@@ -14,6 +15,9 @@ import {
   IfStatementNode,
   IfClauseNode,
   ElseClauseNode,
+  BinaryExpressionNode,
+  UnaryExpressionNode,
+  LiteralExpressionNode,
 } from "./nodes";
 
 export class AstTraverser<T = void> {
@@ -94,11 +98,43 @@ export class AstTraverser<T = void> {
       case node instanceof FunctionCallNode:
         this.traverseFunctionCall(node);
         break;
+      case node instanceof BinaryExpressionNode:
+        this.traverseBinaryExpression(node);
+        break;
+      case node instanceof UnaryExpressionNode:
+        this.traverseUnaryExpression(node);
+        break;
+      case node instanceof VariableReferenceNode:
+        if (this.visitor.visitVariableReference) {
+          this.visitor.visitVariableReference(node);
+        }
+        break;
+      case node instanceof LiteralExpressionNode:
+        if (this.visitor.visitLiteralExpression) {
+          this.visitor.visitLiteralExpression(node);
+        }
+        break;
       default:
-        if (this.visitor.visitExpression)
+        if (this.visitor.visitExpression) {
           this.visitor.visitExpression(node);
+        }
         break;
     }
+  }
+
+  private traverseBinaryExpression(node: BinaryExpressionNode): void {
+    if (this.visitor.visitBinaryExpression) {
+      this.visitor.visitBinaryExpression(node);
+    }
+    this.traverseExpression(node.left);
+    this.traverseExpression(node.right);
+  }
+
+  private traverseUnaryExpression(node: UnaryExpressionNode): void {
+    if (this.visitor.visitUnaryExpression) {
+      this.visitor.visitUnaryExpression(node);
+    }
+    this.traverseExpression(node.operand);
   }
 
   private traverseVariableAssignment(
