@@ -3,12 +3,13 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { GCodeFormatter } from "../_formatter/GCodeFormatter";
 import { AstTraverser } from "../_parser/AstTraverser";
 import { GCodeParser } from "../_parser/GCodeParser";
-import { FormatterSettings } from "../formatter/types";
-import { gcodeLexer } from "../lexer/gcodeLexer";
+import { FormatterSettings } from "../_formatter/types";
+import { GCodeLexer } from "../_lexer/GCodeLexer";
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterSettings): string {
-    const tokens = gcodeLexer.tokenize(text);
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(text);
     const parser = new GCodeParser(tokens);
     const program = parser.parseProgram();
     const formatter = new GCodeFormatter(settings);

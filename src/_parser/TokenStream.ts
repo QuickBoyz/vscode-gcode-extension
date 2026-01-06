@@ -1,5 +1,5 @@
 // parser/TokenStream.ts
-import { Token, TokenType } from "../entities/tokens";
+import { Token, TokenType } from "./nodes/tokens";
 
 export class TokenStream {
   private index = 0;

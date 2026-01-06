@@ -50,7 +50,7 @@ import {
 import { FormatterService } from "../_providers/FormatterService";
 import { DocumentRangeFormattingProvider } from "../_providers/DocumentRangeFormattingProvider";
 import { DocumentFormattingProvider } from "../_providers/DocumentFormattingProvider";
-import { FormatterSettings } from "../formatter";
+import { FormatterSettings } from "../_formatter/types";
 import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,

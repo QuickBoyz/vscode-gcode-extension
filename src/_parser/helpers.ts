@@ -1,4 +1,4 @@
-import { Token } from "../entities/tokens";
+import { Token } from "./nodes/tokens";
 import { AstNode, Range } from "./nodes";
 
 export function rangeFrom(

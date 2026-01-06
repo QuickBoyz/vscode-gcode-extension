@@ -5,13 +5,15 @@
  * the actual LSP server. The LSP server uses the same GCodeParser and GCodeFormatter
  * classes that are tested in their respective test files.
  */
-import { gcodeParser } from "../parser";
-import { gcodeFormatter } from "../formatter";
-import { FormatterSettings } from "../formatter";
+import { GCodeParser } from "../_parser/GCodeParser";
+import { GCodeFormatter } from "../_formatter/GCodeFormatter";
+import { FormatterSettings } from "../_formatter/types";
 import {
   DEFAULT_FORMATTER_SETTINGS,
   GCODE_SYMBOLS,
 } from "../constants";
+import { GCodeLexer } from "../_lexer/GCodeLexer";
+import { AstTraverser } from "../_parser/AstTraverser";
 
 /**
  * Helper function that mimics what the server does when formatting
@@ -30,9 +32,14 @@ function formatGCode(
     ...options,
   };
 
-  const ast = gcodeParser.parseGcode(text);
-  gcodeFormatter.setOptions(formatterOptions);
-  let formattedText = gcodeFormatter.format(ast);
+  const lexer = new GCodeLexer();
+  const tokens = lexer.tokenize(text);
+  const parser = new GCodeParser(tokens);
+  const program = parser.parseProgram();
+  const formatter = new GCodeFormatter();
+  const traverser = new AstTraverser(formatter);
+  formatter.setOptions(formatterOptions);
+  let formattedText = formatter.formatGCode(program, traverser);
 
   // Add program delimiters if enabled (same as server behavior)
   if (formatterOptions.addProgramDelimiters) {

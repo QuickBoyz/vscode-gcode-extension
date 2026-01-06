@@ -4,7 +4,7 @@ import { BlockStatementNode } from "../BlockStatementNode";
 import { ExpressionNode } from "../expressions";
 import { StatementNode } from "../StatementNode";
 import { Range } from "../Range";
-import { TokenType } from "../../../entities/tokens";
+import { TokenType } from "../tokens";
 
 export class IfClauseNode extends BlockStatementNode {
   constructor(

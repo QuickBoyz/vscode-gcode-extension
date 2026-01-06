@@ -1,6 +1,6 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Range, TextEdit } from "vscode-languageserver/node";
-import { FormatterSettings } from "../formatter/types";
+import { FormatterSettings } from "../_formatter/types";
 import { FormatterService } from "./FormatterService";
 
 export class DocumentRangeFormattingProvider {

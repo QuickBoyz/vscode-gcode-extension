@@ -33,7 +33,6 @@ The codebase is divided into the following layers:
 
    - Custom tree / AST builder
    - Consumes tokens
-   - Produces immutable AST nodes
    - No formatting, hover, or editor logic
 
 3. **AST / Tree Model**
@@ -68,7 +67,6 @@ The codebase is divided into the following layers:
 - Every AST node **must be a class**
 - Nodes represent **syntax concepts**, not editor behavior
 - Nodes must be:
-  - immutable after construction
   - serializable
   - independently testable
 

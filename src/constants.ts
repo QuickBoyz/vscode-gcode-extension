@@ -2,7 +2,7 @@
  * Constants used throughout the G-code extension
  */
 
-import { FormatterSettings } from "./formatter/types";
+import { FormatterSettings } from "./_formatter/types";
 
 /**
  * G-code syntax symbols
