@@ -1,0 +1,199 @@
+/**
+ * Tests for RenameUtils
+ */
+import {
+  astRangeToLspRange,
+  lspPositionToAstPosition,
+  isPositionInRange,
+  formatVariableName,
+  validateVariableName,
+  extractVariableNameFromText,
+} from "../RenameUtils";
+import { Range as AstRange } from "../../_parser/nodes";
+import { Position as AstPosition } from "../../_parser/nodes/Position";
+import { Position } from "vscode-languageserver/node";
+
+describe("RenameUtils", () => {
+  describe("astRangeToLspRange", () => {
+    it("should convert AST range to LSP range", () => {
+      const astRange = new AstRange(
+        new AstPosition(0, 5),
+        new AstPosition(0, 10)
+      );
+      const lspRange = astRangeToLspRange(astRange);
+
+      expect(lspRange.start.line).toBe(0);
+      expect(lspRange.start.character).toBe(5);
+      expect(lspRange.end.line).toBe(0);
+      expect(lspRange.end.character).toBe(10);
+    });
+
+    it("should handle multi-line ranges", () => {
+      const astRange = new AstRange(
+        new AstPosition(1, 0),
+        new AstPosition(3, 5)
+      );
+      const lspRange = astRangeToLspRange(astRange);
+
+      expect(lspRange.start.line).toBe(1);
+      expect(lspRange.end.line).toBe(3);
+    });
+  });
+
+  describe("lspPositionToAstPosition", () => {
+    it("should convert LSP position to AST position", () => {
+      const lspPosition = Position.create(5, 10);
+      const astPosition = lspPositionToAstPosition(lspPosition);
+
+      expect(astPosition.line).toBe(5);
+      expect(astPosition.character).toBe(10);
+    });
+  });
+
+  describe("isPositionInRange", () => {
+    const range = new AstRange(new AstPosition(1, 5), new AstPosition(1, 10));
+
+    it("should return true for position within range", () => {
+      const position = Position.create(1, 7);
+      expect(isPositionInRange(position, range)).toBe(true);
+    });
+
+    it("should return true for position at start", () => {
+      const position = Position.create(1, 5);
+      expect(isPositionInRange(position, range)).toBe(true);
+    });
+
+    it("should return false for position at end (exclusive)", () => {
+      const position = Position.create(1, 10);
+      expect(isPositionInRange(position, range)).toBe(false);
+    });
+
+    it("should return false for position before range", () => {
+      const position = Position.create(1, 4);
+      expect(isPositionInRange(position, range)).toBe(false);
+    });
+
+    it("should return false for position after range", () => {
+      const position = Position.create(1, 11);
+      expect(isPositionInRange(position, range)).toBe(false);
+    });
+
+    it("should return false for position on different line before", () => {
+      const position = Position.create(0, 5);
+      expect(isPositionInRange(position, range)).toBe(false);
+    });
+
+    it("should return false for position on different line after", () => {
+      const position = Position.create(2, 5);
+      expect(isPositionInRange(position, range)).toBe(false);
+    });
+  });
+
+  describe("formatVariableName", () => {
+    it("should format numeric variable", () => {
+      expect(formatVariableName(1)).toBe("#1");
+      expect(formatVariableName(123)).toBe("#123");
+    });
+
+    it("should format named variable", () => {
+      expect(formatVariableName("foo")).toBe("#<foo>");
+      expect(formatVariableName("x_spacing")).toBe("#<x_spacing>");
+    });
+  });
+
+  describe("validateVariableName", () => {
+    describe("numeric variables", () => {
+      it("should accept valid positive integers", () => {
+        expect(validateVariableName("1", true)).toBe(true);
+        expect(validateVariableName("123", true)).toBe(true);
+        expect(validateVariableName("10000", true)).toBe(true);
+      });
+
+      it("should reject non-numeric strings", () => {
+        expect(validateVariableName("abc", true)).toBe(false);
+        expect(validateVariableName("1a", true)).toBe(false);
+        expect(validateVariableName("", true)).toBe(false);
+      });
+
+      it("should reject zero and negative numbers", () => {
+        expect(validateVariableName("0", true)).toBe(false);
+        expect(validateVariableName("-1", true)).toBe(false);
+      });
+
+      it("should reject decimal numbers", () => {
+        expect(validateVariableName("1.5", true)).toBe(false);
+        expect(validateVariableName("123.0", true)).toBe(false);
+      });
+    });
+
+    describe("named variables", () => {
+      it("should accept valid named variable patterns", () => {
+        expect(validateVariableName("foo", false)).toBe(true);
+        expect(validateVariableName("x", false)).toBe(true);
+        expect(validateVariableName("_private", false)).toBe(true);
+        expect(validateVariableName("var123", false)).toBe(true);
+        expect(validateVariableName("x_spacing", false)).toBe(true);
+      });
+
+      it("should reject names starting with numbers", () => {
+        expect(validateVariableName("1foo", false)).toBe(false);
+        expect(validateVariableName("123var", false)).toBe(false);
+      });
+
+      it("should reject names with invalid characters", () => {
+        expect(validateVariableName("foo-bar", false)).toBe(false);
+        expect(validateVariableName("foo.bar", false)).toBe(false);
+        expect(validateVariableName("foo bar", false)).toBe(false);
+        expect(validateVariableName("", false)).toBe(false);
+      });
+
+      it("should reject empty string", () => {
+        expect(validateVariableName("", false)).toBe(false);
+      });
+    });
+  });
+
+  describe("extractVariableNameFromText", () => {
+    const text = "#<x> = 10\n#1 = 20\n#<foo_bar> = 30";
+
+    it("should extract numeric variable name", () => {
+      const range = new AstRange(new AstPosition(1, 0), new AstPosition(1, 2));
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBe(1);
+    });
+
+    it("should extract named variable name", () => {
+      const range = new AstRange(new AstPosition(0, 0), new AstPosition(0, 4));
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBe("x");
+    });
+
+    it("should extract named variable with underscore", () => {
+      const range = new AstRange(
+        new AstPosition(2, 0),
+        new AstPosition(2, 10)
+      );
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBe("foo_bar");
+    });
+
+    it("should return null for invalid range", () => {
+      const range = new AstRange(new AstPosition(10, 0), new AstPosition(10, 5));
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBeNull();
+    });
+
+    it("should return null for text that is not a variable", () => {
+      const range = new AstRange(new AstPosition(0, 5), new AstPosition(0, 6));
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBeNull();
+    });
+
+    it("should return null for partial variable text", () => {
+      const range = new AstRange(new AstPosition(0, 0), new AstPosition(0, 2));
+      const name = extractVariableNameFromText(text, range);
+      expect(name).toBeNull();
+    });
+  });
+});
+
