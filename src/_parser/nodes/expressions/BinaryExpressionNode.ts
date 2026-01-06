@@ -2,7 +2,7 @@ import { ExpressionNode } from "./ExpressionNode";
 import { AstNode } from "../AstNode";
 import { Range } from "../Range";
 import { AstVisitor } from "../../AstVisitor";
-import { BinaryOperatorType } from "../../../entities/expressions";
+import { BinaryOperatorType } from "./types";
 
 export class BinaryExpressionNode extends ExpressionNode {
   constructor(

@@ -26,7 +26,7 @@ import {
   VariableReferenceNode,
   WhileStatementNode,
 } from "../_parser/nodes";
-import { gcodeLexer } from "../lexer";
+import { GCodeLexer } from "../_lexer/GCodeLexer";
 import { GCodeSemanticTokensBuilder } from "./SemanticTokensBuilder";
 
 export const SEMANTIC_TOKENS_LEGEND: SemanticTokensLegend = {
@@ -51,7 +51,8 @@ export class SemanticTokensProvider extends AstVisitor<void> {
   }
 
   static provide(document: TextDocument): SemanticTokens {
-    const tokens = gcodeLexer.tokenize(document.getText());
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(document.getText());
     const parser = new GCodeParser(tokens);
     const program = parser.parseProgram();
 

@@ -1,5 +1,5 @@
 // parser/__tests__/GCodeParser.test.ts
-import { gcodeLexer } from "../../lexer/gcodeLexer";
+import { GCodeLexer } from "../../_lexer/GCodeLexer";
 import { GCodeParser } from "../GCodeParser";
 import {
   VariableAssignmentNode,
@@ -13,11 +13,12 @@ import {
   VariableReferenceNode,
   WhileStatementNode,
 } from "../nodes";
-import { TokenType } from "../../entities/tokens";
+import { TokenType } from "../nodes/tokens";
 
 describe("GCodeParser", () => {
   function parse(input: string): ProgramNode {
-    const tokens = gcodeLexer.tokenize(input);
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(input);
     const parser = new GCodeParser(tokens);
     return parser.parseProgram();
   }
@@ -130,7 +131,8 @@ G00 X#<x>
 
 describe("GCodeParser - Full AST Tests", () => {
   function parse(input: string): ProgramNode {
-    const tokens = gcodeLexer.tokenize(input);
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(input);
     const parser = new GCodeParser(tokens);
     return parser.parseProgram();
   }

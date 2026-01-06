@@ -1,4 +1,4 @@
-import { gcodeLexer } from "../../lexer/gcodeLexer";
+import { GCodeLexer } from "../../_lexer/GCodeLexer";
 import { GCodeParser } from "../../_parser/GCodeParser";
 import { GCodeFormatter } from "../GCodeFormatter";
 import { AstTraverser } from "../../_parser/AstTraverser";
@@ -7,7 +7,8 @@ let formatter: GCodeFormatter;
 
 describe("GCodeFormatter", () => {
   function parse(code: string) {
-    const tokens = gcodeLexer.tokenize(code);
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(code);
     const parser = new GCodeParser(tokens);
     return parser.parseProgram();
   }

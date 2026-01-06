@@ -1,4 +1,4 @@
-import { UnaryOperatorType } from "../../../entities/expressions";
+import { UnaryOperatorType } from "./types";
 import { AstVisitor } from "../../AstVisitor";
 import { AstNode } from "../AstNode";
 import { ExpressionNode } from "./ExpressionNode";
