@@ -50,11 +50,14 @@ import {
 import { FormatterService } from "../_providers/FormatterService";
 import { DocumentRangeFormattingProvider } from "../_providers/DocumentRangeFormattingProvider";
 import { DocumentFormattingProvider } from "../_providers/DocumentFormattingProvider";
-import { FormatterSettings } from "../_formatter/types";
 import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
 } from "../_providers/SemanticTokensProvider";
+import { DocumentStateManager, GCodeSettings } from "../_providers/DocumentStateManager";
+import { RenameProvider } from "../_providers/RenameProvider";
+import { DocumentHighlightProvider } from "../_providers/DocumentHighlightProvider";
+import { DocumentSymbolProvider } from "../_providers/DocumentSymbolProvider";
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all);
@@ -63,10 +66,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(
   TextDocument
 );
 
-// Server settings synced from the client
-interface GCodeSettings {
-  formatter: FormatterSettings;
-}
+// Note: GCodeSettings is now imported from DocumentStateManager
 
 // Cache document settings
 const documentSettings: Map<
@@ -87,6 +87,13 @@ connection.onInitialize(
         semanticTokensProvider: {
           legend: SEMANTIC_TOKENS_LEGEND,
           full: true,
+        },
+        renameProvider: {
+          prepareProvider: true,
+        },
+        documentHighlightProvider: true,
+        documentSymbolProvider: {
+          label: "G-code Variables",
         },
       },
     };
@@ -112,6 +119,14 @@ const documentFormatter = new DocumentFormattingProvider(
 const rangeFormatter = new DocumentRangeFormattingProvider(
   formatterService
 );
+
+// Create document state manager and providers
+const documentStateManager = new DocumentStateManager();
+const renameProvider = new RenameProvider(documentStateManager);
+const documentHighlightProvider = new DocumentHighlightProvider(
+  documentStateManager
+);
+const documentSymbolProvider = new DocumentSymbolProvider(documentStateManager);
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -140,6 +155,57 @@ connection.languages.semanticTokens.on((params) => {
   }
 
   return SemanticTokensProvider.provide(document);
+});
+
+// Register rename provider
+connection.onPrepareRename((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  return renameProvider.prepareRename(document, params.position);
+});
+
+connection.onRenameRequest((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  return renameProvider.provideRenameEdits(
+    document,
+    params.position,
+    params.newName
+  );
+});
+
+// Register document highlight provider
+connection.onDocumentHighlight((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  return documentHighlightProvider.provideDocumentHighlights(
+    document,
+    params.position
+  );
+});
+
+// Register document symbol provider
+connection.onDocumentSymbol((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  return documentSymbolProvider.provideDocumentSymbols(document);
+});
+
+// Invalidate document state on change
+documents.onDidChangeContent((change) => {
+  documentStateManager.invalidateDocument(change.document.uri);
 });
 
 connection.onInitialized(() => {
