@@ -1,4 +1,4 @@
-import { gcodeLexer } from "../../lexer/gcodeLexer";
+import { GCodeLexer } from "../../_lexer/GCodeLexer";
 import { GCodeParser } from "../GCodeParser";
 import { AstTraverser } from "../AstTraverser";
 import {
@@ -15,11 +15,12 @@ import {
   ElseClauseNode,
 } from "../nodes";
 import { AstVisitor } from "../AstVisitor";
-import { TokenType } from "../../entities/tokens";
+import { TokenType } from "../nodes/tokens";
 
 describe("AstTraverser", () => {
   function parse(input: string): ProgramNode {
-    const tokens = gcodeLexer.tokenize(input);
+    const lexer = new GCodeLexer();
+    const tokens = lexer.tokenize(input);
     const parser = new GCodeParser(tokens);
     return parser.parseProgram();
   }

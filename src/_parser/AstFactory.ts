@@ -2,8 +2,8 @@
 import {
   BinaryOperatorType,
   UnaryOperatorType,
-} from "../entities/expressions";
-import { Token, TokenType } from "../entities/tokens";
+} from "../_parser/nodes/expressions";
+import { Token, TokenType } from "./nodes/tokens";
 import {
   AstNode,
   AxisParameterNode,

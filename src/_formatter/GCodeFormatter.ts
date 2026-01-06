@@ -26,8 +26,8 @@ import {
   DEFAULTS,
   DEFAULT_FORMATTER_SETTINGS,
 } from "../constants";
-import { TokenType } from "../entities/tokens";
-import { FormatterSettings } from "../formatter/types";
+import { TokenType } from "../_parser/nodes/tokens";
+import { FormatterSettings } from "../_formatter/types";
 
 export class GCodeFormatter extends AstVisitor<void> {
   private lines: string[] = [];

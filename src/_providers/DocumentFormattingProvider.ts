@@ -2,7 +2,7 @@ import {
   TextDocument,
   TextEdit,
 } from "vscode-languageserver-textdocument";
-import { FormatterSettings } from "../formatter/types";
+import { FormatterSettings } from "../_formatter/types";
 import { FormatterService } from "./FormatterService";
 
 export class DocumentFormattingProvider {

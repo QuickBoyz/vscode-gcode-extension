@@ -1,5 +1,5 @@
-import { Token, TokenType } from "../entities/tokens";
-import { ParseError, TokenStream } from "../parser/TokenStream";
+import { Token, TokenType } from "./nodes/tokens";
+import { ParseError, TokenStream } from "./TokenStream";
 import { AstFactory } from "./AstFactory";
 import {
   AstNode,

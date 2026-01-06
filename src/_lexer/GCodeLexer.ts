@@ -1,11 +1,11 @@
 import moo, { Lexer, Token as MooToken } from "moo";
-import { Token, TokenType } from "../entities/tokens";
+import { Token, TokenType } from "../_parser/nodes/tokens";
 import {
   BinaryOperatorType,
   FunctionName,
   RelationalOperatorType,
   UnaryOperatorType,
-} from "../entities/expressions/types";
+} from "../_parser/nodes/expressions";
 
 /**
  * Token type exported from moo
@@ -23,7 +23,7 @@ import {
  * - Expressions
  * - Variables
  */
-class GCodeLexer {
+export class GCodeLexer {
   private lexer: Lexer;
 
   constructor() {
@@ -168,8 +168,3 @@ class GCodeLexer {
     return processedTokens;
   }
 }
-
-/**
- * G-code lexer instance
- */
-export const gcodeLexer = new GCodeLexer();
