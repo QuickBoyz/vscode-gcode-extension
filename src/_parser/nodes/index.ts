@@ -1,4 +1,5 @@
 export { AstNode } from "./AstNode";
+export { Position } from "./Position";
 export { AxisParameterNode } from "./AxisParameterNode";
 export { BlockStatementNode } from "./BlockStatementNode";
 export { CommentNode } from "./CommentNode";

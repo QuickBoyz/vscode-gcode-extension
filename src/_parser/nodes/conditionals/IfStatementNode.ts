@@ -9,6 +9,7 @@ export class IfStatementNode extends BlockStatementNode {
   constructor(
     range: Range,
     readonly ifClause: IfClauseNode,
+    readonly endIfTokenRange: Range,
     readonly elseClause?: ElseClauseNode,
     readonly elseIfClauses?: IfClauseNode[],
     readonly label?: string,

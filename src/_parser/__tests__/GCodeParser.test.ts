@@ -474,7 +474,6 @@ Y0.0 X-0.15 R0.15
 Y0.0 X0.3 R0.225`;
 
       const program = parse(code);
-      console.log(program.statements);
 
       expect(program.statements.length).toBe(10);
 

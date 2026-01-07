@@ -3,16 +3,19 @@ import {
   BinaryOperatorType,
   UnaryOperatorType,
 } from "../_parser/nodes/expressions";
-import { Token, TokenType } from "./nodes/tokens";
+import { REGEX_PATTERNS } from "../constants";
+import { rangeFrom } from "./helpers";
 import {
   AstNode,
   AxisParameterNode,
   BinaryExpressionNode,
   // BlockStatementNode,
   CommentNode,
+  ElseClauseNode,
   ErrorNode,
   ExpressionNode,
   FunctionCallNode,
+  IfClauseNode,
   IfStatementNode,
   LiteralExpressionNode,
   MotionCommandNode,
@@ -22,10 +25,8 @@ import {
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-  IfClauseNode,
-  ElseClauseNode,
 } from "./nodes";
-import { rangeFrom } from "./helpers";
+import { Token, TokenType } from "./nodes/tokens";
 
 export class AstFactory {
   program(
@@ -52,7 +53,8 @@ export class AstFactory {
     return new FunctionCallNode(
       rangeFrom(func, argument),
       func.value,
-      argument
+      argument,
+      rangeFrom(func)
     );
   }
 
@@ -61,6 +63,7 @@ export class AstFactory {
     condition: ExpressionNode,
     body: StatementNode[],
     label?: Token,
+    thenToken?: Token,
     parent?: AstNode
   ) {
     return new IfClauseNode(
@@ -68,6 +71,7 @@ export class AstFactory {
       keyword.type === TokenType.IF ? TokenType.IF : TokenType.ELSEIF,
       condition,
       body,
+      rangeFrom(thenToken),
       label?.value,
       parent
     );
@@ -97,6 +101,7 @@ export class AstFactory {
     const node = new IfStatementNode(
       rangeFrom(args.label, args.endLabel),
       args.ifClause,
+      rangeFrom(args.endLabel),
       args.elseClause,
       args.elseIfClauses,
       args.label?.value
@@ -117,11 +122,15 @@ export class AstFactory {
     body: StatementNode[];
     whileToken: Token;
     endWhileToken: Token;
+    doToken?: Token;
   }) {
     const node = new WhileStatementNode(
       rangeFrom(args.whileToken, args.endWhileToken),
       args.condition,
       args.body,
+      rangeFrom(args.whileToken),
+      rangeFrom(args.endWhileToken),
+      rangeFrom(args.doToken),
       args.label?.value
     );
     this.setParents(args.body, node);
@@ -162,13 +171,13 @@ export class AstFactory {
     const value = token.value;
 
     // Check for named variable: #<name>
-    const namedMatch = value.match(/^#<([a-zA-Z_][a-zA-Z0-9_]*)>$/);
+    const namedMatch = value.match(REGEX_PATTERNS.NAMED_VARIABLE);
     if (namedMatch) {
       return namedMatch[1];
     }
 
     // Check for numeric variable: #123
-    const numericMatch = value.match(/^#(\d+)$/);
+    const numericMatch = value.match(REGEX_PATTERNS.NUMERIC_VARIABLE);
     if (numericMatch) {
       return Number(numericMatch[1]);
     }

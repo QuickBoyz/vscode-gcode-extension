@@ -1,4 +1,4 @@
-import { Range } from "vscode-languageserver";
+import { Range } from "../Range";
 import { TokenType } from "./types";
 import { BaseToken } from "./BaseToken";
 

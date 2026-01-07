@@ -69,10 +69,14 @@ export class SemanticTokensProvider extends AstVisitor<void> {
   visitStatement(node: StatementNode): void {}
   visitProgram(node: ProgramNode): void {}
   visitVariableAssignment(node: VariableAssignmentNode): void {}
-  visitWhileStatementEnd(node: WhileStatementNode): void {}
   visitIfClause(node: IfClauseNode): void {}
   visitElseClause(node: ElseClauseNode): void {}
-  visitIfStatementEnd(node: IfStatementNode): void {}
+  visitIfStatementEnd(node: IfStatementNode): void {
+    this.builder.pushRange(
+      node.endIfTokenRange,
+      this.getTokenTypeIndex("keyword")
+    );
+  }
   visitUnaryExpression(node: UnaryExpressionNode): void {}
   visitError(node: ErrorNode): void {}
 
@@ -123,21 +127,54 @@ export class SemanticTokensProvider extends AstVisitor<void> {
 
   visitFunctionCall(node: FunctionCallNode) {
     this.builder.pushRange(
-      node.getRange(),
+      node.funcTokenRange,
       this.getTokenTypeIndex("function")
     );
   }
 
   visitIfStatement(node: IfStatementNode) {
     this.builder.pushRange(
-      node.getRange(),
+      node.ifClause.getRange(),
       this.getTokenTypeIndex("keyword")
     );
+
+    if (node.ifClause.thenTokenRange) {
+      this.builder.pushRange(
+        node.ifClause.thenTokenRange,
+        this.getTokenTypeIndex("keyword")
+      );
+    }
+
+    // Add semantic tokens for THEN in elseIfClauses
+    if (node.elseIfClauses) {
+      for (const elseifClause of node.elseIfClauses) {
+        if (elseifClause.thenTokenRange) {
+          this.builder.pushRange(
+            elseifClause.thenTokenRange,
+            this.getTokenTypeIndex("keyword")
+          );
+        }
+      }
+    }
   }
 
   visitWhileStatement(node: WhileStatementNode) {
     this.builder.pushRange(
-      node.getRange(),
+      node.whileTokenRange,
+      this.getTokenTypeIndex("keyword")
+    );
+
+    if (node.doTokenRange) {
+      this.builder.pushRange(
+        node.doTokenRange,
+        this.getTokenTypeIndex("keyword")
+      );
+    }
+  }
+
+  visitWhileStatementEnd(node: WhileStatementNode) {
+    this.builder.pushRange(
+      node.endWhileTokenRange,
       this.getTokenTypeIndex("keyword")
     );
   }

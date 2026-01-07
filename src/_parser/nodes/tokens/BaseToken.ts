@@ -1,4 +1,5 @@
-import { Position, Range } from "vscode-languageserver";
+import { Range } from "../Range";
+import { Position } from "../Position";
 
 export abstract class BaseToken<T extends string = string> {
   constructor(protected range: Range, protected type: T) {}
@@ -29,19 +30,6 @@ export abstract class BaseToken<T extends string = string> {
 
   getEndPosition(): Position {
     return this.range.end;
-  }
-
-  isPositionInRange(position: Position): boolean {
-    if (
-      position.line >= this.range.start.line &&
-      position.line <= this.range.end.line &&
-      position.character >= this.range.start.character &&
-      position.character <= this.range.end.character
-    ) {
-      return true;
-    }
-
-    return false;
   }
 
   getLength(): number {

@@ -9,7 +9,10 @@ export class WhileStatementNode extends BlockStatementNode {
   constructor(
     range: Range,
     readonly condition: ExpressionNode,
-    readonly body: StatementNode[],
+    body: StatementNode[],
+    readonly whileTokenRange: Range,
+    readonly endWhileTokenRange: Range,
+    readonly doTokenRange?: Range,
     readonly label?: string,
     parent?: AstNode
   ) {

@@ -47,17 +47,21 @@ import {
   TextEdit,
   WorkspaceEdit,
 } from "vscode-languageserver/node";
-import { FormatterService } from "../_providers/FormatterService";
-import { DocumentRangeFormattingProvider } from "../_providers/DocumentRangeFormattingProvider";
+import { DiagnosticsProvider } from "../_providers/DiagnosticsProvider";
 import { DocumentFormattingProvider } from "../_providers/DocumentFormattingProvider";
+import { DocumentHighlightProvider } from "../_providers/DocumentHighlightProvider";
+import { DocumentRangeFormattingProvider } from "../_providers/DocumentRangeFormattingProvider";
+import {
+  DocumentStateManager,
+  GCodeSettings,
+} from "../_providers/DocumentStateManager";
+import { DocumentSymbolProvider } from "../_providers/DocumentSymbolProvider";
+import { FormatterService } from "../_providers/FormatterService";
+import { RenameProvider } from "../_providers/RenameProvider";
 import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
 } from "../_providers/SemanticTokensProvider";
-import { DocumentStateManager, GCodeSettings } from "../_providers/DocumentStateManager";
-import { RenameProvider } from "../_providers/RenameProvider";
-import { DocumentHighlightProvider } from "../_providers/DocumentHighlightProvider";
-import { DocumentSymbolProvider } from "../_providers/DocumentSymbolProvider";
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all);
@@ -95,6 +99,11 @@ connection.onInitialize(
         documentSymbolProvider: {
           label: "G-code Variables",
         },
+        // Enable diagnostics for syntax errors
+        diagnosticProvider: {
+          interFileDependencies: false,
+          workspaceDiagnostics: false,
+        },
       },
     };
   }
@@ -126,7 +135,12 @@ const renameProvider = new RenameProvider(documentStateManager);
 const documentHighlightProvider = new DocumentHighlightProvider(
   documentStateManager
 );
-const documentSymbolProvider = new DocumentSymbolProvider(documentStateManager);
+const documentSymbolProvider = new DocumentSymbolProvider(
+  documentStateManager
+);
+const diagnosticsProvider = new DiagnosticsProvider(
+  documentStateManager
+);
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -158,54 +172,91 @@ connection.languages.semanticTokens.on((params) => {
 });
 
 // Register rename provider
-connection.onPrepareRename((params) => {
+connection.onPrepareRename(async (params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return null;
   }
 
-  return renameProvider.prepareRename(document, params.position);
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return renameProvider.prepareRename(
+    document,
+    params.position,
+    settings
+  );
 });
 
-connection.onRenameRequest((params) => {
+connection.onRenameRequest(async (params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return null;
   }
 
+  const settings = await getDocumentSettings(params.textDocument.uri);
   return renameProvider.provideRenameEdits(
     document,
     params.position,
-    params.newName
+    params.newName,
+    settings
   );
 });
 
 // Register document highlight provider
-connection.onDocumentHighlight((params) => {
+connection.onDocumentHighlight(async (params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return null;
   }
 
+  const settings = await getDocumentSettings(params.textDocument.uri);
   return documentHighlightProvider.provideDocumentHighlights(
     document,
-    params.position
+    params.position,
+    settings
   );
 });
 
 // Register document symbol provider
-connection.onDocumentSymbol((params) => {
+connection.onDocumentSymbol(async (params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return [];
   }
 
-  return documentSymbolProvider.provideDocumentSymbols(document);
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return documentSymbolProvider.provideDocumentSymbols(
+    document,
+    settings
+  );
 });
 
-// Invalidate document state on change
-documents.onDidChangeContent((change) => {
+// Publish diagnostics on document change
+documents.onDidChangeContent(async (change) => {
   documentStateManager.invalidateDocument(change.document.uri);
+
+  // Publish diagnostics for syntax errors
+  const settings = await getDocumentSettings(change.document.uri);
+  const diagnostics = diagnosticsProvider.provideDiagnostics(
+    change.document,
+    settings
+  );
+  connection.sendDiagnostics({
+    uri: change.document.uri,
+    diagnostics,
+  });
+});
+
+// Also publish diagnostics when document is opened
+documents.onDidOpen(async (event) => {
+  const settings = await getDocumentSettings(event.document.uri);
+  const diagnostics = diagnosticsProvider.provideDiagnostics(
+    event.document,
+    settings
+  );
+  connection.sendDiagnostics({
+    uri: event.document.uri,
+    diagnostics,
+  });
 });
 
 connection.onInitialized(() => {

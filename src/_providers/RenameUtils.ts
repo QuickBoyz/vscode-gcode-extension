@@ -4,60 +4,12 @@
  * Shared utility functions for variable renaming, position/range conversion,
  * and validation.
  */
-import { Position, Range } from "vscode-languageserver/node";
-import { Range as AstRange } from "../_parser/nodes";
-import { Position as AstPosition } from "../_parser/nodes/Position";
-import { REGEX_PATTERNS } from "../constants";
-
-/**
- * Convert AST Range to LSP Range
- * Both use 0-based line numbers, but different type systems
- */
-export function astRangeToLspRange(astRange: AstRange): Range {
-  return Range.create(
-    astRange.start.line,
-    astRange.start.character,
-    astRange.end.line,
-    astRange.end.character
-  );
-}
-
-/**
- * Convert LSP Position to AST Position
- * Both use 0-based line numbers, but different type systems
- */
-export function lspPositionToAstPosition(position: Position): AstPosition {
-  return new AstPosition(position.line, position.character);
-}
-
-/**
- * Check if LSP position is within AST range
- */
-export function isPositionInRange(
-  position: Position,
-  range: AstRange
-): boolean {
-  const start = range.start;
-  const end = range.end;
-
-  // Check if position is after start
-  if (position.line < start.line) {
-    return false;
-  }
-  if (position.line === start.line && position.character < start.character) {
-    return false;
-  }
-
-  // Check if position is before end (exclusive at end)
-  if (position.line > end.line) {
-    return false;
-  }
-  if (position.line === end.line && position.character >= end.character) {
-    return false;
-  }
-
-  return true;
-}
+import {
+  Range,
+  VariableAssignmentNode,
+  VariableReferenceNode,
+} from "../_parser/nodes";
+import { GCodeSymbols, REGEX_PATTERNS } from "../constants";
 
 /**
  * Format variable name for display/editing
@@ -66,9 +18,9 @@ export function isPositionInRange(
  */
 export function formatVariableName(name: string | number): string {
   if (typeof name === "number") {
-    return `#${name}`;
+    return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
   }
-  return `#<${name}>`;
+  return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
 }
 
 /**
@@ -101,9 +53,9 @@ export function validateVariableName(
  */
 export function extractVariableNameFromText(
   text: string,
-  range: AstRange
+  range: Range
 ): string | number | null {
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(REGEX_PATTERNS.NEWLINE);
   if (range.start.line >= lines.length) {
     return null;
   }
@@ -119,7 +71,9 @@ export function extractVariableNameFromText(
   const variableText = line.substring(startChar, endChar);
 
   // Try to extract numeric variable: #123
-  const numericMatch = variableText.match(/^#(\d+)$/);
+  const numericMatch = variableText.match(
+    REGEX_PATTERNS.NUMERIC_VARIABLE
+  );
   if (numericMatch) {
     const num = parseInt(numericMatch[1], 10);
     if (!isNaN(num)) {
@@ -128,7 +82,7 @@ export function extractVariableNameFromText(
   }
 
   // Try to extract named variable: #<foo>
-  const namedMatch = variableText.match(/^#<([a-zA-Z_][a-zA-Z0-9_]*)>$/);
+  const namedMatch = variableText.match(REGEX_PATTERNS.NAMED_VARIABLE);
   if (namedMatch) {
     return namedMatch[1];
   }
@@ -136,3 +90,26 @@ export function extractVariableNameFromText(
   return null;
 }
 
+/**
+ * Get the range of just the variable name (not the entire assignment)
+ */
+export function getVariableNameRange(
+  symbol: VariableAssignmentNode | VariableReferenceNode
+): Range | null {
+  const fullRange = symbol.getRange();
+
+  // For VariableReferenceNode, the range is already just the variable
+  if (symbol instanceof VariableReferenceNode) {
+    return fullRange;
+  }
+
+  // For VariableAssignmentNode, we need to extract just the variable name part
+  // The variable name starts at the beginning of the range
+  const formattedName = formatVariableName(symbol.name);
+  return Range.create(
+    fullRange.start.line,
+    fullRange.start.character,
+    fullRange.start.line,
+    fullRange.start.character + formattedName.length
+  );
+}

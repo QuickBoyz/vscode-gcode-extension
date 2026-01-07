@@ -1,11 +1,12 @@
 import moo, { Lexer, Token as MooToken } from "moo";
-import { Token, TokenType } from "../_parser/nodes/tokens";
 import {
   BinaryOperatorType,
   FunctionName,
   RelationalOperatorType,
   UnaryOperatorType,
 } from "../_parser/nodes/expressions";
+import { Token, TokenType } from "../_parser/nodes/tokens";
+import { GCodeSymbols, REGEX_PATTERNS } from "../constants";
 
 /**
  * Token type exported from moo
@@ -30,17 +31,17 @@ export class GCodeLexer {
     this.lexer = moo.compile({
       // Whitespace
       ws: { match: /[ \t]+/ },
-      nl: { match: /\r?\n/, lineBreaks: true },
+      nl: { match: REGEX_PATTERNS.NEWLINE, lineBreaks: true },
 
       // Comments
-      comment: /;.*/,
-      parenComment: /\([^)]*\)/,
+      comment: REGEX_PATTERNS.COMMENT,
+      parenComment: REGEX_PATTERNS.PARENTHETICAL_COMMENT,
 
       // Line numbers (N-blocks)
-      lineNumber: /[Nn][0-9]+/,
+      lineNumber: REGEX_PATTERNS.LINE_NUMBER,
 
       // Program delimiter
-      percent: "%",
+      percent: GCodeSymbols.PROGRAM_DELIMITER,
 
       // Control flow keywords (case-insensitive)
       // Order matters: more specific patterns first
@@ -56,11 +57,11 @@ export class GCodeLexer {
       GOTO: /[Gg][Oo][Tt][Oo]/,
 
       // O-block labels (subroutine markers)
-      OSUB: /[Oo][0-9]+/,
+      OSUB: REGEX_PATTERNS.OBLOCK_LABEL,
 
       // G and M codes (case-insensitive)
-      GCODE: /[Gg][0-9]+(?:\.[0-9]+)?/,
-      MCODE: /[Mm][0-9]+/,
+      GCODE: REGEX_PATTERNS.GCODE_COMMAND,
+      MCODE: REGEX_PATTERNS.MCODE_COMMAND,
 
       // Relational operators
       RELOP: Object.values(RelationalOperatorType),
@@ -70,29 +71,32 @@ export class GCodeLexer {
       FUNC: Object.values(FunctionName),
 
       // Punctuation and operators
-      comma: ",",
-      equals: "=",
+      comma: GCodeSymbols.COMMA,
+      equals: GCodeSymbols.ASSIGNMENT_OPERATOR,
       plus: BinaryOperatorType.Add,
       star: BinaryOperatorType.Multiply,
       slash: BinaryOperatorType.Divide,
-      lBracket: "[",
-      rBracket: "]",
+      lBracket: GCodeSymbols.EXPRESSION_BRACKET_OPEN,
+      rBracket: GCodeSymbols.EXPRESSION_BRACKET_CLOSE,
 
       // Variables (#123 or #<name>)
-      VAR: [/#[0-9]+/, /#<[a-zA-Z_][a-zA-Z0-9_]*>/],
-      hash: "#",
+      VAR: [
+        REGEX_PATTERNS.NUMERIC_VARIABLE_NO_CAPTURE,
+        REGEX_PATTERNS.NAMED_VARIABLE_NO_CAPTURE,
+      ],
+      hash: GCodeSymbols.VARIABLE_PREFIX,
 
       // Numbers (integers, decimals, leading decimal)
-      NUMBER: /[0-9]+\.?[0-9]*|\.[0-9]+/,
+      NUMBER: REGEX_PATTERNS.NUMBER,
 
       // Minus operator
       minus: UnaryOperatorType.Minus,
 
       // Dot (for E.#234 style parameter values)
-      dot: ".",
+      dot: GCodeSymbols.DOT,
 
       // Parameters (single uppercase letter like X, Y, Z, F, S, etc.)
-      PARAM: /[A-Z]/,
+      PARAM: REGEX_PATTERNS.PARAMETER_LETTER,
     }) as Lexer;
   }
 
@@ -103,12 +107,18 @@ export class GCodeLexer {
     const tokens: MooToken[] = [];
     this.lexer.reset(input);
 
-    let token: MooToken | undefined;
-    while ((token = this.lexer.next())) {
-      // Skip whitespace but keep newlines as line separators
-      if (token.type !== TokenType.WS) {
-        tokens.push(token);
+    try {
+      let token: MooToken | undefined;
+      while ((token = this.lexer.next())) {
+        // Skip whitespace but keep newlines as line separators
+        if (token.type !== TokenType.WS) {
+          tokens.push(token);
+        }
       }
+    } catch (error) {
+      // If lexer encounters invalid characters, continue with what we have
+      // The parser will handle the incomplete tokenization by creating error nodes
+      // This prevents the formatter from crashing on syntax errors
     }
 
     // Post-process: combine MINUS + NUMBER into a single NUMBER token for negative numbers

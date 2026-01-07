@@ -4,26 +4,29 @@
  * Provides variable renaming functionality for G-code files.
  * Supports both numeric (#1) and named (#<foo>) variables.
  */
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { TextEdit, WorkspaceEdit } from "vscode-languageserver/node";
+import { AstTraverser } from "../_parser/AstTraverser";
 import {
   Position,
   Range,
-  TextEdit,
-  WorkspaceEdit,
-} from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentStateManager } from "./DocumentStateManager";
-import { VariableSymbolCollector } from "./VariableSymbolCollector";
-import {
-  formatVariableName,
-  validateVariableName,
-  astRangeToLspRange,
-} from "./RenameUtils";
-import { AstTraverser } from "../_parser/AstTraverser";
-import {
   VariableAssignmentNode,
   VariableReferenceNode,
 } from "../_parser/nodes";
-import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
+import {
+  DocumentStateManager,
+  GCodeSettings,
+} from "./DocumentStateManager";
+import {
+  formatVariableName,
+  getVariableNameRange,
+  validateVariableName,
+} from "./RenameUtils";
+import {
+  VariableSymbol,
+  VariableSymbolCollector,
+  VariableSymbolKind,
+} from "./VariableSymbolCollector";
 
 /**
  * Rename Provider
@@ -38,24 +41,34 @@ export class RenameProvider {
    */
   prepareRename(
     document: TextDocument,
-    position: Position
+    position: Position,
+    settings: GCodeSettings
   ): Range | { range: Range; placeholder: string } | null {
     const state = this.stateManager.getOrParseDocumentFromTextDocument(
       document,
-      { formatter: DEFAULT_FORMATTER_SETTINGS }
+      settings
     );
 
     const collector = new VariableSymbolCollector();
     const traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
-    const symbol = collector.findSymbolAtPosition(position, document);
+    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
 
-    const range = astRangeToLspRange(symbol.range);
-    const placeholder = formatVariableName(symbol.name);
+    // Get the range of just the variable name (not the entire assignment)
+    const range = this.getVariableNameRangeFromSymbol(symbol);
+    if (!range) {
+      return null;
+    }
+
+    // Return just the variable name as placeholder (e.g., "col_count" not "#<col_count>")
+    const placeholder =
+      typeof symbol.name === "number"
+        ? symbol.name.toString()
+        : symbol.name;
 
     return { range, placeholder };
   }
@@ -66,18 +79,19 @@ export class RenameProvider {
   provideRenameEdits(
     document: TextDocument,
     position: Position,
-    newName: string
+    newName: string,
+    settings: GCodeSettings
   ): WorkspaceEdit | null {
     const state = this.stateManager.getOrParseDocumentFromTextDocument(
       document,
-      { formatter: DEFAULT_FORMATTER_SETTINGS }
+      settings
     );
 
     const collector = new VariableSymbolCollector();
     const traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
-    const symbol = collector.findSymbolAtPosition(position, document);
+    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
@@ -123,7 +137,7 @@ export class RenameProvider {
     }
 
     // Create text edits
-    const edits = this.createTextEdits(allSymbols, newName, isNumeric, document);
+    const edits = this.createTextEdits(allSymbols, newName, isNumeric);
 
     return {
       changes: {
@@ -138,8 +152,7 @@ export class RenameProvider {
   private createTextEdits(
     symbols: Array<VariableAssignmentNode | VariableReferenceNode>,
     newName: string,
-    isNumeric: boolean,
-    document: TextDocument
+    isNumeric: boolean
   ): TextEdit[] {
     const edits: TextEdit[] = [];
     const formattedNewName = formatVariableName(
@@ -147,11 +160,35 @@ export class RenameProvider {
     );
 
     for (const symbol of symbols) {
-      const range = astRangeToLspRange(symbol.getRange());
-      edits.push(TextEdit.replace(range, formattedNewName));
+      const range = getVariableNameRange(symbol);
+      if (range) {
+        edits.push(TextEdit.replace(range, formattedNewName));
+      }
     }
 
     return edits;
   }
-}
 
+  /**
+   * Get the AST range of just the variable name from a symbol
+   */
+  private getVariableNameRangeFromSymbol(
+    symbol: VariableSymbol
+  ): Range | null {
+    const fullRange = symbol.range;
+
+    // For references, the range is already just the variable
+    if (symbol.kind === VariableSymbolKind.Reference) {
+      return fullRange;
+    }
+
+    // For definitions (assignments), we need to extract just the variable name part
+    const formattedName = formatVariableName(symbol.name);
+    return Range.create(
+      fullRange.start.line,
+      fullRange.start.character,
+      fullRange.start.line,
+      fullRange.start.character + formattedName.length
+    );
+  }
+}

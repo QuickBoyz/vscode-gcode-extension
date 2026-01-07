@@ -1,7 +1,10 @@
 /**
  * Tests for DocumentStateManager
  */
-import { DocumentStateManager, GCodeSettings } from "../DocumentStateManager";
+import {
+  DocumentStateManager,
+  GCodeSettings,
+} from "../DocumentStateManager";
 import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -20,7 +23,11 @@ describe("DocumentStateManager", () => {
       const uri = "file:///test.nc";
       const text = "#<x> = 10\nG0 X0";
 
-      const state = manager.getOrParseDocument(uri, text, defaultSettings);
+      const state = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
 
       expect(state).toBeDefined();
       expect(state.ast).toBeDefined();
@@ -36,8 +43,16 @@ describe("DocumentStateManager", () => {
       const uri = "file:///test.nc";
       const text = "#<x> = 10";
 
-      const state1 = manager.getOrParseDocument(uri, text, defaultSettings);
-      const state2 = manager.getOrParseDocument(uri, text, defaultSettings);
+      const state1 = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
+      const state2 = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
 
       expect(state2).toBe(state1);
       expect(state2.version).toBe(1);
@@ -68,7 +83,11 @@ describe("DocumentStateManager", () => {
 
       manager.getOrParseDocument(uri, text, defaultSettings);
       manager.invalidateDocument(uri);
-      const state2 = manager.getOrParseDocument(uri, text, defaultSettings);
+      const state2 = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
 
       expect(state2.version).toBe(2);
     });
@@ -77,13 +96,21 @@ describe("DocumentStateManager", () => {
       const uri = "file:///test.nc";
       const text = "#<x> = 10";
 
-      const state1 = manager.getOrParseDocument(uri, text, defaultSettings);
+      const state1 = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
       const initialModified = state1.lastModified;
 
       // Wait a bit to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const state2 = manager.getOrParseDocument(uri, text, defaultSettings);
+      const state2 = manager.getOrParseDocument(
+        uri,
+        text,
+        defaultSettings
+      );
 
       expect(state2.lastModified).toBeGreaterThan(initialModified);
     });
@@ -94,8 +121,16 @@ describe("DocumentStateManager", () => {
       const text1 = "#<x> = 10";
       const text2 = "#<y> = 20";
 
-      const state1 = manager.getOrParseDocument(uri1, text1, defaultSettings);
-      const state2 = manager.getOrParseDocument(uri2, text2, defaultSettings);
+      const state1 = manager.getOrParseDocument(
+        uri1,
+        text1,
+        defaultSettings
+      );
+      const state2 = manager.getOrParseDocument(
+        uri2,
+        text2,
+        defaultSettings
+      );
 
       expect(state1).not.toBe(state2);
       expect(state1.ast.statements.length).toBe(1);
@@ -204,11 +239,18 @@ describe("DocumentStateManager", () => {
       const uri2 = "file:///test2.nc";
       const text = "#<x> = 10";
 
-      const state1 = manager.getOrParseDocument(uri1, text, defaultSettings);
-      const state2 = manager.getOrParseDocument(uri2, text, defaultSettings);
+      const state1 = manager.getOrParseDocument(
+        uri1,
+        text,
+        defaultSettings
+      );
+      const state2 = manager.getOrParseDocument(
+        uri2,
+        text,
+        defaultSettings
+      );
 
       expect(state1.lexer).toBe(state2.lexer);
     });
   });
 });
-
