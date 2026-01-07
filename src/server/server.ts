@@ -21,21 +21,21 @@ import {
   TextDocuments,
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
-import { DiagnosticsProvider } from "../_providers/DiagnosticsProvider";
-import { DocumentFormattingProvider } from "../_providers/DocumentFormattingProvider";
-import { DocumentHighlightProvider } from "../_providers/DocumentHighlightProvider";
-import { DocumentRangeFormattingProvider } from "../_providers/DocumentRangeFormattingProvider";
+import { DiagnosticsProvider } from "../providers/DiagnosticsProvider";
+import { DocumentFormattingProvider } from "../providers/DocumentFormattingProvider";
+import { DocumentHighlightProvider } from "../providers/DocumentHighlightProvider";
+import { DocumentRangeFormattingProvider } from "../providers/DocumentRangeFormattingProvider";
 import {
   DocumentStateManager,
   GCodeSettings,
-} from "../_providers/DocumentStateManager";
-import { DocumentSymbolProvider } from "../_providers/DocumentSymbolProvider";
-import { FormatterService } from "../_providers/FormatterService";
-import { RenameProvider } from "../_providers/RenameProvider";
+} from "../providers/DocumentStateManager";
+import { DocumentSymbolProvider } from "../providers/DocumentSymbolProvider";
+import { FormatterService } from "../providers/FormatterService";
+import { RenameProvider } from "../providers/RenameProvider";
 import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
-} from "../_providers/SemanticTokensProvider";
+} from "../providers/SemanticTokensProvider";
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all);

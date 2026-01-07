@@ -4,15 +4,15 @@
  * Visitor that collects all variable definitions and references from the AST.
  * Provides fast lookup methods for finding variables by name or position.
  */
-import { AstTraverser } from "../_parser/AstTraverser";
-import { AstVisitor } from "../_parser/AstVisitor";
+import { AstTraverser } from "../parser/AstTraverser";
+import { AstVisitor } from "../parser/AstVisitor";
 import {
   Position,
   ProgramNode,
   Range,
   VariableAssignmentNode,
   VariableReferenceNode,
-} from "../_parser/nodes";
+} from "../parser/nodes";
 
 export enum VariableSymbolKind {
   Definition = "definition",

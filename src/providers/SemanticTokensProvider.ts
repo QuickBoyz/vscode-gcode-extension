@@ -3,9 +3,9 @@ import {
   SemanticTokensLegend,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { AstVisitor } from "../_parser/AstVisitor";
-import { GCodeParser } from "../_parser/GCodeParser";
+import { AstTraverser } from "../parser/AstTraverser";
+import { AstVisitor } from "../parser/AstVisitor";
+import { GCodeParser } from "../parser/GCodeParser";
 import {
   AxisParameterNode,
   BinaryExpressionNode,
@@ -25,8 +25,8 @@ import {
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-} from "../_parser/nodes";
-import { GCodeLexer } from "../_lexer/GCodeLexer";
+} from "../parser/nodes";
+import { GCodeLexer } from "../lexer/GCodeLexer";
 import { GCodeSemanticTokensBuilder } from "./SemanticTokensBuilder";
 
 export const SEMANTIC_TOKENS_LEGEND: SemanticTokensLegend = {

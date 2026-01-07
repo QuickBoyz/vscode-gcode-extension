@@ -8,7 +8,7 @@ import {
   Range,
   VariableAssignmentNode,
   VariableReferenceNode,
-} from "../_parser/nodes";
+} from "../parser/nodes";
 import { GCodeSymbols, REGEX_PATTERNS } from "../constants";
 
 /**

@@ -1,11 +1,11 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextEdit } from "vscode-languageserver/node";
-import { GCodeFormatter } from "../_formatter/GCodeFormatter";
-import { FormatterSettings } from "../_formatter/types";
-import { GCodeLexer } from "../_lexer/GCodeLexer";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { GCodeParser } from "../_parser/GCodeParser";
-import { Range } from "../_parser/nodes";
+import { GCodeFormatter } from "../formatter/GCodeFormatter";
+import { FormatterSettings } from "../formatter/types";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { AstTraverser } from "../parser/AstTraverser";
+import { GCodeParser } from "../parser/GCodeParser";
+import { Range } from "../parser/nodes";
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterSettings): string {

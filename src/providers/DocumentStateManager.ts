@@ -5,10 +5,10 @@
  * to avoid redundant parsing and re-instantiation.
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { GCodeLexer } from "../_lexer/GCodeLexer";
-import { GCodeParser } from "../_parser/GCodeParser";
-import { ProgramNode } from "../_parser/nodes";
-import { FormatterSettings } from "../_formatter/types";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { GCodeParser } from "../parser/GCodeParser";
+import { ProgramNode } from "../parser/nodes";
+import { FormatterSettings } from "../formatter/types";
 
 /**
  * Settings interface for G-code documents

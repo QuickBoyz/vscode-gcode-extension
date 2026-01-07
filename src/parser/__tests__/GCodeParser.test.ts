@@ -1,5 +1,5 @@
 // parser/__tests__/GCodeParser.test.ts
-import { GCodeLexer } from "../../_lexer/GCodeLexer";
+import { GCodeLexer } from "../../lexer/GCodeLexer";
 import { GCodeParser } from "../GCodeParser";
 import {
   VariableAssignmentNode,
