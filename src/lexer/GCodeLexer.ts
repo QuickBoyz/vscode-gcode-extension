@@ -4,8 +4,8 @@ import {
   FunctionName,
   RelationalOperatorType,
   UnaryOperatorType,
-} from "../_parser/nodes/expressions";
-import { Token, TokenType } from "../_parser/nodes/tokens";
+} from "../parser/nodes/expressions";
+import { Token, TokenType } from "../parser/nodes/tokens";
 import { GCodeSymbols, REGEX_PATTERNS } from "../constants";
 
 /**

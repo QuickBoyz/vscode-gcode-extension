@@ -1,5 +1,5 @@
 import { SemanticTokensBuilder } from "vscode-languageserver/node";
-import { Range } from "../_parser/nodes";
+import { Range } from "../parser/nodes";
 
 export class GCodeSemanticTokensBuilder {
   private builder = new SemanticTokensBuilder();

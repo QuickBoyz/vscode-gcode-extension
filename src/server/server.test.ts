@@ -5,12 +5,12 @@
  * the actual LSP server. The LSP server uses the same GCodeParser and GCodeFormatter
  * classes that are tested in their respective test files.
  */
-import { GCodeParser } from "../_parser/GCodeParser";
-import { GCodeFormatter } from "../_formatter/GCodeFormatter";
-import { FormatterSettings } from "../_formatter/types";
+import { GCodeParser } from "../parser/GCodeParser";
+import { GCodeFormatter } from "../formatter/GCodeFormatter";
+import { FormatterSettings } from "../formatter/types";
 import { DEFAULT_FORMATTER_SETTINGS, GCodeSymbols } from "../constants";
-import { GCodeLexer } from "../_lexer/GCodeLexer";
-import { AstTraverser } from "../_parser/AstTraverser";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { AstTraverser } from "../parser/AstTraverser";
 
 /**
  * Helper function that mimics what the server does when formatting

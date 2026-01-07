@@ -1,5 +1,5 @@
-import { AstTraverser } from "../_parser/AstTraverser";
-import { AstVisitor } from "../_parser/AstVisitor";
+import { AstTraverser } from "../parser/AstTraverser";
+import { AstVisitor } from "../parser/AstVisitor";
 import {
   AxisParameterNode,
   BinaryExpressionNode,
@@ -19,15 +19,15 @@ import {
   WhileStatementNode,
   IfClauseNode,
   ElseClauseNode,
-} from "../_parser/nodes";
+} from "../parser/nodes";
 import {
   GCodeSymbols,
   GCodeKeywords,
   DEFAULTS,
   DEFAULT_FORMATTER_SETTINGS,
 } from "../constants";
-import { TokenType } from "../_parser/nodes/tokens";
-import { FormatterSettings } from "../_formatter/types";
+import { TokenType } from "../parser/nodes/tokens";
+import { FormatterSettings } from "./types";
 
 export class GCodeFormatter extends AstVisitor<void> {
   private lines: string[] = [];

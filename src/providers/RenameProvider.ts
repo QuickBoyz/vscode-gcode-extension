@@ -6,13 +6,13 @@
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextEdit, WorkspaceEdit } from "vscode-languageserver/node";
-import { AstTraverser } from "../_parser/AstTraverser";
+import { AstTraverser } from "../parser/AstTraverser";
 import {
   Position,
   Range,
   VariableAssignmentNode,
   VariableReferenceNode,
-} from "../_parser/nodes";
+} from "../parser/nodes";
 import {
   DocumentStateManager,
   GCodeSettings,

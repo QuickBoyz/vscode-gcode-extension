@@ -2,7 +2,7 @@
 import {
   BinaryOperatorType,
   UnaryOperatorType,
-} from "../_parser/nodes/expressions";
+} from "./nodes/expressions";
 import { REGEX_PATTERNS } from "../constants";
 import { rangeFrom } from "./helpers";
 import {

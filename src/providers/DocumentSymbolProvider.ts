@@ -6,8 +6,8 @@
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentSymbol, SymbolKind } from "vscode-languageserver/node";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { VariableAssignmentNode } from "../_parser/nodes";
+import { AstTraverser } from "../parser/AstTraverser";
+import { VariableAssignmentNode } from "../parser/nodes";
 import {
   DocumentStateManager,
   GCodeSettings,

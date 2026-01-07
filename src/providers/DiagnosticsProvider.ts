@@ -13,9 +13,9 @@ import {
   DocumentStateManager,
   GCodeSettings,
 } from "./DocumentStateManager";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { AstVisitor } from "../_parser/AstVisitor";
-import { ErrorNode, ProgramNode } from "../_parser/nodes";
+import { AstTraverser } from "../parser/AstTraverser";
+import { AstVisitor } from "../parser/AstVisitor";
+import { ErrorNode, ProgramNode } from "../parser/nodes";
 
 /**
  * Visitor to collect ErrorNodes from the AST
