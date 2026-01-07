@@ -4,17 +4,19 @@
  * Provides highlighting for all occurrences of a variable when the cursor
  * is positioned on it. Used for rename previews.
  */
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   DocumentHighlight,
   DocumentHighlightKind,
-  Position,
 } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentStateManager } from "./DocumentStateManager";
-import { VariableSymbolCollector } from "./VariableSymbolCollector";
-import { astRangeToLspRange } from "./RenameUtils";
 import { AstTraverser } from "../_parser/AstTraverser";
-import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
+import { Position, VariableAssignmentNode } from "../_parser/nodes";
+import {
+  DocumentStateManager,
+  GCodeSettings,
+} from "./DocumentStateManager";
+import { getVariableNameRange } from "./RenameUtils";
+import { VariableSymbolCollector } from "./VariableSymbolCollector";
 
 /**
  * Document Highlight Provider
@@ -29,18 +31,19 @@ export class DocumentHighlightProvider {
    */
   provideDocumentHighlights(
     document: TextDocument,
-    position: Position
+    position: Position,
+    settings: GCodeSettings
   ): DocumentHighlight[] | null {
     const state = this.stateManager.getOrParseDocumentFromTextDocument(
       document,
-      { formatter: DEFAULT_FORMATTER_SETTINGS }
+      settings
     );
 
     const collector = new VariableSymbolCollector();
     const traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
-    const symbol = collector.findSymbolAtPosition(position, document);
+    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
@@ -54,15 +57,20 @@ export class DocumentHighlightProvider {
     // Create highlights
     const highlights: DocumentHighlight[] = [];
 
-    for (const sym of allSymbols) {
-      const range = astRangeToLspRange(sym.getRange());
+    for (const symbol of allSymbols) {
+      const variableRange = getVariableNameRange(symbol);
+      if (!variableRange) {
+        continue;
+      }
+
+      // All assignments are Write, all references are Read
       const kind =
-        sym === collector.getDefinition(symbol.name)
+        symbol instanceof VariableAssignmentNode
           ? DocumentHighlightKind.Write
           : DocumentHighlightKind.Read;
 
       highlights.push({
-        range,
+        range: variableRange,
         kind,
       });
     }
@@ -70,4 +78,3 @@ export class DocumentHighlightProvider {
     return highlights;
   }
 }
-

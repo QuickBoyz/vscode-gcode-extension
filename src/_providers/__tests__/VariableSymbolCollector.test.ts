@@ -4,9 +4,12 @@
 import { VariableSymbolCollector } from "../VariableSymbolCollector";
 import { GCodeLexer } from "../../_lexer/GCodeLexer";
 import { GCodeParser } from "../../_parser/GCodeParser";
-import { ProgramNode } from "../../_parser/nodes";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Position } from "vscode-languageserver/node";
+import {
+  ProgramNode,
+  VariableAssignmentNode,
+  VariableReferenceNode,
+} from "../../_parser/nodes";
+import { Position } from "../../_parser/nodes";
 
 describe("VariableSymbolCollector", () => {
   function parse(text: string): ProgramNode {
@@ -101,7 +104,9 @@ describe("VariableSymbolCollector", () => {
 
   describe("getReferences", () => {
     it("should return all references for a variable", () => {
-      const program = parse("#<x> = 10\n#<y> = #<x>\n#<z> = #<x> + #<x>");
+      const program = parse(
+        "#<x> = 10\n#<y> = #<x>\n#<z> = #<x> + #<x>"
+      );
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
@@ -138,6 +143,24 @@ describe("VariableSymbolCollector", () => {
       expect(symbols[2].name).toBe("x");
     });
 
+    it("should return all assignments (multiple definitions) and all references", () => {
+      const program = parse(
+        "#<x> = 10\n#<y> = #<x>\n#<x> = 20\n#<z> = #<x>"
+      );
+      const collector = new VariableSymbolCollector();
+      collector.collect(program);
+
+      const symbols = collector.getAllSymbols("x");
+
+      expect(symbols.length).toBe(4); // 2 definitions + 2 references
+      // First two should be assignments
+      expect(symbols[0]).toBeInstanceOf(VariableAssignmentNode);
+      expect(symbols[1]).toBeInstanceOf(VariableAssignmentNode);
+      // Last two should be references
+      expect(symbols[2]).toBeInstanceOf(VariableReferenceNode);
+      expect(symbols[3]).toBeInstanceOf(VariableReferenceNode);
+    });
+
     it("should return only definition if no references", () => {
       const program = parse("#<x> = 10");
       const collector = new VariableSymbolCollector();
@@ -147,6 +170,22 @@ describe("VariableSymbolCollector", () => {
 
       expect(symbols.length).toBe(1);
       expect(symbols[0].name).toBe("x");
+    });
+
+    it("should return all assignments if variable is reassigned multiple times", () => {
+      const program = parse("#<x> = 10\n#<x> = 20\n#<x> = 30");
+      const collector = new VariableSymbolCollector();
+      collector.collect(program);
+
+      const allDefinitions =
+        collector.getAllDefinitionsForVariable("x");
+      expect(allDefinitions.length).toBe(3);
+
+      const symbols = collector.getAllSymbols("x");
+      expect(symbols.length).toBe(3); // All 3 assignments, no references
+      expect(
+        symbols.every((s) => s instanceof VariableAssignmentNode)
+      ).toBe(true);
     });
 
     it("should return only references if no definition", () => {
@@ -161,18 +200,28 @@ describe("VariableSymbolCollector", () => {
     });
   });
 
-  describe("getAllDefinitions", () => {
-    it("should return all definitions as a Map", () => {
+  describe("getAllVariableNames", () => {
+    it("should return all variable names that have definitions", () => {
       const program = parse("#<x> = 10\n#<y> = 20\n#1 = 30");
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
-      const definitions = collector.getAllDefinitions();
+      const variableNames = collector.getAllVariableNames();
 
-      expect(definitions.size).toBe(3);
-      expect(definitions.get("x")?.name).toBe("x");
-      expect(definitions.get("y")?.name).toBe("y");
-      expect(definitions.get(1)?.name).toBe(1);
+      expect(variableNames.length).toBe(3);
+      expect(variableNames).toContain("x");
+      expect(variableNames).toContain("y");
+      expect(variableNames).toContain(1);
+    });
+
+    it("should return empty array when no definitions exist", () => {
+      const program = parse("G0 X0");
+      const collector = new VariableSymbolCollector();
+      collector.collect(program);
+
+      const variableNames = collector.getAllVariableNames();
+
+      expect(variableNames.length).toBe(0);
     });
   });
 
@@ -180,13 +229,12 @@ describe("VariableSymbolCollector", () => {
     it("should find symbol at definition position", () => {
       const text = "#<x> = 10";
       const program = parse(text);
-      const document = TextDocument.create("file:///test.nc", "gcode", 1, text);
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
       // Position at the start of #<x>
       const position = Position.create(0, 0);
-      const symbol = collector.findSymbolAtPosition(position, document);
+      const symbol = collector.findSymbolAtPosition(position);
 
       expect(symbol).toBeDefined();
       expect(symbol?.name).toBe("x");
@@ -196,14 +244,13 @@ describe("VariableSymbolCollector", () => {
     it("should find symbol at reference position", () => {
       const text = "#<x> = 10\n#<y> = #<x>";
       const program = parse(text);
-      const document = TextDocument.create("file:///test.nc", "gcode", 1, text);
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
       // Position at the 'x' character in "#<x>" on the second line
       // "#<y> = " is 7 chars, "#<x>" spans positions 7-10, 'x' is at position 9
       const position = Position.create(1, 9);
-      const symbol = collector.findSymbolAtPosition(position, document);
+      const symbol = collector.findSymbolAtPosition(position);
 
       expect(symbol).toBeDefined();
       expect(symbol?.name).toBe("x");
@@ -213,13 +260,12 @@ describe("VariableSymbolCollector", () => {
     it("should return null if position is not on a variable", () => {
       const text = "#<x> = 10\nG0 X0";
       const program = parse(text);
-      const document = TextDocument.create("file:///test.nc", "gcode", 1, text);
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
       // Position at "G0"
       const position = Position.create(1, 0);
-      const symbol = collector.findSymbolAtPosition(position, document);
+      const symbol = collector.findSymbolAtPosition(position);
 
       expect(symbol).toBeNull();
     });
@@ -227,13 +273,12 @@ describe("VariableSymbolCollector", () => {
     it("should handle position at end of variable", () => {
       const text = "#<x> = 10";
       const program = parse(text);
-      const document = TextDocument.create("file:///test.nc", "gcode", 1, text);
       const collector = new VariableSymbolCollector();
       collector.collect(program);
 
       // Position at end of #<x>
       const position = Position.create(0, 3);
-      const symbol = collector.findSymbolAtPosition(position, document);
+      const symbol = collector.findSymbolAtPosition(position);
 
       expect(symbol).toBeDefined();
       expect(symbol?.name).toBe("x");
@@ -281,4 +326,3 @@ describe("VariableSymbolCollector", () => {
     });
   });
 });
-

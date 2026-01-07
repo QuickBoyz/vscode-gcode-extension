@@ -1,10 +1,11 @@
-import { Range, TextEdit } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { TextEdit } from "vscode-languageserver/node";
 import { GCodeFormatter } from "../_formatter/GCodeFormatter";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { GCodeParser } from "../_parser/GCodeParser";
 import { FormatterSettings } from "../_formatter/types";
 import { GCodeLexer } from "../_lexer/GCodeLexer";
+import { AstTraverser } from "../_parser/AstTraverser";
+import { GCodeParser } from "../_parser/GCodeParser";
+import { Range } from "../_parser/nodes";
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterSettings): string {
@@ -29,8 +30,10 @@ export class FormatterService {
       TextEdit.replace(
         range ??
           Range.create(
-            { line: 0, character: 0 },
-            document.positionAt(document.getText().length)
+            0,
+            0,
+            document.positionAt(document.getText().length).line,
+            document.positionAt(document.getText().length).character
           ),
         formatted
       ),

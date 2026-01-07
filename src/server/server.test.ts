@@ -8,10 +8,7 @@
 import { GCodeParser } from "../_parser/GCodeParser";
 import { GCodeFormatter } from "../_formatter/GCodeFormatter";
 import { FormatterSettings } from "../_formatter/types";
-import {
-  DEFAULT_FORMATTER_SETTINGS,
-  GCODE_SYMBOLS,
-} from "../constants";
+import { DEFAULT_FORMATTER_SETTINGS, GCodeSymbols } from "../constants";
 import { GCodeLexer } from "../_lexer/GCodeLexer";
 import { AstTraverser } from "../_parser/AstTraverser";
 
@@ -47,18 +44,18 @@ function formatGCode(
 
     // Check if formatted text starts with % (ignoring leading whitespace)
     const startsWithDelimiter = trimmedFormatted.startsWith(
-      GCODE_SYMBOLS.PROGRAM_DELIMITER
+      GCodeSymbols.PROGRAM_DELIMITER
     );
     // Check if formatted text ends with % (ignoring trailing whitespace)
     const endsWithDelimiter = trimmedFormatted.endsWith(
-      GCODE_SYMBOLS.PROGRAM_DELIMITER
+      GCodeSymbols.PROGRAM_DELIMITER
     );
 
     // Add delimiter at the beginning if not present
     if (!startsWithDelimiter) {
       formattedText =
-        GCODE_SYMBOLS.PROGRAM_DELIMITER +
-        GCODE_SYMBOLS.NEWLINE +
+        GCodeSymbols.PROGRAM_DELIMITER +
+        GCodeSymbols.NEWLINE +
         formattedText;
     }
 
@@ -66,8 +63,8 @@ function formatGCode(
     if (!endsWithDelimiter) {
       formattedText =
         formattedText +
-        GCODE_SYMBOLS.NEWLINE +
-        GCODE_SYMBOLS.PROGRAM_DELIMITER;
+        GCodeSymbols.NEWLINE +
+        GCodeSymbols.PROGRAM_DELIMITER;
     }
   }
 
@@ -235,9 +232,19 @@ describe("Language Server Formatting", () => {
   });
 
   describe("error handling", () => {
-    it("should throw an error for invalid G-code", () => {
-      // This should throw a parsing error
-      expect(() => formatGCode("INVALID SYNTAX !!!")).toThrow();
+    it("should handle syntax errors gracefully without crashing", () => {
+      // The formatter should handle syntax errors gracefully
+      // It may return formatted output with error nodes, or return null
+      const result = formatGCode("INVALID SYNTAX !!!");
+      // Should not throw - may return formatted text with error markers or null
+      expect(result).toBeDefined();
+    });
+
+    it("should handle invalid variable assignments gracefully", () => {
+      // Test the specific case reported: invalid characters in variable assignment
+      const result = formatGCode("#<feed> = 1000.0a");
+      // Should not throw - should handle the error gracefully
+      expect(result).toBeDefined();
     });
   });
 
@@ -305,8 +312,8 @@ G1 X10 (feed move)`;
 
       const result = formatGCode(input);
 
-      expect(result).toContain(";Header comment");
-      expect(result).toContain(";Move to origin");
+      expect(result).toContain("; Header comment");
+      expect(result).toContain("; Move to origin");
       expect(result).toContain("(feed move)");
     });
   });
