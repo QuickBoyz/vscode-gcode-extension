@@ -21,8 +21,8 @@ import {
   ElseClauseNode,
 } from "../_parser/nodes";
 import {
-  GCODE_SYMBOLS,
-  GCODE_KEYWORDS,
+  GCodeSymbols,
+  GCodeKeywords,
   DEFAULTS,
   DEFAULT_FORMATTER_SETTINGS,
 } from "../constants";
@@ -63,11 +63,11 @@ export class GCodeFormatter extends AstVisitor<void> {
   private indentString() {
     return this.settings.indent && this.currentIndent > 0
       ? this.settings.useTabs
-        ? GCODE_SYMBOLS.TAB.repeat(this.currentIndent)
-        : GCODE_SYMBOLS.SPACE.repeat(
+        ? GCodeSymbols.TAB.repeat(this.currentIndent)
+        : GCodeSymbols.SPACE.repeat(
             this.currentIndent * this.settings.indentSize
           )
-      : GCODE_SYMBOLS.EMPTY_STRING;
+      : GCodeSymbols.EMPTY_STRING;
   }
 
   private decrementIndent() {
@@ -80,7 +80,7 @@ export class GCodeFormatter extends AstVisitor<void> {
   private linePrefix(): string {
     return this.settings.addLineNumbers
       ? `N${this.currentFormattedLineNumber} `
-      : GCODE_SYMBOLS.EMPTY_STRING;
+      : GCodeSymbols.EMPTY_STRING;
   }
 
   /**
@@ -169,7 +169,7 @@ export class GCodeFormatter extends AstVisitor<void> {
     // gap === 2 means exactly one empty line, gap === 3 means two empty lines, etc.
     if (gap > 1 && !this.settings.compactOutput) {
       // Always add exactly one empty line (collapses multiple empty lines to one)
-      this.addLine(GCODE_SYMBOLS.EMPTY_STRING);
+      this.addLine(GCodeSymbols.EMPTY_STRING);
     }
 
     this.lastSourceLineNumber = currentSourceLine;
@@ -200,9 +200,7 @@ export class GCodeFormatter extends AstVisitor<void> {
   visitIfClause(node: IfClauseNode) {
     this.handleLineGap(node.getRange().start.line);
     const isElseIf = node.kind === TokenType.ELSEIF;
-    const keyword = isElseIf
-      ? GCODE_KEYWORDS.ELSEIF
-      : GCODE_KEYWORDS.IF;
+    const keyword = isElseIf ? GCodeKeywords.ELSEIF : GCodeKeywords.IF;
 
     if (isElseIf) {
       this.decrementIndent();
@@ -211,9 +209,7 @@ export class GCodeFormatter extends AstVisitor<void> {
       `${this.formatLabel(
         node.label
       )}${keyword} [${this.formatExpression(node.condition)}]${
-        !isElseIf
-          ? ` ${GCODE_KEYWORDS.THEN}`
-          : GCODE_SYMBOLS.EMPTY_STRING
+        !isElseIf ? ` ${GCodeKeywords.THEN}` : GCodeSymbols.EMPTY_STRING
       }`
     );
     this.incrementIndent();
@@ -223,7 +219,7 @@ export class GCodeFormatter extends AstVisitor<void> {
     this.handleLineGap(node.getRange().start.line);
     this.decrementIndent();
     this.addLine(
-      `${this.formatLabel(node.label)}${GCODE_KEYWORDS.ELSE}`
+      `${this.formatLabel(node.label)}${GCodeKeywords.ELSE}`
     );
     this.incrementIndent();
   }
@@ -232,16 +228,14 @@ export class GCodeFormatter extends AstVisitor<void> {
     this.handleLineGap(node.getRange().end.line);
     this.decrementIndent();
     this.addLine(
-      `${this.formatLabel(node.label)}${GCODE_KEYWORDS.ENDIF}`
+      `${this.formatLabel(node.label)}${GCodeKeywords.ENDIF}`
     );
   }
 
   visitWhileStatementEnd(node: WhileStatementNode) {
     this.handleLineGap(node.getRange().end.line);
     this.decrementIndent();
-    this.addLine(
-      `${this.formatLabel(node.label)}${GCODE_KEYWORDS.END}`
-    );
+    this.addLine(`${this.formatLabel(node.label)}${GCodeKeywords.END}`);
   }
 
   visitComment(node: CommentNode) {
@@ -265,8 +259,8 @@ export class GCodeFormatter extends AstVisitor<void> {
     const condition = this.formatExpression(node.condition);
     this.addLine(
       `${this.formatLabel(node.label)}${
-        GCODE_KEYWORDS.WHILE
-      } [${condition}] ${GCODE_KEYWORDS.DO}`
+        GCodeKeywords.WHILE
+      } [${condition}] ${GCodeKeywords.DO}`
     );
     this.incrementIndent();
   }
@@ -274,7 +268,7 @@ export class GCodeFormatter extends AstVisitor<void> {
   private formatLabel(label?: string): string {
     return label
       ? `${label?.toUpperCase()} `
-      : GCODE_SYMBOLS.EMPTY_STRING;
+      : GCodeSymbols.EMPTY_STRING;
   }
 
   visitMotionCommand(node: MotionCommandNode) {
@@ -332,9 +326,9 @@ export class GCodeFormatter extends AstVisitor<void> {
 
   private formatVariableName(name: string | number): string {
     if (typeof name === "number") {
-      return `${GCODE_SYMBOLS.VARIABLE_PREFIX}${name}`;
+      return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
     }
-    return `${GCODE_SYMBOLS.NAMED_VAR_OPEN}${name}${GCODE_SYMBOLS.NAMED_VAR_CLOSE}`;
+    return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
   }
 
   private formatExpression(node: ExpressionNode): string {
@@ -366,26 +360,26 @@ export class GCodeFormatter extends AstVisitor<void> {
       return `${node.name}[${this.formatExpression(node.argument)}]`;
     }
 
-    return GCODE_SYMBOLS.EMPTY_STRING;
+    return GCodeSymbols.EMPTY_STRING;
   }
 
   // --- Output ---
   getOutput(): string {
     if (this.lines.length === 0) {
-      return GCODE_SYMBOLS.EMPTY_STRING;
+      return GCodeSymbols.EMPTY_STRING;
     }
     if (this.settings.addProgramDelimiters) {
-      if (!this.lines[0].startsWith(GCODE_SYMBOLS.PROGRAM_DELIMITER)) {
-        this.lines.unshift(GCODE_SYMBOLS.PROGRAM_DELIMITER);
+      if (!this.lines[0].startsWith(GCodeSymbols.PROGRAM_DELIMITER)) {
+        this.lines.unshift(GCodeSymbols.PROGRAM_DELIMITER);
       }
       if (
         !this.lines[this.lines.length - 1].endsWith(
-          GCODE_SYMBOLS.PROGRAM_DELIMITER
+          GCodeSymbols.PROGRAM_DELIMITER
         )
       ) {
-        this.lines.push(GCODE_SYMBOLS.PROGRAM_DELIMITER);
+        this.lines.push(GCodeSymbols.PROGRAM_DELIMITER);
       }
     }
-    return this.lines.join(GCODE_SYMBOLS.NEWLINE);
+    return this.lines.join(GCodeSymbols.NEWLINE);
   }
 }

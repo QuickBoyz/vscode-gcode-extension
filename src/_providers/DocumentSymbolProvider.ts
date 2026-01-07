@@ -4,17 +4,16 @@
  * Provides symbol information for the outline view.
  * Lists all variable definitions in the document.
  */
-import {
-  DocumentSymbol,
-  SymbolKind,
-} from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DocumentStateManager } from "./DocumentStateManager";
-import { VariableSymbolCollector } from "./VariableSymbolCollector";
-import { formatVariableName, astRangeToLspRange } from "./RenameUtils";
+import { DocumentSymbol, SymbolKind } from "vscode-languageserver/node";
 import { AstTraverser } from "../_parser/AstTraverser";
-import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
 import { VariableAssignmentNode } from "../_parser/nodes";
+import {
+  DocumentStateManager,
+  GCodeSettings,
+} from "./DocumentStateManager";
+import { formatVariableName } from "./RenameUtils";
+import { VariableSymbolCollector } from "./VariableSymbolCollector";
 
 /**
  * Document Symbol Provider
@@ -27,25 +26,34 @@ export class DocumentSymbolProvider {
   /**
    * Provide document symbols (variable definitions) for the outline view
    */
-  provideDocumentSymbols(document: TextDocument): DocumentSymbol[] {
+  provideDocumentSymbols(
+    document: TextDocument,
+    settings: GCodeSettings
+  ): DocumentSymbol[] {
     const state = this.stateManager.getOrParseDocumentFromTextDocument(
       document,
-      { formatter: DEFAULT_FORMATTER_SETTINGS }
+      settings
     );
 
     const collector = new VariableSymbolCollector();
     const traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
-    const definitions = collector.getAllDefinitions();
     const symbols: DocumentSymbol[] = [];
 
-    for (const [name, definition] of definitions.entries()) {
-      const fullRange = astRangeToLspRange(definition.getRange());
-      
+    // Get all variable names and their first definition for the outline
+    for (const name of collector.getAllVariableNames()) {
+      const allDefinitions =
+        collector.getAllDefinitionsForVariable(name);
+      if (allDefinitions.length === 0) continue;
+
+      // Use the first definition for the outline view
+      const definition = allDefinitions[0];
+      const fullRange = definition.getRange();
+
       // For selection range, we want just the variable name part
       // The variable name is at the start of the range
-      const variableNameRange = astRangeToLspRange(definition.getRange());
+      const variableNameRange = definition.getRange();
       // Adjust selection range to just the variable name
       // For #<x> = 10, we want to select just #<x>
       const formattedName = formatVariableName(name);
@@ -53,7 +61,8 @@ export class DocumentSymbolProvider {
         start: variableNameRange.start,
         end: {
           line: variableNameRange.start.line,
-          character: variableNameRange.start.character + formattedName.length,
+          character:
+            variableNameRange.start.character + formattedName.length,
         },
       };
 
@@ -80,10 +89,11 @@ export class DocumentSymbolProvider {
   /**
    * Get detail information for a variable (optional value info)
    */
-  private getVariableDetail(definition: VariableAssignmentNode): string | undefined {
-    // Could extract value information if needed
+  private getVariableDetail(
+    definition: VariableAssignmentNode
+  ): string | undefined {
+    // TODO: Extract value information if needed
     // For now, return undefined
     return undefined;
   }
 }
-

@@ -8,6 +8,7 @@ export class FunctionCallNode extends ExpressionNode {
     range: Range,
     public readonly name: string,
     public readonly argument: ExpressionNode,
+    public readonly funcTokenRange: Range,
     parent?: AstNode
   ) {
     super(range, parent);

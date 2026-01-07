@@ -4,16 +4,20 @@
  * Visitor that collects all variable definitions and references from the AST.
  * Provides fast lookup methods for finding variables by name or position.
  */
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { Position } from "vscode-languageserver/node";
-import { AstVisitor } from "../_parser/AstVisitor";
 import { AstTraverser } from "../_parser/AstTraverser";
+import { AstVisitor } from "../_parser/AstVisitor";
 import {
+  Position,
   ProgramNode,
+  Range,
   VariableAssignmentNode,
   VariableReferenceNode,
 } from "../_parser/nodes";
-import { Range } from "../_parser/nodes/Range";
+
+export enum VariableSymbolKind {
+  Definition = "definition",
+  Reference = "reference",
+}
 
 /**
  * Represents a variable symbol (definition or reference)
@@ -21,7 +25,7 @@ import { Range } from "../_parser/nodes/Range";
 export interface VariableSymbol {
   name: string | number;
   range: Range;
-  kind: "definition" | "reference";
+  kind: VariableSymbolKind;
   node: VariableAssignmentNode | VariableReferenceNode;
 }
 
@@ -33,8 +37,14 @@ export interface VariableSymbol {
  * and grouped references by variable name.
  */
 export class VariableSymbolCollector extends AstVisitor<void> {
-  private definitions = new Map<string | number, VariableAssignmentNode>();
-  private references = new Map<string | number, VariableReferenceNode[]>();
+  private definitions = new Map<
+    string | number,
+    VariableAssignmentNode[]
+  >();
+  private references = new Map<
+    string | number,
+    VariableReferenceNode[]
+  >();
   private allSymbols: VariableSymbol[] = [];
 
   /**
@@ -55,11 +65,13 @@ export class VariableSymbolCollector extends AstVisitor<void> {
    * Visit variable assignment (definition)
    */
   visitVariableAssignment(node: VariableAssignmentNode): void {
-    this.definitions.set(node.name, node);
+    const existing = this.getAllDefinitionsForVariable(node.name);
+    existing.push(node);
+    this.definitions.set(node.name, existing);
     this.allSymbols.push({
       name: node.name,
       range: node.getRange(),
-      kind: "definition",
+      kind: VariableSymbolKind.Definition,
       node,
     });
   }
@@ -68,24 +80,35 @@ export class VariableSymbolCollector extends AstVisitor<void> {
    * Visit variable reference
    */
   visitVariableReference(node: VariableReferenceNode): void {
-    const existing = this.references.get(node.name) || [];
+    const existing = this.getReferences(node.name);
     existing.push(node);
     this.references.set(node.name, existing);
     this.allSymbols.push({
       name: node.name,
       range: node.getRange(),
-      kind: "reference",
+      kind: VariableSymbolKind.Reference,
       node,
     });
   }
 
   /**
-   * Get definition for a variable name (O(1) lookup)
+   * Get the first definition for a variable name (O(1) lookup)
+   * Returns the first assignment found, or undefined if none exists
    */
   getDefinition(
     name: string | number
   ): VariableAssignmentNode | undefined {
-    return this.definitions.get(name);
+    const definitions = this.getAllDefinitionsForVariable(name);
+    return definitions.length > 0 ? definitions[0] : undefined;
+  }
+
+  /**
+   * Get all definitions (assignments) for a variable name
+   */
+  getAllDefinitionsForVariable(
+    name: string | number
+  ): VariableAssignmentNode[] {
+    return this.definitions.get(name) || [];
   }
 
   /**
@@ -96,40 +119,38 @@ export class VariableSymbolCollector extends AstVisitor<void> {
   }
 
   /**
-   * Get all symbols (definition + references) for a variable name
+   * Get all symbols (all definitions/assignments + all references) for a variable name
    */
   getAllSymbols(
     name: string | number
   ): Array<VariableAssignmentNode | VariableReferenceNode> {
-    const result: Array<VariableAssignmentNode | VariableReferenceNode> = [];
-    const definition = this.getDefinition(name);
-    if (definition) {
-      result.push(definition);
-    }
+    const result: Array<
+      VariableAssignmentNode | VariableReferenceNode
+    > = [];
+    // Add all assignments (definitions)
+    result.push(...this.getAllDefinitionsForVariable(name));
+    // Add all references
     result.push(...this.getReferences(name));
     return result;
   }
 
   /**
-   * Get all definitions as a Map
+   * Get all variable names that have definitions
    */
-  getAllDefinitions(): Map<string | number, VariableAssignmentNode> {
-    return new Map(this.definitions);
+  getAllVariableNames(): Array<string | number> {
+    return Array.from(this.definitions.keys());
   }
 
   /**
    * Find symbol at a specific LSP position
    * Returns the symbol with the smallest (most specific) range if multiple match
    */
-  findSymbolAtPosition(
-    position: Position,
-    document: TextDocument
-  ): VariableSymbol | null {
+  findSymbolAtPosition(position: Position): VariableSymbol | null {
     let bestMatch: VariableSymbol | null = null;
     let smallestRangeSize = Infinity;
 
     for (const symbol of this.allSymbols) {
-      if (this.isPositionInRange(position, symbol.range)) {
+      if (Range.isPositionInRange(position, symbol.range)) {
         const rangeSize =
           (symbol.range.end.line - symbol.range.start.line) * 1000 +
           (symbol.range.end.character - symbol.range.start.character);
@@ -140,32 +161,6 @@ export class VariableSymbolCollector extends AstVisitor<void> {
       }
     }
     return bestMatch;
-  }
-
-  /**
-   * Check if LSP position is within AST range
-   */
-  private isPositionInRange(position: Position, range: Range): boolean {
-    const start = range.start;
-    const end = range.end;
-
-    // Check if position is after start
-    if (position.line < start.line) {
-      return false;
-    }
-    if (position.line === start.line && position.character < start.character) {
-      return false;
-    }
-
-    // Check if position is before end
-    if (position.line > end.line) {
-      return false;
-    }
-    if (position.line === end.line && position.character > end.character) {
-      return false;
-    }
-
-    return true;
   }
 
   // Required visitor methods - no-op for other node types
@@ -188,4 +183,3 @@ export class VariableSymbolCollector extends AstVisitor<void> {
   visitComment(): void {}
   visitError(): void {}
 }
-
