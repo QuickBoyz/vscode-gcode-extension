@@ -3,7 +3,7 @@
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentHighlightKind } from "vscode-languageserver/node";
-import { Position } from "../../_parser/nodes";
+import { Position } from "../../parser/nodes";
 import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
 import { DocumentHighlightProvider } from "../DocumentHighlightProvider";
 import {

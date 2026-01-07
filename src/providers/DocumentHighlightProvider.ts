@@ -9,8 +9,8 @@ import {
   DocumentHighlight,
   DocumentHighlightKind,
 } from "vscode-languageserver/node";
-import { AstTraverser } from "../_parser/AstTraverser";
-import { Position, VariableAssignmentNode } from "../_parser/nodes";
+import { AstTraverser } from "../parser/AstTraverser";
+import { Position, VariableAssignmentNode } from "../parser/nodes";
 import {
   DocumentStateManager,
   GCodeSettings,

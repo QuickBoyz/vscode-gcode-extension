@@ -1,4 +1,4 @@
-import { GCodeLexer } from "../../_lexer/GCodeLexer";
+import { GCodeLexer } from "../../lexer/GCodeLexer";
 import { GCodeParser } from "../GCodeParser";
 import { AstTraverser } from "../AstTraverser";
 import {
