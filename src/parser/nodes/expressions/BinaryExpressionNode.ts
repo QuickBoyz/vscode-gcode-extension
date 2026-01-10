@@ -1,8 +1,8 @@
-import { ExpressionNode } from "./ExpressionNode";
-import { AstNode } from "../AstNode";
-import { Range } from "../Range";
-import { AstVisitor } from "../../AstVisitor";
-import { BinaryOperatorType } from "./types";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { Range } from '../Range';
+import { ExpressionNode } from './ExpressionNode';
+import { BinaryOperatorType } from './types';
 
 export class BinaryExpressionNode extends ExpressionNode {
   constructor(

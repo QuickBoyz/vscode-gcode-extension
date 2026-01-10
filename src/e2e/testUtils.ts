@@ -1,6 +1,6 @@
-import * as fs from "fs";
-import * as path from "path";
-import * as vscode from "vscode";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as vscode from 'vscode';
 
 /**
  * Helper utilities for VS Code e2e tests
@@ -12,30 +12,26 @@ export class TestUtils {
 
       // The extension activates on 'onLanguage:gcode', so we MUST open a G-code file first
       // Opening the file will trigger the extension activation
-      await TestUtils.openGCodeDocument("simple.nc");
+      await TestUtils.openGCodeDocument('simple.nc');
 
       // Now wait for extension to activate after opening G-code file
       await TestUtils.waitForLanguageServer(timeout);
     });
 
-    suiteTeardown(async function () {
-      await TestUtils.cleanupAllTestFiles();
-      await TestUtils.resetConfiguration();
+    suiteTeardown(function () {
+      TestUtils.cleanupAllTestFiles();
+      TestUtils.resetConfiguration();
     });
   }
 
   /**
    * Wait for the language server to be ready
    */
-  static async waitForLanguageServer(
-    timeout: number = 10000
-  ): Promise<void> {
+  static async waitForLanguageServer(timeout: number = 10000): Promise<void> {
     const startTime = Date.now();
     // Wait for extension to be activated
     while (Date.now() - startTime < timeout) {
-      const extension = vscode.extensions.getExtension(
-        "QuickBoyz.vscode-gcode-extension"
-      );
+      const extension = vscode.extensions.getExtension('QuickBoyz.vscode-gcode-extension');
       if (!extension) {
         continue;
       }
@@ -44,18 +40,14 @@ export class TestUtils {
       }
       await TestUtils.sleep(100);
     }
-    throw new Error(
-      `Extension did not activate within timeout of ${timeout}ms`
-    );
+    throw new Error(`Extension did not activate within timeout of ${timeout}ms`);
   }
 
   /**
    * Open a G-code document from a file path or filename
    * @param filePathOrName - Either a full file path or a filename to look up in fixtures
    */
-  static async openGCodeDocument(
-    filePathOrName: string
-  ): Promise<vscode.TextDocument> {
+  static async openGCodeDocument(filePathOrName: string): Promise<vscode.TextDocument> {
     // Determine if this is a full path or just a filename
     let filePath: string;
     const workspacePath = this.getWorkspaceFolderPath();
@@ -76,21 +68,14 @@ export class TestUtils {
 
     // Verify file exists
     if (!fs.existsSync(filePath)) {
-      throw new Error(
-        `File not found: ${filePath} (resolved from: ${filePathOrName})`
-      );
+      throw new Error(`File not found: ${filePath} (resolved from: ${filePathOrName})`);
     }
 
     const uri = vscode.Uri.file(filePath);
 
     // Ensure we have a workspace folder
-    if (
-      !vscode.workspace.workspaceFolders ||
-      vscode.workspace.workspaceFolders.length === 0
-    ) {
-      throw new Error(
-        "No workspace folder is open. Files cannot be opened without a workspace."
-      );
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+      throw new Error('No workspace folder is open. Files cannot be opened without a workspace.');
     }
 
     // First, open the document (this loads it into memory)
@@ -114,22 +99,14 @@ export class TestUtils {
     }
 
     // Verify the active editor matches our document
-    if (
-      activeEditor.document.uri.toString() !== document.uri.toString()
-    ) {
+    if (activeEditor.document.uri.toString() !== document.uri.toString()) {
       // Wait a bit more and check again
       await this.sleep(1000);
       const activeEditor2 = vscode.window.activeTextEditor;
-      if (
-        !activeEditor2 ||
-        activeEditor2.document.uri.toString() !==
-          document.uri.toString()
-      ) {
+      if (!activeEditor2 || activeEditor2.document.uri.toString() !== document.uri.toString()) {
         throw new Error(
           `Active editor does not match opened document. ` +
-            `Active: ${
-              activeEditor2?.document.uri.toString() || "none"
-            }, ` +
+            `Active: ${activeEditor2?.document.uri.toString() || 'none'}, ` +
             `Expected: ${document.uri.toString()}, ` +
             `File path: ${filePath}`
         );
@@ -138,7 +115,7 @@ export class TestUtils {
 
     // Verify it's recognized as G-code
     const finalDocument = activeEditor.document;
-    if (finalDocument.languageId !== "gcode") {
+    if (finalDocument.languageId !== 'gcode') {
       throw new Error(
         `Document language is ${finalDocument.languageId}, expected 'gcode'. File: ${filePath}`
       );
@@ -165,15 +142,15 @@ export class TestUtils {
 
     // Generate filename if not provided
     if (!filename) {
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 10000);
+      const timestamp = Date.now(),
+        random = Math.floor(Math.random() * 10000);
       filename = `test-temp-${timestamp}-${random}.nc`;
     }
 
     const tempFilePath = path.join(workspacePath, filename);
 
     // Write content to file
-    fs.writeFileSync(tempFilePath, content, "utf8");
+    fs.writeFileSync(tempFilePath, content, 'utf8');
 
     // Use the same robust opening method as openGCodeDocument
     const document = await this.openGCodeDocument(tempFilePath);
@@ -200,7 +177,7 @@ export class TestUtils {
     try {
       return await testFunction(document);
     } finally {
-      await this.deleteTestFile(document.uri);
+      this.deleteTestFile(document.uri);
       // Remove from tracking array
       const index = this.createdTestFiles.indexOf(document.uri);
       if (index > -1) {
@@ -212,12 +189,12 @@ export class TestUtils {
   /**
    * Clean up all tracked test files
    */
-  static async cleanupAllTestFiles(): Promise<void> {
+  static cleanupAllTestFiles(): void {
     const filesToClean = [...this.createdTestFiles];
     this.createdTestFiles = [];
 
     for (const uri of filesToClean) {
-      await this.deleteTestFile(uri);
+      this.deleteTestFile(uri);
     }
   }
 
@@ -225,7 +202,7 @@ export class TestUtils {
    * Delete a test file by document URI
    * @param documentUri - The URI of the document to delete
    */
-  static async deleteTestFile(documentUri: vscode.Uri): Promise<void> {
+  static deleteTestFile(documentUri: vscode.Uri): void {
     try {
       const filePath = documentUri.fsPath;
       if (fs.existsSync(filePath)) {
@@ -233,10 +210,7 @@ export class TestUtils {
       }
     } catch (error) {
       // Ignore errors when cleaning up - file might already be deleted
-      console.warn(
-        `Failed to delete test file ${documentUri.fsPath}:`,
-        error
-      );
+      console.warn(`Failed to delete test file ${documentUri.fsPath}:`, error);
     }
   }
 
@@ -244,10 +218,10 @@ export class TestUtils {
    * Delete a test file by filename
    * @param filename - The filename to delete from workspace root
    */
-  static async deleteTestFileByName(filename: string): Promise<void> {
+  static deleteTestFileByName(filename: string): void {
     try {
-      const workspacePath = this.getWorkspaceFolderPath();
-      const filePath = path.join(workspacePath, filename);
+      const workspacePath = this.getWorkspaceFolderPath(),
+        filePath = path.join(workspacePath, filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
@@ -261,9 +235,9 @@ export class TestUtils {
    * Get the extension's workspace folder path
    */
   static getWorkspaceFolderPath(): string {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const { workspaceFolders } = vscode.workspace;
     if (!workspaceFolders || workspaceFolders.length === 0) {
-      throw new Error("No workspace folder found");
+      throw new Error('No workspace folder found');
     }
     return workspaceFolders[0].uri.fsPath;
   }
@@ -272,13 +246,11 @@ export class TestUtils {
    * Find available fixture files for debugging
    */
   private static getFixturePath(filename: string): string {
-    const workspacePath = this.getWorkspaceFolderPath();
-    const filePath = path.join(workspacePath, filename);
+    const workspacePath = this.getWorkspaceFolderPath(),
+      filePath = path.join(workspacePath, filename);
 
     if (!fs.existsSync(filePath)) {
-      throw new Error(
-        `Fixture file '${filename}' not found in workspace ${workspacePath}.`
-      );
+      throw new Error(`Fixture file '${filename}' not found in workspace ${workspacePath}.`);
     }
     return filePath;
   }
@@ -294,7 +266,7 @@ export class TestUtils {
    * Get extension configuration
    */
   static getExtensionConfiguration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration("gcode");
+    return vscode.workspace.getConfiguration('gcode');
   }
 
   /**
@@ -302,9 +274,8 @@ export class TestUtils {
    */
   static async updateConfiguration(
     key: string,
-    value: any,
-    target: vscode.ConfigurationTarget = vscode.ConfigurationTarget
-      .Workspace
+    value: unknown,
+    target: vscode.ConfigurationTarget = vscode.ConfigurationTarget.Workspace
   ): Promise<void> {
     const config = this.getExtensionConfiguration();
     await config.update(key, value, target);
@@ -313,25 +284,21 @@ export class TestUtils {
   /**
    * Reset configuration to default values
    */
-  static async resetConfiguration(): Promise<void> {
-    const config = this.getExtensionConfiguration();
-    const defaults: Record<string, any> = {
-      "formatter.addLineNumbers": false,
-      "formatter.lineNumberStart": 10,
-      "formatter.lineNumberIncrement": 10,
-      "formatter.prettyPrintCommands": true,
-      "formatter.prettyPrintNumbers": true,
-      "formatter.indent": true,
-      "formatter.compactOutput": false,
-      "formatter.addProgramDelimiters": true,
-    };
+  static resetConfiguration(): void {
+    const config = this.getExtensionConfiguration(),
+      defaults: Record<string, unknown> = {
+        'formatter.addLineNumbers': false,
+        'formatter.lineNumberStart': 10,
+        'formatter.lineNumberIncrement': 10,
+        'formatter.prettyPrintCommands': true,
+        'formatter.prettyPrintNumbers': true,
+        'formatter.indent': true,
+        'formatter.compactOutput': false,
+        'formatter.addProgramDelimiters': true,
+      };
 
     for (const [key, value] of Object.entries(defaults)) {
-      await config.update(
-        key,
-        value,
-        vscode.ConfigurationTarget.Workspace
-      );
+      config.update(key, value, vscode.ConfigurationTarget.Workspace);
     }
   }
 }

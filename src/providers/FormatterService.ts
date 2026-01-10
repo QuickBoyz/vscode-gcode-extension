@@ -1,20 +1,21 @@
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { TextEdit } from "vscode-languageserver/node";
-import { GCodeFormatter } from "../formatter/GCodeFormatter";
-import { FormatterSettings } from "../formatter/types";
-import { GCodeLexer } from "../lexer/GCodeLexer";
-import { AstTraverser } from "../parser/AstTraverser";
-import { GCodeParser } from "../parser/GCodeParser";
-import { Range } from "../parser/nodes";
+import { TextEdit } from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { GCodeFormatter } from '../formatter/GCodeFormatter';
+import { FormatterSettings } from '../formatter/types';
+import { GCodeLexer } from '../lexer/GCodeLexer';
+import { AstTraverser } from '../parser/AstTraverser';
+import { GCodeParser } from '../parser/GCodeParser';
+import { Range } from '../parser/nodes';
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterSettings): string {
-    const lexer = new GCodeLexer();
-    const tokens = lexer.tokenize(text);
-    const parser = new GCodeParser(tokens);
-    const program = parser.parseProgram();
-    const formatter = new GCodeFormatter(settings);
-    const traverser = new AstTraverser(formatter);
+    const lexer = new GCodeLexer(),
+      tokens = lexer.tokenize(text),
+      parser = new GCodeParser(tokens),
+      program = parser.parseProgram(),
+      formatter = new GCodeFormatter(settings),
+      traverser = new AstTraverser(formatter);
 
     return formatter.formatGCode(program, traverser);
   }

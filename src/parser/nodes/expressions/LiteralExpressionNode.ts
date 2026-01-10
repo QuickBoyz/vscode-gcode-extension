@@ -1,7 +1,7 @@
-import { ExpressionNode } from "./ExpressionNode";
-import { AstNode } from "../AstNode";
-import { Range } from "../Range";
-import { AstVisitor } from "../../AstVisitor";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { Range } from '../Range';
+import { ExpressionNode } from './ExpressionNode';
 
 export class LiteralExpressionNode extends ExpressionNode {
   constructor(

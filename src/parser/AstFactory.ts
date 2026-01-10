@@ -1,10 +1,6 @@
-// parser/factories/AstFactory.ts
-import {
-  BinaryOperatorType,
-  UnaryOperatorType,
-} from "./nodes/expressions";
-import { REGEX_PATTERNS } from "../constants";
-import { rangeFrom } from "./helpers";
+// Parser/factories/AstFactory.ts
+import { REGEX_PATTERNS } from '../constants';
+import { rangeFrom } from './helpers';
 import {
   AstNode,
   AxisParameterNode,
@@ -25,8 +21,9 @@ import {
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-} from "./nodes";
-import { Token, TokenType } from "./nodes/tokens";
+} from './nodes';
+import { BinaryOperatorType, UnaryOperatorType } from './nodes/expressions';
+import { Token, TokenType } from './nodes/tokens';
 
 export class AstFactory {
   program(
@@ -34,18 +31,10 @@ export class AstFactory {
     hasStartDelimiter: boolean = false,
     hasEndDelimiter: boolean = false
   ): ProgramNode {
-    return new ProgramNode(
-      statements,
-      hasStartDelimiter,
-      hasEndDelimiter
-    );
+    return new ProgramNode(statements, hasStartDelimiter, hasEndDelimiter);
   }
 
-  variableAssignment(
-    variable: Token,
-    value: ExpressionNode,
-    parent?: AstNode
-  ) {
+  variableAssignment(variable: Token, value: ExpressionNode, parent?: AstNode) {
     return new VariableAssignmentNode(
       rangeFrom(variable, value),
       this.getVariableName(variable),
@@ -56,12 +45,7 @@ export class AstFactory {
   }
 
   functionCall(func: Token, argument: ExpressionNode) {
-    return new FunctionCallNode(
-      rangeFrom(func, argument),
-      func.value,
-      argument,
-      rangeFrom(func)
-    );
+    return new FunctionCallNode(rangeFrom(func, argument), func.value, argument, rangeFrom(func));
   }
 
   ifClause(
@@ -83,12 +67,7 @@ export class AstFactory {
     );
   }
 
-  elseClause(
-    keyword: Token,
-    body: StatementNode[],
-    label?: Token,
-    parent?: AstNode
-  ) {
+  elseClause(keyword: Token, body: StatementNode[], label?: Token, parent?: AstNode) {
     return new ElseClauseNode(
       rangeFrom(keyword, body[body.length - 1]),
       body,
@@ -144,12 +123,7 @@ export class AstFactory {
   }
 
   axisParam(axis: Token, value: ExpressionNode, parent?: AstNode) {
-    return new AxisParameterNode(
-      rangeFrom(axis),
-      axis.value,
-      value,
-      parent
-    );
+    return new AxisParameterNode(rangeFrom(axis), axis.value, value, parent);
   }
 
   binary(left: ExpressionNode, op: Token, right: ExpressionNode) {
@@ -162,11 +136,7 @@ export class AstFactory {
   }
 
   unary(op: Token, expr: ExpressionNode) {
-    return new UnaryExpressionNode(
-      rangeFrom(op, expr),
-      op.value as UnaryOperatorType,
-      expr
-    );
+    return new UnaryExpressionNode(rangeFrom(op, expr), op.value as UnaryOperatorType, expr);
   }
 
   literal(token: Token) {
@@ -174,10 +144,9 @@ export class AstFactory {
   }
 
   getVariableName(token: Token): string | number {
-    const value = token.value;
-
-    // Check for named variable: #<name>
-    const namedMatch = value.match(REGEX_PATTERNS.NAMED_VARIABLE);
+    const { value } = token,
+      // Check for named variable: #<name>
+      namedMatch = value.match(REGEX_PATTERNS.NAMED_VARIABLE);
     if (namedMatch) {
       return namedMatch[1];
     }
@@ -193,18 +162,11 @@ export class AstFactory {
   }
 
   variableRef(token: Token) {
-    return new VariableReferenceNode(
-      rangeFrom(token),
-      this.getVariableName(token)
-    );
+    return new VariableReferenceNode(rangeFrom(token), this.getVariableName(token));
   }
 
   motionCommand(command: Token, params: AxisParameterNode[] = []) {
-    const node = new MotionCommandNode(
-      rangeFrom(command),
-      command.value,
-      params
-    );
+    const node = new MotionCommandNode(rangeFrom(command), command.value, params);
     this.setParents(params, node);
     return node;
   }

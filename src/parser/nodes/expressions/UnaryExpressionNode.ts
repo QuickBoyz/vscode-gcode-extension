@@ -1,8 +1,8 @@
-import { UnaryOperatorType } from "./types";
-import { AstVisitor } from "../../AstVisitor";
-import { AstNode } from "../AstNode";
-import { ExpressionNode } from "./ExpressionNode";
-import { Range } from "../Range";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { Range } from '../Range';
+import { ExpressionNode } from './ExpressionNode';
+import { UnaryOperatorType } from './types';
 
 export class UnaryExpressionNode extends ExpressionNode {
   constructor(

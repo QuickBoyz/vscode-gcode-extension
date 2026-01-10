@@ -1,16 +1,11 @@
-import { SemanticTokensBuilder } from "vscode-languageserver/node";
-import { Range } from "../parser/nodes";
+import { SemanticTokensBuilder } from 'vscode-languageserver/node';
+
+import { Range } from '../parser/nodes';
 
 export class GCodeSemanticTokensBuilder {
   private builder = new SemanticTokensBuilder();
 
-  push(
-    line: number,
-    char: number,
-    length: number,
-    tokenTypeIndex: number,
-    modifierMask = 0
-  ) {
+  push(line: number, char: number, length: number, tokenTypeIndex: number, modifierMask = 0) {
     this.builder.push(line, char, length, tokenTypeIndex, modifierMask);
   }
 

@@ -4,11 +4,12 @@
  * Caches parsed ASTs, lexer, parser, and settings per document URI
  * to avoid redundant parsing and re-instantiation.
  */
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { GCodeLexer } from "../lexer/GCodeLexer";
-import { GCodeParser } from "../parser/GCodeParser";
-import { ProgramNode } from "../parser/nodes";
-import { FormatterSettings } from "../formatter/types";
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { FormatterSettings } from '../formatter/types';
+import { GCodeLexer } from '../lexer/GCodeLexer';
+import { GCodeParser } from '../parser/GCodeParser';
+import { ProgramNode } from '../parser/nodes';
 
 /**
  * Settings interface for G-code documents
@@ -48,13 +49,9 @@ export class DocumentStateManager {
   /**
    * Get or parse a document, returning cached state if available
    */
-  getOrParseDocument(
-    uri: string,
-    text: string,
-    settings: GCodeSettings
-  ): DocumentState {
-    const existingState = this.documentStates.get(uri);
-    const currentVersion = Date.now();
+  getOrParseDocument(uri: string, text: string, settings: GCodeSettings): DocumentState {
+    const existingState = this.documentStates.get(uri),
+      currentVersion = Date.now();
 
     // Check if we can reuse cached state
     if (existingState && existingState.settings === settings) {
@@ -64,12 +61,11 @@ export class DocumentStateManager {
     }
 
     // Parse the document
-    const tokens = this.lexer.tokenize(text);
-    const parser = new GCodeParser(tokens);
-    const ast = parser.parseProgram();
-
-    // Get or increment version (persists across invalidations)
-    const currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;
+    const tokens = this.lexer.tokenize(text),
+      parser = new GCodeParser(tokens),
+      ast = parser.parseProgram(),
+      // Get or increment version (persists across invalidations)
+      currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;
     this.documentVersions.set(uri, currentDocVersion);
 
     // Create new state
@@ -99,7 +95,7 @@ export class DocumentStateManager {
   invalidateDocument(uri: string): void {
     this.documentStates.delete(uri);
     // Note: We keep version tracking even after invalidation
-    // so that subsequent parses continue versioning
+    // So that subsequent parses continue versioning
   }
 
   /**
@@ -108,7 +104,7 @@ export class DocumentStateManager {
   invalidateAll(): void {
     this.documentStates.clear();
     // Note: We keep version tracking even after invalidation
-    // so that subsequent parses continue versioning
+    // So that subsequent parses continue versioning
   }
 
   /**
@@ -118,10 +114,6 @@ export class DocumentStateManager {
     document: TextDocument,
     settings: GCodeSettings
   ): DocumentState {
-    return this.getOrParseDocument(
-      document.uri,
-      document.getText(),
-      settings
-    );
+    return this.getOrParseDocument(document.uri, document.getText(), settings);
   }
 }

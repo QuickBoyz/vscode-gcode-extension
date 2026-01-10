@@ -4,18 +4,13 @@
  * Provides syntax error diagnostics (wavy red underlines) for G-code files.
  * Collects ErrorNodes from the AST and converts them to LSP diagnostics.
  */
-import {
-  Diagnostic,
-  DiagnosticSeverity,
-} from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import {
-  DocumentStateManager,
-  GCodeSettings,
-} from "./DocumentStateManager";
-import { AstTraverser } from "../parser/AstTraverser";
-import { AstVisitor } from "../parser/AstVisitor";
-import { ErrorNode, ProgramNode } from "../parser/nodes";
+import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { AstTraverser } from '../parser/AstTraverser';
+import { AstVisitor } from '../parser/AstVisitor';
+import { ErrorNode, ProgramNode } from '../parser/nodes';
+import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 
 /**
  * Visitor to collect ErrorNodes from the AST
@@ -67,26 +62,18 @@ export class DiagnosticsProvider {
   /**
    * Provide diagnostics (syntax errors) for a document
    */
-  provideDiagnostics(
-    document: TextDocument,
-    settings: GCodeSettings
-  ): Diagnostic[] {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(
-      document,
-      settings
-    );
-
-    const collector = new ErrorNodeCollector();
-    const errors = collector.collectErrors(state.ast);
-
-    const diagnostics: Diagnostic[] = [];
+  provideDiagnostics(document: TextDocument, settings: GCodeSettings): Diagnostic[] {
+    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
+      collector = new ErrorNodeCollector(),
+      errors = collector.collectErrors(state.ast),
+      diagnostics: Diagnostic[] = [];
 
     for (const errorNode of errors) {
       diagnostics.push({
         range: errorNode.getRange(),
         severity: DiagnosticSeverity.Error,
         message: errorNode.message,
-        source: "gcode",
+        source: 'gcode',
       });
     }
 

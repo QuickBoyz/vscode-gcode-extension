@@ -2,75 +2,74 @@
  * Constants used throughout the G-code extension
  */
 
-import { FormatterSettings } from "./formatter/types";
+import { FormatterSettings } from './formatter/types';
 
 /**
  * G-code syntax symbols
  */
 export enum GCodeSymbols {
   /** Variable prefix */
-  VARIABLE_PREFIX = "#",
+  VARIABLE_PREFIX = '#',
   /** Named variable opening delimiter */
-  NAMED_VAR_OPEN = "#<",
+  NAMED_VAR_OPEN = '#<',
   /** Named variable closing delimiter */
-  NAMED_VAR_CLOSE = ">",
+  NAMED_VAR_CLOSE = '>',
   /** Computed variable opening bracket */
-  COMPUTED_VAR_OPEN = "#[",
+  COMPUTED_VAR_OPEN = '#[',
   /** Computed variable closing bracket */
-  COMPUTED_VAR_CLOSE = "]",
   /** Assignment operator */
-  ASSIGNMENT_OPERATOR = "=",
+  ASSIGNMENT_OPERATOR = '=',
   /** Line number prefix */
-  LINE_NUMBER_PREFIX = "N",
+  LINE_NUMBER_PREFIX = 'N',
   /** G-code prefix */
-  GCODE_PREFIX = "G",
+  GCODE_PREFIX = 'G',
   /** M-code prefix */
-  MCODE_PREFIX = "M",
+  MCODE_PREFIX = 'M',
   /** O-block prefix */
-  OBLOCK_PREFIX = "O",
+  OBLOCK_PREFIX = 'O',
   /** Program delimiter */
-  PROGRAM_DELIMITER = "%",
+  PROGRAM_DELIMITER = '%',
   /** Semicolon comment prefix */
-  SEMICOLON_COMMENT = ";",
+  SEMICOLON_COMMENT = ';',
   /** Comma separator */
-  COMMA = ",",
+  COMMA = ',',
   /** Dot separator */
-  DOT = ".",
+  DOT = '.',
   /** Parenthetical comment opening */
-  PARENTHETICAL_COMMENT_OPEN = "(",
+  PARENTHETICAL_COMMENT_OPEN = '(',
   /** Parenthetical comment closing */
-  PARENTHETICAL_COMMENT_CLOSE = ")",
+  PARENTHETICAL_COMMENT_CLOSE = ')',
   /** Expression bracket opening */
-  EXPRESSION_BRACKET_OPEN = "[",
+  EXPRESSION_BRACKET_OPEN = '[',
   /** Expression bracket closing */
-  EXPRESSION_BRACKET_CLOSE = "]",
+  EXPRESSION_BRACKET_CLOSE = ']',
   /** Space separator */
-  SPACE = " ",
+  SPACE = ' ',
   /** Newline separator */
-  NEWLINE = "\n",
+  NEWLINE = '\n',
   /** Tab character */
-  TAB = "\t",
+  TAB = '\t',
   /** Empty string */
-  EMPTY_STRING = "",
+  EMPTY_STRING = '',
   /** Unknown value placeholder */
-  UNKNOWN_VALUE = "?",
+  UNKNOWN_VALUE = '?',
   /** Minus/unary negation operator */
-  MINUS = "-",
+  MINUS = '-',
 }
 
 /**
  * G-code keywords
  */
 export enum GCodeKeywords {
-  GOTO = "GOTO",
-  WHILE = "WHILE",
-  IF = "IF",
-  THEN = "THEN",
-  ELSE = "ELSE",
-  ELSEIF = "ELSEIF",
-  ENDIF = "ENDIF",
-  END = "END",
-  DO = "DO",
+  GOTO = 'GOTO',
+  WHILE = 'WHILE',
+  IF = 'IF',
+  THEN = 'THEN',
+  ELSE = 'ELSE',
+  ELSEIF = 'ELSEIF',
+  ENDIF = 'ENDIF',
+  END = 'END',
+  DO = 'DO',
 }
 
 /**
@@ -108,7 +107,7 @@ export const REGEX_PATTERNS = {
   /** Regex special characters that need escaping */
   REGEX_SPECIAL_CHARS: /[.*+?^${}()|[\]\\]/,
   /** Word boundary for regex */
-  WORD_BOUNDARY: "\\b",
+  WORD_BOUNDARY: '\\b',
   /** Newline pattern (CRLF or LF) */
   NEWLINE: /\r?\n/,
   /** Valid named variable name pattern */

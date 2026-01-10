@@ -1,24 +1,24 @@
-// ast/AstTraverser.ts
-import { AstVisitor } from "./AstVisitor";
+// Ast/AstTraverser.ts
+import { AstVisitor } from './AstVisitor';
 import {
+  AxisParameterNode,
+  BinaryExpressionNode,
+  CommentNode,
+  ElseClauseNode,
+  ErrorNode,
+  ExpressionNode,
+  FunctionCallNode,
+  IfClauseNode,
+  IfStatementNode,
+  LiteralExpressionNode,
+  MotionCommandNode,
   ProgramNode,
   StatementNode,
-  ExpressionNode,
+  UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-  FunctionCallNode,
-  MotionCommandNode,
-  AxisParameterNode,
-  CommentNode,
-  ErrorNode,
-  IfStatementNode,
-  IfClauseNode,
-  ElseClauseNode,
-  BinaryExpressionNode,
-  UnaryExpressionNode,
-  LiteralExpressionNode,
-} from "./nodes";
+} from './nodes';
 
 export class AstTraverser<T = void> {
   constructor(private visitor: AstVisitor<T>) {}
@@ -29,9 +29,7 @@ export class AstTraverser<T = void> {
     return result;
   }
 
-  private traverseStatements(
-    statements: readonly StatementNode[]
-  ): void {
+  private traverseStatements(statements: readonly StatementNode[]): void {
     for (const stmt of statements) {
       this.traverseStatement(stmt);
     }
@@ -61,8 +59,7 @@ export class AstTraverser<T = void> {
         this.visitor.visitError(node);
         break;
       default:
-        if (this.visitor.visitStatement)
-          this.visitor.visitStatement(node);
+        if (this.visitor.visitStatement) this.visitor.visitStatement(node);
         break;
     }
   }
@@ -137,9 +134,7 @@ export class AstTraverser<T = void> {
     this.traverseExpression(node.operand);
   }
 
-  private traverseVariableAssignment(
-    node: VariableAssignmentNode
-  ): void {
+  private traverseVariableAssignment(node: VariableAssignmentNode): void {
     this.visitor.visitVariableAssignment(node);
     this.traverseExpression(node.value);
   }

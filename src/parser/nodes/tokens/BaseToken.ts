@@ -1,8 +1,11 @@
-import { Range } from "../Range";
-import { Position } from "../Position";
+import { Position } from '../Position';
+import { Range } from '../Range';
 
 export abstract class BaseToken<T extends string = string> {
-  constructor(protected range: Range, protected type: T) {}
+  constructor(
+    protected range: Range,
+    protected type: T
+  ) {}
 
   getType(): T {
     return this.type;
@@ -48,24 +51,14 @@ export abstract class BaseToken<T extends string = string> {
 
   private getSpanningRange(first: Range, second: Range): Range {
     return Range.create(
-      Math.min(
-        first.start.line,
-        first.end.line,
-        second.start.line,
-        second.end.line
-      ),
+      Math.min(first.start.line, first.end.line, second.start.line, second.end.line),
       Math.min(
         first.start.character,
         first.end.character,
         second.start.character,
         second.end.character
       ),
-      Math.max(
-        first.start.line,
-        first.end.line,
-        second.start.line,
-        second.end.line
-      ),
+      Math.max(first.start.line, first.end.line, second.start.line, second.end.line),
       Math.max(
         first.start.character,
         first.end.character,
