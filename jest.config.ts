@@ -1,12 +1,12 @@
-import type { Config } from "jest";
+import type { Config } from 'jest';
 
 const config: Config = {
   clearMocks: true,
-  coverageProvider: "v8",
-  moduleFileExtensions: ["js", "ts", "json"],
-  testMatch: ["**/test/**/*.test.ts"],
+  coverageProvider: 'v8',
+  moduleFileExtensions: ['js', 'ts', 'json'],
+  testMatch: ['**/test/**/*.test.ts'],
   transform: {
-    "^.+\\.ts$": "ts-jest",
+    '^.+\\.ts$': 'ts-jest',
   },
   verbose: true,
 };
