@@ -1,14 +1,14 @@
 /**
  * Tests for RenameProvider
  */
-import { RenameProvider } from "../RenameProvider";
+import { RenameProvider } from "../providers/RenameProvider";
 import {
   DocumentStateManager,
   GCodeSettings,
-} from "../DocumentStateManager";
+} from "../providers/DocumentStateManager";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
-import { Position } from "../../parser/nodes";
+import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
+import { Position } from "../parser/nodes";
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_FORMATTER_SETTINGS,

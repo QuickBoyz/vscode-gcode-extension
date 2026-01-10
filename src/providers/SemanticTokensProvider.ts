@@ -68,17 +68,17 @@ export class SemanticTokensProvider extends AstVisitor<void> {
   visitExpression(node: ExpressionNode): void {}
   visitStatement(node: StatementNode): void {}
   visitProgram(node: ProgramNode): void {}
-  visitVariableAssignment(node: VariableAssignmentNode): void {}
   visitIfClause(node: IfClauseNode): void {}
   visitElseClause(node: ElseClauseNode): void {}
+  visitUnaryExpression(node: UnaryExpressionNode): void {}
+  visitError(node: ErrorNode): void {}
+
   visitIfStatementEnd(node: IfStatementNode): void {
     this.builder.pushRange(
       node.endIfTokenRange,
       this.getTokenTypeIndex("keyword")
     );
   }
-  visitUnaryExpression(node: UnaryExpressionNode): void {}
-  visitError(node: ErrorNode): void {}
 
   visitMotionCommand(node: MotionCommandNode) {
     this.builder.pushRange(
@@ -94,26 +94,23 @@ export class SemanticTokensProvider extends AstVisitor<void> {
     );
   }
 
-  visitVariableReference(node: VariableReferenceNode) {
-    const text =
-      typeof node.name === "number"
-        ? `#${node.name}`
-        : `#<${node.name}>`;
+  visitVariableAssignment(node: VariableAssignmentNode): void {
+    this.builder.pushRange(
+      node.variableTokenRange,
+      this.getTokenTypeIndex("variable")
+    );
+  }
 
-    this.builder.push(
-      node.getRange().start.line,
-      node.getRange().start.character,
-      text.length,
+  visitVariableReference(node: VariableReferenceNode) {
+    this.builder.pushRange(
+      node.getRange(),
       this.getTokenTypeIndex("variable")
     );
   }
 
   visitLiteralExpression(node: LiteralExpressionNode) {
-    const text = node.value.toString();
-    this.builder.push(
-      node.getRange().start.line,
-      node.getRange().start.character,
-      text.length,
+    this.builder.pushRange(
+      node.getRange(),
       this.getTokenTypeIndex("number")
     );
   }

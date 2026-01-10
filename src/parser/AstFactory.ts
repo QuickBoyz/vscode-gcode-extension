@@ -41,11 +41,17 @@ export class AstFactory {
     );
   }
 
-  variableAssignment(variable: Token, value: ExpressionNode) {
+  variableAssignment(
+    variable: Token,
+    value: ExpressionNode,
+    parent?: AstNode
+  ) {
     return new VariableAssignmentNode(
       rangeFrom(variable, value),
       this.getVariableName(variable),
-      value
+      value,
+      rangeFrom(variable),
+      parent
     );
   }
 

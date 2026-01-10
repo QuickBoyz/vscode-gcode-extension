@@ -1,7 +1,7 @@
-import { GCodeLexer } from "../../lexer/GCodeLexer";
-import { GCodeParser } from "../../parser/GCodeParser";
-import { GCodeFormatter } from "../GCodeFormatter";
-import { AstTraverser } from "../../parser/AstTraverser";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { GCodeParser } from "../parser/GCodeParser";
+import { GCodeFormatter } from "../formatter/GCodeFormatter";
+import { AstTraverser } from "../parser/AstTraverser";
 
 let formatter: GCodeFormatter;
 

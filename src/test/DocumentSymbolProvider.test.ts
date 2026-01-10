@@ -3,12 +3,12 @@
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { SymbolKind } from "vscode-languageserver/node";
-import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
+import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
 import {
   DocumentStateManager,
   GCodeSettings,
-} from "../DocumentStateManager";
-import { DocumentSymbolProvider } from "../DocumentSymbolProvider";
+} from "../providers/DocumentStateManager";
+import { DocumentSymbolProvider } from "../providers/DocumentSymbolProvider";
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_FORMATTER_SETTINGS,

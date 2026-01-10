@@ -259,6 +259,28 @@ documents.onDidOpen(async (event) => {
   });
 });
 
+// Register pull-based diagnostics handler (for newer VS Code versions)
+connection.languages.diagnostics.on(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return {
+      kind: "full",
+      items: [],
+    };
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  const diagnostics = diagnosticsProvider.provideDiagnostics(
+    document,
+    settings
+  );
+
+  return {
+    kind: "full",
+    items: diagnostics,
+  };
+});
+
 connection.onInitialized(() => {
   connection.console.log("G-code Language Server initialized");
 });
