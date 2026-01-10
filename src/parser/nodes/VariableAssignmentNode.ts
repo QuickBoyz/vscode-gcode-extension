@@ -9,6 +9,7 @@ export class VariableAssignmentNode extends StatementNode {
     range: Range,
     public readonly name: string | number,
     public readonly value: ExpressionNode,
+    public readonly variableTokenRange: Range,
     parent?: AstNode
   ) {
     super(range, parent);

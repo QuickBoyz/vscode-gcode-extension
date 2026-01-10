@@ -168,14 +168,20 @@ describe("FeatureName", () => {
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run unit tests (Jest)
 npm test
 
-# Run tests in watch mode
+# Run unit tests in watch mode
 npm run test:watch
 
-# Run specific test file
-npm test -- gcodeFormatter.test.ts
+# Run specific unit test file
+npm test -- GCodeFormatter.test.ts
+
+# Run e2e tests (VS Code integration)
+npm run test:e2e
+
+# Run all tests (unit + e2e)
+npm run test:all
 ```
 
 ## Pull Request Process
@@ -258,26 +264,31 @@ Understanding the codebase:
 - **`src/lexer/`**: Tokenizes G-Code into tokens
 - **`src/parser/`**: Parses tokens into Abstract Syntax Tree (AST)
 - **`src/formatter/`**: Formats AST back to formatted G-Code
-- **`src/__tests__/`**: Test fixtures and test files
+- **`src/providers/`**: Language feature providers (formatting, symbols, highlighting, rename, semantic tokens)
+- **`src/test/`**: Unit tests (Jest) and test fixtures
+- **`src/e2e/`**: End-to-end integration tests (VS Code)
 
 ### Key Files
 
 - `src/client/extension.ts`: Extension entry point
 - `src/server/server.ts`: LSP server implementation
-- `src/parser/gcodeParser.ts`: Main parser logic
-- `src/formatter/gcodeFormatter.ts`: Main formatter logic
+- `src/parser/GCodeParser.ts`: Main parser logic
+- `src/formatter/GCodeFormatter.ts`: Main formatter logic
+- `src/providers/SemanticTokensProvider.ts`: Semantic token highlighting
+- `src/providers/DocumentFormattingProvider.ts`: Document formatting
 
 ## Common Tasks
 
 ### Adding a New Formatter Option
 
 1. Add option to `src/formatter/types.ts`
-2. Update `defaultFormatterSettings` in `gcodeFormatter.ts`
+2. Update `defaultFormatterSettings` in `GCodeFormatter.ts`
 3. Implement the option in the formatter
 4. Add to `package.json` configuration section
 5. Update server settings interface
-6. Add tests
-7. Update README.md
+6. Add unit tests in `src/test/`
+7. Add e2e tests in `src/e2e/suite/` if needed
+8. Update README.md
 
 ### Adding Syntax Highlighting
 
@@ -287,10 +298,10 @@ Understanding the codebase:
 
 ### Improving Parser
 
-1. Understand the AST structure in `src/parser/types.ts`
-2. Modify `src/parser/gcodeParser.ts`
-3. Add test cases in `src/parser/gcodeParser.test.ts`
-4. Ensure all existing tests pass
+1. Understand the AST structure in `src/parser/nodes/`
+2. Modify `src/parser/GCodeParser.ts` or `src/parser/AstFactory.ts`
+3. Add test cases in `src/test/GCodeParser.test.ts`
+4. Ensure all existing tests pass (unit and e2e)
 
 ## Getting Help
 

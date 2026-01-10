@@ -1,15 +1,15 @@
 /**
  * Tests for VariableSymbolCollector
  */
-import { VariableSymbolCollector } from "../VariableSymbolCollector";
-import { GCodeLexer } from "../../lexer/GCodeLexer";
-import { GCodeParser } from "../../parser/GCodeParser";
+import { VariableSymbolCollector } from "../providers/VariableSymbolCollector";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { GCodeParser } from "../parser/GCodeParser";
 import {
   ProgramNode,
   VariableAssignmentNode,
   VariableReferenceNode,
-} from "../../parser/nodes";
-import { Position } from "../../parser/nodes";
+} from "../parser/nodes";
+import { Position } from "../parser/nodes";
 
 describe("VariableSymbolCollector", () => {
   function parse(text: string): ProgramNode {

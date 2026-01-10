@@ -4,8 +4,8 @@
 import {
   DocumentStateManager,
   GCodeSettings,
-} from "../DocumentStateManager";
-import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
+} from "../providers/DocumentStateManager";
+import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 describe("DocumentStateManager", () => {
