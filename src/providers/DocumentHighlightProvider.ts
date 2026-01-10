@@ -4,19 +4,14 @@
  * Provides highlighting for all occurrences of a variable when the cursor
  * is positioned on it. Used for rename previews.
  */
-import { TextDocument } from "vscode-languageserver-textdocument";
-import {
-  DocumentHighlight,
-  DocumentHighlightKind,
-} from "vscode-languageserver/node";
-import { AstTraverser } from "../parser/AstTraverser";
-import { Position, VariableAssignmentNode } from "../parser/nodes";
-import {
-  DocumentStateManager,
-  GCodeSettings,
-} from "./DocumentStateManager";
-import { getVariableNameRange } from "./RenameUtils";
-import { VariableSymbolCollector } from "./VariableSymbolCollector";
+import { DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { AstTraverser } from '../parser/AstTraverser';
+import { Position, VariableAssignmentNode } from '../parser/nodes';
+import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { getVariableNameRange } from './RenameUtils';
+import { VariableSymbolCollector } from './VariableSymbolCollector';
 
 /**
  * Document Highlight Provider
@@ -34,13 +29,9 @@ export class DocumentHighlightProvider {
     position: Position,
     settings: GCodeSettings
   ): DocumentHighlight[] | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(
-      document,
-      settings
-    );
-
-    const collector = new VariableSymbolCollector();
-    const traverser = new AstTraverser(collector);
+    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
+      collector = new VariableSymbolCollector(),
+      traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
     const symbol = collector.findSymbolAtPosition(position);

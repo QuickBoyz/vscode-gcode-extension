@@ -1,5 +1,5 @@
-// parser/TokenStream.ts
-import { Token, TokenType } from "./nodes/tokens";
+// Parser/TokenStream.ts
+import { Token, TokenType } from './nodes/tokens';
 
 export class TokenStream {
   private index = 0;
@@ -36,15 +36,18 @@ export class TokenStream {
   expect(...types: TokenType[]): Token {
     const token = this.next();
     if (!token || !token.hasType(...types)) {
-      throw new ParseError(`Expected ${types.join(" or ")}`, token);
+      throw new ParseError(`Expected ${types.join(' or ')}`, token);
     }
     return token;
   }
 }
 
 export class ParseError extends Error {
-  constructor(message: string, public readonly token?: Token) {
+  constructor(
+    message: string,
+    public readonly token?: Token
+  ) {
     super(message);
-    this.name = "ParseError";
+    this.name = 'ParseError';
   }
 }

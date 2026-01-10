@@ -194,7 +194,6 @@ npm run build
 The project uses two types of tests:
 
 1. **Unit Tests (Jest)**: Test individual components in isolation
-
    - Located in `src/test/` directory
    - Run with: `npm test`
    - Run in watch mode: `npm run test:watch`

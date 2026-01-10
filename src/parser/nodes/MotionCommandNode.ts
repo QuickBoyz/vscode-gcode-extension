@@ -1,8 +1,8 @@
-import { AstVisitor } from "../AstVisitor";
-import { AstNode } from "./AstNode";
-import { Range } from "./Range";
-import { StatementNode } from "./StatementNode";
-import { AxisParameterNode } from "./AxisParameterNode";
+import { AstVisitor } from '../AstVisitor';
+import { AstNode } from './AstNode';
+import { AxisParameterNode } from './AxisParameterNode';
+import { Range } from './Range';
+import { StatementNode } from './StatementNode';
 
 export class MotionCommandNode extends StatementNode {
   constructor(

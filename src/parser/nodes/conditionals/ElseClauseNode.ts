@@ -1,8 +1,8 @@
-import { AstVisitor } from "../../AstVisitor";
-import { AstNode } from "../AstNode";
-import { BlockStatementNode } from "../BlockStatementNode";
-import { StatementNode } from "../StatementNode";
-import { Range } from "../Range";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { BlockStatementNode } from '../BlockStatementNode';
+import { Range } from '../Range';
+import { StatementNode } from '../StatementNode';
 
 export class ElseClauseNode extends BlockStatementNode {
   constructor(

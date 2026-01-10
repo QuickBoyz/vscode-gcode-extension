@@ -1,9 +1,12 @@
-import { Range } from "./Range";
-import { AstVisitor } from "../AstVisitor";
-import { Position } from "./Position";
+import { AstVisitor } from '../AstVisitor';
+import { Position } from './Position';
+import { Range } from './Range';
 
 export abstract class AstNode {
-  constructor(protected range: Range, protected parent?: AstNode) {}
+  constructor(
+    protected range: Range,
+    protected parent?: AstNode
+  ) {}
 
   getStartPosition(): Position {
     return this.range.start;

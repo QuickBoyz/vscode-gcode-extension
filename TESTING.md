@@ -48,16 +48,16 @@ npm test -- --coverage
 Unit tests follow Jest conventions:
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
-import { GCodeParser } from "../parser/GCodeParser";
+import { describe, it, expect } from '@jest/globals';
+import { GCodeParser } from '../parser/GCodeParser';
 
-describe("GCodeParser", () => {
-  it("should parse simple G-code command", () => {
-    const parser = new GCodeParser("G01 X10");
+describe('GCodeParser', () => {
+  it('should parse simple G-code command', () => {
+    const parser = new GCodeParser('G01 X10');
     const ast = parser.parseProgram();
 
     expect(ast.statements).toHaveLength(1);
-    expect(ast.statements[0].type).toBe("MotionCommand");
+    expect(ast.statements[0].type).toBe('MotionCommand');
   });
 });
 ```
@@ -119,18 +119,18 @@ src/e2e/
 E2E tests use the `@vscode/test-electron` framework:
 
 ```typescript
-import * as assert from "assert";
-import * as vscode from "vscode";
-import { TestUtils } from "../testUtils";
+import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { TestUtils } from '../testUtils';
 
-suite("My Feature Tests", () => {
+suite('My Feature Tests', () => {
   TestUtils.setup(); // Sets up before/after hooks
 
-  test("Should perform feature action", async () => {
-    const document = await TestUtils.openGCodeDocument("simple.nc");
+  test('Should perform feature action', async () => {
+    const document = await TestUtils.openGCodeDocument('simple.nc');
 
     const result = await vscode.commands.executeCommand(
-      "vscode.executeDocumentSymbolProvider",
+      'vscode.executeDocumentSymbolProvider',
       document.uri
     );
 
@@ -146,22 +146,22 @@ The `TestUtils` class provides helper methods:
 
 ```typescript
 // Open a fixture file
-const doc = await TestUtils.openGCodeDocument("simple.nc");
+const doc = await TestUtils.openGCodeDocument('simple.nc');
 
 // Create temporary document
 await TestUtils.withTestDocument(
-  "G01 X10\nG02 Y20",
+  'G01 X10\nG02 Y20',
   async (document) => {
     // Test with document
   },
-  "temp-test.nc"
+  'temp-test.nc'
 );
 
 // Wait for extension activation
 await TestUtils.waitForExtensionActivation();
 
 // Update configuration
-await TestUtils.updateConfig("gcode.formatter.indent", true);
+await TestUtils.updateConfig('gcode.formatter.indent', true);
 ```
 
 ### Debugging E2E Tests

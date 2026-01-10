@@ -1,18 +1,17 @@
-import * as path from "path";
-import Mocha from "mocha";
-import { glob } from "glob";
+import { glob } from 'glob';
+import Mocha from 'mocha';
+import * as path from 'path';
 
 export function run(): Promise<void> {
   // Create the mocha test
   const mocha = new Mocha({
-    ui: "tdd",
-    color: true,
-  });
-
-  const testsRoot = path.resolve(__dirname, "..");
+      ui: 'tdd',
+      color: true,
+    }),
+    testsRoot = path.resolve(__dirname, '..');
 
   return new Promise((c, e) => {
-    glob("**/*.test.ts", { cwd: testsRoot })
+    glob('**/*.test.ts', { cwd: testsRoot })
       .then((files) => {
         // Add files to the test suite
         files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
@@ -26,12 +25,12 @@ export function run(): Promise<void> {
               c();
             }
           });
-        } catch (err) {
-          e(err);
+        } catch (err: unknown) {
+          e(err instanceof Error ? err : new Error(String(err)));
         }
       })
-      .catch((err) => {
-        return e(err);
+      .catch((err: unknown) => {
+        return e(err instanceof Error ? err : new Error(String(err)));
       });
   });
 }

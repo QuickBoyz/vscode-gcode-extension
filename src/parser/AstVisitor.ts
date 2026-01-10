@@ -3,10 +3,10 @@ import {
   BinaryExpressionNode,
   BlockStatementNode,
   CommentNode,
+  ElseClauseNode,
   ErrorNode,
   ExpressionNode,
   FunctionCallNode,
-  ElseClauseNode,
   IfClauseNode,
   IfStatementNode,
   LiteralExpressionNode,
@@ -17,7 +17,7 @@ import {
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-} from "./nodes";
+} from './nodes';
 
 export abstract class AstVisitor<T> {
   abstract visitVariableAssignment(node: VariableAssignmentNode): T;

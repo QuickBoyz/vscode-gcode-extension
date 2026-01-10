@@ -1,6 +1,6 @@
-import { AstNode } from "./AstNode";
-import { StatementNode } from "./StatementNode";
-import { Range } from "./Range";
+import { AstNode } from './AstNode';
+import { Range } from './Range';
+import { StatementNode } from './StatementNode';
 
 export abstract class BlockStatementNode extends StatementNode {
   constructor(

@@ -1,6 +1,6 @@
-import { Range } from "../Range";
-import { TokenType } from "./types";
-import { BaseToken } from "./BaseToken";
+import { Range } from '../Range';
+import { BaseToken } from './BaseToken';
+import { TokenType } from './types';
 
 export class Token extends BaseToken<TokenType> {
   constructor(
@@ -12,10 +12,7 @@ export class Token extends BaseToken<TokenType> {
     public line: number,
     public col: number
   ) {
-    super(
-      Range.create(line - 1, col - 1, line - 1, col - 1 + value.length),
-      type
-    );
+    super(Range.create(line - 1, col - 1, line - 1, col - 1 + value.length), type);
   }
 
   getValue(): string {

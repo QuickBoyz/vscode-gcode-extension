@@ -73,7 +73,6 @@ npm test
 ```
 
 4. **Test manually in VS Code:**
-
    - Press `F5` to launch Extension Development Host
    - Open a G-Code file and test your changes
    - Verify formatting, syntax highlighting, etc.
@@ -122,10 +121,7 @@ We follow **SOLID**, **DRY**, and **KISS** principles:
  * @param options - Formatting options
  * @returns Formatted G-Code string
  */
-export function formatDocument(
-  document: TextDocument,
-  options: FormatterSettings
-): string {
+export function formatDocument(document: TextDocument, options: FormatterSettings): string {
   // Implementation
 }
 ```
@@ -149,12 +145,12 @@ export function formatDocument(
 ### Test Structure
 
 ```typescript
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect } from '@jest/globals';
 
-describe("FeatureName", () => {
-  it("should do something specific", () => {
+describe('FeatureName', () => {
+  it('should do something specific', () => {
     // Arrange
-    const input = "...";
+    const input = '...';
 
     // Act
     const result = functionUnderTest(input);

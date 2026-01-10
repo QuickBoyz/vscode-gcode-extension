@@ -1,8 +1,8 @@
-import { AstNode } from "./AstNode";
-import { Range } from "./Range";
-import { AstVisitor } from "../AstVisitor";
-import { ExpressionNode } from "./expressions";
-import { StatementNode } from "./StatementNode";
+import { AstVisitor } from '../AstVisitor';
+import { AstNode } from './AstNode';
+import { ExpressionNode } from './expressions';
+import { Range } from './Range';
+import { StatementNode } from './StatementNode';
 
 export class AxisParameterNode extends StatementNode {
   constructor(

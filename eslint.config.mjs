@@ -1,16 +1,29 @@
 import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
-import tseslint from 'typescript-eslint';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import tseslint from 'typescript-eslint';
 
 export default defineConfig(
   {
-    ignores: ['dist/**', 'out/**', 'node_modules/**', '*.d.ts'],
+    ignores: [
+      'dist/**',
+      'out/**',
+      'node_modules/**',
+      'coverage/**',
+      '*.log',
+      '*.vsix',
+      '.vscode-test*',
+      '*.d.ts',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
   {
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -18,6 +31,10 @@ export default defineConfig(
       },
     },
     rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
@@ -25,12 +42,8 @@ export default defineConfig(
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'prefer-const': 'warn',
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      'prefer-const': 'error',
     },
   },
   {

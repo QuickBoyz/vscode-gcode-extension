@@ -18,12 +18,10 @@ npm test
 ## Development
 
 1. **Launch Extension Development Host:**
-
    - Press `F5` in VS Code
    - A new window will open with the extension loaded
 
 2. **Test your changes:**
-
    - Open a G-Code file (`.nc`, `.gcode`, etc.)
    - Test formatting with `Shift+Alt+F` or Command Palette → "Format G-Code Document"
 
