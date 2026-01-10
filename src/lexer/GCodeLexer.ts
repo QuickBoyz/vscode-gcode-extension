@@ -1,12 +1,13 @@
-import moo, { Lexer, Token as MooToken } from "moo";
+import moo, { Lexer, Token as MooToken } from 'moo';
+
+import { GCodeSymbols, REGEX_PATTERNS } from '../constants';
 import {
   BinaryOperatorType,
   FunctionName,
   RelationalOperatorType,
   UnaryOperatorType,
-} from "../parser/nodes/expressions";
-import { Token, TokenType } from "../parser/nodes/tokens";
-import { GCodeSymbols, REGEX_PATTERNS } from "../constants";
+} from '../parser/nodes/expressions';
+import { Token, TokenType } from '../parser/nodes/tokens';
 
 /**
  * Token type exported from moo
@@ -80,10 +81,7 @@ export class GCodeLexer {
       rBracket: GCodeSymbols.EXPRESSION_BRACKET_CLOSE,
 
       // Variables (#123 or #<name>)
-      VAR: [
-        REGEX_PATTERNS.NUMERIC_VARIABLE_NO_CAPTURE,
-        REGEX_PATTERNS.NAMED_VARIABLE_NO_CAPTURE,
-      ],
+      VAR: [REGEX_PATTERNS.NUMERIC_VARIABLE_NO_CAPTURE, REGEX_PATTERNS.NAMED_VARIABLE_NO_CAPTURE],
       hash: GCodeSymbols.VARIABLE_PREFIX,
 
       // Numbers (integers, decimals, leading decimal)
@@ -97,7 +95,7 @@ export class GCodeLexer {
 
       // Parameters (single uppercase letter like X, Y, Z, F, S, etc.)
       PARAM: REGEX_PATTERNS.PARAMETER_LETTER,
-    }) as Lexer;
+    });
   }
 
   /**
@@ -115,7 +113,8 @@ export class GCodeLexer {
           tokens.push(token);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error(error);
       // If lexer encounters invalid characters, continue with what we have
       // The parser will handle the incomplete tokenization by creating error nodes
       // This prevents the formatter from crashing on syntax errors
@@ -124,25 +123,21 @@ export class GCodeLexer {
     // Post-process: combine MINUS + NUMBER into a single NUMBER token for negative numbers
     const processedTokens: Token[] = [];
     for (let i = 0; i < tokens.length; i++) {
-      const currentToken = tokens[i];
-      const nextToken = tokens[i + 1];
+      const currentToken = tokens[i],
+        nextToken = tokens[i + 1];
 
       // Check if this is MINUS followed by NUMBER (negative number)
-      if (
-        currentToken.type === TokenType.MINUS &&
-        nextToken?.type === TokenType.NUMBER
-      ) {
-        const prevToken = tokens[i - 1];
-
-        // It's subtraction (not negative number) if previous token is:
-        // - A number
-        // - A variable
-        // - A closing bracket
-        const isSubtraction =
-          prevToken &&
-          (prevToken.type === TokenType.NUMBER ||
-            prevToken.type === TokenType.VAR ||
-            prevToken.type === TokenType.RBRACKET);
+      if (currentToken.type === TokenType.MINUS && nextToken?.type === TokenType.NUMBER) {
+        const prevToken = tokens[i - 1],
+          // It's subtraction (not negative number) if previous token is:
+          // - A number
+          // - A variable
+          // - A closing bracket
+          isSubtraction =
+            prevToken &&
+            (prevToken.type === TokenType.NUMBER ||
+              prevToken.type === TokenType.VAR ||
+              prevToken.type === TokenType.RBRACKET);
 
         if (!isSubtraction) {
           // Combine MINUS + NUMBER into a single NUMBER token

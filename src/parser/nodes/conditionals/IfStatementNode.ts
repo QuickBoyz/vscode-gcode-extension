@@ -1,9 +1,9 @@
-import { AstVisitor } from "../../AstVisitor";
-import { AstNode } from "../AstNode";
-import { BlockStatementNode } from "../BlockStatementNode";
-import { Range } from "../Range";
-import { IfClauseNode } from "./IfClauseNode";
-import { ElseClauseNode } from "./ElseClauseNode";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { BlockStatementNode } from '../BlockStatementNode';
+import { Range } from '../Range';
+import { ElseClauseNode } from './ElseClauseNode';
+import { IfClauseNode } from './IfClauseNode';
 
 export class IfStatementNode extends BlockStatementNode {
   constructor(

@@ -1,7 +1,7 @@
-import { AstVisitor } from "../AstVisitor";
-import { AstNode } from "./AstNode";
-import { ExpressionNode } from "./expressions";
-import { Range } from "./Range";
+import { AstVisitor } from '../AstVisitor';
+import { AstNode } from './AstNode';
+import { ExpressionNode } from './expressions';
+import { Range } from './Range';
 
 export class VariableReferenceNode extends ExpressionNode {
   constructor(

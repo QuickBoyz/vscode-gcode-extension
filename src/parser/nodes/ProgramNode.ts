@@ -1,4 +1,4 @@
-import { StatementNode } from "./StatementNode";
+import { StatementNode } from './StatementNode';
 
 export class ProgramNode {
   constructor(

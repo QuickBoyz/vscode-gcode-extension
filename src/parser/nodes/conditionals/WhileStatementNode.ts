@@ -1,9 +1,9 @@
-import { AstVisitor } from "../../AstVisitor";
-import { AstNode } from "../AstNode";
-import { BlockStatementNode } from "../BlockStatementNode";
-import { ExpressionNode } from "../expressions";
-import { Range } from "../Range";
-import { StatementNode } from "../StatementNode";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { BlockStatementNode } from '../BlockStatementNode';
+import { ExpressionNode } from '../expressions';
+import { Range } from '../Range';
+import { StatementNode } from '../StatementNode';
 
 export class WhileStatementNode extends BlockStatementNode {
   constructor(

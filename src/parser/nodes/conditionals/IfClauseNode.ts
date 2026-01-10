@@ -1,10 +1,10 @@
-import { AstVisitor } from "../../AstVisitor";
-import { AstNode } from "../AstNode";
-import { BlockStatementNode } from "../BlockStatementNode";
-import { ExpressionNode } from "../expressions";
-import { StatementNode } from "../StatementNode";
-import { Range } from "../Range";
-import { TokenType } from "../tokens";
+import { AstVisitor } from '../../AstVisitor';
+import { AstNode } from '../AstNode';
+import { BlockStatementNode } from '../BlockStatementNode';
+import { ExpressionNode } from '../expressions';
+import { Range } from '../Range';
+import { StatementNode } from '../StatementNode';
+import { TokenType } from '../tokens';
 
 export class IfClauseNode extends BlockStatementNode {
   constructor(

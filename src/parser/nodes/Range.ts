@@ -1,8 +1,12 @@
-import { Position } from "./Position";
-import { Range as LspRange } from "vscode-languageserver/node";
+import { Range as LspRange } from 'vscode-languageserver/node';
+
+import { Position } from './Position';
 
 export class Range implements LspRange {
-  constructor(public start: Position, public end: Position) {}
+  constructor(
+    public start: Position,
+    public end: Position
+  ) {}
 
   static isPositionInRange(position: Position, range: Range): boolean {
     return (
@@ -38,18 +42,11 @@ export class Range implements LspRange {
       );
     } else if (Position.is(one) && Position.is(two)) {
       return new Range(one, two);
-    } else {
-      throw new Error(
-        "Range#create called with invalid arguments["
-          .concat(one.toString(), ", ")
-          .concat(two.toString(), ", ")
-          .concat(three?.toString() ?? "", ", ")
-          .concat(four?.toString() ?? "", "]")
-      );
     }
+    throw new Error('Range#create called with invalid arguments');
   }
 
-  static is(value: any): value is Range {
+  static is(value: unknown): value is Range {
     return value instanceof Range;
   }
 }
