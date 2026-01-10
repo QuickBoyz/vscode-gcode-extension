@@ -1,8 +1,8 @@
-import { StatementNode } from "./StatementNode";
-import { ExpressionNode } from "./expressions";
-import { Range } from "./Range";
-import { AstVisitor } from "../AstVisitor";
-import { AstNode } from "./AstNode";
+import { AstVisitor } from '../AstVisitor';
+import { AstNode } from './AstNode';
+import { ExpressionNode } from './expressions';
+import { Range } from './Range';
+import { StatementNode } from './StatementNode';
 
 export class VariableAssignmentNode extends StatementNode {
   constructor(

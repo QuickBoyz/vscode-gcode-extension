@@ -23,20 +23,17 @@ All changes must respect the existing lexer → parser → AST → services pipe
 The codebase is divided into the following layers:
 
 1. **Lexing**
-
    - Moo lexer
    - Token definitions only
    - No parsing logic
    - No VS Code API usage
 
 2. **Parsing**
-
    - Custom tree / AST builder
    - Consumes tokens
    - No formatting, hover, or editor logic
 
 3. **AST / Tree Model**
-
    - Pure domain layer
    - Node classes only
    - No side effects
@@ -44,7 +41,6 @@ The codebase is divided into the following layers:
    - No traversal logic that is editor-specific
 
 4. **Services**
-
    - Formatter
    - Hover provider
    - Validation
@@ -103,23 +99,19 @@ Example expectations:
 The following patterns are **expected** where applicable:
 
 - **Visitor Pattern**
-
   - For AST traversal
   - Formatter, hover provider, analyzers must use visitors
 
 - **Factory Pattern**
-
   - For node creation in the parser
   - Parser must not instantiate concrete nodes directly in complex cases
 
 - **Strategy Pattern**
-
   - For formatting styles
   - For hover rendering
   - For validation rules
 
 - **Composite Pattern**
-
   - AST tree structure
 
 - **Adapter Pattern**

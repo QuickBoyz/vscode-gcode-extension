@@ -4,19 +4,19 @@
  * Visitor that collects all variable definitions and references from the AST.
  * Provides fast lookup methods for finding variables by name or position.
  */
-import { AstTraverser } from "../parser/AstTraverser";
-import { AstVisitor } from "../parser/AstVisitor";
+import { AstTraverser } from '../parser/AstTraverser';
+import { AstVisitor } from '../parser/AstVisitor';
 import {
   Position,
   ProgramNode,
   Range,
   VariableAssignmentNode,
   VariableReferenceNode,
-} from "../parser/nodes";
+} from '../parser/nodes';
 
 export enum VariableSymbolKind {
-  Definition = "definition",
-  Reference = "reference",
+  Definition = 'definition',
+  Reference = 'reference',
 }
 
 /**
@@ -37,14 +37,8 @@ export interface VariableSymbol {
  * and grouped references by variable name.
  */
 export class VariableSymbolCollector extends AstVisitor<void> {
-  private definitions = new Map<
-    string | number,
-    VariableAssignmentNode[]
-  >();
-  private references = new Map<
-    string | number,
-    VariableReferenceNode[]
-  >();
+  private definitions = new Map<string | number, VariableAssignmentNode[]>();
+  private references = new Map<string | number, VariableReferenceNode[]>();
   private allSymbols: VariableSymbol[] = [];
 
   /**
@@ -95,9 +89,7 @@ export class VariableSymbolCollector extends AstVisitor<void> {
    * Get the first definition for a variable name (O(1) lookup)
    * Returns the first assignment found, or undefined if none exists
    */
-  getDefinition(
-    name: string | number
-  ): VariableAssignmentNode | undefined {
+  getDefinition(name: string | number): VariableAssignmentNode | undefined {
     const definitions = this.getAllDefinitionsForVariable(name);
     return definitions.length > 0 ? definitions[0] : undefined;
   }
@@ -105,9 +97,7 @@ export class VariableSymbolCollector extends AstVisitor<void> {
   /**
    * Get all definitions (assignments) for a variable name
    */
-  getAllDefinitionsForVariable(
-    name: string | number
-  ): VariableAssignmentNode[] {
+  getAllDefinitionsForVariable(name: string | number): VariableAssignmentNode[] {
     return this.definitions.get(name) || [];
   }
 
@@ -121,12 +111,8 @@ export class VariableSymbolCollector extends AstVisitor<void> {
   /**
    * Get all symbols (all definitions/assignments + all references) for a variable name
    */
-  getAllSymbols(
-    name: string | number
-  ): Array<VariableAssignmentNode | VariableReferenceNode> {
-    const result: Array<
-      VariableAssignmentNode | VariableReferenceNode
-    > = [];
+  getAllSymbols(name: string | number): Array<VariableAssignmentNode | VariableReferenceNode> {
+    const result: Array<VariableAssignmentNode | VariableReferenceNode> = [];
     // Add all assignments (definitions)
     result.push(...this.getAllDefinitionsForVariable(name));
     // Add all references
@@ -146,8 +132,8 @@ export class VariableSymbolCollector extends AstVisitor<void> {
    * Returns the symbol with the smallest (most specific) range if multiple match
    */
   findSymbolAtPosition(position: Position): VariableSymbol | null {
-    let bestMatch: VariableSymbol | null = null;
-    let smallestRangeSize = Infinity;
+    let bestMatch: VariableSymbol | null = null,
+      smallestRangeSize = Infinity;
 
     for (const symbol of this.allSymbols) {
       if (Range.isPositionInRange(position, symbol.range)) {

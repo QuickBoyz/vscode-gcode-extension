@@ -4,29 +4,18 @@
  * Provides variable renaming functionality for G-code files.
  * Supports both numeric (#1) and named (#<foo>) variables.
  */
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { TextEdit, WorkspaceEdit } from "vscode-languageserver/node";
-import { AstTraverser } from "../parser/AstTraverser";
-import {
-  Position,
-  Range,
-  VariableAssignmentNode,
-  VariableReferenceNode,
-} from "../parser/nodes";
-import {
-  DocumentStateManager,
-  GCodeSettings,
-} from "./DocumentStateManager";
-import {
-  formatVariableName,
-  getVariableNameRange,
-  validateVariableName,
-} from "./RenameUtils";
+import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
+import { AstTraverser } from '../parser/AstTraverser';
+import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
+import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { formatVariableName, getVariableNameRange, validateVariableName } from './RenameUtils';
 import {
   VariableSymbol,
   VariableSymbolCollector,
   VariableSymbolKind,
-} from "./VariableSymbolCollector";
+} from './VariableSymbolCollector';
 
 /**
  * Rename Provider
@@ -44,13 +33,9 @@ export class RenameProvider {
     position: Position,
     settings: GCodeSettings
   ): Range | { range: Range; placeholder: string } | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(
-      document,
-      settings
-    );
-
-    const collector = new VariableSymbolCollector();
-    const traverser = new AstTraverser(collector);
+    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
+      collector = new VariableSymbolCollector(),
+      traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
     const symbol = collector.findSymbolAtPosition(position);
@@ -65,10 +50,7 @@ export class RenameProvider {
     }
 
     // Return just the variable name as placeholder (e.g., "col_count" not "#<col_count>")
-    const placeholder =
-      typeof symbol.name === "number"
-        ? symbol.name.toString()
-        : symbol.name;
+    const placeholder = typeof symbol.name === 'number' ? symbol.name.toString() : symbol.name;
 
     return { range, placeholder };
   }
@@ -82,13 +64,9 @@ export class RenameProvider {
     newName: string,
     settings: GCodeSettings
   ): WorkspaceEdit | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(
-      document,
-      settings
-    );
-
-    const collector = new VariableSymbolCollector();
-    const traverser = new AstTraverser(collector);
+    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
+      collector = new VariableSymbolCollector(),
+      traverser = new AstTraverser(collector);
     traverser.traverseProgram(state.ast);
 
     const symbol = collector.findSymbolAtPosition(position);
@@ -96,8 +74,8 @@ export class RenameProvider {
       return null;
     }
 
-    const oldName = symbol.name;
-    const isNumeric = typeof oldName === "number";
+    const oldName = symbol.name,
+      isNumeric = typeof oldName === 'number';
 
     // Validate new name
     if (!validateVariableName(newName, isNumeric)) {
@@ -105,12 +83,12 @@ export class RenameProvider {
     }
 
     // Check if renaming to a different type (numeric to named or vice versa)
-    if (isNumeric && typeof oldName === "number") {
+    if (isNumeric && typeof oldName === 'number') {
       const newNum = parseInt(newName, 10);
       if (isNaN(newNum)) {
         return null; // Cannot rename numeric to named
       }
-    } else if (!isNumeric && typeof oldName === "string") {
+    } else if (!isNumeric && typeof oldName === 'string') {
       if (/^\d+$/.test(newName)) {
         return null; // Cannot rename named to numeric
       }
@@ -124,8 +102,8 @@ export class RenameProvider {
 
     // Check for conflicts with existing variables
     if (isNumeric) {
-      const newNum = parseInt(newName, 10);
-      const existingDef = collector.getDefinition(newNum);
+      const newNum = parseInt(newName, 10),
+        existingDef = collector.getDefinition(newNum);
       if (existingDef && newNum !== oldName) {
         return null; // Conflict with existing variable
       }
@@ -154,10 +132,8 @@ export class RenameProvider {
     newName: string,
     isNumeric: boolean
   ): TextEdit[] {
-    const edits: TextEdit[] = [];
-    const formattedNewName = formatVariableName(
-      isNumeric ? parseInt(newName, 10) : newName
-    );
+    const edits: TextEdit[] = [],
+      formattedNewName = formatVariableName(isNumeric ? parseInt(newName, 10) : newName);
 
     for (const symbol of symbols) {
       const range = getVariableNameRange(symbol);
@@ -172,9 +148,7 @@ export class RenameProvider {
   /**
    * Get the AST range of just the variable name from a symbol
    */
-  private getVariableNameRangeFromSymbol(
-    symbol: VariableSymbol
-  ): Range | null {
+  private getVariableNameRangeFromSymbol(symbol: VariableSymbol): Range | null {
     const fullRange = symbol.range;
 
     // For references, the range is already just the variable

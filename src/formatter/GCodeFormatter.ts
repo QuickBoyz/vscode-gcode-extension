@@ -1,50 +1,42 @@
-import { AstTraverser } from "../parser/AstTraverser";
-import { AstVisitor } from "../parser/AstVisitor";
+import { DEFAULT_FORMATTER_SETTINGS, DEFAULTS, GCodeKeywords, GCodeSymbols } from '../constants';
+import { AstTraverser } from '../parser/AstTraverser';
+import { AstVisitor } from '../parser/AstVisitor';
 import {
   AxisParameterNode,
   BinaryExpressionNode,
-  BlockStatementNode,
   CommentNode,
+  ElseClauseNode,
   ErrorNode,
   ExpressionNode,
   FunctionCallNode,
+  IfClauseNode,
   IfStatementNode,
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
-  StatementNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
   WhileStatementNode,
-  IfClauseNode,
-  ElseClauseNode,
-} from "../parser/nodes";
-import {
-  GCodeSymbols,
-  GCodeKeywords,
-  DEFAULTS,
-  DEFAULT_FORMATTER_SETTINGS,
-} from "../constants";
-import { TokenType } from "../parser/nodes/tokens";
-import { FormatterSettings } from "./types";
+} from '../parser/nodes';
+import { TokenType } from '../parser/nodes/tokens';
+import { FormatterSettings } from './types';
 
 export class GCodeFormatter extends AstVisitor<void> {
   private lines: string[] = [];
   private currentIndent = 0;
-  // current formatted line number
+  // Current formatted line number
   private currentFormattedLineNumber: number;
-  // last formatted line number
+  // Last formatted line number
   private lastFormattedLineNumber: number = 0;
-  // last source line number that was formatted (0-based, from original source)
+  // Last source line number that was formatted (0-based, from original source)
   private lastSourceLineNumber: number = -1;
   private settings: FormatterSettings;
 
   constructor(settings: Partial<FormatterSettings> = {}) {
     super();
     this.settings = { ...DEFAULT_FORMATTER_SETTINGS, ...settings };
-    this.currentFormattedLineNumber =
-      this.settings.lineNumberStart ?? DEFAULTS.LINE_NUMBER_START;
+    this.currentFormattedLineNumber = this.settings.lineNumberStart ?? DEFAULTS.LINE_NUMBER_START;
   }
 
   public setOptions(settings: Partial<FormatterSettings>): void {
@@ -64,9 +56,7 @@ export class GCodeFormatter extends AstVisitor<void> {
     return this.settings.indent && this.currentIndent > 0
       ? this.settings.useTabs
         ? GCodeSymbols.TAB.repeat(this.currentIndent)
-        : GCodeSymbols.SPACE.repeat(
-            this.currentIndent * this.settings.indentSize
-          )
+        : GCodeSymbols.SPACE.repeat(this.currentIndent * this.settings.indentSize)
       : GCodeSymbols.EMPTY_STRING;
   }
 
@@ -88,10 +78,7 @@ export class GCodeFormatter extends AstVisitor<void> {
    * with the last formatted line.
    */
   private shouldMergeWithLastLine(sourceLineNumber: number): boolean {
-    return (
-      this.lastFormattedLineNumber === sourceLineNumber &&
-      this.lines.length > 0
-    );
+    return this.lastFormattedLineNumber === sourceLineNumber && this.lines.length > 0;
   }
 
   /**
@@ -102,15 +89,12 @@ export class GCodeFormatter extends AstVisitor<void> {
 
     if (this.settings.compactOutput && isEmpty) return;
 
-    this.lines.push(
-      `${this.linePrefix()}${this.indentString()}${line}`
-    );
+    this.lines.push(`${this.linePrefix()}${this.indentString()}${line}`);
 
     this.lastFormattedLineNumber = this.currentFormattedLineNumber;
 
     if (this.settings.addLineNumbers) {
-      this.currentFormattedLineNumber +=
-        this.settings.lineNumberIncrement;
+      this.currentFormattedLineNumber += this.settings.lineNumberIncrement;
     }
   }
 
@@ -124,9 +108,9 @@ export class GCodeFormatter extends AstVisitor<void> {
       return;
     }
 
-    const lastLine = this.lines.pop()!;
+    const lastLine = this.lines.pop();
     // Don't append to empty lines - they should remain empty
-    if (lastLine.trim() === "") {
+    if (lastLine?.trim() === '') {
       this.lines.push(lastLine);
       this.addLine(content);
     } else {
@@ -165,8 +149,8 @@ export class GCodeFormatter extends AstVisitor<void> {
     }
 
     const gap = currentSourceLine - this.lastSourceLineNumber;
-    // gap > 1 means there's at least one empty line between the statements
-    // gap === 2 means exactly one empty line, gap === 3 means two empty lines, etc.
+    // Gap > 1 means there's at least one empty line between the statements
+    // Gap === 2 means exactly one empty line, gap === 3 means two empty lines, etc.
     if (gap > 1 && !this.settings.compactOutput) {
       // Always add exactly one empty line (collapses multiple empty lines to one)
       this.addLine(GCodeSymbols.EMPTY_STRING);
@@ -175,21 +159,15 @@ export class GCodeFormatter extends AstVisitor<void> {
     this.lastSourceLineNumber = currentSourceLine;
   }
 
-  visitProgram(node: ProgramNode) {}
-
-  visitStatement(node: StatementNode) {}
-
-  visitBlockStatement(node: BlockStatementNode) {}
-
-  visitExpression(node: ExpressionNode) {}
-
-  visitLiteralExpression(node: LiteralExpressionNode) {}
-
-  visitBinaryExpression(node: BinaryExpressionNode) {}
-
-  visitUnaryExpression(node: UnaryExpressionNode) {}
-
-  visitVariableReference(node: VariableReferenceNode) {}
+  visitProgram() {}
+  visitStatement() {}
+  visitBlockStatement() {}
+  visitExpression() {}
+  visitLiteralExpression() {}
+  visitBinaryExpression() {}
+  visitUnaryExpression() {}
+  visitVariableReference() {}
+  visitIfStatement() {}
 
   visitAxisParameter(node: AxisParameterNode) {
     this.handleLineGap(node.getRange().start.line);
@@ -199,16 +177,14 @@ export class GCodeFormatter extends AstVisitor<void> {
 
   visitIfClause(node: IfClauseNode) {
     this.handleLineGap(node.getRange().start.line);
-    const isElseIf = node.kind === TokenType.ELSEIF;
-    const keyword = isElseIf ? GCodeKeywords.ELSEIF : GCodeKeywords.IF;
+    const isElseIf = node.kind === TokenType.ELSEIF,
+      keyword = isElseIf ? GCodeKeywords.ELSEIF : GCodeKeywords.IF;
 
     if (isElseIf) {
       this.decrementIndent();
     }
     this.addLine(
-      `${this.formatLabel(
-        node.label
-      )}${keyword} [${this.formatExpression(node.condition)}]${
+      `${this.formatLabel(node.label)}${keyword} [${this.formatExpression(node.condition)}]${
         !isElseIf ? ` ${GCodeKeywords.THEN}` : GCodeSymbols.EMPTY_STRING
       }`
     );
@@ -218,18 +194,14 @@ export class GCodeFormatter extends AstVisitor<void> {
   visitElseClause(node: ElseClauseNode) {
     this.handleLineGap(node.getRange().start.line);
     this.decrementIndent();
-    this.addLine(
-      `${this.formatLabel(node.label)}${GCodeKeywords.ELSE}`
-    );
+    this.addLine(`${this.formatLabel(node.label)}${GCodeKeywords.ELSE}`);
     this.incrementIndent();
   }
 
   visitIfStatementEnd(node: IfStatementNode) {
     this.handleLineGap(node.getRange().end.line);
     this.decrementIndent();
-    this.addLine(
-      `${this.formatLabel(node.label)}${GCodeKeywords.ENDIF}`
-    );
+    this.addLine(`${this.formatLabel(node.label)}${GCodeKeywords.ENDIF}`);
   }
 
   visitWhileStatementEnd(node: WhileStatementNode) {
@@ -258,17 +230,13 @@ export class GCodeFormatter extends AstVisitor<void> {
     this.handleLineGap(node.getRange().start.line);
     const condition = this.formatExpression(node.condition);
     this.addLine(
-      `${this.formatLabel(node.label)}${
-        GCodeKeywords.WHILE
-      } [${condition}] ${GCodeKeywords.DO}`
+      `${this.formatLabel(node.label)}${GCodeKeywords.WHILE} [${condition}] ${GCodeKeywords.DO}`
     );
     this.incrementIndent();
   }
 
   private formatLabel(label?: string): string {
-    return label
-      ? `${label?.toUpperCase()} `
-      : GCodeSymbols.EMPTY_STRING;
+    return label ? `${label?.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
   }
 
   visitMotionCommand(node: MotionCommandNode) {
@@ -282,10 +250,10 @@ export class GCodeFormatter extends AstVisitor<void> {
 
     if (this.settings.prettyPrintCommands) {
       // G1 → G01, M3 → M03
-      const letter = cmd[0];
-      const number = parseFloat(cmd.slice(1));
+      const letter = cmd[0],
+        number = parseFloat(cmd.slice(1));
       if (!isNaN(number)) {
-        cmd = `${letter}${number.toString().padStart(2, "0")}`;
+        cmd = `${letter}${number.toString().padStart(2, '0')}`;
       }
     }
 
@@ -293,29 +261,22 @@ export class GCodeFormatter extends AstVisitor<void> {
   }
   visitError(node: ErrorNode) {
     this.handleLineGap(node.getRange().start.line);
-    this.appendToLastLine(
-      node.getRange().start.line,
-      `(ERROR: ${node.message})`
-    );
+    this.appendToLastLine(node.getRange().start.line, `(ERROR: ${node.message})`);
   }
-
-  visitIfStatement(node: IfStatementNode) {}
 
   // --- Helpers ---
 
   private formatAxisParameter(node: AxisParameterNode): string {
-    const axis = node.axis;
-    const valueNode = node.value;
-
-    const value = this.formatExpression(valueNode);
-
-    // Wrap binary expressions and function calls in brackets
-    const needsBrackets =
-      valueNode instanceof BinaryExpressionNode ||
-      valueNode instanceof FunctionCallNode ||
-      (valueNode instanceof UnaryExpressionNode &&
-        (valueNode.operand instanceof BinaryExpressionNode ||
-          valueNode.operand instanceof FunctionCallNode));
+    const { axis } = node,
+      valueNode = node.value,
+      value = this.formatExpression(valueNode),
+      // Wrap binary expressions and function calls in brackets
+      needsBrackets =
+        valueNode instanceof BinaryExpressionNode ||
+        valueNode instanceof FunctionCallNode ||
+        (valueNode instanceof UnaryExpressionNode &&
+          (valueNode.operand instanceof BinaryExpressionNode ||
+            valueNode.operand instanceof FunctionCallNode));
 
     if (needsBrackets) {
       return `${axis}[${value}]`;
@@ -325,7 +286,7 @@ export class GCodeFormatter extends AstVisitor<void> {
   }
 
   private formatVariableName(name: string | number): string {
-    if (typeof name === "number") {
+    if (typeof name === 'number') {
       return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
     }
     return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
@@ -333,10 +294,7 @@ export class GCodeFormatter extends AstVisitor<void> {
 
   private formatExpression(node: ExpressionNode): string {
     if (node instanceof LiteralExpressionNode) {
-      if (
-        this.settings.prettyPrintNumbers &&
-        !node.value.toString().includes(".")
-      ) {
+      if (this.settings.prettyPrintNumbers && !node.value.toString().includes('.')) {
         return `${node.value}.0`;
       }
       return node.value.toString();
@@ -372,11 +330,7 @@ export class GCodeFormatter extends AstVisitor<void> {
       if (!this.lines[0].startsWith(GCodeSymbols.PROGRAM_DELIMITER)) {
         this.lines.unshift(GCodeSymbols.PROGRAM_DELIMITER);
       }
-      if (
-        !this.lines[this.lines.length - 1].endsWith(
-          GCodeSymbols.PROGRAM_DELIMITER
-        )
-      ) {
+      if (!this.lines[this.lines.length - 1].endsWith(GCodeSymbols.PROGRAM_DELIMITER)) {
         this.lines.push(GCodeSymbols.PROGRAM_DELIMITER);
       }
     }
