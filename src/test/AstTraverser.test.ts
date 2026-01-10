@@ -1,6 +1,6 @@
-import { GCodeLexer } from "../../lexer/GCodeLexer";
-import { GCodeParser } from "../GCodeParser";
-import { AstTraverser } from "../AstTraverser";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { GCodeParser } from "../parser/GCodeParser";
+import { AstTraverser } from "../parser/AstTraverser";
 import {
   ProgramNode,
   VariableAssignmentNode,
@@ -13,9 +13,9 @@ import {
   IfStatementNode,
   IfClauseNode,
   ElseClauseNode,
-} from "../nodes";
-import { AstVisitor } from "../AstVisitor";
-import { TokenType } from "../nodes/tokens";
+} from "../parser/nodes";
+import { AstVisitor } from "../parser/AstVisitor";
+import { TokenType } from "../parser/nodes/tokens";
 
 describe("AstTraverser", () => {
   function parse(input: string): ProgramNode {

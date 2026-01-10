@@ -1,0 +1,10 @@
+{
+    "gcode.formatter.addLineNumbers": false,
+    "gcode.formatter.lineNumberStart": 10,
+    "gcode.formatter.lineNumberIncrement": 10,
+    "gcode.formatter.prettyPrintCommands": true,
+    "gcode.formatter.prettyPrintNumbers": true,
+    "gcode.formatter.indent": true,
+    "gcode.formatter.compactOutput": false,
+    "gcode.formatter.addProgramDelimiters": true
+}

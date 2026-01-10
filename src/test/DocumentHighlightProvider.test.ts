@@ -3,13 +3,13 @@
  */
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentHighlightKind } from "vscode-languageserver/node";
-import { Position } from "../../parser/nodes";
-import { DEFAULT_FORMATTER_SETTINGS } from "../../constants";
-import { DocumentHighlightProvider } from "../DocumentHighlightProvider";
+import { Position } from "../parser/nodes";
+import { DEFAULT_FORMATTER_SETTINGS } from "../constants";
+import { DocumentHighlightProvider } from "../providers/DocumentHighlightProvider";
 import {
   DocumentStateManager,
   GCodeSettings,
-} from "../DocumentStateManager";
+} from "../providers/DocumentStateManager";
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_FORMATTER_SETTINGS,
