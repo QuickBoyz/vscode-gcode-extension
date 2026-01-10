@@ -1,0 +1,10 @@
+dist
+out
+node_modules
+coverage
+*.log
+*.vsix
+.vscode-test
+*.d.ts
+*.js
+jest.config.ts
