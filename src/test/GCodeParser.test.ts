@@ -1,6 +1,5 @@
-// parser/__tests__/GCodeParser.test.ts
-import { GCodeLexer } from "../../lexer/GCodeLexer";
-import { GCodeParser } from "../GCodeParser";
+import { GCodeLexer } from "../lexer/GCodeLexer";
+import { GCodeParser } from "../parser/GCodeParser";
 import {
   VariableAssignmentNode,
   AxisParameterNode,
@@ -12,8 +11,8 @@ import {
   ProgramNode,
   VariableReferenceNode,
   WhileStatementNode,
-} from "../nodes";
-import { TokenType } from "../nodes/tokens";
+} from "../parser/nodes";
+import { TokenType } from "../parser/nodes/tokens";
 
 describe("GCodeParser", () => {
   function parse(input: string): ProgramNode {

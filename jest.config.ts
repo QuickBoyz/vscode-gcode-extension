@@ -4,7 +4,7 @@ const config: Config = {
   clearMocks: true,
   coverageProvider: "v8",
   moduleFileExtensions: ["js", "ts", "json"],
-  testMatch: ["**/*.test.ts"],
+  testMatch: ["**/test/**/*.test.ts"],
   transform: {
     "^.+\\.ts$": "ts-jest",
   },

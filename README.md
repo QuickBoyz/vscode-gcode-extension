@@ -116,12 +116,26 @@ src/
 │   ├── server.ts    # LSP server setup
 │   └── index.ts
 ├── lexer/           # G-Code lexer (tokenizer)
-│   └── gcodeLexer.ts
+│   └── GCodeLexer.ts
 ├── parser/          # G-Code parser (AST generation)
-│   └── gcodeParser.ts
+│   ├── GCodeParser.ts
+│   ├── AstFactory.ts
+│   ├── AstTraverser.ts
+│   ├── AstVisitor.ts
+│   └── nodes/       # AST node definitions
 ├── formatter/       # Code formatter
-│   └── gcodeFormatter.ts
-└── __tests__/       # Test files and fixtures
+│   └── GCodeFormatter.ts
+├── providers/       # Language feature providers
+│   ├── DocumentFormattingProvider.ts
+│   ├── DocumentSymbolProvider.ts
+│   ├── DocumentHighlightProvider.ts
+│   ├── RenameProvider.ts
+│   └── SemanticTokensProvider.ts
+├── test/            # Unit tests (Jest)
+│   └── fixtures/    # Test fixtures
+└── e2e/             # E2E tests (VS Code)
+    ├── suite/       # Test suites
+    └── fixtures/    # Test fixtures
 ```
 
 ## Development
@@ -166,27 +180,33 @@ npm run build
 ### Available Scripts
 
 - `npm run build` - Compile TypeScript to JavaScript
+- `npm run build:e2e` - Compile test files
 - `npm run typecheck` - Type check without emitting files
-- `npm test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
+- `npm test` - Run unit tests (Jest)
+- `npm run test:watch` - Run unit tests in watch mode
+- `npm run test:e2e` - Run e2e tests (VS Code)
+- `npm run test:all` - Run both unit and e2e tests
 - `npm run package` - Build and package the extension as `.vsix`
 - `npm run package:pre` - Build and package as pre-release
 
 ### Testing
 
-The project uses Jest for testing. Test files are located alongside source files with `.test.ts` extension.
+The project uses two types of tests:
 
-Run tests:
+1. **Unit Tests (Jest)**: Test individual components in isolation
 
-```bash
-npm test
-```
+   - Located in `src/test/` directory
+   - Run with: `npm test`
+   - Run in watch mode: `npm run test:watch`
+   - Fast, isolated tests for parsers, formatters, and providers
 
-Run tests in watch mode:
+2. **E2E Tests (VS Code)**: Test features end-to-end in VS Code Extension Development Host
+   - Located in `src/e2e/` directory
+   - Run with: `npm run test:e2e`
+   - Run all tests: `npm run test:all`
+   - Tests actual VS Code integration (formatting, symbols, highlighting, rename, semantic tokens)
 
-```bash
-npm run test:watch
-```
+For detailed information about testing, see [TESTING.md](TESTING.md).
 
 ### Debugging
 

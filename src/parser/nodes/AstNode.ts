@@ -1,8 +1,24 @@
 import { Range } from "./Range";
 import { AstVisitor } from "../AstVisitor";
+import { Position } from "./Position";
 
 export abstract class AstNode {
   constructor(protected range: Range, protected parent?: AstNode) {}
+
+  getStartPosition(): Position {
+    return this.range.start;
+  }
+
+  getEndPosition(): Position {
+    return this.range.end;
+  }
+
+  getLength(): number {
+    return (
+      Math.max(this.range.end.character, this.range.start.character) -
+      Math.min(this.range.end.character, this.range.start.character)
+    );
+  }
 
   getRange(): Range {
     return this.range;

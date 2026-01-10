@@ -18,10 +18,12 @@ npm test
 ## Development
 
 1. **Launch Extension Development Host:**
+
    - Press `F5` in VS Code
    - A new window will open with the extension loaded
 
 2. **Test your changes:**
+
    - Open a G-Code file (`.nc`, `.gcode`, etc.)
    - Test formatting with `Shift+Alt+F` or Command Palette → "Format G-Code Document"
 
@@ -34,9 +36,10 @@ npm test
 
 - `src/client/extension.ts` - Extension entry point
 - `src/server/server.ts` - LSP server
-- `src/parser/gcodeParser.ts` - G-Code parser
-- `src/formatter/gcodeFormatter.ts` - Code formatter
-- `src/lexer/gcodeLexer.ts` - Tokenizer
+- `src/parser/GCodeParser.ts` - G-Code parser
+- `src/formatter/GCodeFormatter.ts` - Code formatter
+- `src/lexer/GCodeLexer.ts` - Tokenizer
+- `src/providers/` - Language feature providers (formatting, symbols, rename, etc.)
 
 ## Common Commands
 
@@ -57,9 +60,13 @@ npm run package        # Create .vsix file
 
 ## Testing
 
-- Test files: `**/*.test.ts` (alongside source files)
-- Test fixtures: `src/__tests__/fixtures/`
-- Run: `npm test`
+- Unit test files: `src/test/**/*.test.ts`
+- Unit test fixtures: `src/test/fixtures/`
+- E2E test files: `src/e2e/suite/**/*.test.ts`
+- E2E test fixtures: `src/e2e/fixtures/`
+- Run unit tests: `npm test`
+- Run e2e tests: `npm run test:e2e`
+- Run all tests: `npm run test:all`
 
 ## Packaging
 

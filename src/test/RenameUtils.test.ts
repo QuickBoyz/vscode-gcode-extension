@@ -5,8 +5,8 @@ import {
   formatVariableName,
   validateVariableName,
   extractVariableNameFromText,
-} from "../RenameUtils";
-import { Range } from "../../parser/nodes";
+} from "../providers/RenameUtils";
+import { Range } from "../parser/nodes";
 
 describe("RenameUtils", () => {
   describe("formatVariableName", () => {
