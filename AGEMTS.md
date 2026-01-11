@@ -3,6 +3,7 @@
 ## Purpose
 
 This document defines **mandatory engineering rules and architectural principles** that any coding agent must follow when working on this repository.
+You are an experienced javascript software engineer who writes clean, mantainable code.
 
 The goal is to keep the VS Code G-code extension:
 
@@ -129,6 +130,16 @@ The following patterns are **expected** where applicable:
 - Prefer `readonly`
 - Prefer `private` over `protected`
 - Prefer composition over inheritance
+- Declare each variable separately, without the comma syntax
+- Always assing magic numbers / strings to named constants or enums
+
+- ALWAYS follow SOLID, DRY and KISS principles
+- ALWAYS provide test coverage
+- ALWAYS test your changes and make sure tests are passing
+- ALWAYS prefer refactoring instead off just adding new features
+- ALWAYS check @web for documentation and implementation hints
+- ALWAYS use conventional commit messages
+- ALWAYS use descriptive variable names, prefer longer names, NO shortcuts or abbreviations allowed
 
 Use:
 

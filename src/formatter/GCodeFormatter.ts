@@ -1,6 +1,6 @@
 import { DEFAULT_FORMATTER_SETTINGS, DEFAULTS, GCodeKeywords, GCodeSymbols } from '../constants';
 import { AstTraverser } from '../parser/AstTraverser';
-import { AstVisitor } from '../parser/AstVisitor';
+import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
   AxisParameterNode,
   BinaryExpressionNode,
@@ -22,7 +22,7 @@ import {
 import { TokenType } from '../parser/nodes/tokens';
 import { FormatterSettings } from './types';
 
-export class GCodeFormatter extends AstVisitor<void> {
+export class GCodeFormatter extends BaseAstVisitor<void> {
   private lines: string[] = [];
   private currentIndent = 0;
   // Current formatted line number
@@ -37,6 +37,10 @@ export class GCodeFormatter extends AstVisitor<void> {
     super();
     this.settings = { ...DEFAULT_FORMATTER_SETTINGS, ...settings };
     this.currentFormattedLineNumber = this.settings.lineNumberStart ?? DEFAULTS.LINE_NUMBER_START;
+  }
+
+  protected defaultValue(): void {
+    // No-op default
   }
 
   public setOptions(settings: Partial<FormatterSettings>): void {
@@ -158,16 +162,6 @@ export class GCodeFormatter extends AstVisitor<void> {
 
     this.lastSourceLineNumber = currentSourceLine;
   }
-
-  visitProgram() {}
-  visitStatement() {}
-  visitBlockStatement() {}
-  visitExpression() {}
-  visitLiteralExpression() {}
-  visitBinaryExpression() {}
-  visitUnaryExpression() {}
-  visitVariableReference() {}
-  visitIfStatement() {}
 
   visitAxisParameter(node: AxisParameterNode) {
     this.handleLineGap(node.getRange().start.line);
