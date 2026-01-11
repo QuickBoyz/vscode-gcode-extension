@@ -18,9 +18,9 @@ export class TestUtils {
       await TestUtils.waitForLanguageServer(timeout);
     });
 
-    suiteTeardown(function () {
+    suiteTeardown(async function () {
       TestUtils.cleanupAllTestFiles();
-      TestUtils.resetConfiguration();
+      await TestUtils.resetConfiguration();
     });
   }
 
@@ -284,7 +284,7 @@ export class TestUtils {
   /**
    * Reset configuration to default values
    */
-  static resetConfiguration(): void {
+  static async resetConfiguration(): Promise<void> {
     const config = this.getExtensionConfiguration(),
       defaults: Record<string, unknown> = {
         'formatter.addLineNumbers': false,
@@ -297,8 +297,11 @@ export class TestUtils {
         'formatter.addProgramDelimiters': true,
       };
 
-    for (const [key, value] of Object.entries(defaults)) {
-      config.update(key, value, vscode.ConfigurationTarget.Workspace);
-    }
+    // Wait for all configuration updates to complete
+    await Promise.all(
+      Object.entries(defaults).map(([key, value]) =>
+        config.update(key, value, vscode.ConfigurationTarget.Workspace)
+      )
+    );
   }
 }

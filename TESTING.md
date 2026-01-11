@@ -17,15 +17,7 @@ Unit tests are located in `src/test/` and test individual components in isolatio
 
 **Tested Components:**
 
-- Parser (`GCodeParser.test.ts`)
-- Formatter (`GCodeFormatter.test.ts`)
-- AST Traverser (`AstTraverser.test.ts`)
-- Document State Manager (`DocumentStateManager.test.ts`)
-- Symbol Provider (`DocumentSymbolProvider.test.ts`)
-- Highlight Provider (`DocumentHighlightProvider.test.ts`)
-- Rename Provider (`RenameProvider.test.ts`, `RenameUtils.test.ts`)
-- Variable Symbol Collector (`VariableSymbolCollector.test.ts`)
-- Server (`server.test.ts`)
+- All components need to be testedS
 
 ### Running Unit Tests
 

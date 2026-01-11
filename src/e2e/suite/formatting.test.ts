@@ -132,7 +132,7 @@ suite('Document Formatting Tests', () => {
   });
 
   suiteTeardown(async () => {
-    TestUtils.resetConfiguration();
+    await TestUtils.resetConfiguration();
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
   });
 });
