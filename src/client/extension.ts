@@ -13,10 +13,13 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node';
 
-const GCODE_LANGUAGE_ID = 'gcode';
+import { CommandProvider } from './CommandProvider';
+import { GCODE_LANGUAGE_ID } from '../constants';
+
 // Reads G-code file extensions from package.json contributes.languages configuration
 
 let client: LanguageClient;
+let commandProvider: CommandProvider;
 
 /**
  * This method is called when the extension is activated
@@ -62,12 +65,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Start the client (which also launches the server)
   await client.start();
   context.subscriptions.push(client);
+
+  // Register all commands
+  commandProvider = new CommandProvider();
+  commandProvider.registerCommands(context);
 }
 
 /**
  * This method is called when the extension is deactivated
  */
 export async function deactivate(): Promise<void> {
+  if (commandProvider) {
+    commandProvider.dispose();
+  }
   if (client) {
     await client.stop();
   }

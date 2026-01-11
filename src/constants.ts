@@ -4,6 +4,8 @@
 
 import { FormatterSettings } from './formatter/types';
 
+export const GCODE_LANGUAGE_ID = 'gcode';
+
 /**
  * G-code syntax symbols
  */

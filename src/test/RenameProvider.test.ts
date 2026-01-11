@@ -3,7 +3,7 @@
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
 import { Position } from '../parser/nodes';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { RenameProvider } from '../providers/RenameProvider';
@@ -23,7 +23,7 @@ describe('RenameProvider', () => {
   describe('prepareRename', () => {
     it('should return range and placeholder for named variable', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.prepareRename(document, Position.create(0, 1), TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -35,7 +35,7 @@ describe('RenameProvider', () => {
 
     it('should return range and placeholder for numeric variable', () => {
       const text = '#1 = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.prepareRename(document, Position.create(0, 1), TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -46,7 +46,7 @@ describe('RenameProvider', () => {
 
     it('should return null if position is not on a variable', () => {
       const text = 'G0 X0',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.prepareRename(document, Position.create(0, 0), TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -54,7 +54,7 @@ describe('RenameProvider', () => {
 
     it('should return range for variable reference', () => {
       const text = '#<x> = 10\n#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.prepareRename(document, Position.create(1, 8), TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -67,7 +67,7 @@ describe('RenameProvider', () => {
   describe('provideRenameEdits', () => {
     it('should rename named variable with single reference', () => {
       const text = '#<x> = 10\n#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'foo', TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -81,7 +81,7 @@ describe('RenameProvider', () => {
 
     it('should rename numeric variable', () => {
       const text = '#1 = 10\n#3 = #1',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), '2', TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -95,7 +95,7 @@ describe('RenameProvider', () => {
 
     it('should rename variable with multiple references', () => {
       const text = '#<x> = 10\n#<y> = #<x>\n#<z> = #<x> + #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'foo', TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -110,7 +110,7 @@ describe('RenameProvider', () => {
 
     it('should return null for invalid new name (numeric variable)', () => {
       const text = '#1 = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'abc', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -118,7 +118,7 @@ describe('RenameProvider', () => {
 
     it('should return null for invalid new name (named variable)', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), '123', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -126,7 +126,7 @@ describe('RenameProvider', () => {
 
     it('should return null when renaming numeric to named', () => {
       const text = '#1 = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'foo', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -134,7 +134,7 @@ describe('RenameProvider', () => {
 
     it('should return null when renaming named to numeric', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), '1', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -142,7 +142,7 @@ describe('RenameProvider', () => {
 
     it('should return null for conflict with existing variable', () => {
       const text = '#<x> = 10\n#<y> = 20',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'y', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -150,7 +150,7 @@ describe('RenameProvider', () => {
 
     it('should allow renaming to same name (no-op)', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'x', TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -163,7 +163,7 @@ describe('RenameProvider', () => {
 
     it('should return null if position is not on a variable', () => {
       const text = 'G0 X0',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 0), 'foo', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -171,7 +171,7 @@ describe('RenameProvider', () => {
 
     it('should handle variables in expressions', () => {
       const text = '#<a> = 10\n#<b> = #<a> + #<a>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), 'x', TEST_SETTINGS);
 
       expect(result).not.toBeNull();
@@ -183,7 +183,7 @@ describe('RenameProvider', () => {
 
     it('should handle zero as invalid numeric variable name', () => {
       const text = '#1 = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), '0', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -191,7 +191,7 @@ describe('RenameProvider', () => {
 
     it('should handle negative numbers as invalid', () => {
       const text = '#1 = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(document, Position.create(0, 1), '-1', TEST_SETTINGS);
 
       expect(result).toBeNull();
@@ -199,7 +199,7 @@ describe('RenameProvider', () => {
 
     it('should rename all assignments (multiple definitions)', () => {
       const text = '#<x> = 10\n#<y> = #<x>\n#<x> = 20\n#<z> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(
           document,
           Position.create(0, 1), // Position on first assignment
@@ -220,7 +220,7 @@ describe('RenameProvider', () => {
 
     it('should rename all assignments when renaming from reassignment', () => {
       const text = '#<x> = 10\n#<x> = 20\n#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         result = provider.provideRenameEdits(
           document,
           Position.create(1, 1), // Position on second assignment

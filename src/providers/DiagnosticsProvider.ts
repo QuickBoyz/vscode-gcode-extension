@@ -8,6 +8,7 @@ import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCODE_LANGUAGE_ID } from '../constants';
 
 /**
  * Diagnostics Provider
@@ -29,7 +30,7 @@ export class DiagnosticsProvider {
         range: errorNode.getRange(),
         severity: DiagnosticSeverity.Error,
         message: errorNode.message,
-        source: 'gcode',
+        source: GCODE_LANGUAGE_ID,
       });
     }
 
