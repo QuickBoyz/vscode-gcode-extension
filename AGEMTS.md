@@ -188,7 +188,7 @@ Names must reflect **domain meaning**, not implementation detail.
 
 ## Forbidden Practices
 
-The following are **not allowed**:
+The following are **NOT ALLOWED**:
 
 - Business logic inside VS Code providers
 - AST mutation after parsing

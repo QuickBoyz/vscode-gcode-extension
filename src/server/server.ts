@@ -78,6 +78,7 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
       documentSymbolProvider: {
         label: 'G-code Variables',
       },
+      hoverProvider: true,
       // Enable diagnostics for syntax errors
       diagnosticProvider: {
         interFileDependencies: false,
@@ -107,6 +108,7 @@ const formatterService = new FormatterService(),
   renameProvider = new RenameProvider(documentStateManager),
   documentHighlightProvider = new DocumentHighlightProvider(documentStateManager),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
+  hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager);
 
 connection.onDocumentFormatting(async (params) => {
@@ -176,6 +178,17 @@ connection.onDocumentSymbol(async (params) => {
 
   const settings = await getDocumentSettings(params.textDocument.uri);
   return documentSymbolProvider.provideDocumentSymbols(document, settings);
+});
+
+// Register hover provider
+connection.onHover(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return hoverProvider.provideHover(document, params.position, settings);
 });
 
 // Publish diagnostics on document change
