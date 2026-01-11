@@ -9,6 +9,7 @@ export class UnaryExpressionNode extends ExpressionNode {
     range: Range,
     readonly operator: UnaryOperatorType,
     readonly operand: ExpressionNode,
+    readonly operatorRange: Range,
     parent?: AstNode
   ) {
     super(range, parent);
