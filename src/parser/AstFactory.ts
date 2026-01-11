@@ -61,6 +61,7 @@ export class AstFactory {
       keyword.type === TokenType.IF ? TokenType.IF : TokenType.ELSEIF,
       condition,
       body,
+      rangeFrom(keyword),
       rangeFrom(thenToken),
       label?.value,
       parent
@@ -71,6 +72,7 @@ export class AstFactory {
     return new ElseClauseNode(
       rangeFrom(keyword, body[body.length - 1]),
       body,
+      rangeFrom(keyword),
       label?.value,
       parent
     );
