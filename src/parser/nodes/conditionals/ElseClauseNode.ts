@@ -8,6 +8,7 @@ export class ElseClauseNode extends BlockStatementNode {
   constructor(
     range: Range,
     readonly body: StatementNode[],
+    readonly keywordTokenRange: Range,
     readonly label?: string,
     parent?: AstNode
   ) {

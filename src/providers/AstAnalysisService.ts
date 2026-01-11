@@ -107,11 +107,13 @@ class UnifiedAnalysisVisitor extends BaseAstVisitor<void> {
 
   visitIfStatement(node: IfStatementNode): void {
     if (this.tokensBuilder) {
+      // Add IF keyword token
       this.tokensBuilder.pushRange(
-        node.ifClause.getRange(),
+        node.ifClause.keywordTokenRange,
         this.getTokenTypeIndex(SemanticTokenTypes.Keyword)
       );
 
+      // Add THEN token if present
       if (node.ifClause.thenTokenRange) {
         this.tokensBuilder.pushRange(
           node.ifClause.thenTokenRange,
@@ -119,9 +121,16 @@ class UnifiedAnalysisVisitor extends BaseAstVisitor<void> {
         );
       }
 
-      // Add semantic tokens for THEN in elseIfClauses
+      // Add semantic tokens for ELSEIF and THEN in elseIfClauses
       if (node.elseIfClauses) {
         for (const elseifClause of node.elseIfClauses) {
+          // Add ELSEIF keyword token
+          this.tokensBuilder.pushRange(
+            elseifClause.keywordTokenRange,
+            this.getTokenTypeIndex(SemanticTokenTypes.Keyword)
+          );
+
+          // Add THEN token if present
           if (elseifClause.thenTokenRange) {
             this.tokensBuilder.pushRange(
               elseifClause.thenTokenRange,
@@ -129,6 +138,14 @@ class UnifiedAnalysisVisitor extends BaseAstVisitor<void> {
             );
           }
         }
+      }
+
+      // Add ELSE keyword token if present
+      if (node.elseClause) {
+        this.tokensBuilder.pushRange(
+          node.elseClause.keywordTokenRange,
+          this.getTokenTypeIndex(SemanticTokenTypes.Keyword)
+        );
       }
     }
   }

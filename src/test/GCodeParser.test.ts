@@ -226,6 +226,27 @@ O1 ENDIF
     expect(ifStmt.elseClause?.body).toHaveLength(1);
   });
 
+  it('parses unlabeled IF + ELSEIF + ELSE (regression test for ELSEIF without label)', () => {
+    const program = parse(`
+IF [#<x> LT 0] THEN
+  G01 X-1
+ELSEIF [#<x> EQ 0] THEN
+  G01 X0
+ELSE
+  G01 X1
+ENDIF
+`),
+      ifStmt = program.statements[0] as IfStatementNode;
+
+    expect(ifStmt).toBeInstanceOf(IfStatementNode);
+    expect(ifStmt.label).toBeUndefined();
+    expect(ifStmt.ifClause.kind).toBe(TokenType.IF);
+    expect(ifStmt.elseIfClauses).toHaveLength(1);
+    expect(ifStmt.elseIfClauses?.[0].kind).toBe(TokenType.ELSEIF);
+    expect(ifStmt.elseClause).toBeDefined();
+    expect(ifStmt.elseClause?.body).toHaveLength(1);
+  });
+
   it('allows nested IF inside WHILE', () => {
     const program = parse(`
 O10 WHILE [#<i> LT 3]
