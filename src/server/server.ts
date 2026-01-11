@@ -97,13 +97,14 @@ connection.onDocumentRangeFormatting(async (params) => {
   return rangeFormatter.provide(document, params.range, settings.formatter);
 });
 
-connection.languages.semanticTokens.on((params) => {
+connection.languages.semanticTokens.on(async (params) => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return { data: [] };
   }
 
-  return SemanticTokensProvider.provide(document);
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return SemanticTokensProvider.provide(document, documentStateManager, settings);
 });
 
 // Register rename provider

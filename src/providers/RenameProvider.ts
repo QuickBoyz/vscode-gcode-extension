@@ -4,18 +4,19 @@
  * Provides variable renaming functionality for G-code files.
  * Supports both numeric (#1) and named (#<foo>) variables.
  */
-import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
 
-import { AstTraverser } from '../parser/AstTraverser';
 import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
+import { AnalysisResults } from './AnalysisResults';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { formatVariableName, getVariableNameRange, validateVariableName } from './RenameUtils';
-import {
-  VariableSymbol,
-  VariableSymbolCollector,
-  VariableSymbolKind,
-} from './VariableSymbolCollector';
+
+/**
+ * Weight multiplier for line difference in range size calculation.
+ * Ensures multi-line ranges are always larger than single-line ranges.
+ */
+const LINE_WEIGHT = 1000;
 
 /**
  * Rename Provider
@@ -33,18 +34,15 @@ export class RenameProvider {
     position: Position,
     settings: GCodeSettings
   ): Range | { range: Range; placeholder: string } | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
-      collector = new VariableSymbolCollector(),
-      traverser = new AstTraverser(collector);
-    traverser.traverseProgram(state.ast);
+    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
+      symbol = this.findSymbolAtPosition(analysis, position);
 
-    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
 
     // Get the range of just the variable name (not the entire assignment)
-    const range = this.getVariableNameRangeFromSymbol(symbol);
+    const range = this.getVariableNameRangeFromNode(symbol.node);
     if (!range) {
       return null;
     }
@@ -64,12 +62,9 @@ export class RenameProvider {
     newName: string,
     settings: GCodeSettings
   ): WorkspaceEdit | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
-      collector = new VariableSymbolCollector(),
-      traverser = new AstTraverser(collector);
-    traverser.traverseProgram(state.ast);
+    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
+      symbol = this.findSymbolAtPosition(analysis, position);
 
-    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
@@ -94,28 +89,38 @@ export class RenameProvider {
       }
     }
 
-    // Get all symbols (definition + references)
-    const allSymbols = collector.getAllSymbols(oldName);
-    if (allSymbols.length === 0) {
+    // Get all symbols (definition + references) from analysis
+    const variableSymbol = analysis.variables.get(oldName);
+    if (!variableSymbol) {
+      return null;
+    }
+
+    const allNodes: Array<VariableAssignmentNode | VariableReferenceNode> = [];
+    // Add all definitions
+    allNodes.push(...variableSymbol.definitions);
+    // Add all references
+    allNodes.push(...variableSymbol.references);
+
+    if (allNodes.length === 0) {
       return null;
     }
 
     // Check for conflicts with existing variables
     if (isNumeric) {
-      const newNum = parseInt(newName, 10),
-        existingDef = collector.getDefinition(newNum);
-      if (existingDef && newNum !== oldName) {
+      const newNum = parseInt(newName, 10);
+      const existingVar = analysis.variables.get(newNum);
+      if (existingVar && existingVar.definitions.length > 0 && newNum !== oldName) {
         return null; // Conflict with existing variable
       }
     } else {
-      const existingDef = collector.getDefinition(newName);
-      if (existingDef && newName !== oldName) {
+      const existingVar = analysis.variables.get(newName);
+      if (existingVar && existingVar.definitions.length > 0 && newName !== oldName) {
         return null; // Conflict with existing variable
       }
     }
 
     // Create text edits
-    const edits = this.createTextEdits(allSymbols, newName, isNumeric);
+    const edits = this.createTextEdits(allNodes, newName, isNumeric);
 
     return {
       changes: {
@@ -146,23 +151,43 @@ export class RenameProvider {
   }
 
   /**
-   * Get the AST range of just the variable name from a symbol
+   * Find symbol at position from analysis results
    */
-  private getVariableNameRangeFromSymbol(symbol: VariableSymbol): Range | null {
-    const fullRange = symbol.range;
+  private findSymbolAtPosition(
+    analysis: AnalysisResults,
+    position: Position
+  ): { name: string | number; node: VariableAssignmentNode | VariableReferenceNode } | null {
+    let bestMatch: {
+      name: string | number;
+      node: VariableAssignmentNode | VariableReferenceNode;
+    } | null = null;
+    let smallestRangeSize = Infinity;
 
-    // For references, the range is already just the variable
-    if (symbol.kind === VariableSymbolKind.Reference) {
-      return fullRange;
+    for (const [name, symbol] of analysis.variables) {
+      // Check all definitions and references
+      for (const node of [...symbol.definitions, ...symbol.references]) {
+        const range = node.getRange();
+        if (Range.isPositionInRange(position, range)) {
+          const rangeSize =
+            (range.end.line - range.start.line) * LINE_WEIGHT +
+            (range.end.character - range.start.character);
+          if (rangeSize < smallestRangeSize) {
+            smallestRangeSize = rangeSize;
+            bestMatch = { name, node: node };
+          }
+        }
+      }
     }
 
-    // For definitions (assignments), we need to extract just the variable name part
-    const formattedName = formatVariableName(symbol.name);
-    return Range.create(
-      fullRange.start.line,
-      fullRange.start.character,
-      fullRange.start.line,
-      fullRange.start.character + formattedName.length
-    );
+    return bestMatch;
+  }
+
+  /**
+   * Get the AST range of just the variable name from a node
+   */
+  private getVariableNameRangeFromNode(
+    node: VariableAssignmentNode | VariableReferenceNode
+  ): Range | null {
+    return getVariableNameRange(node);
   }
 }

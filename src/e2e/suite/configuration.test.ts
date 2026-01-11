@@ -95,8 +95,8 @@ suite('Configuration Tests', () => {
     );
   });
 
-  test('Should use default settings when not configured', () => {
-    TestUtils.resetConfiguration();
+  test('Should use default settings when not configured', async () => {
+    await TestUtils.resetConfiguration();
 
     const config = TestUtils.getExtensionConfiguration();
     assert.strictEqual(
@@ -139,7 +139,7 @@ suite('Configuration Tests', () => {
   });
 
   suiteTeardown(async () => {
-    TestUtils.resetConfiguration();
+    await TestUtils.resetConfiguration();
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
   });
 });
