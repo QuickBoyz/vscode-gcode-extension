@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { GCODE_LANGUAGE_ID } from '../constants';
 
 /**
  * Helper utilities for VS Code e2e tests
@@ -115,9 +116,9 @@ export class TestUtils {
 
     // Verify it's recognized as G-code
     const finalDocument = activeEditor.document;
-    if (finalDocument.languageId !== 'gcode') {
+    if (finalDocument.languageId !== GCODE_LANGUAGE_ID) {
       throw new Error(
-        `Document language is ${finalDocument.languageId}, expected 'gcode'. File: ${filePath}`
+        `Document language is ${finalDocument.languageId}, expected ${GCODE_LANGUAGE_ID}. File: ${filePath}`
       );
     }
 
@@ -266,7 +267,7 @@ export class TestUtils {
    * Get extension configuration
    */
   static getExtensionConfiguration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('gcode');
+    return vscode.workspace.getConfiguration(GCODE_LANGUAGE_ID);
   }
 
   /**
