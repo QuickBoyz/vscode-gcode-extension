@@ -120,23 +120,50 @@ export class GCodeParser {
       elseIfClauses: IfClauseNode[] = [];
     let elseClause: ElseClauseNode | undefined;
 
-    while (
-      label &&
-      this.tokens.match(TokenType.OSUB) &&
-      this.tokens.peek()?.value === label.value &&
-      this.tokens.peek(1)?.hasType(TokenType.ELSEIF)
-    ) {
-      this.tokens.next(); // OSUB
-      const elseifToken = this.tokens.next();
-      if (!elseifToken) {
-        throw new ParseError('Unexpected EOF while parsing ELSEIF clause', elseifToken);
+    // Parse ELSEIF clauses
+    while (true) {
+      if (label) {
+        // With label: check for OSUB label ELSEIF pattern
+        if (
+          this.tokens.match(TokenType.OSUB) &&
+          this.tokens.peek()?.value === label.value &&
+          this.tokens.peek(1)?.hasType(TokenType.ELSEIF)
+        ) {
+          this.tokens.next(); // OSUB
+          const elseifToken = this.tokens.next();
+          if (!elseifToken) {
+            throw new ParseError('Unexpected EOF while parsing ELSEIF clause', elseifToken);
+          }
+          const elseifCondition = this.parseExpression();
+          const elseifThenToken = this.tokens.match(TokenType.THEN)
+            ? this.tokens.next()
+            : undefined;
+          const body = this.parseUntilControlBoundary(label);
+          elseIfClauses.push(
+            this.factory.ifClause(elseifToken, elseifCondition, body, label, elseifThenToken)
+          );
+        } else {
+          break;
+        }
+      } else {
+        // Without label: check for ELSEIF directly
+        if (this.tokens.match(TokenType.ELSEIF)) {
+          const elseifToken = this.tokens.next();
+          if (!elseifToken) {
+            throw new ParseError('Unexpected EOF while parsing ELSEIF clause', elseifToken);
+          }
+          const elseifCondition = this.parseExpression();
+          const elseifThenToken = this.tokens.match(TokenType.THEN)
+            ? this.tokens.next()
+            : undefined;
+          const body = this.parseUntilControlBoundary(label);
+          elseIfClauses.push(
+            this.factory.ifClause(elseifToken, elseifCondition, body, label, elseifThenToken)
+          );
+        } else {
+          break;
+        }
       }
-      const elseifCondition = this.parseExpression();
-      const elseifThenToken = this.tokens.match(TokenType.THEN) ? this.tokens.next() : undefined;
-      const body = this.parseUntilControlBoundary(label);
-      elseIfClauses.push(
-        this.factory.ifClause(elseifToken, elseifCondition, body, label, elseifThenToken)
-      );
     }
 
     // Handle ELSE clause - with or without label
