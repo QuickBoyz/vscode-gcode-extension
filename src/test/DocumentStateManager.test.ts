@@ -3,7 +3,7 @@
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 describe('DocumentStateManager', () => {
@@ -163,7 +163,7 @@ describe('DocumentStateManager', () => {
     it('should parse document from TextDocument', () => {
       const uri = 'file:///test.nc',
         text = '#<x> = 10',
-        document = TextDocument.create(uri, 'gcode', 1, text),
+        document = TextDocument.create(uri, GCODE_LANGUAGE_ID, 1, text),
         state = manager.getOrParseDocumentFromTextDocument(document, defaultSettings);
 
       expect(state).toBeDefined();
@@ -173,8 +173,8 @@ describe('DocumentStateManager', () => {
     it('should use document URI for caching', () => {
       const uri = 'file:///test.nc',
         text = '#<x> = 10',
-        document1 = TextDocument.create(uri, 'gcode', 1, text),
-        document2 = TextDocument.create(uri, 'gcode', 2, text),
+        document1 = TextDocument.create(uri, GCODE_LANGUAGE_ID, 1, text),
+        document2 = TextDocument.create(uri, GCODE_LANGUAGE_ID, 2, text),
         state1 = manager.getOrParseDocumentFromTextDocument(document1, defaultSettings),
         state2 = manager.getOrParseDocumentFromTextDocument(document2, defaultSettings);
 

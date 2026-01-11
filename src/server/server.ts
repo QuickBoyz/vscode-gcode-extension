@@ -47,6 +47,7 @@ import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
 } from '../providers/SemanticTokensProvider';
+import { GCODE_LANGUAGE_ID } from '../constants';
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all),
@@ -91,7 +92,7 @@ function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
   if (!settings) {
     settings = connection.workspace.getConfiguration({
       scopeUri: uri,
-      section: 'gcode',
+      section: GCODE_LANGUAGE_ID,
     });
     documentSettings.set(uri, settings);
   }

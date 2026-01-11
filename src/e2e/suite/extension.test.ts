@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 
 import { TestUtils } from '../testUtils';
+import { GCODE_LANGUAGE_ID } from '../../constants';
 
 const fixtureName = 'simple.nc';
 
@@ -32,9 +33,9 @@ suite('Extension Activation Tests', () => {
     if (!activeEditor) {
       throw new Error('No active editor after opening fixture file');
     }
-    if (activeEditor.document.languageId !== 'gcode') {
+    if (activeEditor.document.languageId !== GCODE_LANGUAGE_ID) {
       throw new Error(
-        `Active document language is ${activeEditor.document.languageId}, expected 'gcode'`
+        `Active document language is ${activeEditor.document.languageId}, expected ${GCODE_LANGUAGE_ID}`
       );
     }
   });
@@ -48,7 +49,11 @@ suite('Extension Activation Tests', () => {
   test('Extension should activate on G-code file open', async () => {
     const document = await TestUtils.openGCodeDocument(fixtureName);
 
-    assert.strictEqual(document.languageId, 'gcode', 'Document should be recognized as G-code');
+    assert.strictEqual(
+      document.languageId,
+      GCODE_LANGUAGE_ID,
+      'Document should be recognized as G-code'
+    );
 
     // Wait a bit for language server to process
 

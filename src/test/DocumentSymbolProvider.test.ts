@@ -4,7 +4,7 @@
 import { SymbolKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
 
@@ -23,7 +23,7 @@ describe('DocumentSymbolProvider', () => {
   describe('provideDocumentSymbols', () => {
     it('should return symbols for all variable definitions', () => {
       const text = '#<x> = 10\n#<y> = 20',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(2);
@@ -35,7 +35,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should include both numeric and named variables', () => {
       const text = '#1 = 10\n#<foo> = 20',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(2);
@@ -46,7 +46,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should sort symbols by line number', () => {
       const text = '#<z> = 30\n#<a> = 10\n#<b> = 20',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(3);
@@ -56,7 +56,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should return empty array for document with no variables', () => {
       const text = 'G0 X0 Y0',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols).toEqual([]);
@@ -64,7 +64,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should not include variable references, only definitions', () => {
       const text = '#<x> = 10\n#<y> = #<x>\n#<z> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(3); // Only definitions, not references
@@ -76,7 +76,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should have correct range and selectionRange', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(1);
@@ -90,7 +90,7 @@ describe('DocumentSymbolProvider', () => {
 
     it('should handle variables in conditional statements', () => {
       const text = '#<x> = 10\nWHILE [#<x> LT 20] DO\n  #<y> = #<x>\nEND',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
       expect(symbols.length).toBe(2);
