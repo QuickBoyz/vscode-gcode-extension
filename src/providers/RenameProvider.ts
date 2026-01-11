@@ -10,13 +10,8 @@ import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
 import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
 import { AnalysisResults } from './AnalysisResults';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { NodeFinder } from './NodeFinder';
 import { formatVariableName, getVariableNameRange, validateVariableName } from './RenameUtils';
-
-/**
- * Weight multiplier for line difference in range size calculation.
- * Ensures multi-line ranges are always larger than single-line ranges.
- */
-const LINE_WEIGHT = 1000;
 
 /**
  * Rename Provider
@@ -168,9 +163,7 @@ export class RenameProvider {
       for (const node of [...symbol.definitions, ...symbol.references]) {
         const range = node.getRange();
         if (Range.isPositionInRange(position, range)) {
-          const rangeSize =
-            (range.end.line - range.start.line) * LINE_WEIGHT +
-            (range.end.character - range.start.character);
+          const rangeSize = NodeFinder.calculateRangeSize(range);
           if (rangeSize < smallestRangeSize) {
             smallestRangeSize = rangeSize;
             bestMatch = { name, node: node };
