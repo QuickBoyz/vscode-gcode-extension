@@ -103,7 +103,7 @@ suite('Document Formatting Tests', () => {
     );
   });
 
-  test.skip('Format command should work', async () => {
+  test('Format command should work', async () => {
     const document = await TestUtils.createGCodeDocument('G1X10Y20');
     await vscode.window.showTextDocument(document);
 

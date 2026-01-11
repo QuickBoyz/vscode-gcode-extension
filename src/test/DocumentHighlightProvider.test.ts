@@ -4,7 +4,7 @@
 import { DocumentHighlightKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
 import { Position } from '../parser/nodes';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
@@ -24,7 +24,7 @@ describe('DocumentHighlightProvider', () => {
   describe('provideDocumentHighlights', () => {
     it('should highlight definition and references', () => {
       const text = '#<x> = 10\n#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 1),
@@ -39,7 +39,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should highlight all references when cursor is on reference', () => {
       const text = '#<x> = 10\n#<y> = #<x>\n#<z> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(1, 8),
@@ -56,7 +56,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should return null if position is not on a variable', () => {
       const text = 'G0 X0',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 0),
@@ -68,7 +68,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should highlight numeric variables', () => {
       const text = '#1 = 10\n#2 = #1',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 1),
@@ -81,7 +81,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should highlight variable with no references (only definition)', () => {
       const text = '#<x> = 10',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 1),
@@ -95,7 +95,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should highlight variable with only references (no definition)', () => {
       const text = '#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 8),
@@ -109,7 +109,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should handle variables in expressions', () => {
       const text = '#<a> = 10\n#<b> = #<a> + #<a>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 1),
@@ -122,7 +122,7 @@ describe('DocumentHighlightProvider', () => {
 
     it('should highlight all assignments (multiple definitions)', () => {
       const text = '#<x> = 10\n#<x> = 20\n#<y> = #<x>',
-        document = TextDocument.create('file:///test.nc', 'gcode', 1, text),
+        document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         highlights = provider.provideDocumentHighlights(
           document,
           Position.create(0, 1), // Position on first assignment
