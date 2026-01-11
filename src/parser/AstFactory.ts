@@ -133,12 +133,18 @@ export class AstFactory {
       rangeFrom(left, right),
       left,
       op.value as BinaryOperatorType,
-      right
+      right,
+      rangeFrom(op)
     );
   }
 
   unary(op: Token, expr: ExpressionNode) {
-    return new UnaryExpressionNode(rangeFrom(op, expr), op.value as UnaryOperatorType, expr);
+    return new UnaryExpressionNode(
+      rangeFrom(op, expr),
+      op.value as UnaryOperatorType,
+      expr,
+      rangeFrom(op)
+    );
   }
 
   literal(token: Token) {

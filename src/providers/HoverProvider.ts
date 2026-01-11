@@ -69,6 +69,7 @@ export class HoverProvider {
   /**
    * Find the best (smallest) node at the given position
    * Uses the same logic as RenameProvider for consistency
+   * Prioritizes operator ranges for binary/unary expression nodes
    */
   private findBestNodeAtPosition(rootNode: ProgramNode, position: Position): AstNode | null {
     let bestMatch: AstNode | null = null;
@@ -88,9 +89,27 @@ export class HoverProvider {
       if (node instanceof VariableAssignmentNode) {
         checkNode(node.value);
       } else if (node instanceof BinaryExpressionNode) {
+        // Check if position is specifically on the operator token
+        if (node.operatorRange && Range.isPositionInRange(position, node.operatorRange)) {
+          const opSize = this.calculateNodeSize(node.operatorRange);
+          if (opSize < smallestSize) {
+            smallestSize = opSize;
+            bestMatch = node;
+            return; // Operator range is the best match, no need to check children
+          }
+        }
         checkNode(node.left);
         checkNode(node.right);
       } else if (node instanceof UnaryExpressionNode) {
+        // Check if position is specifically on the operator token
+        if (node.operatorRange && Range.isPositionInRange(position, node.operatorRange)) {
+          const opSize = this.calculateNodeSize(node.operatorRange);
+          if (opSize < smallestSize) {
+            smallestSize = opSize;
+            bestMatch = node;
+            return; // Operator range is the best match, no need to check children
+          }
+        }
         checkNode(node.operand);
       } else if (node instanceof FunctionCallNode) {
         checkNode(node.argument);
