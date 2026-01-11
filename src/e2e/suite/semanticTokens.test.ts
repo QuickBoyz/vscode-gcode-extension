@@ -144,6 +144,54 @@ suite('Semantic Tokens Tests', () => {
     );
   });
 
+  test('Should identify IF/ELSEIF/ELSE/ENDIF keywords', async () => {
+    await TestUtils.withTestDocument(
+      'IF [#<x> EQ 1] THEN\nG01 X10\nELSEIF [#<x> EQ 2] THEN\nG01 X20\nELSE\nG01 X0\nENDIF',
+      async (document) => {
+        const tokens = await vscode.commands.executeCommand<vscode.SemanticTokens | undefined>(
+          'vscode.provideDocumentSemanticTokens',
+          document.uri
+        );
+
+        assert.ok(tokens, 'Should provide semantic tokens');
+
+        const decoded = decodeSemanticTokens(tokens.data),
+          keywordTokens = decoded.filter((t) => t.tokenType === 'keyword');
+
+        // Should identify: IF, THEN, ELSEIF, THEN, ELSE, ENDIF, G01 (3 times) = 9 keyword tokens
+        assert.ok(
+          keywordTokens.length >= 9,
+          `Should identify at least 9 keyword tokens (IF, THEN, ELSEIF, THEN, ELSE, ENDIF, 3x G01), found ${keywordTokens.length}`
+        );
+      },
+      'test-temp-if-elseif.nc'
+    );
+  });
+
+  test('Should identify labeled IF/ELSEIF/ELSE/ENDIF keywords', async () => {
+    await TestUtils.withTestDocument(
+      'O100 IF [#<x> EQ 1] THEN\nG01 X10\nO100 ELSEIF [#<x> EQ 2]\nG01 X20\nO100 ELSE\nG01 X0\nO100 ENDIF',
+      async (document) => {
+        const tokens = await vscode.commands.executeCommand<vscode.SemanticTokens | undefined>(
+          'vscode.provideDocumentSemanticTokens',
+          document.uri
+        );
+
+        assert.ok(tokens, 'Should provide semantic tokens');
+
+        const decoded = decodeSemanticTokens(tokens.data),
+          keywordTokens = decoded.filter((t) => t.tokenType === 'keyword');
+
+        // Should identify: IF, THEN, ELSEIF, ELSE, ENDIF, G01 (3 times) = 8 keyword tokens
+        assert.ok(
+          keywordTokens.length >= 8,
+          `Should identify at least 8 keyword tokens (IF, THEN, ELSEIF, ELSE, ENDIF, 3x G01), found ${keywordTokens.length}`
+        );
+      },
+      'test-temp-labeled-if.nc'
+    );
+  });
+
   suiteTeardown(async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
   });

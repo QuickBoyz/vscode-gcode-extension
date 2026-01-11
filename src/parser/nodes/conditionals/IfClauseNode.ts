@@ -12,6 +12,7 @@ export class IfClauseNode extends BlockStatementNode {
     readonly kind: TokenType.IF | TokenType.ELSEIF,
     readonly condition: ExpressionNode,
     body: StatementNode[],
+    readonly keywordTokenRange: Range,
     readonly thenTokenRange?: Range,
     readonly label?: string,
     parent?: AstNode
