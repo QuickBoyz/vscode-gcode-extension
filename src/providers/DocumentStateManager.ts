@@ -1,8 +1,8 @@
 /**
  * Document State Manager
  *
- * Caches parsed ASTs, lexer, parser, and settings per document URI
- * to avoid redundant parsing and re-instantiation.
+ * Caches parsed ASTs, lexer, parser, and analysis results per document URI
+ * to avoid redundant parsing and analysis.
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -10,6 +10,8 @@ import { FormatterSettings } from '../formatter/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
 import { ProgramNode } from '../parser/nodes';
+import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
+import { AstAnalysisService } from './AstAnalysisService';
 
 /**
  * Settings interface for G-code documents
@@ -28,6 +30,7 @@ export interface DocumentState {
   settings: GCodeSettings;
   version: number;
   lastModified: number;
+  analysis?: AnalysisResults;
 }
 
 /**
@@ -40,10 +43,12 @@ export class DocumentStateManager {
   private documentStates = new Map<string, DocumentState>();
   private documentVersions = new Map<string, number>();
   private readonly lexer: GCodeLexer;
+  private readonly analysisService: AstAnalysisService;
 
   constructor() {
     // Reuse a single lexer instance (stateless after tokenization)
     this.lexer = new GCodeLexer();
+    this.analysisService = new AstAnalysisService();
   }
 
   /**
@@ -93,9 +98,50 @@ export class DocumentStateManager {
    * Invalidate cached state for a document
    */
   invalidateDocument(uri: string): void {
+    const state = this.documentStates.get(uri);
+    if (state) {
+      // Clear cached analysis when document changes
+      state.analysis = undefined;
+    }
     this.documentStates.delete(uri);
     // Note: We keep version tracking even after invalidation
     // So that subsequent parses continue versioning
+  }
+
+  /**
+   * Get or compute analysis results for a document
+   */
+  getAnalysis(
+    uri: string,
+    text: string,
+    settings: GCodeSettings,
+    options: AnalysisOptions = {}
+  ): AnalysisResults {
+    const state = this.getOrParseDocument(uri, text, settings);
+
+    // Return cached analysis if available and options match
+    if (state.analysis) {
+      // If tokens requested but not cached, recompute
+      if (options.includeTokens && !state.analysis.tokens) {
+        state.analysis = this.analysisService.analyze(state.ast, options);
+      }
+      return state.analysis;
+    }
+
+    // Compute and cache analysis
+    state.analysis = this.analysisService.analyze(state.ast, options);
+    return state.analysis;
+  }
+
+  /**
+   * Get analysis from TextDocument
+   */
+  getAnalysisFromTextDocument(
+    document: TextDocument,
+    settings: GCodeSettings,
+    options: AnalysisOptions = {}
+  ): AnalysisResults {
+    return this.getAnalysis(document.uri, document.getText(), settings, options);
   }
 
   /**

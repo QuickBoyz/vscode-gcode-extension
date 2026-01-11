@@ -7,11 +7,9 @@
 import { DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { AstTraverser } from '../parser/AstTraverser';
-import { Position, VariableAssignmentNode } from '../parser/nodes';
+import { Position, Range } from '../parser/nodes';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { getVariableNameRange } from './RenameUtils';
-import { VariableSymbolCollector } from './VariableSymbolCollector';
 
 /**
  * Document Highlight Provider
@@ -29,43 +27,70 @@ export class DocumentHighlightProvider {
     position: Position,
     settings: GCodeSettings
   ): DocumentHighlight[] | null {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
-      collector = new VariableSymbolCollector(),
-      traverser = new AstTraverser(collector);
-    traverser.traverseProgram(state.ast);
+    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
+      symbol = this.findSymbolAtPosition(analysis, position);
 
-    const symbol = collector.findSymbolAtPosition(position);
     if (!symbol) {
       return null;
     }
 
-    // Get all symbols (definition + references)
-    const allSymbols = collector.getAllSymbols(symbol.name);
-    if (allSymbols.length === 0) {
+    // Get variable symbol from analysis
+    const variableSymbol = analysis.variables.get(symbol.name);
+    if (!variableSymbol) {
       return null;
     }
 
     // Create highlights
     const highlights: DocumentHighlight[] = [];
 
-    for (const symbol of allSymbols) {
-      const variableRange = getVariableNameRange(symbol);
-      if (!variableRange) {
-        continue;
+    // Add highlights for all definitions
+    for (const definition of variableSymbol.definitions) {
+      const variableRange = getVariableNameRange(definition);
+      if (variableRange) {
+        highlights.push({
+          range: variableRange,
+          kind: DocumentHighlightKind.Write,
+        });
       }
+    }
 
-      // All assignments are Write, all references are Read
-      const kind =
-        symbol instanceof VariableAssignmentNode
-          ? DocumentHighlightKind.Write
-          : DocumentHighlightKind.Read;
-
-      highlights.push({
-        range: variableRange,
-        kind,
-      });
+    // Add highlights for references
+    for (const ref of variableSymbol.references) {
+      const variableRange = getVariableNameRange(ref);
+      if (variableRange) {
+        highlights.push({
+          range: variableRange,
+          kind: DocumentHighlightKind.Read,
+        });
+      }
     }
 
     return highlights;
+  }
+
+  /**
+   * Find symbol at position from analysis results
+   */
+  private findSymbolAtPosition(
+    analysis: import('./AnalysisResults').AnalysisResults,
+    position: Position
+  ): { name: string | number } | null {
+    for (const [name, symbol] of analysis.variables) {
+      // Check all definitions - use the variable name range, not the full assignment range
+      for (const definition of symbol.definitions) {
+        const variableRange = getVariableNameRange(definition);
+        if (variableRange && Range.isPositionInRange(position, variableRange)) {
+          return { name };
+        }
+      }
+
+      // Check references
+      for (const ref of symbol.references) {
+        if (Range.isPositionInRange(position, ref.getRange())) {
+          return { name };
+        }
+      }
+    }
+    return null;
   }
 }

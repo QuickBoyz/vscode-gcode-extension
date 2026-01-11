@@ -7,49 +7,7 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { AstTraverser } from '../parser/AstTraverser';
-import { AstVisitor } from '../parser/AstVisitor';
-import { ErrorNode, ProgramNode } from '../parser/nodes';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
-
-/**
- * Visitor to collect ErrorNodes from the AST
- */
-class ErrorNodeCollector extends AstVisitor<void> {
-  private errors: ErrorNode[] = [];
-
-  collectErrors(program: ProgramNode): ErrorNode[] {
-    this.errors = [];
-    const traverser = new AstTraverser(this);
-    traverser.traverseProgram(program);
-    return this.errors;
-  }
-
-  visitError(node: ErrorNode): void {
-    this.errors.push(node);
-  }
-
-  // Required visitor methods - no-op for other node types
-  visitVariableAssignment(): void {}
-  visitFunctionCall(): void {}
-  visitWhileStatement(): void {}
-  visitWhileStatementEnd(): void {}
-  visitIfStatement(): void {}
-  visitIfStatementEnd(): void {}
-  visitIfClause(): void {}
-  visitElseClause(): void {}
-  visitBlockStatement(): void {}
-  visitMotionCommand(): void {}
-  visitAxisParameter(): void {}
-  visitComment(): void {}
-  visitExpression(): void {}
-  visitStatement(): void {}
-  visitProgram(): void {}
-  visitBinaryExpression(): void {}
-  visitUnaryExpression(): void {}
-  visitVariableReference(): void {}
-  visitLiteralExpression(): void {}
-}
 
 /**
  * Diagnostics Provider
@@ -63,12 +21,10 @@ export class DiagnosticsProvider {
    * Provide diagnostics (syntax errors) for a document
    */
   provideDiagnostics(document: TextDocument, settings: GCodeSettings): Diagnostic[] {
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, settings),
-      collector = new ErrorNodeCollector(),
-      errors = collector.collectErrors(state.ast),
+    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
       diagnostics: Diagnostic[] = [];
 
-    for (const errorNode of errors) {
+    for (const errorNode of analysis.errors) {
       diagnostics.push({
         range: errorNode.getRange(),
         severity: DiagnosticSeverity.Error,
