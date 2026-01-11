@@ -253,18 +253,13 @@ describe('HoverProvider', () => {
   });
 
   describe('Operator Hover', () => {
-    // TODO: These tests require token-level range tracking for operators within expressions
-    // Currently operators don't have individual node ranges - they're part of BinaryExpressionNode
-    // This would be a future enhancement to store operator token ranges in the AST
-    it.skip('should show description for EQ operator', () => {
-      const content = 'IF [#<x> EQ 10] THEN';
+    it('should show description for EQ operator', () => {
+      const content = 'IF [#<x> EQ 10] THEN\nENDIF';
       const document = createDocument(content);
       const stateManager = new DocumentStateManager();
       const provider = new HoverProvider(stateManager);
       const settings = createSettings();
 
-      // Hover over EQ operator - since operators don't have individual ranges,
-      // we need to hover over the BinaryExpressionNode which contains the operator
       const hover = provider.provideHover(document, { line: 0, character: 9 }, settings);
 
       expect(hover).not.toBeNull();
@@ -273,8 +268,8 @@ describe('HoverProvider', () => {
       expect(content_str).toContain('EQ');
     });
 
-    it.skip('should show description for GT operator', () => {
-      const content = 'IF [#<speed> GT 1000] THEN';
+    it('should show description for GT operator', () => {
+      const content = 'IF [#<speed> GT 1000] THEN\nENDIF';
       const document = createDocument(content);
       const stateManager = new DocumentStateManager();
       const provider = new HoverProvider(stateManager);

@@ -10,6 +10,7 @@ export class BinaryExpressionNode extends ExpressionNode {
     readonly left: ExpressionNode,
     readonly operator: BinaryOperatorType,
     readonly right: ExpressionNode,
+    readonly operatorRange: Range,
     parent?: AstNode
   ) {
     super(range, parent);
