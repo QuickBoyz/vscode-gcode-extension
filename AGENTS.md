@@ -132,6 +132,8 @@ The following patterns are **expected** where applicable:
 - Prefer composition over inheritance
 - Declare each variable separately, without the comma syntax
 - Always assing magic numbers / strings to named constants or enums
+- Prefer classes over functions
+- Prefer `enum` over union types for fixed sets of values
 
 - ALWAYS follow SOLID, DRY and KISS principles
 - ALWAYS provide test coverage
