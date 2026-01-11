@@ -6,6 +6,15 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
 
 - **Syntax Highlighting**: Full syntax highlighting for G-Code files with support for 50+ file extensions
 - **Document Formatting**: Intelligent formatting with customizable options
+- **Hover Information**: Intelligent tooltips showing:
+  - Variable values and declarations
+  - G/M command descriptions with parameters and examples
+  - Operator and function documentation
+  - Axis parameter meanings
+- **Symbol Navigation**: Document outline showing all variables
+- **Variable Renaming**: Rename variables across entire document
+- **Syntax Highlighting**: Semantic token-based highlighting
+- **Document Highlights**: Highlight all occurrences of a variable
 - **Custom Theme**: Dedicated G-Code color theme for optimal readability
 - **Language Server**: LSP-based architecture for fast and reliable language features
 - **Format on Save**: Automatic formatting support
