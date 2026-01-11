@@ -12,19 +12,16 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Hover, MarkupKind, Position } from 'vscode-languageserver/node';
 
+import { NodeFinder } from './NodeFinder';
 import {
   AstNode,
   AxisParameterNode,
   BinaryExpressionNode,
   FunctionCallNode,
-  IfStatementNode,
-  LiteralExpressionNode,
   MotionCommandNode,
-  ProgramNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
-  WhileStatementNode,
 } from '../parser/nodes';
 import { Range } from '../parser/nodes/Range';
 import { AnalysisResults } from './AnalysisResults';
@@ -46,7 +43,7 @@ export class HoverProvider {
     const state = this.documentStateManager.getOrParseDocumentFromTextDocument(document, settings);
 
     // Find the best matching node at the position
-    const node = this.findBestNodeAtPosition(state.ast, position);
+    const node = NodeFinder.findBestNodeAtPosition(state.ast, position);
     if (!node) {
       return null;
     }
@@ -64,111 +61,6 @@ export class HoverProvider {
       },
       range: this.convertRange(node.getRange()),
     };
-  }
-
-  /**
-   * Find the best (smallest) node at the given position
-   * Uses the same logic as RenameProvider for consistency
-   * Prioritizes operator ranges for binary/unary expression nodes
-   */
-  private findBestNodeAtPosition(rootNode: ProgramNode, position: Position): AstNode | null {
-    let bestMatch: AstNode | null = null;
-    let smallestSize = Infinity;
-
-    const checkNode = (node: AstNode) => {
-      const range = node.getRange();
-      if (Range.isPositionInRange(position, range)) {
-        const size = this.calculateNodeSize(range);
-        if (size < smallestSize) {
-          smallestSize = size;
-          bestMatch = node;
-        }
-      }
-
-      // Check children
-      if (node instanceof VariableAssignmentNode) {
-        checkNode(node.value);
-      } else if (node instanceof BinaryExpressionNode) {
-        // Check if position is specifically on the operator token
-        if (node.operatorRange && Range.isPositionInRange(position, node.operatorRange)) {
-          const opSize = this.calculateNodeSize(node.operatorRange);
-          if (opSize < smallestSize) {
-            smallestSize = opSize;
-            bestMatch = node;
-            return; // Operator range is the best match, no need to check children
-          }
-        }
-        checkNode(node.left);
-        checkNode(node.right);
-      } else if (node instanceof UnaryExpressionNode) {
-        // Check if position is specifically on the operator token
-        if (node.operatorRange && Range.isPositionInRange(position, node.operatorRange)) {
-          const opSize = this.calculateNodeSize(node.operatorRange);
-          if (opSize < smallestSize) {
-            smallestSize = opSize;
-            bestMatch = node;
-            return; // Operator range is the best match, no need to check children
-          }
-        }
-        checkNode(node.operand);
-      } else if (node instanceof FunctionCallNode) {
-        checkNode(node.argument);
-      } else if (node instanceof MotionCommandNode) {
-        for (const param of node.getParameters()) {
-          checkNode(param);
-          if (param instanceof AxisParameterNode) {
-            checkNode(param.value);
-          }
-        }
-      } else if (node instanceof IfStatementNode) {
-        // Check condition in IF clause
-        checkNode(node.ifClause.condition);
-        // Check body
-        for (const stmt of node.ifClause.body) {
-          checkNode(stmt);
-        }
-        // Check ELSEIF clauses
-        if (node.elseIfClauses) {
-          for (const elseif of node.elseIfClauses) {
-            checkNode(elseif.condition);
-            for (const stmt of elseif.body) {
-              checkNode(stmt);
-            }
-          }
-        }
-        // Check ELSE clause
-        if (node.elseClause) {
-          for (const stmt of node.elseClause.body) {
-            checkNode(stmt);
-          }
-        }
-      } else if (node instanceof WhileStatementNode) {
-        // Check condition
-        checkNode(node.condition);
-        // Check body
-        for (const stmt of node.body) {
-          checkNode(stmt);
-        }
-      } else if (node instanceof LiteralExpressionNode) {
-        // Literal nodes are leaf nodes, already checked above
-      }
-    };
-
-    // Check all statements in the program
-    for (const stmt of rootNode.statements) {
-      checkNode(stmt);
-    }
-
-    return bestMatch;
-  }
-
-  /**
-   * Calculate size of a range (for finding smallest enclosing node)
-   */
-  private calculateNodeSize(range: Range): number {
-    const lines = range.end.line - range.start.line;
-    const chars = lines === 0 ? range.end.character - range.start.character : range.end.character;
-    return lines * 1000 + chars; // Weight lines more heavily
   }
 
   /**
