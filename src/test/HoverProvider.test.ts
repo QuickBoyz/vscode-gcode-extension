@@ -238,7 +238,7 @@ describe('HoverProvider', () => {
       expect(content_str).toContain('M06');
     });
 
-    it('should return null for unknown M-code', () => {
+    it('should fallback to unknown command info for unknown', () => {
       const content = 'M999'; // Non-standard M-code
       const document = createDocument(content);
       const stateManager = new DocumentStateManager();

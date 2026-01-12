@@ -83,7 +83,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select XY plane for circular interpolation (G02/G03).',
       group: 'Plane Selection',
       parameters: [],
-      example: 'G17',
     },
   ],
   [
@@ -94,7 +93,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select XZ plane for circular interpolation (G02/G03).',
       group: 'Plane Selection',
       parameters: [],
-      example: 'G18',
     },
   ],
   [
@@ -105,7 +103,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select YZ plane for circular interpolation (G02/G03).',
       group: 'Plane Selection',
       parameters: [],
-      example: 'G19',
     },
   ],
   [
@@ -116,7 +113,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Set units to inches for all coordinates and feed rates.',
       group: 'Units',
       parameters: [],
-      example: 'G20',
     },
   ],
   [
@@ -127,7 +123,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Set units to millimeters for all coordinates and feed rates.',
       group: 'Units',
       parameters: [],
-      example: 'G21',
     },
   ],
   [
@@ -149,7 +144,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Cancel cutter radius compensation.',
       group: 'Cutter Compensation',
       parameters: [],
-      example: 'G40',
     },
   ],
   [
@@ -193,7 +187,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Cancel tool length offset compensation.',
       group: 'Tool Length Offset',
       parameters: [],
-      example: 'G49',
     },
   ],
   [
@@ -204,7 +197,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 1 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G54',
     },
   ],
   [
@@ -215,7 +207,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 2 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G55',
     },
   ],
   [
@@ -226,7 +217,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 3 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G56',
     },
   ],
   [
@@ -237,7 +227,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 4 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G57',
     },
   ],
   [
@@ -248,7 +237,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 5 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G58',
     },
   ],
   [
@@ -259,7 +247,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 6 (offset from machine coordinates).',
       group: 'Coordinate System',
       parameters: [],
-      example: 'G59',
     },
   ],
   [
@@ -270,7 +257,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Cancel active canned cycle (drilling, tapping, boring).',
       group: 'Canned Cycle',
       parameters: [],
-      example: 'G80',
     },
   ],
   [
@@ -380,7 +366,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Coordinate values are absolute positions from work zero.',
       group: 'Distance Mode',
       parameters: [],
-      example: 'G90',
     },
   ],
   [
@@ -391,7 +376,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Coordinate values are relative to current position.',
       group: 'Distance Mode',
       parameters: [],
-      example: 'G91',
     },
   ],
   [
@@ -413,7 +397,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Feed rate is in units per minute.',
       group: 'Feed Rate Mode',
       parameters: [],
-      example: 'G94',
     },
   ],
   [
@@ -424,7 +407,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Feed rate is in units per spindle revolution.',
       group: 'Feed Rate Mode',
       parameters: [],
-      example: 'G95',
     },
   ],
   [
@@ -435,7 +417,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Canned cycle returns to initial Z level.',
       group: 'Canned Cycle',
       parameters: [],
-      example: 'G98',
     },
   ],
   [
@@ -446,7 +427,6 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Canned cycle returns to R plane.',
       group: 'Canned Cycle',
       parameters: [],
-      example: 'G99',
     },
   ],
 ]);
@@ -463,7 +443,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Stop program execution. Requires operator intervention to continue.',
       group: 'Program Control',
       parameters: [],
-      example: 'M00',
     },
   ],
   [
@@ -474,7 +453,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Stop program execution if optional stop switch is enabled.',
       group: 'Program Control',
       parameters: [],
-      example: 'M01',
     },
   ],
   [
@@ -485,7 +463,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'End of program. Stops spindle and coolant.',
       group: 'Program Control',
       parameters: [],
-      example: 'M02',
     },
   ],
   [
@@ -518,7 +495,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Stop spindle rotation.',
       group: 'Spindle Control',
       parameters: [],
-      example: 'M05',
     },
   ],
   [
@@ -540,7 +516,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Turn on mist coolant.',
       group: 'Coolant Control',
       parameters: [],
-      example: 'M07',
     },
   ],
   [
@@ -551,7 +526,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Turn on flood coolant.',
       group: 'Coolant Control',
       parameters: [],
-      example: 'M08',
     },
   ],
   [
@@ -562,7 +536,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Turn off all coolant.',
       group: 'Coolant Control',
       parameters: [],
-      example: 'M09',
     },
   ],
   [
@@ -573,7 +546,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'End of program. Stops spindle, coolant, and rewinds program to start.',
       group: 'Program Control',
       parameters: [],
-      example: 'M30',
     },
   ],
   [
@@ -595,7 +567,6 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Return from subprogram to main program.',
       group: 'Program Control',
       parameters: [],
-      example: 'M99',
     },
   ],
 ]);
