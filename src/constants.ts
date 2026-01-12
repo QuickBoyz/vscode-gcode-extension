@@ -3,6 +3,11 @@
  */
 
 import { FormatterSettings } from './formatter/types';
+import {
+  BinaryOperatorType,
+  RelationalOperatorType,
+  UnaryOperatorType,
+} from './parser/nodes/expressions';
 
 export const GCODE_LANGUAGE_ID = 'gcode';
 
@@ -73,6 +78,47 @@ export enum GCodeKeywords {
   END = 'END',
   DO = 'DO',
 }
+
+/**
+ * Operator precedence levels
+ * Higher number = higher precedence (binds tighter)
+ * Used by parser (implicitly via method hierarchy) and formatter (explicitly for bracket insertion)
+ */
+export const OPERATOR_PRECEDENCE = {
+  /** Relational operators: EQ, NE, LT, LE, GT, GE */
+  RELATIONAL: 1,
+  /** Additive operators: +, - */
+  ADDITIVE: 2,
+  /** Multiplicative operators: *, /, MOD */
+  MULTIPLICATIVE: 3,
+} as const;
+
+/**
+ * Operators grouped by precedence level
+ */
+export const OPERATORS_BY_PRECEDENCE: Record<number, readonly string[]> = {
+  [OPERATOR_PRECEDENCE.RELATIONAL]: [
+    RelationalOperatorType.EQ,
+    RelationalOperatorType.NE,
+    RelationalOperatorType.LT,
+    RelationalOperatorType.LE,
+    RelationalOperatorType.GT,
+    RelationalOperatorType.GE,
+  ],
+  [OPERATOR_PRECEDENCE.ADDITIVE]: [BinaryOperatorType.Add, UnaryOperatorType.Minus],
+  [OPERATOR_PRECEDENCE.MULTIPLICATIVE]: [
+    BinaryOperatorType.Multiply,
+    BinaryOperatorType.Divide,
+    BinaryOperatorType.Mod,
+  ],
+};
+
+/**
+ * Operators that are non-associative on the right
+ * For these operators: a OP (b OP c) != (a OP b) OP c
+ * Examples: a - (b - c) != a - b - c, a / (b / c) != a / b / c
+ */
+export const RIGHT_ASSOCIATIVE_OPERATORS = [UnaryOperatorType.Minus, BinaryOperatorType.Divide];
 
 /**
  * Default values
