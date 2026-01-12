@@ -300,6 +300,11 @@ export class GCodeParser {
     return this.parseRelational();
   }
 
+  /**
+   * Parse relational operators (lowest precedence)
+   * Corresponds to OPERATOR_PRECEDENCE.RELATIONAL in constants.ts
+   * Operators: EQ, NE, LT, LE, GT, GE
+   */
   private parseRelational(): ExpressionNode {
     const left = this.parseAdditive(),
       op = this.tokens.peek();
@@ -312,6 +317,11 @@ export class GCodeParser {
     return left;
   }
 
+  /**
+   * Parse additive operators (medium precedence)
+   * Corresponds to OPERATOR_PRECEDENCE.ADDITIVE in constants.ts
+   * Operators: +, -
+   */
   private parseAdditive(): ExpressionNode {
     let expr = this.parseMultiplicative();
 
@@ -325,6 +335,11 @@ export class GCodeParser {
     return expr;
   }
 
+  /**
+   * Parse multiplicative operators (highest precedence)
+   * Corresponds to OPERATOR_PRECEDENCE.MULTIPLICATIVE in constants.ts
+   * Operators: *, /, MOD
+   */
   private parseMultiplicative(): ExpressionNode {
     let expr = this.parseUnary();
 

@@ -28,13 +28,18 @@ import { Range } from '../parser/nodes/Range';
 import { AnalysisResults } from './AnalysisResults';
 import { DocumentState, DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { DataProvider } from './DataProvider';
+import { ExpressionFormatter } from '../formatter/ExpressionFormatter';
+import { formatVariableName } from './RenameUtils';
 
 /**
  * Hover Provider
  */
 export class HoverProvider {
   private readonly dataProvider = new DataProvider();
-
+  private readonly expressionFormatter = new ExpressionFormatter({
+    prettyPrintNumbers: false,
+    fallbackString: '(expression)',
+  });
   constructor(private readonly documentStateManager: DocumentStateManager) {}
 
   /**
@@ -95,8 +100,8 @@ export class HoverProvider {
    * Generate hover for variable assignment
    */
   private generateVariableAssignmentHover(node: VariableAssignmentNode): string {
-    const variableName = this.formatVariableName(node.name);
-    const valueStr = this.formatExpressionForDisplay(node.value);
+    const variableName = formatVariableName(node.name);
+    const valueStr = this.expressionFormatter.format(node.value);
     const location = this.formatLocation(node.getRange());
 
     return new MarkdownBuilder()
@@ -115,7 +120,7 @@ export class HoverProvider {
     node: VariableReferenceNode,
     analysis: AnalysisResults
   ): string {
-    const variableName = this.formatVariableName(node.name);
+    const variableName = formatVariableName(node.name);
 
     // Find declaration from the variables map
     const symbol = analysis.variables?.get(node.name);
@@ -125,7 +130,7 @@ export class HoverProvider {
     if (symbol && symbol.definitions.length > 0) {
       const declaration = symbol.definitions[0]; // Get first definition
       const valueStr = declaration.value
-        ? this.formatExpressionForDisplay(declaration.value)
+        ? this.expressionFormatter.format(declaration.value)
         : 'unknown';
       const declLocation = this.formatLocation(declaration.getRange());
       const refCount = symbol.references.length;
@@ -240,7 +245,7 @@ export class HoverProvider {
       return null;
     }
 
-    const valueStr = this.formatExpressionForDisplay(node.value);
+    const valueStr = this.expressionFormatter.format(node.value);
     const title = `**${axisInfo.name}** (\`${axisInfo.axis}\`)`;
 
     return new MarkdownBuilder()
@@ -262,37 +267,6 @@ export class HoverProvider {
    */
   private formatLocation(range: Range): string {
     return `line ${range.start.line + 1}, column ${range.start.character}`;
-  }
-
-  /**
-   * Format variable name for display
-   */
-  private formatVariableName(name: string | number): string {
-    if (typeof name === 'number') {
-      return `#${name}`;
-    }
-    return `#<${name}>`;
-  }
-
-  /**
-   * Format expression for display (simplified string representation)
-   */
-  private formatExpressionForDisplay(node: AstNode): string {
-    // This is a simplified formatter for hover display
-    // In a real implementation, you might want to use a visitor pattern
-    if (node instanceof VariableReferenceNode) {
-      return this.formatVariableName(node.name);
-    } else if (node instanceof BinaryExpressionNode) {
-      return `${this.formatExpressionForDisplay(node.left)} ${node.operator} ${this.formatExpressionForDisplay(node.right)}`;
-    } else if (node instanceof UnaryExpressionNode) {
-      return `${node.operator}${this.formatExpressionForDisplay(node.operand)}`;
-    } else if (node instanceof FunctionCallNode) {
-      return `${node.name}[${this.formatExpressionForDisplay(node.argument)}]`;
-    } else if ('value' in node) {
-      return String(node.value);
-    }
-
-    return '(expression)';
   }
 
   /**
