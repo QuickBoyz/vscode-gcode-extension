@@ -615,4 +615,61 @@ Y0.0 X0.15 R0.075 F30.0
 %`);
     });
   });
+
+  describe('Expression Bracket Preservation', () => {
+    it('should preserve brackets for expressions that need them due to precedence', () => {
+      const input = `#<result> = [#<a> + #<b>] * #<c>
+G01 X[#<x> + #<y>] Y#<z>`;
+
+      const program = parse(input);
+      const formatter = new GCodeFormatter({ prettyPrintNumbers: false });
+      const traverser = new AstTraverser(formatter);
+      const result = formatter.formatGCode(program, traverser);
+
+      // Variable assignment should preserve brackets around (a + b)
+      expect(result).toContain('#<result> = [#<a> + #<b>] * #<c>');
+      // Axis parameter should preserve brackets around (x + y)
+      expect(result).toContain('X[#<x> + #<y>]');
+    });
+
+    it('should not add unnecessary brackets when precedence is correct', () => {
+      const input = `#<result> = #<a> + #<b> * #<c>
+G01 X#<x> * #<y> Y#<z>`;
+
+      const program = parse(input);
+      const formatter = new GCodeFormatter({ prettyPrintNumbers: false });
+      const traverser = new AstTraverser(formatter);
+      const result = formatter.formatGCode(program, traverser);
+
+      // No brackets needed - multiplication has higher precedence
+      expect(result).toContain('#<result> = #<a> + #<b> * #<c>');
+      expect(result).not.toContain('[#<b> * #<c>]');
+      // Axis parameter still needs brackets for any expression
+      expect(result).toContain('X[#<x> * #<y>]');
+    });
+
+    it('should preserve brackets for right-associative operations', () => {
+      const input = '#<result> = #<a> - [#<b> - #<c>]';
+
+      const program = parse(input);
+      const formatter = new GCodeFormatter({ prettyPrintNumbers: false });
+      const traverser = new AstTraverser(formatter);
+      const result = formatter.formatGCode(program, traverser);
+
+      // Right-associative subtraction requires brackets
+      expect(result).toContain('#<result> = #<a> - [#<b> - #<c>]');
+    });
+
+    it('should handle nested expressions with mixed precedence', () => {
+      const input = '#<result> = [#<a> + #<b>] * [#<c> + #<d>]';
+
+      const program = parse(input);
+      const formatter = new GCodeFormatter({ prettyPrintNumbers: false });
+      const traverser = new AstTraverser(formatter);
+      const result = formatter.formatGCode(program, traverser);
+
+      // Both sides need brackets due to lower precedence
+      expect(result).toContain('#<result> = [#<a> + #<b>] * [#<c> + #<d>]');
+    });
+  });
 });

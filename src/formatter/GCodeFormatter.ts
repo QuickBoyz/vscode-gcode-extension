@@ -7,20 +7,18 @@ import {
   CommentNode,
   ElseClauseNode,
   ErrorNode,
-  ExpressionNode,
   FunctionCallNode,
   IfClauseNode,
   IfStatementNode,
-  LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
-  VariableReferenceNode,
   WhileStatementNode,
 } from '../parser/nodes';
 import { TokenType } from '../parser/nodes/tokens';
 import { FormatterSettings } from './types';
+import { ExpressionFormatter } from './ExpressionFormatter';
 
 export class GCodeFormatter extends BaseAstVisitor<void> {
   private lines: string[] = [];
@@ -32,11 +30,18 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
   // Last source line number that was formatted (0-based, from original source)
   private lastSourceLineNumber: number = -1;
   private settings: FormatterSettings;
+  private expressionFormatter: ExpressionFormatter;
 
   constructor(settings: Partial<FormatterSettings> = {}) {
     super();
     this.settings = { ...DEFAULT_FORMATTER_SETTINGS, ...settings };
     this.currentFormattedLineNumber = this.settings.lineNumberStart ?? DEFAULTS.LINE_NUMBER_START;
+
+    // Create expression formatter with settings
+    this.expressionFormatter = new ExpressionFormatter({
+      prettyPrintNumbers: this.settings.prettyPrintNumbers,
+      fallbackString: GCodeSymbols.EMPTY_STRING,
+    });
   }
 
   protected defaultValue(): void {
@@ -48,6 +53,12 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
       ...DEFAULT_FORMATTER_SETTINGS,
       ...settings,
     };
+
+    // Update formatter options instead of recreating
+    this.expressionFormatter.setOptions({
+      prettyPrintNumbers: this.settings.prettyPrintNumbers,
+      fallbackString: GCodeSymbols.EMPTY_STRING,
+    });
   }
 
   formatGCode(programNode: ProgramNode, traverser: AstTraverser<void>) {
@@ -178,7 +189,7 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
       this.decrementIndent();
     }
     this.addLine(
-      `${this.formatLabel(node.label)}${keyword} [${this.formatExpression(node.condition)}]${
+      `${this.formatLabel(node.label)}${keyword} [${this.expressionFormatter.format(node.condition)}]${
         !isElseIf ? ` ${GCodeKeywords.THEN}` : GCodeSymbols.EMPTY_STRING
       }`
     );
@@ -211,18 +222,18 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
 
   visitVariableAssignment(node: VariableAssignmentNode) {
     this.handleLineGap(node.getRange().start.line);
-    const valueStr = this.formatExpression(node.value);
+    const valueStr = this.expressionFormatter.format(node.value);
     this.addLine(`${this.formatVariableName(node.name)} = ${valueStr}`);
   }
 
   visitFunctionCall(node: FunctionCallNode) {
-    const argStr = this.formatExpression(node.argument);
+    const argStr = this.expressionFormatter.format(node.argument);
     return `${node.name}[${argStr}]`;
   }
 
   visitWhileStatement(node: WhileStatementNode) {
     this.handleLineGap(node.getRange().start.line);
-    const condition = this.formatExpression(node.condition);
+    const condition = this.expressionFormatter.format(node.condition);
     this.addLine(
       `${this.formatLabel(node.label)}${GCodeKeywords.WHILE} [${condition}] ${GCodeKeywords.DO}`
     );
@@ -263,7 +274,7 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
   private formatAxisParameter(node: AxisParameterNode): string {
     const { axis } = node,
       valueNode = node.value,
-      value = this.formatExpression(valueNode),
+      value = this.expressionFormatter.format(valueNode),
       // Wrap binary expressions and function calls in brackets
       needsBrackets =
         valueNode instanceof BinaryExpressionNode ||
@@ -279,40 +290,18 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
     return `${axis}${value}`;
   }
 
+  /**
+   * Format variable name with appropriate prefix/wrapper.
+   * Note: This is intentionally duplicated from RenameUtils.formatVariableName.
+   * The GCodeFormatter operates at a lower level (AST visitor) and should not
+   * depend on provider-layer utilities. This maintains clean layer separation
+   * and keeps the formatter self-contained.
+   */
   private formatVariableName(name: string | number): string {
     if (typeof name === 'number') {
       return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
     }
     return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
-  }
-
-  private formatExpression(node: ExpressionNode): string {
-    if (node instanceof LiteralExpressionNode) {
-      if (this.settings.prettyPrintNumbers && !node.value.toString().includes('.')) {
-        return `${node.value}.0`;
-      }
-      return node.value.toString();
-    }
-
-    if (node instanceof VariableReferenceNode) {
-      return this.formatVariableName(node.name);
-    }
-
-    if (node instanceof UnaryExpressionNode) {
-      return `${node.operator}${this.formatExpression(node.operand)}`;
-    }
-
-    if (node instanceof BinaryExpressionNode) {
-      return `${this.formatExpression(node.left)} ${
-        node.operator
-      } ${this.formatExpression(node.right)}`;
-    }
-
-    if (node instanceof FunctionCallNode) {
-      return `${node.name}[${this.formatExpression(node.argument)}]`;
-    }
-
-    return GCodeSymbols.EMPTY_STRING;
   }
 
   // --- Output ---
