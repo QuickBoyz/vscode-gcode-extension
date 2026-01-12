@@ -74,11 +74,11 @@ suite('Hover Provider E2E Tests', () => {
   test('Should provide hover for G01 command', async () => {
     const document = await TestUtils.openGCodeDocument('simple.nc');
 
-    // Hover over G01 command
+    // Hover over G1 command (line 3: "G1 X[#<x>] Y[#<y>] F100")
     const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
       'vscode.executeHoverProvider',
       document.uri,
-      new vscode.Position(0, 1) // Position over '01' in G01
+      new vscode.Position(3, 1) // Position over '1' in G1
     );
 
     assert.ok(hovers && hovers.length > 0, 'Expected hover results');

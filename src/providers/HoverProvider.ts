@@ -12,6 +12,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Hover, MarkupKind, Position } from 'vscode-languageserver/node';
 
+import { MarkdownBuilder } from './MarkdownBuilder';
 import { NodeFinder } from './NodeFinder';
 import {
   AstNode,
@@ -96,15 +97,15 @@ export class HoverProvider {
   private generateVariableAssignmentHover(node: VariableAssignmentNode): string {
     const variableName = this.formatVariableName(node.name);
     const valueStr = this.formatExpressionForDisplay(node.value);
-    const location = `line ${node.getRange().start.line + 1}, column ${node.getRange().start.character}`;
+    const location = this.formatLocation(node.getRange());
 
-    return [
-      `**Variable Declaration:** \`${variableName}\``,
-      '',
-      `**Value:** \`${valueStr}\``,
-      '',
-      `**Declared at:** ${location}`,
-    ].join('\n');
+    return new MarkdownBuilder()
+      .labeledCode('Variable Declaration', variableName)
+      .blank()
+      .field('Value', valueStr)
+      .blank()
+      .field('Declared at', location, false)
+      .build();
   }
 
   /**
@@ -119,26 +120,62 @@ export class HoverProvider {
     // Find declaration from the variables map
     const symbol = analysis.variables?.get(node.name);
 
+    const builder = new MarkdownBuilder().labeledCode('Variable', variableName).blank();
+
     if (symbol && symbol.definitions.length > 0) {
       const declaration = symbol.definitions[0]; // Get first definition
       const valueStr = declaration.value
         ? this.formatExpressionForDisplay(declaration.value)
         : 'unknown';
-      const declLocation = `line ${declaration.getRange().start.line + 1}, column ${declaration.getRange().start.character}`;
+      const declLocation = this.formatLocation(declaration.getRange());
       const refCount = symbol.references.length;
 
-      return [
-        `**Variable:** \`${variableName}\``,
-        '',
-        `**Value:** \`${valueStr}\``,
-        '',
-        `**Declared at:** ${declLocation}`,
-        '',
-        `**References:** ${refCount} usage(s)`,
-      ].join('\n');
+      return builder
+        .field('Value', valueStr)
+        .blank()
+        .field('Declared at', declLocation, false)
+        .blank()
+        .field('References', `${refCount} usage(s)`, false)
+        .build();
     }
 
-    return [`**Variable:** \`${variableName}\``, '', `**Status:** Undeclared`].join('\n');
+    return builder.field('Status', 'Undeclared', false).build();
+  }
+
+  /**
+   * Generate hover for info with title, description, category, and example
+   * Used by commands, operators, and functions
+   */
+  private generateInfoHover(
+    title: string,
+    info: {
+      description: string;
+      category?: string;
+      example?: string;
+      group?: string;
+      parameters?: string[];
+    }
+  ): string {
+    const builder = new MarkdownBuilder().text(title).blank().text(info.description).blank();
+
+    // Add category or group
+    if (info.category) {
+      builder.field('Category', info.category, false).blank();
+    } else if (info.group) {
+      builder.field('Group', info.group, false).blank();
+    }
+
+    // Add parameters for commands
+    if (info.parameters && info.parameters.length > 0) {
+      builder.field('Parameters', info.parameters.join(', '), false).blank();
+    }
+
+    // Add example
+    if (info.example) {
+      builder.text('**Example:**').codeBlock('gcode', info.example);
+    }
+
+    return builder.build();
   }
 
   /**
@@ -150,71 +187,35 @@ export class HoverProvider {
       return null;
     }
 
-    const parts = [
-      `**${commandInfo.name}** (\`${commandInfo.command}\`)`,
-      '',
-      commandInfo.description,
-    ];
+    const title = `**${commandInfo.name}** (\`${commandInfo.command}\`)`;
+    return this.generateInfoHover(title, commandInfo);
+  }
 
-    if (commandInfo.group) {
-      parts.push('', `**Group:** ${commandInfo.group}`);
+  /**
+   * Generate hover for operator (binary or unary)
+   */
+  private generateOperatorHover(operator: string): string | null {
+    const operatorInfo = this.dataProvider.getOperatorInfo(operator);
+    if (!operatorInfo) {
+      return null;
     }
 
-    if (commandInfo.parameters && commandInfo.parameters.length > 0) {
-      parts.push('', `**Parameters:** ${commandInfo.parameters.join(', ')}`);
-    }
-
-    if (commandInfo.example) {
-      parts.push('', `**Example:**`, '```gcode', commandInfo.example, '```');
-    }
-
-    return parts.join('\n');
+    const title = `**${operatorInfo.name}** (\`${operatorInfo.operator}\`)`;
+    return this.generateInfoHover(title, operatorInfo);
   }
 
   /**
    * Generate hover for binary operator
    */
   private generateBinaryOperatorHover(node: BinaryExpressionNode): string | null {
-    const operatorInfo = this.dataProvider.getOperatorInfo(node.operator);
-    if (!operatorInfo) {
-      return null;
-    }
-
-    return [
-      `**${operatorInfo.name}** (\`${operatorInfo.operator}\`)`,
-      '',
-      operatorInfo.description,
-      '',
-      `**Category:** ${operatorInfo.category}`,
-      '',
-      `**Example:**`,
-      '```gcode',
-      operatorInfo.example,
-      '```',
-    ].join('\n');
+    return this.generateOperatorHover(node.operator);
   }
 
   /**
    * Generate hover for unary operator
    */
   private generateUnaryOperatorHover(node: UnaryExpressionNode): string | null {
-    const operatorInfo = this.dataProvider.getOperatorInfo(node.operator);
-    if (!operatorInfo) {
-      return null;
-    }
-
-    return [
-      `**${operatorInfo.name}** (\`${operatorInfo.operator}\`)`,
-      '',
-      operatorInfo.description,
-      '',
-      `**Category:** ${operatorInfo.category}`,
-      '',
-      `**Example:**`,
-      '```gcode',
-      operatorInfo.example,
-      '```',
-    ].join('\n');
+    return this.generateOperatorHover(node.operator);
   }
 
   /**
@@ -226,18 +227,8 @@ export class HoverProvider {
       return null;
     }
 
-    return [
-      `**Function:** \`${functionInfo.signature}\``,
-      '',
-      functionInfo.description,
-      '',
-      `**Category:** ${functionInfo.category}`,
-      '',
-      `**Example:**`,
-      '```gcode',
-      functionInfo.example,
-      '```',
-    ].join('\n');
+    const title = `**Function:** \`${functionInfo.signature}\``;
+    return this.generateInfoHover(title, functionInfo);
   }
 
   /**
@@ -250,18 +241,27 @@ export class HoverProvider {
     }
 
     const valueStr = this.formatExpressionForDisplay(node.value);
+    const title = `**${axisInfo.name}** (\`${axisInfo.axis}\`)`;
 
-    return [
-      `**${axisInfo.name}** (\`${axisInfo.axis}\`)`,
-      '',
-      axisInfo.description,
-      '',
-      `**Value:** \`${valueStr}\``,
-      '',
-      axisInfo.units ? `**Units:** ${axisInfo.units}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n');
+    return new MarkdownBuilder()
+      .text(title)
+      .blank()
+      .text(axisInfo.description)
+      .blank()
+      .field('Value', valueStr)
+      .addIf(!!axisInfo.units, (b) => {
+        if (axisInfo.units) {
+          b.blank().field('Units', axisInfo.units, false);
+        }
+      })
+      .build();
+  }
+
+  /**
+   * Format a range as a human-readable location string
+   */
+  private formatLocation(range: Range): string {
+    return `line ${range.start.line + 1}, column ${range.start.character}`;
   }
 
   /**
