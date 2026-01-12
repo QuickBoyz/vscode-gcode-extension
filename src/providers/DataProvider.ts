@@ -38,7 +38,19 @@ export class DataProvider {
    * Get command info for a G-code or M-code
    */
   getCommandInfo(command: string): GCodeCommandInfo | undefined {
-    const normalizedCommand = command.toUpperCase();
+    let normalizedCommand = command.toUpperCase();
+
+    // Normalize G1 -> G01, M3 -> M03, etc. (pad single digit codes)
+    if (normalizedCommand.startsWith('G') || normalizedCommand.startsWith('M')) {
+      const letter = normalizedCommand[0];
+      const numberPart = normalizedCommand.slice(1);
+      const parsedNumber = parseFloat(numberPart);
+
+      if (!isNaN(parsedNumber) && Number.isFinite(parsedNumber)) {
+        // Pad with leading zero if single digit: G1 -> G01, M3 -> M03
+        normalizedCommand = `${letter}${parsedNumber.toString().padStart(2, '0')}`;
+      }
+    }
 
     if (normalizedCommand.startsWith('G')) {
       return GCODE_COMMANDS.get(normalizedCommand);

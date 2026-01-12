@@ -299,6 +299,41 @@ Understanding the codebase:
 3. Add test cases in `src/test/GCodeParser.test.ts`
 4. Ensure all existing tests pass (unit and e2e)
 
+### Adding or Modifying Hover Content
+
+When adding new hover tooltips or modifying existing ones:
+
+1. Use `MarkdownBuilder` from `src/providers/MarkdownBuilder.ts` for consistent formatting
+2. Example pattern for hover methods in `HoverProvider.ts`:
+
+```typescript
+private generateMyHover(node: MyNode): string {
+  return new MarkdownBuilder()
+    .text('**Title**')
+    .blank()
+    .text('Description here')
+    .blank()
+    .field('Label', 'value')
+    .addIf(condition, (b) => b.blank().field('Optional', 'data', false))
+    .build();
+}
+```
+
+3. Available MarkdownBuilder methods:
+   - `.text()` - Plain text
+   - `.bold()` - Bold text
+   - `.code()` - Inline code
+   - `.field(label, value, format?)` - Labeled field (auto-formats value as code by default)
+   - `.labeledCode(label, code)` - Label with code value
+   - `.codeBlock(language, code)` - Code block with syntax highlighting
+   - `.blank()` - Add blank line for spacing
+   - `.addIf(condition, fn)` - Conditional content
+   - `.heading(level, text)` - Heading (level 1-6)
+   - `.section(content)` - Section with auto-spacing
+
+4. Add tests in `src/test/HoverProvider.test.ts`
+5. Test in Extension Development Host with actual G-code files
+
 ## Getting Help
 
 - Open an issue for bugs or questions
