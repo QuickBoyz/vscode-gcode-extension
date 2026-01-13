@@ -5,6 +5,8 @@
  * Ensures consistent formatting and handles conditional content gracefully.
  */
 
+import { GCodeSymbols } from '../constants';
+
 /**
  * Markdown Builder
  *
@@ -25,12 +27,24 @@ export class MarkdownBuilder {
     return this;
   }
 
+  private boldText(text: string): string {
+    return `**${text}**`;
+  }
+
+  private codeText(code: string): string {
+    return `\`${code}\``;
+  }
+
+  private codeBlockText(language: string, code: string): string {
+    return `\`\`\`${language}\n${code}\n\`\`\``;
+  }
+
   /**
    * Add bold text
    * @param text - Text to make bold
    */
   bold(text: string): this {
-    this.sections.push(`**${text}**`);
+    this.sections.push(this.boldText(text));
     return this;
   }
 
@@ -39,7 +53,7 @@ export class MarkdownBuilder {
    * @param code - Code to format
    */
   code(code: string): this {
-    this.sections.push(`\`${code}\``);
+    this.sections.push(this.codeText(code));
     return this;
   }
 
@@ -49,9 +63,9 @@ export class MarkdownBuilder {
    * @param value - Field value (will be code-formatted if format=true)
    * @param format - Whether to format value as code (default: true)
    */
-  field(label: string, value: string, format: boolean = true): this {
-    const formattedValue = format ? `\`${value}\`` : value;
-    this.sections.push(`**${label}:** ${formattedValue}`);
+  field(label: string, value: string, format: boolean = false): this {
+    const formattedValue = format ? this.codeText(value) : value;
+    this.sections.push(`${this.boldText(`${label}:`)} ${formattedValue}`);
     return this;
   }
 
@@ -60,7 +74,7 @@ export class MarkdownBuilder {
    * Example: **Variable:** `#<x>`
    */
   labeledCode(label: string, code: string): this {
-    this.sections.push(`**${label}:** \`${code}\``);
+    this.sections.push(`${this.boldText(`${label}:`)} ${this.codeText(code)}`);
     return this;
   }
 
@@ -78,9 +92,7 @@ export class MarkdownBuilder {
    * @param code - Code content
    */
   codeBlock(language: string, code: string): this {
-    this.sections.push('```' + language);
-    this.sections.push(code);
-    this.sections.push('```');
+    this.sections.push(this.codeBlockText(language, code));
     return this;
   }
 
@@ -88,7 +100,7 @@ export class MarkdownBuilder {
    * Add a blank line (spacing)
    */
   blank(): this {
-    this.sections.push('');
+    this.sections.push(GCodeSymbols.EMPTY_STRING);
     return this;
   }
 
@@ -110,7 +122,7 @@ export class MarkdownBuilder {
    */
   section(content: string): this {
     if (this.sections.length > 0) {
-      this.sections.push('');
+      this.sections.push(GCodeSymbols.EMPTY_STRING);
     }
     this.sections.push(content);
     return this;
@@ -121,12 +133,5 @@ export class MarkdownBuilder {
    */
   build(): string {
     return this.sections.join('\n');
-  }
-
-  /**
-   * Static helper to create a new builder
-   */
-  static create(): MarkdownBuilder {
-    return new MarkdownBuilder();
   }
 }

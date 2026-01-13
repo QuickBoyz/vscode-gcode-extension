@@ -173,6 +173,22 @@ export const REGEX_PATTERNS = {
 } as const;
 
 /**
+ * Completion item data type constants
+ */
+export enum CompletionItemTypes {
+  COMMAND = 'command',
+  FUNCTION = 'function',
+  PARAMETER = 'parameter',
+  OPERATOR = 'operator',
+  VARIABLE = 'variable',
+}
+
+/**
+ * Sort prefix constants for completion items
+ */
+export const OPERATORS_SORT_PREFIX = 'z_';
+
+/**
  * Default formatter options
  */
 export const DEFAULT_FORMATTER_SETTINGS: FormatterSettings = {

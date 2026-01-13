@@ -60,4 +60,25 @@ export class DataProvider {
 
     return undefined;
   }
+
+  /**
+   * Get all commands (G-codes and M-codes)
+   */
+  getAllCommands(): GCodeCommandInfo[] {
+    return [...GCODE_COMMANDS.values(), ...MCODE_COMMANDS.values()];
+  }
+
+  /**
+   * Get all functions
+   */
+  getAllFunctions(): FunctionInfo[] {
+    return [...FUNCTION_INFO.values()];
+  }
+
+  /**
+   * Get all operators
+   */
+  getAllOperators(): OperatorInfo[] {
+    return [...OPERATOR_INFO.values()];
+  }
 }

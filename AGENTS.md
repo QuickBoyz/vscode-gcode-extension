@@ -125,7 +125,7 @@ The following patterns are **expected** where applicable:
 ### 5. Language Rules
 
 - `strict: true` is assumed
-- No `any`
+- NEVER use `any` type
 - No implicit `unknown` casting
 - Prefer `readonly`
 - Prefer `private` over `protected`

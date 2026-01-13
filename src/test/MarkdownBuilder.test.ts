@@ -25,12 +25,12 @@ describe('MarkdownBuilder', () => {
     });
 
     it('should build field with code formatting', () => {
-      const md = new MarkdownBuilder().field('Value', '10').build();
+      const md = new MarkdownBuilder().field('Value', '10', true).build();
       expect(md).toBe('**Value:** `10`');
     });
 
     it('should build field without code formatting', () => {
-      const md = new MarkdownBuilder().field('Status', 'Active', false).build();
+      const md = new MarkdownBuilder().field('Status', 'Active').build();
       expect(md).toBe('**Status:** Active');
     });
 
@@ -57,7 +57,7 @@ describe('MarkdownBuilder', () => {
       const md = new MarkdownBuilder()
         .heading(2, 'Variable')
         .blank()
-        .field('Value', '10')
+        .field('Value', '10', true)
         .blank()
         .text('Description here')
         .build();
@@ -101,8 +101,8 @@ describe('MarkdownBuilder', () => {
 
       const md = new MarkdownBuilder()
         .text('Base content')
-        .addIf(hasUnits, (b) => b.blank().field('Units', 'mm', false))
-        .addIf(hasCategory, (b) => b.blank().field('Category', 'test', false))
+        .addIf(hasUnits, (b) => b.blank().field('Units', 'mm'))
+        .addIf(hasCategory, (b) => b.blank().field('Category', 'test'))
         .build();
 
       expect(md).toContain('Units');
@@ -156,29 +156,14 @@ describe('MarkdownBuilder', () => {
     });
   });
 
-  describe('static create helper', () => {
-    it('should create new builder instance', () => {
-      const md = MarkdownBuilder.create().text('Test').build();
-      expect(md).toBe('Test');
-    });
-
-    it('should create independent instances', () => {
-      const builder1 = MarkdownBuilder.create().text('First');
-      const builder2 = MarkdownBuilder.create().text('Second');
-
-      expect(builder1.build()).toBe('First');
-      expect(builder2.build()).toBe('Second');
-    });
-  });
-
   describe('complex real-world scenarios', () => {
     it('should build variable assignment hover', () => {
       const md = new MarkdownBuilder()
         .labeledCode('Variable Declaration', '#<myvar>')
         .blank()
-        .field('Value', '10.5')
+        .field('Value', '10.5', true)
         .blank()
-        .field('Declared at', 'line 5, column 1', false)
+        .field('Declared at', 'line 5, column 1')
         .build();
 
       expect(md).toBe(
@@ -190,11 +175,11 @@ describe('MarkdownBuilder', () => {
       const md = new MarkdownBuilder()
         .labeledCode('Variable', '#<x>')
         .blank()
-        .field('Value', '20.0')
+        .field('Value', '20.0', true)
         .blank()
-        .field('Declared at', 'line 3, column 1', false)
+        .field('Declared at', 'line 3, column 1')
         .blank()
-        .field('References', '5 usage(s)', false)
+        .field('References', '5 usage(s)')
         .build();
 
       expect(md).toContain('**Variable:** `#<x>`');
@@ -206,7 +191,7 @@ describe('MarkdownBuilder', () => {
       const md = new MarkdownBuilder()
         .labeledCode('Variable', '#<unknown>')
         .blank()
-        .field('Status', 'Undeclared', false)
+        .field('Status', 'Undeclared')
         .build();
 
       expect(md).toBe('**Variable:** `#<unknown>`\n\n**Status:** Undeclared');
@@ -218,9 +203,9 @@ describe('MarkdownBuilder', () => {
         .blank()
         .text('Moves the tool at maximum speed to the specified position.')
         .blank()
-        .field('Group', 'Motion', false)
+        .field('Group', 'Motion')
         .blank()
-        .field('Parameters', 'X, Y, Z', false)
+        .field('Parameters', 'X, Y, Z')
         .blank()
         .text('**Example:**')
         .codeBlock('gcode', 'G00 X10 Y20 Z5')
@@ -238,8 +223,8 @@ describe('MarkdownBuilder', () => {
         .blank()
         .text('Specifies the X-coordinate')
         .blank()
-        .field('Value', '10.5')
-        .addIf(true, (b) => b.blank().field('Units', 'mm', false))
+        .field('Value', '10.5', true)
+        .addIf(true, (b) => b.blank().field('Units', 'mm'))
         .build();
 
       expect(md).toContain('**X-Axis Position**');
@@ -253,8 +238,8 @@ describe('MarkdownBuilder', () => {
         .blank()
         .text('Sets the spindle RPM')
         .blank()
-        .field('Value', '1200')
-        .addIf(false, (b) => b.blank().field('Units', 'rpm', false))
+        .field('Value', '1200', true)
+        .addIf(false, (b) => b.blank().field('Units', 'rpm'))
         .build();
 
       expect(md).toContain('**Spindle Speed**');
