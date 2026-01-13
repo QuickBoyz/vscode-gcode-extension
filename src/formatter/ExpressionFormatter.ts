@@ -5,7 +5,7 @@
  * Supports different formatting contexts (display, output, hover).
  */
 
-import { OPERATORS_BY_PRECEDENCE, RIGHT_ASSOCIATIVE_OPERATORS } from '../constants';
+import { GCodeSymbols, OPERATORS_BY_PRECEDENCE, RIGHT_ASSOCIATIVE_OPERATORS } from '../constants';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
   BinaryExpressionNode,
@@ -43,7 +43,7 @@ export class ExpressionFormatter extends BaseAstVisitor<string> {
   constructor(private options: ExpressionFormatterOptions = {}) {
     super();
     this.options.prettyPrintNumbers ??= false;
-    this.options.fallbackString ??= '';
+    this.options.fallbackString ??= GCodeSymbols.EMPTY_STRING;
   }
 
   /**
@@ -53,7 +53,7 @@ export class ExpressionFormatter extends BaseAstVisitor<string> {
   setOptions(options: ExpressionFormatterOptions): void {
     this.options = options;
     this.options.prettyPrintNumbers ??= false;
-    this.options.fallbackString ??= '';
+    this.options.fallbackString ??= GCodeSymbols.EMPTY_STRING;
   }
 
   visitVariableReference(node: VariableReferenceNode): string {
@@ -150,7 +150,7 @@ export class ExpressionFormatter extends BaseAstVisitor<string> {
    * Default visitor for unknown node types
    */
   protected defaultValue(): string {
-    return this.options.fallbackString ?? '';
+    return this.options.fallbackString ?? GCodeSymbols.EMPTY_STRING;
   }
 
   /**

@@ -125,7 +125,7 @@ export class GCodeFormatter extends BaseAstVisitor<void> {
 
     const lastLine = this.lines.pop();
     // Don't append to empty lines - they should remain empty
-    if (lastLine?.trim() === '') {
+    if (lastLine?.trim() === GCodeSymbols.EMPTY_STRING) {
       this.lines.push(lastLine);
       this.addLine(content);
     } else {

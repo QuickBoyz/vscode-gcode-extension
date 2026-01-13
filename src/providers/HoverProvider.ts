@@ -13,6 +13,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Hover, MarkupKind, Position } from 'vscode-languageserver/node';
 
 import { MarkdownBuilder } from './MarkdownBuilder';
+import { DocumentationBuilder } from './DocumentationBuilder';
 import { NodeFinder } from './NodeFinder';
 import {
   AstNode,
@@ -36,6 +37,7 @@ import { formatVariableName } from './RenameUtils';
  */
 export class HoverProvider {
   private readonly dataProvider = new DataProvider();
+  private readonly documentationBuilder = new DocumentationBuilder();
   private readonly expressionFormatter = new ExpressionFormatter({
     prettyPrintNumbers: false,
     fallbackString: '(expression)',
@@ -107,9 +109,9 @@ export class HoverProvider {
     return new MarkdownBuilder()
       .labeledCode('Variable Declaration', variableName)
       .blank()
-      .field('Value', valueStr)
+      .field('Value', valueStr, true)
       .blank()
-      .field('Declared at', location, false)
+      .field('Declared at', location)
       .build();
   }
 
@@ -136,51 +138,15 @@ export class HoverProvider {
       const refCount = symbol.references.length;
 
       return builder
-        .field('Value', valueStr)
+        .field('Value', valueStr, true)
         .blank()
-        .field('Declared at', declLocation, false)
+        .field('Declared at', declLocation)
         .blank()
-        .field('References', `${refCount} usage(s)`, false)
+        .field('References', `${refCount} usage(s)`)
         .build();
     }
 
-    return builder.field('Status', 'Undeclared', false).build();
-  }
-
-  /**
-   * Generate hover for info with title, description, category, and example
-   * Used by commands, operators, and functions
-   */
-  private generateInfoHover(
-    title: string,
-    info: {
-      description: string;
-      category?: string;
-      example?: string;
-      group?: string;
-      parameters?: string[];
-    }
-  ): string {
-    const builder = new MarkdownBuilder().text(title).blank().text(info.description).blank();
-
-    // Add category or group
-    if (info.category) {
-      builder.field('Category', info.category, false).blank();
-    } else if (info.group) {
-      builder.field('Group', info.group, false).blank();
-    }
-
-    // Add parameters for commands
-    if (info.parameters && info.parameters.length > 0) {
-      builder.field('Parameters', info.parameters.join(', '), false).blank();
-    }
-
-    // Add example
-    if (info.example) {
-      builder.text('**Example:**').codeBlock('gcode', info.example);
-    }
-
-    return builder.build();
+    return builder.field('Status', 'Undeclared').build();
   }
 
   /**
@@ -192,8 +158,7 @@ export class HoverProvider {
       return null;
     }
 
-    const title = `**${commandInfo.name}** (\`${commandInfo.command}\`)`;
-    return this.generateInfoHover(title, commandInfo);
+    return this.documentationBuilder.buildCommandDocumentation(commandInfo).value;
   }
 
   /**
@@ -205,8 +170,7 @@ export class HoverProvider {
       return null;
     }
 
-    const title = `**${operatorInfo.name}** (\`${operatorInfo.operator}\`)`;
-    return this.generateInfoHover(title, operatorInfo);
+    return this.documentationBuilder.buildOperatorDocumentation(operatorInfo).value;
   }
 
   /**
@@ -232,8 +196,7 @@ export class HoverProvider {
       return null;
     }
 
-    const title = `**Function:** \`${functionInfo.signature}\``;
-    return this.generateInfoHover(title, functionInfo);
+    return this.documentationBuilder.buildFunctionDocumentation(functionInfo).value;
   }
 
   /**
@@ -246,20 +209,10 @@ export class HoverProvider {
     }
 
     const valueStr = this.expressionFormatter.format(node.value);
-    const title = `**${axisInfo.name}** (\`${axisInfo.axis}\`)`;
 
-    return new MarkdownBuilder()
-      .text(title)
-      .blank()
-      .text(axisInfo.description)
-      .blank()
-      .field('Value', valueStr)
-      .addIf(!!axisInfo.units, (b) => {
-        if (axisInfo.units) {
-          b.blank().field('Units', axisInfo.units, false);
-        }
-      })
-      .build();
+    return this.documentationBuilder.buildParameterDocumentation(axisInfo, {
+      additionalFields: [{ label: 'Value', value: valueStr, format: true }],
+    }).value;
   }
 
   /**

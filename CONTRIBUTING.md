@@ -309,7 +309,7 @@ When adding new hover tooltips or modifying existing ones:
 ```typescript
 private generateMyHover(node: MyNode): string {
   return new MarkdownBuilder()
-    .text('**Title**')
+    .bold('Title')
     .blank()
     .text('Description here')
     .blank()
