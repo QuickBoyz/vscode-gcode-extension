@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
+import { CompletionProvider } from '../providers/CompletionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
@@ -58,6 +59,11 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
         interFileDependencies: false,
         workspaceDiagnostics: false,
       },
+      // Enable completion with trigger characters
+      completionProvider: {
+        triggerCharacters: ['G', 'g', 'M', 'm', 'X', 'Y', 'Z', '#', '[', ' '],
+        resolveProvider: true,
+      },
     },
   };
 });
@@ -83,7 +89,8 @@ const formatterService = new FormatterService(),
   documentHighlightProvider = new DocumentHighlightProvider(documentStateManager),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
   hoverProvider = new HoverProvider(documentStateManager),
-  diagnosticsProvider = new DiagnosticsProvider(documentStateManager);
+  diagnosticsProvider = new DiagnosticsProvider(documentStateManager),
+  completionProvider = new CompletionProvider(documentStateManager);
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -163,6 +170,22 @@ connection.onHover(async (params) => {
 
   const settings = await getDocumentSettings(params.textDocument.uri);
   return hoverProvider.provideHover(document, params.position, settings);
+});
+
+// Register completion provider
+connection.onCompletion(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return completionProvider.provideCompletionItems(document, params.position, settings);
+});
+
+// Register completion resolve handler (for lazy-loading documentation)
+connection.onCompletionResolve((item) => {
+  return completionProvider.resolveCompletionItem(item);
 });
 
 // Publish diagnostics on document change
