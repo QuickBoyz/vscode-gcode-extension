@@ -5,49 +5,23 @@ import {
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
-  TextEdit,
-  WorkspaceEdit,
-  CompletionParams,
-  CompletionItem,
-  CompletionItemKind,
-  CompletionParams,
-  createConnection,
-  DefinitionLink,
-  DefinitionParams,
-  DocumentFormattingParams,
-  DocumentRangeFormattingParams,
-  Hover,
-  HoverParams,
-  InitializeParams,
-  InitializeResult,
-  Location,
-  ProposedFeatures,
-  Range,
-  ReferenceParams,
-  RenameParams,
-  SemanticTokens,
-  SemanticTokensParams,
-  TextDocuments,
-  TextDocumentSyncKind,
-  TextEdit,
-  WorkspaceEdit,
-} from "vscode-languageserver/node";
-import { DiagnosticsProvider } from "../providers/DiagnosticsProvider";
-import { DocumentFormattingProvider } from "../providers/DocumentFormattingProvider";
-import { DocumentHighlightProvider } from "../providers/DocumentHighlightProvider";
-import { DocumentRangeFormattingProvider } from "../providers/DocumentRangeFormattingProvider";
-import {
-  DocumentStateManager,
-  GCodeSettings,
-} from "../providers/DocumentStateManager";
-import { DocumentSymbolProvider } from "../providers/DocumentSymbolProvider";
-import { FormatterService } from "../providers/FormatterService";
-import { RenameProvider } from "../providers/RenameProvider";
+} from 'vscode-languageserver/node';
+import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
+import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
+import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
+import { DocumentRangeFormattingProvider } from '../providers/DocumentRangeFormattingProvider';
+import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
+import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
+import { FormatterService } from '../providers/FormatterService';
+import { RenameProvider } from '../providers/RenameProvider';
 import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
 } from '../providers/SemanticTokensProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { HoverProvider } from '../providers/HoverProvider';
+import { CompletionProvider } from '../providers/CompletionProvider';
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all),
