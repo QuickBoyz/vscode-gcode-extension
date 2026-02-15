@@ -10,10 +10,12 @@ import {
   FunctionCallNode,
   IfClauseNode,
   IfStatementNode,
+  LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
   StatementNode,
+  SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -111,6 +113,14 @@ export abstract class BaseAstVisitor<T> implements AstVisitor<T> {
   }
 
   visitError(_node: ErrorNode): T {
+    return this.defaultValue();
+  }
+
+  visitLineNumber(_node: LineNumberNode): T {
+    return this.defaultValue();
+  }
+
+  visitSubroutineLabel(_node: SubroutineLabelNode): T {
     return this.defaultValue();
   }
 }

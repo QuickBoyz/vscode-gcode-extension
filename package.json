@@ -214,6 +214,23 @@
     "configuration": {
       "title": "G-Code",
       "properties": {
+        "gcode.dialect": {
+          "type": "string",
+          "enum": [
+            "linuxcnc",
+            "fanuc",
+            "haas",
+            "siemens"
+          ],
+          "default": "linuxcnc",
+          "enumDescriptions": [
+            "LinuxCNC (EMC2) - Extended G-code with named variables",
+            "Fanuc - Industry standard for mills and lathes",
+            "Haas - Mill-specific G-codes with extended features",
+            "Siemens/Sinumerik - Extended G-code range"
+          ],
+          "markdownDescription": "Select the G-code dialect/flavor for completions and documentation. Different CNC controls support different command sets and syntax variations."
+        },
         "gcode.formatter.addLineNumbers": {
           "type": "boolean",
           "default": false,

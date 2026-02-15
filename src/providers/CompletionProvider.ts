@@ -17,9 +17,13 @@ import {
   Position,
 } from 'vscode-languageserver/node';
 
-import { CompletionItemTypes, OPERATORS_SORT_PREFIX, GCodeSymbols } from '../constants';
+import {
+  CompletionItemTypes,
+  OPERATORS_SORT_PREFIX,
+  GCodeSymbols,
+  DialectType,
+} from '../constants';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
-import { DataProvider } from './DataProvider';
 import { formatVariableName } from './RenameUtils';
 import { DocumentationBuilder } from './DocumentationBuilder';
 import {
@@ -31,6 +35,7 @@ import {
 interface KnownCompletionItem extends CompletionItem {
   data: {
     type: CompletionItemTypes | (string & {});
+    dialect?: DialectType;
     function?: string;
     parameter?: string;
     command?: string;
@@ -41,7 +46,6 @@ interface KnownCompletionItem extends CompletionItem {
  * Completion Provider
  */
 export class CompletionProvider {
-  private readonly dataProvider = new DataProvider();
   private readonly contextDetector: CompletionContextDetector;
   private readonly documentationBuilder = new DocumentationBuilder();
 
@@ -61,13 +65,13 @@ export class CompletionProvider {
 
     switch (contextInfo.type) {
       case CompletionContext.COMMAND:
-        return this.provideCommandCompletions(contextInfo);
+        return this.provideCommandCompletions(contextInfo, settings);
       case CompletionContext.PARAMETER:
-        return this.provideParameterCompletions(contextInfo);
+        return this.provideParameterCompletions(contextInfo, settings);
       case CompletionContext.VARIABLE:
         return this.provideVariableCompletions(document, settings);
       case CompletionContext.FUNCTION:
-        return this.provideFunctionCompletions(contextInfo);
+        return this.provideFunctionCompletions(contextInfo, settings);
       case CompletionContext.EXPRESSION:
         return this.provideExpressionCompletions(document, settings, contextInfo);
       default:
@@ -82,23 +86,24 @@ export class CompletionProvider {
     // If item has data with command info, load full documentation
     if (this.isKnownCompletionItem(item)) {
       const data = item.data;
+      const dataProvider = this.documentStateManager.getDataProvider(data.dialect);
 
       if (item.data.type === CompletionItemTypes.COMMAND && data.command) {
-        const commandInfo = this.dataProvider.getCommandInfo(data.command);
+        const commandInfo = dataProvider.getCommandInfo(data.command);
         if (commandInfo) {
           item.documentation = this.documentationBuilder.buildCommandDocumentation(commandInfo);
         }
       }
 
       if (data.type === CompletionItemTypes.FUNCTION && data.function) {
-        const functionInfo = this.dataProvider.getFunctionInfo(data.function);
+        const functionInfo = dataProvider.getFunctionInfo(data.function);
         if (functionInfo) {
           item.documentation = this.documentationBuilder.buildFunctionDocumentation(functionInfo);
         }
       }
 
       if (data.type === CompletionItemTypes.PARAMETER && data.parameter) {
-        const paramInfo = this.dataProvider.getAxisParameterInfo(data.parameter);
+        const paramInfo = dataProvider.getAxisParameterInfo(data.parameter);
         if (paramInfo) {
           item.documentation = this.documentationBuilder.buildParameterDocumentation(paramInfo);
         }
@@ -115,12 +120,17 @@ export class CompletionProvider {
   /**
    * Provide G/M command completions
    */
-  private provideCommandCompletions(contextInfo: ContextInfo): CompletionItem[] {
+  private provideCommandCompletions(
+    contextInfo: ContextInfo,
+    settings: GCodeSettings
+  ): CompletionItem[] {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
+    const dialect = settings.dialect || DialectType.LINUXCNC;
+    const dataProvider = this.documentStateManager.getDataProvider(dialect);
 
     // Get all commands from database
-    const commands = this.dataProvider.getAllCommands();
+    const commands = dataProvider.getAllCommands();
 
     for (const commandInfo of commands) {
       const command = commandInfo.command.toUpperCase();
@@ -146,7 +156,8 @@ export class CompletionProvider {
         insertText: command,
         data: {
           type: CompletionItemTypes.COMMAND,
-          command: command,
+          command,
+          dialect,
         },
       });
     }
@@ -161,15 +172,20 @@ export class CompletionProvider {
   /**
    * Provide axis parameter completions
    */
-  private provideParameterCompletions(contextInfo: ContextInfo): CompletionItem[] {
+  private provideParameterCompletions(
+    contextInfo: ContextInfo,
+    settings: GCodeSettings
+  ): CompletionItem[] {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
+    const dialect = settings.dialect || 'linuxcnc';
+    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
 
     // Get valid parameters for the current command
     let validParams: string[] = [];
 
     if (contextInfo.currentCommand) {
-      const commandInfo = this.dataProvider.getCommandInfo(contextInfo.currentCommand);
+      const commandInfo = dataProvider.getCommandInfo(contextInfo.currentCommand);
       if (commandInfo) {
         // Use command-specific parameters if defined
         // If command has empty parameters array, show no suggestions (e.g., G17, G18)
@@ -197,7 +213,7 @@ export class CompletionProvider {
       // Filter by prefix
       if (prefix && !this.is(param, prefix)) continue;
 
-      const paramInfo = this.dataProvider.getAxisParameterInfo(param);
+      const paramInfo = dataProvider.getAxisParameterInfo(param);
 
       items.push({
         label: param,
@@ -208,6 +224,7 @@ export class CompletionProvider {
         data: {
           type: CompletionItemTypes.PARAMETER,
           parameter: param,
+          dialect: dialect,
         },
       });
     }
@@ -247,11 +264,16 @@ export class CompletionProvider {
   /**
    * Provide function completions
    */
-  private provideFunctionCompletions(contextInfo: ContextInfo): CompletionItem[] {
+  private provideFunctionCompletions(
+    contextInfo: ContextInfo,
+    settings: GCodeSettings
+  ): CompletionItem[] {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
+    const dialect = settings.dialect || 'linuxcnc';
+    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
 
-    const functions = this.dataProvider.getAllFunctions();
+    const functions = dataProvider.getAllFunctions();
 
     for (const funcInfo of functions) {
       const funcName = funcInfo.name.toUpperCase();
@@ -269,6 +291,7 @@ export class CompletionProvider {
         data: {
           type: CompletionItemTypes.FUNCTION,
           function: funcName,
+          dialect: dialect,
         },
       });
     }
@@ -285,15 +308,17 @@ export class CompletionProvider {
     contextInfo: ContextInfo
   ): CompletionItem[] {
     const items: CompletionItem[] = [];
+    const dialect = settings.dialect || 'linuxcnc';
+    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
 
     // Add variables
     items.push(...this.provideVariableCompletions(document, settings));
 
     // Add functions
-    items.push(...this.provideFunctionCompletions(contextInfo));
+    items.push(...this.provideFunctionCompletions(contextInfo, settings));
 
     // Add operators
-    const operators = this.dataProvider.getAllOperators();
+    const operators = dataProvider.getAllOperators();
     for (const opInfo of operators) {
       items.push({
         label: opInfo.operator,
@@ -301,7 +326,11 @@ export class CompletionProvider {
         detail: opInfo.name,
         documentation: opInfo.description,
         insertText: opInfo.operator,
-        sortText: `${OPERATORS_SORT_PREFIX}${opInfo.operator}`, // Sort operators last
+        sortText: OPERATORS_SORT_PREFIX + opInfo.operator,
+        data: {
+          type: CompletionItemTypes.OPERATOR,
+          dialect: dialect,
+        },
       });
     }
 

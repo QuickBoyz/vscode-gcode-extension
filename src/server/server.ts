@@ -67,6 +67,15 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
   };
 });
 
+// Handle settings changes
+connection.onDidChangeConfiguration(() => {
+  // Clear cached settings when configuration changes
+  documentSettings.clear();
+  // Clear all cached document states and data providers
+  documentStateManager.clearAll();
+  connection.console.log('Configuration changed - caches cleared');
+});
+
 function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
   let settings = documentSettings.get(uri);
   if (!settings) {
@@ -96,7 +105,7 @@ connection.onDocumentFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return documentFormatter.provide(document, settings.formatter);
+  return documentFormatter.provide(document, settings.formatter, settings.dialect);
 });
 
 connection.onDocumentRangeFormatting(async (params) => {
@@ -104,7 +113,7 @@ connection.onDocumentRangeFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return rangeFormatter.provide(document, params.range, settings.formatter);
+  return rangeFormatter.provide(document, params.range, settings.formatter, settings.dialect);
 });
 
 connection.languages.semanticTokens.on(async (params) => {

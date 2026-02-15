@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- ✨ Configurable G-code dialect support (LinuxCNC, Fanuc, Haas, Siemens)
+  - Dialect-specific completions and documentation
+  - Dialect-specific formatting with control flow syntax variations
+  - Factory pattern for extensible dialect architecture
+  - IDataProvider interface for dialect abstraction
+  - IFormatter interface for formatter abstraction
+  - Runtime dialect switching without VS Code reload
+  - Per-document dialect support for mixed-dialect workspaces
+- 🛡️ Robust error handling and recovery
+  - Parser preserves original text when encountering unsupported syntax
+  - ErrorNode captures parse errors with original line context
+  - Formatter outputs error comments (ERROR: message) with original code
+  - LineNumberNode and SubroutineLabelNode for proper label handling
+  - Graceful degradation - continues parsing after errors instead of crashing
+- 🧪 Comprehensive dialect-specific test coverage
+  - Separate test files for each dialect formatter (LinuxCNC, Fanuc, Haas, Siemens)
+  - Separate test files for each dialect provider (DocumentFormatting, RangeFormatting)
+  - 89 new tests covering dialect variations and error handling
 - Contributing guidelines
 - Development documentation
 - Architecture documentation

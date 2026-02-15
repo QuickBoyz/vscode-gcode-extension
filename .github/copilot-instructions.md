@@ -16,9 +16,57 @@ The AST is the single source of truth. All features are projections of it.
 
 ## Key Patterns (Required)
 
-- **Visitor Pattern**: All AST traversal MUST use [AstVisitor](../src/parser/AstVisitor.ts) and [AstTraverser](../src/parser/AstTraverser.ts). See [GCodeFormatter](../src/formatter/GCodeFormatter.ts) and [SemanticTokensVisitor](../src/providers/SemanticTokensVisitor.ts) for examples.
-- **Factory Pattern**: Parser uses [AstFactory](../src/parser/AstFactory.ts) for node creation
-- **Caching**: [DocumentStateManager](../src/providers/DocumentStateManager.ts) caches parsed ASTs per document to avoid redundant parsing
+- **Visitor Pattern**: All AST traversal MUST use [AstVisitor](../src/parser/AstVisitor.ts) and [AstTraverser](../src/parser/AstTraverser.ts). See [BaseFormatter](../src/formatter/BaseFormatter.ts) and [SemanticTokensVisitor](../src/providers/SemanticTokensVisitor.ts) for examples.
+- **Factory Pattern**: Parser uses [AstFactory](../src/parser/AstFactory.ts) for node creation, [DataProviderFactory](../src/providers/DataProviderFactory.ts) for dialect-specific providers
+- **Strategy Pattern**: [IDataProvider](../src/providers/IDataProvider.ts) interface with dialect-specific implementations ([LinuxCNCDataProvider](../src/providers/dialects/LinuxCNCDataProvider.ts), [FanucDataProvider](../src/providers/dialects/FanucDataProvider.ts), etc.)
+- **Caching**: [DocumentStateManager](../src/providers/DocumentStateManager.ts) caches parsed ASTs and DataProviders per document to avoid redundant parsing
+
+## Dialect Architecture
+
+The extension supports multiple G-code dialects (LinuxCNC, Fanuc, Haas, Siemens) through an extensible architecture:
+
+### Data Providers (Completions & Documentation)
+
+- **[IDataProvider](../src/providers/IDataProvider.ts)**: Interface defining contract for dialect-specific data access
+- **[BaseDataProvider](../src/providers/BaseDataProvider.ts)**: Abstract base class with common normalization logic (uppercase, G/M code padding)
+- **Dialect Implementations**: Concrete providers in [src/providers/dialects/](../src/providers/dialects/) that import dialect-specific databases
+- **[DataProviderFactory](../src/providers/DataProviderFactory.ts)**: Creates appropriate provider based on `gcode.dialect` setting
+- **Databases**: Dialect-specific command databases in [src/databases/dialects/](../src/databases/dialects/) (shared operators/functions/parameters)
+
+**Retrieval Pattern**: Providers call `documentStateManager.getDataProvider(dialect)` to get the dialect-appropriate provider per request. This enables per-document dialect support and runtime switching.
+
+### Formatters (Control Flow Syntax)
+
+- **[IFormatter](../src/formatter/IFormatter.ts)**: Interface extending AstVisitor<void> for dialect-specific formatters
+- **[BaseFormatter](../src/formatter/BaseFormatter.ts)**: Abstract base class with common formatting logic (indentation, line numbers, expressions)
+- **Dialect Implementations**: Concrete formatters in [src/formatter/dialects/](../src/formatter/dialects/) that override control flow keyword methods
+- **[FormatterFactory](../src/formatter/FormatterFactory.ts)**: Creates appropriate formatter based on `gcode.dialect` setting
+
+**Key Differences**:
+
+- **Fanuc/Haas**: `IF [cond] THEN`, `WHILE [cond] DO`, `END`
+- **Siemens/LinuxCNC**: `IF [cond]` (no THEN), `WHILE [cond]` (no DO), `ENDWHILE`
+
+**Adding a New Dialect**:
+
+1. **Data Provider**:
+   - Create dialect database in `src/databases/dialects/<dialect>/GCodeCommandDatabase.ts`
+   - Create provider in `src/providers/dialects/<Dialect>DataProvider.ts` extending `BaseDataProvider`
+2. **Formatter**:
+   - Create formatter in `src/formatter/dialects/<Dialect>Formatter.ts` extending `BaseFormatter`
+   - Override keyword methods: `getIfKeyword()`, `getThenKeyword()`, `getWhileKeyword()`, etc.
+3. **Configuration**:
+   - Add dialect enum value to [constants.ts](../src/constants.ts) `DialectType`
+   - Update [DataProviderFactory](../src/providers/DataProviderFactory.ts) switch statement
+   - Update [FormatterFactory](../src/formatter/FormatterFactory.ts) switch statement
+   - Add to `package.json` `gcode.dialect` enum
+4. **Documentation**:
+   - Update [README.md](../README.md) with dialect description and syntax examples
+5. **Testing**:
+   - Create dialect-specific formatter test in `src/test/<Dialect>Formatter.test.ts`
+   - Create dialect-specific provider test in `src/test/<Dialect>Provider.test.ts`
+   - Test control flow syntax, label formatting, and dialect-specific keywords
+   - Ensure all tests pass: `npm test`
 
 ## Development Workflow
 
@@ -69,7 +117,7 @@ F5 in VS Code             # Launch Extension Development Host for debugging
 
 ## References
 
-- [AGENTS.md](../AGEMTS.md) - Detailed architectural rules and forbidden practices
+- [AGENTS.md](../AGENTS.md) - Detailed architectural rules and forbidden practices
 - [TESTING.md](../TESTING.md) - Comprehensive testing guide
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Code style and contribution workflow
 - [README.md](../README.md) - User-facing documentation and feature overview

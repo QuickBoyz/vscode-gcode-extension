@@ -17,7 +17,19 @@ Unit tests are located in `src/test/` and test individual components in isolatio
 
 **Tested Components:**
 
-- All components need to be testedS
+All components have to have comprehensive unit test coverage, including:
+
+- **Parser**: GCodeParser, AstTraverser, AstFactory
+- **Formatters**: BaseFormatter, dialect-specific formatters (LinuxCNC, Fanuc, Haas, Siemens)
+- **Providers**: DocumentFormatting, DocumentRangeFormatting, HoverProvider, RenameProvider, etc.
+- **Services**: AstAnalysisService, DocumentStateManager, FormatterService
+- **Utilities**: CompletionUtils, RenameUtils, NodeFinder, MarkdownBuilder
+
+**Dialect-Specific Tests:**
+
+- Formatter tests: `LinuxCNCFormatter.test.ts`, `FanucFormatter.test.ts`, `HaasFormatter.test.ts`, `SiemensFormatter.test.ts`
+- Provider tests: `LinuxCNCProvider.test.ts`, `FanucProvider.test.ts`, `HaasProvider.test.ts`, `SiemensProvider.test.ts`
+- Each dialect test suite validates control flow syntax, label formatting, and keyword behavior
 
 ### Running Unit Tests
 

@@ -5,14 +5,7 @@
  * used in the hover provider.
  */
 
-export interface GCodeCommandInfo {
-  command: string;
-  name: string;
-  description: string;
-  group?: string;
-  parameters?: string[];
-  example?: string;
-}
+import { GCodeCommandInfo } from '../types';
 
 /**
  * G-Code commands database

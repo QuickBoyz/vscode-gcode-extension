@@ -8,7 +8,7 @@ import { ProgramNode } from '../parser/nodes';
 function parseCode(code: string): ProgramNode {
   const lexer = new GCodeLexer(),
     tokens = lexer.tokenize(code),
-    parser = new GCodeParser(tokens);
+    parser = new GCodeParser(tokens, code);
   return parser.parseProgram();
 }
 

@@ -68,7 +68,7 @@ describe('NodeFinder', () => {
     const parseCode = (code: string) => {
       const lexer = new GCodeLexer();
       const tokens = lexer.tokenize(code);
-      const parser = new GCodeParser(tokens);
+      const parser = new GCodeParser(tokens, code);
       return parser.parseProgram();
     };
 

@@ -3,17 +3,16 @@ import { AstNode } from './AstNode';
 import { Range } from './Range';
 import { StatementNode } from './StatementNode';
 
-export class ErrorNode extends StatementNode {
+export class SubroutineLabelNode extends StatementNode {
   constructor(
     range: Range,
-    readonly message: string,
-    readonly originalText?: string,
+    readonly label: string,
     parent?: AstNode
   ) {
     super(range, parent);
   }
 
   accept<T>(visitor: AstVisitor<T>): T {
-    return visitor.visitError(this);
+    return visitor.visitSubroutineLabel(this);
   }
 }

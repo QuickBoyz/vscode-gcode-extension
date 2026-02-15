@@ -8,7 +8,7 @@
 import { MarkupContent, MarkupKind } from 'vscode-languageserver/node';
 
 import { MarkdownBuilder } from './MarkdownBuilder';
-import { GCodeCommandInfo } from '../databases/GCodeCommandDatabase';
+import { GCodeCommandInfo } from '../databases/types';
 import { FunctionInfo } from '../databases/FunctionDatabase';
 import { AxisParameterInfo } from '../databases/AxisParametersDatabase';
 import { OperatorInfo } from '../databases/OperatorDatabase';
