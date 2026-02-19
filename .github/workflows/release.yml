@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          # Bump version using npm
+          NEW_VERSION=$(npm version ${{ inputs.version_bump }} --no-git-tag-version)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update CHANGELOG
+        run: |
+          VERSION="${{ steps.bump_version.outputs.new_version }}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Create changelog entry if CHANGELOG.md exists
+          if [ -f CHANGELOG.md ]; then
+            # Create temporary file with new entry
+            {
+              head -n 1 CHANGELOG.md
+              echo ""
+              echo "## [$VERSION] - $DATE"
+              echo ""
+              echo "### Added"
+              echo "- New features and improvements"
+              echo ""
+              echo "### Changed"
+              echo "- Updates and modifications"
+              echo ""
+              echo "### Fixed"
+              echo "- Bug fixes"
+              echo ""
+              tail -n +2 CHANGELOG.md
+            } > CHANGELOG.md.tmp
+            mv CHANGELOG.md.tmp CHANGELOG.md
+          fi
+
+      - name: Commit version bump
+        run: |
+          VERSION="${{ steps.bump_version.outputs.new_version }}"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: bump version to $VERSION"
+          git tag -a "$VERSION" -m "Release $VERSION"
+
+      - name: Push changes
+        run: |
+          git push origin main
+          git push origin ${{ steps.bump_version.outputs.new_version }}
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package extension
+        id: package
+        run: |
+          npx vsce package
+          VSIX_FILE=$(ls *.vsix)
+          echo "vsix_path=$VSIX_FILE" >> $GITHUB_OUTPUT
+          echo "Packaged: $VSIX_FILE"
+
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          VERSION="${{ steps.bump_version.outputs.new_version }}"
+          PREV_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          # Extract changelog for this version
+          if [ -f CHANGELOG.md ]; then
+            NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
+          else
+            NOTES="Release $VERSION"
+          fi
+
+          # Save to file to preserve formatting
+          echo "$NOTES" > release_notes.md
+
+          # Add commit log
+          echo "" >> release_notes.md
+          echo "## Commits since $PREV_TAG" >> release_notes.md
+          git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> release_notes.md
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.bump_version.outputs.new_version }}
+          release_name: ${{ steps.bump_version.outputs.new_version }}
+          body_path: release_notes.md
+          draft: true
+          prerelease: false
+
+      - name: Upload VSIX to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.package.outputs.vsix_path }}
+          asset_name: ${{ steps.package.outputs.vsix_path }}
+          asset_content_type: application/zip
+
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -n "$VSCE_PAT" ]; then
+            npx vsce publish -p $VSCE_PAT
+            echo "✅ Published to VS Code Marketplace"
+          else
+            echo "⚠️ VSCE_PAT secret not set. Skipping marketplace publication."
+            echo "To publish to the marketplace, add VSCE_PAT to repository secrets."
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-${{ steps.bump_version.outputs.new_version }}
+          path: |
+            *.vsix
+            release_notes.md
+            package.json
+          retention-days: 30
