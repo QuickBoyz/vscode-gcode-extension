@@ -6,18 +6,22 @@
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
+import { DialectType } from '../constants';
 import { FormatterSettings } from '../formatter/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
 import { ProgramNode } from '../parser/nodes';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
+import { IDataProvider } from './IDataProvider';
+import { DataProviderFactory } from './DataProviderFactory';
 
 /**
  * Settings interface for G-code documents
  */
 export interface GCodeSettings {
   formatter: FormatterSettings;
+  dialect?: DialectType;
 }
 
 /**
@@ -42,6 +46,7 @@ export interface DocumentState {
 export class DocumentStateManager {
   private documentStates = new Map<string, DocumentState>();
   private documentVersions = new Map<string, number>();
+  private dataProviderCache = new Map<string, IDataProvider>();
   private readonly lexer: GCodeLexer;
   private readonly analysisService: AstAnalysisService;
 
@@ -67,7 +72,7 @@ export class DocumentStateManager {
 
     // Parse the document
     const tokens = this.lexer.tokenize(text),
-      parser = new GCodeParser(tokens),
+      parser = new GCodeParser(tokens, text),
       ast = parser.parseProgram(),
       // Get or increment version (persists across invalidations)
       currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;
@@ -151,6 +156,36 @@ export class DocumentStateManager {
     this.documentStates.clear();
     // Note: We keep version tracking even after invalidation
     // So that subsequent parses continue versioning
+  }
+
+  /**
+   * Clear all caches including data providers (called on settings change)
+   */
+  clearAll(): void {
+    this.documentStates.clear();
+    this.dataProviderCache.clear();
+    // Note: We keep version tracking even after invalidation
+    // So that subsequent parses continue versioning
+  }
+
+  /**
+   * Get dialect-specific data provider for the given dialect.
+   * Caches providers per dialect to avoid recreating them.
+   *
+   * @param dialect The G-code dialect to get a provider for (defaults to LinuxCNC)
+   * @returns The appropriate data provider for the dialect
+   */
+  getDataProvider(dialect?: DialectType): IDataProvider {
+    const dialectKey = dialect ?? DialectType.LINUXCNC;
+    const cached = this.dataProviderCache.get(dialectKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const provider = DataProviderFactory.create(dialectKey);
+    this.dataProviderCache.set(dialectKey, provider);
+    return provider;
   }
 
   /**

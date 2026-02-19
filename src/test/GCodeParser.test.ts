@@ -18,7 +18,7 @@ describe('GCodeParser', () => {
   function parse(input: string): ProgramNode {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(input),
-      parser = new GCodeParser(tokens);
+      parser = new GCodeParser(tokens, input);
     return parser.parseProgram();
   }
 

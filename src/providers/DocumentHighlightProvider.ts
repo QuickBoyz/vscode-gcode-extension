@@ -7,17 +7,18 @@
 import { DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { Position, Range } from '../parser/nodes';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
-import { getVariableNameRange } from './RenameUtils';
+import { Position } from '../parser/nodes';
+import { GCodeSettings } from './DocumentStateManager';
+import { BaseProvider } from './BaseProvider';
+import { VariableAnalysisService } from './VariableAnalysisService';
 
 /**
  * Document Highlight Provider
  *
  * Highlights all occurrences of a variable at the cursor position.
  */
-export class DocumentHighlightProvider {
-  constructor(private stateManager: DocumentStateManager) {}
+export class DocumentHighlightProvider extends BaseProvider {
+  private readonly variableAnalysisService = new VariableAnalysisService();
 
   /**
    * Provide document highlights for a variable at the given position
@@ -27,8 +28,8 @@ export class DocumentHighlightProvider {
     position: Position,
     settings: GCodeSettings
   ): DocumentHighlight[] | null {
-    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
-      symbol = this.findSymbolAtPosition(analysis, position);
+    const analysis = this.getAnalysis(document, settings),
+      symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
 
     if (!symbol) {
       return null;
@@ -45,7 +46,7 @@ export class DocumentHighlightProvider {
 
     // Add highlights for all definitions
     for (const definition of variableSymbol.definitions) {
-      const variableRange = getVariableNameRange(definition);
+      const variableRange = this.variableAnalysisService.getVariableNameRange(definition);
       if (variableRange) {
         highlights.push({
           range: variableRange,
@@ -56,7 +57,7 @@ export class DocumentHighlightProvider {
 
     // Add highlights for references
     for (const ref of variableSymbol.references) {
-      const variableRange = getVariableNameRange(ref);
+      const variableRange = this.variableAnalysisService.getVariableNameRange(ref);
       if (variableRange) {
         highlights.push({
           range: variableRange,
@@ -66,31 +67,5 @@ export class DocumentHighlightProvider {
     }
 
     return highlights;
-  }
-
-  /**
-   * Find symbol at position from analysis results
-   */
-  private findSymbolAtPosition(
-    analysis: import('./AnalysisResults').AnalysisResults,
-    position: Position
-  ): { name: string | number } | null {
-    for (const [name, symbol] of analysis.variables) {
-      // Check all definitions - use the variable name range, not the full assignment range
-      for (const definition of symbol.definitions) {
-        const variableRange = getVariableNameRange(definition);
-        if (variableRange && Range.isPositionInRange(position, variableRange)) {
-          return { name };
-        }
-      }
-
-      // Check references
-      for (const ref of symbol.references) {
-        if (Range.isPositionInRange(position, ref.getRange())) {
-          return { name };
-        }
-      }
-    }
-    return null;
   }
 }

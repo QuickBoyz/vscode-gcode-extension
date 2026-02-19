@@ -11,10 +11,12 @@ export {
   UnaryExpressionNode,
 } from './expressions';
 export { FunctionCallNode } from './FunctionCallNode';
+export { LineNumberNode } from './LineNumberNode';
 export { MotionCommandNode } from './MotionCommandNode';
 export { Position } from './Position';
 export { ProgramNode } from './ProgramNode';
 export { Range } from './Range';
 export { StatementNode } from './StatementNode';
+export { SubroutineLabelNode } from './SubroutineLabelNode';
 export { VariableAssignmentNode } from './VariableAssignmentNode';
 export { VariableReferenceNode } from './VariableReferenceNode';

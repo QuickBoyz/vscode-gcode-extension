@@ -10,10 +10,12 @@ import {
   FunctionCallNode,
   IfClauseNode,
   IfStatementNode,
+  LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
   StatementNode,
+  SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -57,6 +59,12 @@ export class AstTraverser<T = void> {
         break;
       case node instanceof ErrorNode:
         this.visitor.visitError(node);
+        break;
+      case node instanceof LineNumberNode:
+        this.visitor.visitLineNumber(node);
+        break;
+      case node instanceof SubroutineLabelNode:
+        this.visitor.visitSubroutineLabel(node);
         break;
       default:
         if (this.visitor.visitStatement) this.visitor.visitStatement(node);

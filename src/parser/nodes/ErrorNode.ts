@@ -7,6 +7,7 @@ export class ErrorNode extends StatementNode {
   constructor(
     range: Range,
     readonly message: string,
+    readonly originalText?: string,
     parent?: AstNode
   ) {
     super(range, parent);

@@ -6,6 +6,10 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
 
 - **Syntax Highlighting**: Full syntax highlighting for G-Code files with support for 50+ file extensions
 - **Document Formatting**: Intelligent formatting with customizable options
+- **Robust Error Handling**: Parser gracefully handles unsupported syntax
+  - Preserves original code when encountering parse errors
+  - Inserts error comments with diagnostic information
+  - Continues parsing after errors for maximum code preservation
 - **Hover Information**: Intelligent tooltips showing:
   - Variable values and declarations
   - G/M command descriptions with parameters and examples
@@ -30,6 +34,70 @@ The extension supports a wide range of G-Code file extensions including:
 - `.m`, `.mpf`, `.spf` - Fanuc/Heidenhain formats
 - `.sbp` - ShopBot files
 - And 40+ more extensions (see `package.json` for complete list)
+
+## Dialect Support
+
+The extension supports multiple G-code dialects/flavors to provide accurate completions and documentation specific to your CNC control system:
+
+- **LinuxCNC** (default) - Extended G-code with named variables (#<name>), conditional statements (IF/THEN/ELSE), and various control flow constructs
+- **Fanuc** - Industry standard for mills and lathes, featuring G65 macro calls, numeric variables (#1-#999), M98/M99 subprograms, and standard canned cycles
+- **Haas** - Mill-specific G-codes with VPS smoothing, G187 accuracy control, and M95-M99 jump labels
+- **Siemens/Sinumerik** - Extended G-code range (beyond G99), R parameters, polar programming, and advanced interpolation modes
+
+### Changing the Dialect
+
+Set your preferred dialect in VS Code settings:
+
+```json
+{
+  "gcode.dialect": "fanuc"
+}
+```
+
+Available values: `"linuxcnc"`, `"fanuc"`, `"haas"`, `"siemens"`
+
+The dialect setting affects:
+
+- **Completions**: Shows commands and parameters specific to your dialect
+- **Hover documentation**: Displays dialect-specific command descriptions and examples
+- **IntelliSense**: Provides accurate parameter suggestions for commands
+- **Formatting**: Applies dialect-specific control flow syntax (e.g., Siemens omits THEN/DO keywords)
+
+Dialect changes take effect immediately without needing to reload VS Code.
+
+### Dialect-Specific Formatting
+
+The formatter automatically adjusts control flow syntax based on your selected dialect:
+
+**LinuxCNC/Siemens** (no THEN/DO keywords):
+
+```gcode
+IF [#<x> GT 0]
+  G01 X10
+ENDIF
+
+WHILE [#<counter> LT 10]
+  G01 X[#<counter>]
+ENDWHILE
+```
+
+**Fanuc/Haas** (with THEN/DO keywords):
+
+```gcode
+IF [#<x> GT 0] THEN
+  G01 X10
+ENDIF
+
+WHILE [#<counter> LT 10] DO
+  G01 X[#<counter>]
+END
+```
+
+**Key differences**:
+
+- **LinuxCNC/Siemens**: Omit `THEN` and `DO` keywords, use `ENDWHILE`
+- **Fanuc/Haas**: Use `IF...THEN`, `WHILE...DO`, and `END`
+- **Siemens**: Labels use colon suffix (e.g., `O100:` instead of `O100`)
 
 ## Installation
 
@@ -81,15 +149,16 @@ Enable format on save in VS Code settings:
 
 This extension contributes the following settings:
 
-| Setting                               | Default | Description                                                                  |
-| ------------------------------------- | ------- | ---------------------------------------------------------------------------- |
-| `gcode.formatter.addLineNumbers`      | `false` | Add N-block line numbers to each line (N10, N20, etc.)                       |
-| `gcode.formatter.lineNumberStart`     | `10`    | Starting line number when adding N-blocks                                    |
-| `gcode.formatter.lineNumberIncrement` | `10`    | Line number increment when adding N-blocks                                   |
-| `gcode.formatter.prettyPrintCommands` | `true`  | Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)              |
-| `gcode.formatter.prettyPrintNumbers`  | `true`  | Pretty-print parameter numbers to always include a decimal point (X2 → X2.0) |
-| `gcode.formatter.indent`              | `true`  | Enable indentation for control structures (WHILE, IF, etc.)                  |
-| `gcode.formatter.compactOutput`       | `false` | Compact output mode - removes all empty lines                                |
+| Setting                               | Default      | Description                                                                  |
+| ------------------------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `gcode.dialect`                       | `"linuxcnc"` | Select the G-code dialect/flavor for completions and documentation           |
+| `gcode.formatter.addLineNumbers`      | `false`      | Add N-block line numbers to each line (N10, N20, etc.)                       |
+| `gcode.formatter.lineNumberStart`     | `10`         | Starting line number when adding N-blocks                                    |
+| `gcode.formatter.lineNumberIncrement` | `10`         | Line number increment when adding N-blocks                                   |
+| `gcode.formatter.prettyPrintCommands` | `true`       | Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)              |
+| `gcode.formatter.prettyPrintNumbers`  | `true`       | Pretty-print parameter numbers to always include a decimal point (X2 → X2.0) |
+| `gcode.formatter.indent`              | `true`       | Enable indentation for control structures (WHILE, IF, etc.)                  |
+| `gcode.formatter.compactOutput`       | `false`      | Compact output mode - removes all empty lines                                |
 
 ## Architecture
 
@@ -133,13 +202,26 @@ src/
 │   ├── AstVisitor.ts
 │   └── nodes/       # AST node definitions
 ├── formatter/       # Code formatter
-│   └── GCodeFormatter.ts
+│   ├── BaseFormatter.ts
+│   ├── FormatterFactory.ts
+│   ├── ExpressionFormatter.ts
+│   └── dialects/    # Dialect-specific formatters
+│       ├── LinuxCNCFormatter.ts
+│       ├── FanucFormatter.ts
+│       ├── HaasFormatter.ts
+│       └── SiemensFormatter.ts
+├── databases/       # G-Code command databases
+│   ├── GCodeCommandDatabase.ts
+│   └── dialects/    # Dialect-specific databases
 ├── providers/       # Language feature providers
 │   ├── DocumentFormattingProvider.ts
 │   ├── DocumentSymbolProvider.ts
 │   ├── DocumentHighlightProvider.ts
+│   ├── HoverProvider.ts
 │   ├── RenameProvider.ts
-│   └── SemanticTokensProvider.ts
+│   ├── SemanticTokensProvider.ts
+│   ├── DataProviderFactory.ts
+│   └── dialects/    # Dialect-specific providers
 ├── test/            # Unit tests (Jest)
 │   └── fixtures/    # Test fixtures
 └── e2e/             # E2E tests (VS Code)

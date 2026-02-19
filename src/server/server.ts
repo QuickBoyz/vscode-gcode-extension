@@ -9,7 +9,6 @@ import {
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
-import { DocumentRangeFormattingProvider } from '../providers/DocumentRangeFormattingProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
 import { FormatterService } from '../providers/FormatterService';
@@ -67,6 +66,15 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
   };
 });
 
+// Handle settings changes
+connection.onDidChangeConfiguration(() => {
+  // Clear cached settings when configuration changes
+  documentSettings.clear();
+  // Clear all cached document states and data providers
+  documentStateManager.clearAll();
+  connection.console.log('Configuration changed - caches cleared');
+});
+
 function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
   let settings = documentSettings.get(uri);
   if (!settings) {
@@ -81,7 +89,6 @@ function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
 
 const formatterService = new FormatterService(),
   documentFormatter = new DocumentFormattingProvider(formatterService),
-  rangeFormatter = new DocumentRangeFormattingProvider(formatterService),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
   renameProvider = new RenameProvider(documentStateManager),
@@ -96,7 +103,7 @@ connection.onDocumentFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return documentFormatter.provide(document, settings.formatter);
+  return documentFormatter.provideDocument(document, settings.formatter, settings.dialect);
 });
 
 connection.onDocumentRangeFormatting(async (params) => {
@@ -104,7 +111,12 @@ connection.onDocumentRangeFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return rangeFormatter.provide(document, params.range, settings.formatter);
+  return documentFormatter.provideRange(
+    document,
+    params.range,
+    settings.formatter,
+    settings.dialect
+  );
 });
 
 connection.languages.semanticTokens.on(async (params) => {

@@ -9,10 +9,12 @@ import {
   FunctionCallNode,
   IfClauseNode,
   IfStatementNode,
+  LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
   StatementNode,
+  SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -40,4 +42,6 @@ export abstract class AstVisitor<T> {
   abstract visitMotionCommand(node: MotionCommandNode): T;
   abstract visitComment(node: CommentNode): T;
   abstract visitError(node: ErrorNode): T;
+  abstract visitLineNumber(node: LineNumberNode): T;
+  abstract visitSubroutineLabel(node: SubroutineLabelNode): T;
 }

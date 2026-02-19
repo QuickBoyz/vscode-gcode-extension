@@ -12,6 +12,20 @@ import {
 export const GCODE_LANGUAGE_ID = 'gcode';
 
 /**
+ * G-code dialect types supported by the extension
+ */
+export enum DialectType {
+  /** LinuxCNC (EMC2) - Extended G-code with named variables */
+  LINUXCNC = 'linuxcnc',
+  /** Fanuc - Industry standard for mills and lathes */
+  FANUC = 'fanuc',
+  /** Haas - Mill-specific G-codes with extended features */
+  HAAS = 'haas',
+  /** Siemens/Sinumerik - Extended G-code range */
+  SIEMENS = 'siemens',
+}
+
+/**
  * G-code syntax symbols
  */
 export enum GCodeSymbols {

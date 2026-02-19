@@ -40,7 +40,7 @@ function decodeSemanticTokens(data: number[]): DecodedToken[] {
 function parseAndAnalyze(code: string) {
   const lexer = new GCodeLexer(),
     tokens = lexer.tokenize(code),
-    parser = new GCodeParser(tokens),
+    parser = new GCodeParser(tokens, code),
     ast = parser.parseProgram(),
     analysisService = new AstAnalysisService(),
     results = analysisService.analyze(ast, { includeTokens: true });

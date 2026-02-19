@@ -7,22 +7,21 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
 import { GCODE_LANGUAGE_ID } from '../constants';
+import { BaseProvider } from './BaseProvider';
 
 /**
  * Diagnostics Provider
  *
  * Provides syntax error diagnostics for G-code documents.
  */
-export class DiagnosticsProvider {
-  constructor(private stateManager: DocumentStateManager) {}
-
+export class DiagnosticsProvider extends BaseProvider {
   /**
    * Provide diagnostics (syntax errors) for a document
    */
   provideDiagnostics(document: TextDocument, settings: GCodeSettings): Diagnostic[] {
-    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
+    const analysis = this.getAnalysis(document, settings),
       diagnostics: Diagnostic[] = [];
 
     for (const errorNode of analysis.errors) {

@@ -2,7 +2,6 @@ import { AstFactory } from './AstFactory';
 import {
   AstNode,
   AxisParameterNode,
-  BlockStatementNode,
   ElseClauseNode,
   ExpressionNode,
   IfClauseNode,
@@ -18,12 +17,15 @@ import { ParseError, TokenStream } from './TokenStream';
 export class GCodeParser {
   private tokens: TokenStream;
   private factory: AstFactory;
+  private inputLines: string[];
   // Track the last motion command that had parameters (for parameter-only lines)
   lastCommandWithParams: MotionCommandNode | null = null;
 
-  constructor(tokens: readonly Token[]) {
+  constructor(tokens: readonly Token[], inputText?: string) {
     this.tokens = new TokenStream(tokens);
     this.factory = new AstFactory();
+    // Store input lines for error reporting
+    this.inputLines = inputText ? inputText.split(/\r?\n/) : [];
   }
 
   parseProgram(): ProgramNode {
@@ -47,6 +49,7 @@ export class GCodeParser {
   }
 
   private parseStatementSafe(): StatementNode | null {
+    const startToken = this.tokens.peek();
     try {
       return this.parseStatement();
     } catch (e) {
@@ -54,8 +57,11 @@ export class GCodeParser {
       const err = e as ParseError | Error,
         message = err.message || 'Parse error',
         token = err instanceof ParseError ? err.token : this.tokens.peek();
+
+      // Capture original line text if available
+      const originalText = this.getOriginalLineText(startToken);
       this.recoverToNextLine();
-      return this.factory.error(message, token);
+      return this.factory.error(message, token, originalText);
     }
   }
 
@@ -92,12 +98,15 @@ export class GCodeParser {
         this.tokens.next();
         return null;
 
+      case TokenType.LineNumber:
+        return this.parseLineNumber();
+
       default:
         throw new ParseError(`Unexpected token ${token.type}`, token);
     }
   }
 
-  private parseOBlock(): BlockStatementNode {
+  private parseOBlock(): StatementNode {
     const label = this.tokens.expect(TokenType.OSUB),
       token = this.tokens.peek();
 
@@ -107,7 +116,8 @@ export class GCodeParser {
       case TokenType.IF:
         return this.parseIf(label);
       default:
-        throw new ParseError(`Unexpected token ${token?.type}`, token);
+        // Standalone O-block label (e.g., O01234 for subroutine marker)
+        return this.factory.subroutineLabel(label);
     }
   }
 
@@ -482,5 +492,22 @@ export class GCodeParser {
         return;
       }
     }
+  }
+
+  private parseLineNumber(): StatementNode {
+    const token = this.tokens.next();
+    if (!token) throw new ParseError('Unexpected EOF while parsing line number', token);
+    return this.factory.lineNumber(token);
+  }
+
+  private getOriginalLineText(token?: Token): string {
+    if (!token || this.inputLines.length === 0) return '';
+
+    // Token line is 1-based, array is 0-based
+    const lineIndex = token.line - 1;
+    if (lineIndex >= 0 && lineIndex < this.inputLines.length) {
+      return this.inputLines[lineIndex].trim();
+    }
+    return '';
   }
 }

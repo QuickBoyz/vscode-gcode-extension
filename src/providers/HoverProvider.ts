@@ -27,28 +27,26 @@ import {
 } from '../parser/nodes';
 import { Range } from '../parser/nodes/Range';
 import { AnalysisResults } from './AnalysisResults';
-import { DocumentState, DocumentStateManager, GCodeSettings } from './DocumentStateManager';
-import { DataProvider } from './DataProvider';
+import { DocumentState, GCodeSettings } from './DocumentStateManager';
 import { ExpressionFormatter } from '../formatter/ExpressionFormatter';
 import { formatVariableName } from './RenameUtils';
+import { BaseProvider } from './BaseProvider';
 
 /**
  * Hover Provider
  */
-export class HoverProvider {
-  private readonly dataProvider = new DataProvider();
+export class HoverProvider extends BaseProvider {
   private readonly documentationBuilder = new DocumentationBuilder();
   private readonly expressionFormatter = new ExpressionFormatter({
     prettyPrintNumbers: false,
     fallbackString: '(expression)',
   });
-  constructor(private readonly documentStateManager: DocumentStateManager) {}
 
   /**
    * Provide hover information for a position in the document
    */
   provideHover(document: TextDocument, position: Position, settings: GCodeSettings): Hover | null {
-    const state = this.documentStateManager.getOrParseDocumentFromTextDocument(document, settings);
+    const state = this.getDocumentState(document, settings);
 
     // Find the best matching node at the position
     const node = NodeFinder.findBestNodeAtPosition(state.ast, position);
@@ -84,15 +82,15 @@ export class HoverProvider {
       }
       return this.generateVariableReferenceHover(node, state.analysis);
     } else if (node instanceof MotionCommandNode) {
-      return this.generateCommandHover(node);
+      return this.generateCommandHover(node, state);
     } else if (node instanceof BinaryExpressionNode) {
-      return this.generateBinaryOperatorHover(node);
+      return this.generateBinaryOperatorHover(node, state);
     } else if (node instanceof UnaryExpressionNode) {
-      return this.generateUnaryOperatorHover(node);
+      return this.generateUnaryOperatorHover(node, state);
     } else if (node instanceof FunctionCallNode) {
-      return this.generateFunctionHover(node);
+      return this.generateFunctionHover(node, state);
     } else if (node instanceof AxisParameterNode) {
-      return this.generateAxisParameterHover(node);
+      return this.generateAxisParameterHover(node, state);
     }
 
     return null;
@@ -152,8 +150,9 @@ export class HoverProvider {
   /**
    * Generate hover for G/M command
    */
-  private generateCommandHover(node: MotionCommandNode): string | null {
-    const commandInfo = this.dataProvider.getCommandInfo(node.command);
+  private generateCommandHover(node: MotionCommandNode, state: DocumentState): string | null {
+    const dataProvider = this.getDataProvider(state.settings.dialect);
+    const commandInfo = dataProvider.getCommandInfo(node.command);
     if (!commandInfo) {
       return null;
     }
@@ -164,8 +163,9 @@ export class HoverProvider {
   /**
    * Generate hover for operator (binary or unary)
    */
-  private generateOperatorHover(operator: string): string | null {
-    const operatorInfo = this.dataProvider.getOperatorInfo(operator);
+  private generateOperatorHover(operator: string, state: DocumentState): string | null {
+    const dataProvider = this.getDataProvider(state.settings.dialect);
+    const operatorInfo = dataProvider.getOperatorInfo(operator);
     if (!operatorInfo) {
       return null;
     }
@@ -176,22 +176,32 @@ export class HoverProvider {
   /**
    * Generate hover for binary operator
    */
-  private generateBinaryOperatorHover(node: BinaryExpressionNode): string | null {
-    return this.generateOperatorHover(node.operator);
+  private generateBinaryOperatorHover(
+    node: BinaryExpressionNode,
+    state: DocumentState
+  ): string | null {
+    return this.generateOperatorHover(node.operator, state);
   }
 
   /**
+    
+   
+  
    * Generate hover for unary operator
    */
-  private generateUnaryOperatorHover(node: UnaryExpressionNode): string | null {
-    return this.generateOperatorHover(node.operator);
+  private generateUnaryOperatorHover(
+    node: UnaryExpressionNode,
+    state: DocumentState
+  ): string | null {
+    return this.generateOperatorHover(node.operator, state);
   }
 
   /**
    * Generate hover for function call
    */
-  private generateFunctionHover(node: FunctionCallNode): string | null {
-    const functionInfo = this.dataProvider.getFunctionInfo(node.name);
+  private generateFunctionHover(node: FunctionCallNode, state: DocumentState): string | null {
+    const dataProvider = this.getDataProvider(state.settings.dialect);
+    const functionInfo = dataProvider.getFunctionInfo(node.name);
     if (!functionInfo) {
       return null;
     }
@@ -202,8 +212,9 @@ export class HoverProvider {
   /**
    * Generate hover for axis parameter
    */
-  private generateAxisParameterHover(node: AxisParameterNode): string | null {
-    const axisInfo = this.dataProvider.getAxisParameterInfo(node.axis);
+  private generateAxisParameterHover(node: AxisParameterNode, state: DocumentState): string | null {
+    const dataProvider = this.getDataProvider(state.settings.dialect);
+    const axisInfo = dataProvider.getAxisParameterInfo(node.axis);
     if (!axisInfo) {
       return null;
     }

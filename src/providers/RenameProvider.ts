@@ -8,18 +8,17 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
 
 import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
-import { AnalysisResults } from './AnalysisResults';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
-import { NodeFinder } from './NodeFinder';
-import { formatVariableName, getVariableNameRange, validateVariableName } from './RenameUtils';
+import { GCodeSettings } from './DocumentStateManager';
+import { BaseProvider } from './BaseProvider';
+import { VariableAnalysisService } from './VariableAnalysisService';
 
 /**
  * Rename Provider
  *
  * Handles variable renaming requests from the language server.
  */
-export class RenameProvider {
-  constructor(private stateManager: DocumentStateManager) {}
+export class RenameProvider extends BaseProvider {
+  private readonly variableAnalysisService = new VariableAnalysisService();
 
   /**
    * Prepare rename - check if position is on a variable and return range/placeholder
@@ -29,15 +28,15 @@ export class RenameProvider {
     position: Position,
     settings: GCodeSettings
   ): Range | { range: Range; placeholder: string } | null {
-    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
-      symbol = this.findSymbolAtPosition(analysis, position);
+    const analysis = this.getAnalysis(document, settings),
+      symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
 
     if (!symbol) {
       return null;
     }
 
     // Get the range of just the variable name (not the entire assignment)
-    const range = this.getVariableNameRangeFromNode(symbol.node);
+    const range = this.variableAnalysisService.getVariableNameRange(symbol.node);
     if (!range) {
       return null;
     }
@@ -57,8 +56,8 @@ export class RenameProvider {
     newName: string,
     settings: GCodeSettings
   ): WorkspaceEdit | null {
-    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
-      symbol = this.findSymbolAtPosition(analysis, position);
+    const analysis = this.getAnalysis(document, settings),
+      symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
 
     if (!symbol) {
       return null;
@@ -68,7 +67,7 @@ export class RenameProvider {
       isNumeric = typeof oldName === 'number';
 
     // Validate new name
-    if (!validateVariableName(newName, isNumeric)) {
+    if (!this.variableAnalysisService.validateVariableName(newName, isNumeric)) {
       return null;
     }
 
@@ -133,54 +132,17 @@ export class RenameProvider {
     isNumeric: boolean
   ): TextEdit[] {
     const edits: TextEdit[] = [],
-      formattedNewName = formatVariableName(isNumeric ? parseInt(newName, 10) : newName);
+      formattedNewName = this.variableAnalysisService.formatVariableName(
+        isNumeric ? parseInt(newName, 10) : newName
+      );
 
     for (const symbol of symbols) {
-      const range = getVariableNameRange(symbol);
+      const range = this.variableAnalysisService.getVariableNameRange(symbol);
       if (range) {
         edits.push(TextEdit.replace(range, formattedNewName));
       }
     }
 
     return edits;
-  }
-
-  /**
-   * Find symbol at position from analysis results
-   */
-  private findSymbolAtPosition(
-    analysis: AnalysisResults,
-    position: Position
-  ): { name: string | number; node: VariableAssignmentNode | VariableReferenceNode } | null {
-    let bestMatch: {
-      name: string | number;
-      node: VariableAssignmentNode | VariableReferenceNode;
-    } | null = null;
-    let smallestRangeSize = Infinity;
-
-    for (const [name, symbol] of analysis.variables) {
-      // Check all definitions and references
-      for (const node of [...symbol.definitions, ...symbol.references]) {
-        const range = node.getRange();
-        if (Range.isPositionInRange(position, range)) {
-          const rangeSize = NodeFinder.calculateRangeSize(range);
-          if (rangeSize < smallestRangeSize) {
-            smallestRangeSize = rangeSize;
-            bestMatch = { name, node: node };
-          }
-        }
-      }
-    }
-
-    return bestMatch;
-  }
-
-  /**
-   * Get the AST range of just the variable name from a node
-   */
-  private getVariableNameRangeFromNode(
-    node: VariableAssignmentNode | VariableReferenceNode
-  ): Range | null {
-    return getVariableNameRange(node);
   }
 }

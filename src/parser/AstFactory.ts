@@ -13,10 +13,12 @@ import {
   FunctionCallNode,
   IfClauseNode,
   IfStatementNode,
+  LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
   StatementNode,
+  SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -179,7 +181,7 @@ export class AstFactory {
     return node;
   }
 
-  error(message: string, token?: Token) {
+  error(message: string, token?: Token, originalText?: string) {
     const range = token
       ? rangeFrom(token)
       : {
@@ -187,7 +189,15 @@ export class AstFactory {
           end: { line: 0, character: 0 },
         };
 
-    return new ErrorNode(range, message);
+    return new ErrorNode(range, message, originalText);
+  }
+
+  subroutineLabel(token: Token) {
+    return new SubroutineLabelNode(rangeFrom(token), token.value);
+  }
+
+  lineNumber(token: Token) {
+    return new LineNumberNode(rangeFrom(token), token.value);
   }
 
   comment(token: Token) {
