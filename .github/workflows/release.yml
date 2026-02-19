@@ -109,48 +109,18 @@ jobs:
           echo "vsix_path=$VSIX_FILE" >> $GITHUB_OUTPUT
           echo "Packaged: $VSIX_FILE"
 
-      - name: Generate release notes
-        id: generate_notes
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.bump_version.outputs.new_version }}"
-          PREV_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+          VSIX_FILE="${{ steps.package.outputs.vsix_path }}"
 
-          # Extract changelog for this version
-          if [ -f CHANGELOG.md ]; then
-            NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d')
-          else
-            NOTES="Release $VERSION"
-          fi
-
-          # Save to file to preserve formatting
-          echo "$NOTES" > release_notes.md
-
-          # Add commit log
-          echo "" >> release_notes.md
-          echo "## Commits since $PREV_TAG" >> release_notes.md
-          git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> release_notes.md
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.bump_version.outputs.new_version }}
-          release_name: ${{ steps.bump_version.outputs.new_version }}
-          body_path: release_notes.md
-          draft: true
-          prerelease: false
-
-      - name: Upload VSIX to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.package.outputs.vsix_path }}
-          asset_name: ${{ steps.package.outputs.vsix_path }}
-          asset_content_type: application/zip
+          gh release create "$VERSION" \
+            "$VSIX_FILE" \
+            --draft \
+            --title "$VERSION" \
+            --generate-notes
 
       - name: Publish to VS Code Marketplace
         env:
@@ -171,6 +141,5 @@ jobs:
           name: release-artifacts-${{ steps.bump_version.outputs.new_version }}
           path: |
             *.vsix
-            release_notes.md
             package.json
           retention-days: 30
