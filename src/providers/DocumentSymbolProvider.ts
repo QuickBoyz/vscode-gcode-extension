@@ -7,22 +7,21 @@
 import { DocumentSymbol, SymbolKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
 import { formatVariableName } from './RenameUtils';
+import { BaseProvider } from './BaseProvider';
 
 /**
  * Document Symbol Provider
  *
  * Provides symbol information for variables in the document.
  */
-export class DocumentSymbolProvider {
-  constructor(private stateManager: DocumentStateManager) {}
-
+export class DocumentSymbolProvider extends BaseProvider {
   /**
    * Provide document symbols (variable definitions) for the outline view
    */
   provideDocumentSymbols(document: TextDocument, settings: GCodeSettings): DocumentSymbol[] {
-    const analysis = this.stateManager.getAnalysisFromTextDocument(document, settings),
+    const analysis = this.getAnalysis(document, settings),
       symbols: DocumentSymbol[] = [];
 
     // Get all variable names and their definitions for the outline

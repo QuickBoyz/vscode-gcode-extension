@@ -3,7 +3,6 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { DialectType } from '../../constants';
 import { FormatterSettings } from '../../formatter/types';
 import { DocumentFormattingProvider } from '../../providers/DocumentFormattingProvider';
-import { DocumentRangeFormattingProvider } from '../../providers/DocumentRangeFormattingProvider';
 import { FormatterService } from '../../providers/FormatterService';
 import { Range } from '../../parser/nodes';
 
@@ -23,12 +22,10 @@ const DEFAULT_SETTINGS: FormatterSettings = {
 describe('HaasProvider', () => {
   let formatterService: FormatterService;
   let documentFormattingProvider: DocumentFormattingProvider;
-  let documentRangeFormattingProvider: DocumentRangeFormattingProvider;
 
   beforeEach(() => {
     formatterService = new FormatterService();
     documentFormattingProvider = new DocumentFormattingProvider(formatterService);
-    documentRangeFormattingProvider = new DocumentRangeFormattingProvider(formatterService);
   });
 
   describe('DocumentFormattingProvider', () => {
@@ -110,13 +107,13 @@ describe('HaasProvider', () => {
     });
   });
 
-  describe('DocumentRangeFormattingProvider', () => {
+  describe('document range formatting', () => {
     it('formats specific range with Haas dialect', () => {
       const input = '#<x> = 1\nIF [#<x> EQ 1]\n  #<y> = 2\nENDIF\n#<z> = 3';
       const document = TextDocument.create('test.nc', 'gcode', 1, input);
       const range = Range.create(1, 0, 3, 5);
 
-      const edits = documentRangeFormattingProvider.provide(
+      const edits = documentFormattingProvider.provideRange(
         document,
         range,
         DEFAULT_SETTINGS,
@@ -133,7 +130,7 @@ describe('HaasProvider', () => {
       const document = TextDocument.create('test.nc', 'gcode', 1, input);
       const range = Range.create(0, 0, 2, 8);
 
-      const edits = documentRangeFormattingProvider.provide(
+      const edits = documentFormattingProvider.provideRange(
         document,
         range,
         DEFAULT_SETTINGS,

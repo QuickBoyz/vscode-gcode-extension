@@ -9,7 +9,6 @@ import {
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
-import { DocumentRangeFormattingProvider } from '../providers/DocumentRangeFormattingProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
 import { FormatterService } from '../providers/FormatterService';
@@ -90,7 +89,6 @@ function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
 
 const formatterService = new FormatterService(),
   documentFormatter = new DocumentFormattingProvider(formatterService),
-  rangeFormatter = new DocumentRangeFormattingProvider(formatterService),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
   renameProvider = new RenameProvider(documentStateManager),
@@ -105,7 +103,7 @@ connection.onDocumentFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return documentFormatter.provide(document, settings.formatter, settings.dialect);
+  return documentFormatter.provideDocument(document, settings.formatter, settings.dialect);
 });
 
 connection.onDocumentRangeFormatting(async (params) => {
@@ -113,7 +111,12 @@ connection.onDocumentRangeFormatting(async (params) => {
   if (!document) return [];
 
   const settings = await getDocumentSettings(params.textDocument.uri);
-  return rangeFormatter.provide(document, params.range, settings.formatter, settings.dialect);
+  return documentFormatter.provideRange(
+    document,
+    params.range,
+    settings.formatter,
+    settings.dialect
+  );
 });
 
 connection.languages.semanticTokens.on(async (params) => {

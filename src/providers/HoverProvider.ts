@@ -27,26 +27,26 @@ import {
 } from '../parser/nodes';
 import { Range } from '../parser/nodes/Range';
 import { AnalysisResults } from './AnalysisResults';
-import { DocumentState, DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { DocumentState, GCodeSettings } from './DocumentStateManager';
 import { ExpressionFormatter } from '../formatter/ExpressionFormatter';
 import { formatVariableName } from './RenameUtils';
+import { BaseProvider } from './BaseProvider';
 
 /**
  * Hover Provider
  */
-export class HoverProvider {
+export class HoverProvider extends BaseProvider {
   private readonly documentationBuilder = new DocumentationBuilder();
   private readonly expressionFormatter = new ExpressionFormatter({
     prettyPrintNumbers: false,
     fallbackString: '(expression)',
   });
-  constructor(private readonly documentStateManager: DocumentStateManager) {}
 
   /**
    * Provide hover information for a position in the document
    */
   provideHover(document: TextDocument, position: Position, settings: GCodeSettings): Hover | null {
-    const state = this.documentStateManager.getOrParseDocumentFromTextDocument(document, settings);
+    const state = this.getDocumentState(document, settings);
 
     // Find the best matching node at the position
     const node = NodeFinder.findBestNodeAtPosition(state.ast, position);
@@ -151,7 +151,7 @@ export class HoverProvider {
    * Generate hover for G/M command
    */
   private generateCommandHover(node: MotionCommandNode, state: DocumentState): string | null {
-    const dataProvider = this.documentStateManager.getDataProvider(state.settings.dialect);
+    const dataProvider = this.getDataProvider(state.settings.dialect);
     const commandInfo = dataProvider.getCommandInfo(node.command);
     if (!commandInfo) {
       return null;
@@ -164,7 +164,7 @@ export class HoverProvider {
    * Generate hover for operator (binary or unary)
    */
   private generateOperatorHover(operator: string, state: DocumentState): string | null {
-    const dataProvider = this.documentStateManager.getDataProvider(state.settings.dialect);
+    const dataProvider = this.getDataProvider(state.settings.dialect);
     const operatorInfo = dataProvider.getOperatorInfo(operator);
     if (!operatorInfo) {
       return null;
@@ -200,7 +200,7 @@ export class HoverProvider {
    * Generate hover for function call
    */
   private generateFunctionHover(node: FunctionCallNode, state: DocumentState): string | null {
-    const dataProvider = this.documentStateManager.getDataProvider(state.settings.dialect);
+    const dataProvider = this.getDataProvider(state.settings.dialect);
     const functionInfo = dataProvider.getFunctionInfo(node.name);
     if (!functionInfo) {
       return null;
@@ -213,7 +213,7 @@ export class HoverProvider {
    * Generate hover for axis parameter
    */
   private generateAxisParameterHover(node: AxisParameterNode, state: DocumentState): string | null {
-    const dataProvider = this.documentStateManager.getDataProvider(state.settings.dialect);
+    const dataProvider = this.getDataProvider(state.settings.dialect);
     const axisInfo = dataProvider.getAxisParameterInfo(node.axis);
     if (!axisInfo) {
       return null;

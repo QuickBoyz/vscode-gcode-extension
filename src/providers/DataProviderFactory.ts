@@ -12,6 +12,7 @@ import { LinuxCNCDataProvider } from './dialects/LinuxCNCDataProvider';
 import { FanucDataProvider } from './dialects/FanucDataProvider';
 import { HaasDataProvider } from './dialects/HaasDataProvider';
 import { SiemensDataProvider } from './dialects/SiemensDataProvider';
+import { DialectValidator } from '../utils/DialectValidator';
 
 export class DataProviderFactory {
   /**
@@ -23,7 +24,7 @@ export class DataProviderFactory {
    */
   static create(dialect: DialectType): IDataProvider {
     // Normalize dialect string to lowercase for case-insensitive matching
-    const normalizedDialect = dialect.toLowerCase() as DialectType | (string & {});
+    const normalizedDialect = DialectValidator.normalize(dialect);
 
     switch (normalizedDialect) {
       case DialectType.LINUXCNC:

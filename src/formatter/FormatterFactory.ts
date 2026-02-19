@@ -5,6 +5,7 @@ import { LinuxCNCFormatter } from './dialects/LinuxCNCFormatter';
 import { FanucFormatter } from './dialects/FanucFormatter';
 import { HaasFormatter } from './dialects/HaasFormatter';
 import { SiemensFormatter } from './dialects/SiemensFormatter';
+import { DialectValidator } from '../utils/DialectValidator';
 
 /**
  * Factory for creating dialect-specific formatters.
@@ -21,7 +22,7 @@ export class FormatterFactory {
    * @throws Error if dialect is not recognized
    */
   static create(dialect: DialectType, settings?: Partial<FormatterSettings>): IFormatter {
-    const normalizedDialect = dialect.toLowerCase().trim() as DialectType | (string & {});
+    const normalizedDialect = DialectValidator.normalize(dialect);
 
     switch (normalizedDialect) {
       case DialectType.LINUXCNC:

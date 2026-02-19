@@ -157,7 +157,7 @@ ENDIF`,
 
     it('throws error for unrecognized dialect', () => {
       // @ts-expect-error - testing invalid input
-      expect(() => FormatterFactory.create('unknown')).toThrow('Unrecognized dialect');
+      expect(() => FormatterFactory.create('unknown')).toThrow('Invalid dialect');
     });
 
     it('handles case-insensitive dialect names', () => {

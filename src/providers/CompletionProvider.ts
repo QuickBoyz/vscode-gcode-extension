@@ -26,6 +26,7 @@ import {
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { formatVariableName } from './RenameUtils';
 import { DocumentationBuilder } from './DocumentationBuilder';
+import { BaseProvider } from './BaseProvider';
 import {
   CompletionContext,
   CompletionContextDetector,
@@ -45,11 +46,12 @@ interface KnownCompletionItem extends CompletionItem {
 /**
  * Completion Provider
  */
-export class CompletionProvider {
+export class CompletionProvider extends BaseProvider {
   private readonly contextDetector: CompletionContextDetector;
   private readonly documentationBuilder = new DocumentationBuilder();
 
-  constructor(private readonly documentStateManager: DocumentStateManager) {
+  constructor(documentStateManager: DocumentStateManager) {
+    super(documentStateManager);
     this.contextDetector = new CompletionContextDetector(documentStateManager);
   }
 
@@ -86,7 +88,7 @@ export class CompletionProvider {
     // If item has data with command info, load full documentation
     if (this.isKnownCompletionItem(item)) {
       const data = item.data;
-      const dataProvider = this.documentStateManager.getDataProvider(data.dialect);
+      const dataProvider = this.getDataProvider(data.dialect);
 
       if (item.data.type === CompletionItemTypes.COMMAND && data.command) {
         const commandInfo = dataProvider.getCommandInfo(data.command);
@@ -127,7 +129,7 @@ export class CompletionProvider {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
     const dialect = settings.dialect || DialectType.LINUXCNC;
-    const dataProvider = this.documentStateManager.getDataProvider(dialect);
+    const dataProvider = this.getDataProvider(dialect);
 
     // Get all commands from database
     const commands = dataProvider.getAllCommands();
@@ -179,7 +181,7 @@ export class CompletionProvider {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
     const dialect = settings.dialect || 'linuxcnc';
-    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
+    const dataProvider = this.getDataProvider(settings.dialect);
 
     // Get valid parameters for the current command
     let validParams: string[] = [];
@@ -242,7 +244,7 @@ export class CompletionProvider {
     const items: CompletionItem[] = [];
 
     // Get analysis results with variables
-    const analysis = this.documentStateManager.getAnalysisFromTextDocument(document, settings);
+    const analysis = this.getAnalysis(document, settings);
 
     // Add all defined variables
     for (const [varName, symbol] of analysis.variables) {
@@ -271,7 +273,7 @@ export class CompletionProvider {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
     const dialect = settings.dialect || 'linuxcnc';
-    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
+    const dataProvider = this.getDataProvider(settings.dialect);
 
     const functions = dataProvider.getAllFunctions();
 
@@ -309,7 +311,7 @@ export class CompletionProvider {
   ): CompletionItem[] {
     const items: CompletionItem[] = [];
     const dialect = settings.dialect || 'linuxcnc';
-    const dataProvider = this.documentStateManager.getDataProvider(settings.dialect);
+    const dataProvider = this.getDataProvider(settings.dialect);
 
     // Add variables
     items.push(...this.provideVariableCompletions(document, settings));
