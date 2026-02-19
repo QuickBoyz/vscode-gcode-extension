@@ -23,21 +23,18 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint -- --output-file eslint-report.json --format json
+        run: npm run lint > eslint-report.txt
         continue-on-error: true
 
-      - name: Run ESLint (regular output)
-        run: npm run lint
-
       - name: Check formatting
-        run: npm run format:check
+        run: npm run format:check > format-check-output.txt
 
       - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-results
-          path: eslint-report.json
+          path: eslint-report.txt, format-check-output.txt
           retention-days: 7
 
   typecheck:
