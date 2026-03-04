@@ -253,11 +253,9 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
 
   visitError(node: ErrorNode): void {
     this.handleLineGap(node.getRange().start.line);
+    // Output only the error annotation, not the problematic text
+    // This prevents cascading errors on subsequent formats where the broken code would be re-parsed
     this.appendToLastLine(node.getRange().start.line, `(ERROR: ${node.message})`);
-    // Also output the original text if available
-    if (node.originalText) {
-      this.appendToLastLine(node.getRange().start.line, ` ${node.originalText}`);
-    }
   }
 
   visitLineNumber(node: LineNumberNode): void {

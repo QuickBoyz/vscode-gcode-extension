@@ -206,7 +206,15 @@ export class GCodeParser {
 
     // Expect ENDIF - with OSUB only if there's a label
     if (label) {
+      if (!this.tokens.match(TokenType.OSUB)) {
+        throw new ParseError('Expected ENDIF with label', ifToken);
+      }
       this.tokens.expect(TokenType.OSUB);
+    }
+
+    // Check if we have ENDIF before calling expect to provide better error positioning
+    if (!this.tokens.match(TokenType.ENDIF)) {
+      throw new ParseError('Expected ENDIF', ifToken);
     }
     const endIfToken = this.tokens.expect(TokenType.ENDIF);
 
@@ -221,6 +229,7 @@ export class GCodeParser {
 
   private parseUntilControlBoundary(label?: Token): StatementNode[] {
     const body: StatementNode[] = [];
+    let hasErrors = false;
 
     while (!this.tokens.eof()) {
       if (label && this.tokens.match(TokenType.OSUB) && this.tokens.peek()?.value === label.value) {
@@ -234,8 +243,21 @@ export class GCodeParser {
         break;
       }
 
+      // If we've encountered errors while parsing this body and we now see another control structure,
+      // it's likely we've gone too far and the current block is malformed.
+      // Stop parsing to avoid consuming subsequent top-level statements.
+      if (hasErrors && !label && this.tokens.match(TokenType.IF, TokenType.WHILE)) {
+        break;
+      }
+
       const stmt = this.parseStatementSafe();
-      if (stmt) body.push(stmt);
+      if (stmt) {
+        body.push(stmt);
+        // Check if this is an ErrorNode by seeing if it has a message property
+        if ('message' in stmt) {
+          hasErrors = true;
+        }
+      }
     }
 
     return body;
@@ -260,6 +282,10 @@ export class GCodeParser {
       }
     }
 
+    // Check if we have END or ENDWHILE before calling expect to provide better error positioning
+    if (!this.tokens.match(TokenType.END, TokenType.ENDWHILE)) {
+      throw new ParseError('Expected END or ENDWHILE', whileToken);
+    }
     const endWhileToken = this.tokens.expect(TokenType.END, TokenType.ENDWHILE);
 
     return this.factory.whileStatement({
@@ -475,22 +501,20 @@ export class GCodeParser {
   }
 
   private recoverToNextLine(): void {
+    // Skip all tokens on the current error line until end of line
+    // Strategy: consume until NL, then check if next line starts with a boundary
     while (!this.tokens.eof()) {
-      const token = this.tokens.next();
+      const token = this.tokens.peek();
       if (!token) return;
 
-      // Also break on block boundaries
-      if (
-        token.hasType(
-          TokenType.NL,
-          TokenType.PERCENT,
-          TokenType.END,
-          TokenType.ENDIF,
-          TokenType.ENDWHILE
-        )
-      ) {
-        return;
+      // If we hit a newline, consume it and stop
+      if (token.hasType(TokenType.NL)) {
+        this.tokens.next(); // Consume the NL
+        return; // Resume from next iteration of main loop
       }
+
+      // For any other token on this line, skip it
+      this.tokens.next();
     }
   }
 

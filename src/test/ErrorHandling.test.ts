@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
+import { ErrorDetectorVisitor } from '../providers/ErrorDetectorVisitor';
 import { LinuxCNCFormatter } from '../formatter/dialects/LinuxCNCFormatter';
 import { AstTraverser } from '../parser/AstTraverser';
 
@@ -9,6 +10,15 @@ function formatCode(code: string): string {
   const tokens = lexer.tokenize(code);
   const parser = new GCodeParser(tokens, code);
   const ast = parser.parseProgram();
+
+  // Check for syntax errors and block formatting if any exist
+  // This matches VS Code's built-in JavaScript formatter behavior
+  const errorDetector = new ErrorDetectorVisitor();
+  if (errorDetector.hasErrors(ast)) {
+    // Return original text unchanged when errors exist
+    return code;
+  }
+
   const formatter = new LinuxCNCFormatter();
   const traverser = new AstTraverser(formatter);
   return formatter.formatGCode(ast, traverser);
@@ -29,29 +39,30 @@ describe('Error Handling and Code Preservation', () => {
     expect(formatted).toContain('G00');
   });
 
-  it('should preserve original text when error occurs', () => {
+  it('should block formatting when syntax errors exist', () => {
     const code = 'E.#234';
     const formatted = formatCode(code);
-    expect(formatted).toContain('(ERROR:');
-    expect(formatted).toContain('E.#234');
+    // Formatting is blocked - original text returned unchanged
+    expect(formatted).toBe(code);
   });
 
-  it('should continue parsing after errors', () => {
+  it('should continue parsing after errors but block formatting', () => {
     const code = 'G00 X10\nE.#234\nG01 Y20';
     const formatted = formatCode(code);
-    expect(formatted).toContain('G00');
-    expect(formatted).toContain('(ERROR:');
-    expect(formatted).toContain('G01');
+    // Formatting is blocked because the parsed AST contains an ErrorNode
+    // Original text is returned unchanged
+    expect(formatted).toBe(code);
   });
 
-  it('should handle IF...GOTO statement (unsupported)', () => {
+  it('should block formatting for IF...GOTO statement (unsupported)', () => {
     const code = 'IF[#898EQ#996]GOTO19999';
     const formatted = formatCode(code);
-    expect(formatted).toContain('(ERROR:');
-    expect(formatted).toContain('GOTO');
+    // Formatting is blocked when syntax errors exist
+    // Original text is returned unchanged
+    expect(formatted).toBe(code);
   });
 
-  it('should handle complex code with errors', () => {
+  it('should block formatting for complex code with errors', () => {
     const code = `%
 O01234
 N100 G40 G49 G80
@@ -61,12 +72,8 @@ G00 X10
 M30
 %`;
     const formatted = formatCode(code);
-    expect(formatted).toContain('O01234');
-    expect(formatted).toContain('N100');
-    expect(formatted).toContain('G40');
-    expect(formatted).toContain('(ERROR:');
-    expect(formatted).toContain('G00');
-    expect(formatted).toContain('M30');
+    // Formatting is blocked due to presence of error nodes (E.#234, E#234)
+    expect(formatted).toBe(code);
   });
 
   it('should handle the original reported problematic code', () => {
@@ -124,5 +131,31 @@ M30
 
     // Output should have similar number of lines (accounting for formatting)
     expect(outputLines).toBeGreaterThan(inputLines * 0.8);
+  });
+
+  it('should block formatting when file contains any syntax errors', () => {
+    const code = `%
+O01234
+N100 G40 G49 G80
+G20 T17 M6
+IF[#898EQ#996]GOTO19999
+IF [123 LE ABS[#452 + 1234]] THEN
+  (SOMETHING)
+ELSE
+  (SOMETHING ELSE)
+ENDIF
+WHILE [#123 LT 7.5] DO 5
+  (SOMETHING HERE)
+END 5
+M97 P1000
+G00 X0. Y0.
+M30
+%`;
+
+    const formatted = formatCode(code);
+
+    // Formatting is blocked when ANY syntax errors exist in the file
+    // This matches VS Code JavaScript behavior - the entire file is not formatted
+    expect(formatted).toBe(code);
   });
 });

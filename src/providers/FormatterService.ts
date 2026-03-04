@@ -8,14 +8,24 @@ import { AstTraverser } from '../parser/AstTraverser';
 import { GCodeParser } from '../parser/GCodeParser';
 import { Range } from '../parser/nodes';
 import { DialectType } from '../constants';
+import { ErrorDetectorVisitor } from './ErrorDetectorVisitor';
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterSettings, dialect?: DialectType): string {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(text),
       parser = new GCodeParser(tokens, text),
-      program = parser.parseProgram(),
-      formatter = dialect
+      program = parser.parseProgram();
+
+    // Check for syntax errors and block formatting if any exist
+    // This matches VS Code's built-in JavaScript formatter behavior
+    const errorDetector = new ErrorDetectorVisitor();
+    if (errorDetector.hasErrors(program)) {
+      // Return original text unchanged when errors exist
+      return text;
+    }
+
+    const formatter = dialect
         ? FormatterFactory.create(dialect, settings)
         : FormatterFactory.createDefault(settings),
       traverser = new AstTraverser(formatter);
