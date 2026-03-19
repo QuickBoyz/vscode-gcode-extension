@@ -21,6 +21,7 @@ import { GCODE_LANGUAGE_ID } from '../constants';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { HoverProvider } from '../providers/HoverProvider';
 import { CompletionProvider } from '../providers/CompletionProvider';
+import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all),
@@ -52,6 +53,7 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
         label: 'G-code Variables',
       },
       hoverProvider: true,
+      foldingRangeProvider: true,
       // Enable diagnostics for syntax errors
       diagnosticProvider: {
         interFileDependencies: false,
@@ -197,6 +199,17 @@ connection.onCompletion(async (params) => {
 // Register completion resolve handler (for lazy-loading documentation)
 connection.onCompletionResolve((item) => {
   return completionProvider.resolveCompletionItem(item);
+});
+
+// Register folding range provider
+connection.onFoldingRanges(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return new FoldingRangeProvider().provideFoldingRanges(document, documentStateManager, settings);
 });
 
 // Publish diagnostics on document change
