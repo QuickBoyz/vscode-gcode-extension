@@ -6,8 +6,8 @@
  */
 import * as vscode from 'vscode';
 
-import { GCODE_LANGUAGE_ID, DEFAULT_VISUALIZER_SETTINGS } from '../constants';
-import { VisualizerSettings } from '../visualizer/types';
+import { GCODE_LANGUAGE_ID } from '../constants';
+import { DEFAULT_VISUALIZER_SETTINGS, VisualizerSettings } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { VisualizerService } from './VisualizerService';
 
