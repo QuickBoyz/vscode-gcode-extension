@@ -67,7 +67,18 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
     const leftValue = this.evaluate(node.left);
     const rightValue = this.evaluate(node.right);
     if (leftValue === null || rightValue === null) return null;
-    return this.applyOperator(node.operator, leftValue, rightValue);
+
+    // The parser stores both arithmetic and relational operators in
+    // BinaryExpressionNode.operator (cast via AstFactory). Try arithmetic
+    // first, then relational.
+    const arithmeticResult = this.applyArithmeticOperator(node.operator, leftValue, rightValue);
+    if (arithmeticResult !== null) return arithmeticResult;
+
+    return this.applyRelationalOperator(
+      node.operator as unknown as RelationalOperatorType,
+      leftValue,
+      rightValue
+    );
   }
 
   override visitFunctionCall(node: FunctionCallNode): number | null {
@@ -76,8 +87,8 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
     return this.applyFunction(node.name.toUpperCase(), argumentValue);
   }
 
-  private applyOperator(
-    operator: string,
+  private applyArithmeticOperator(
+    operator: BinaryOperatorType,
     leftValue: number,
     rightValue: number
   ): number | null {
@@ -92,6 +103,17 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
         return rightValue !== 0 ? leftValue / rightValue : null;
       case BinaryOperatorType.Mod:
         return rightValue !== 0 ? leftValue % rightValue : null;
+      default:
+        return null;
+    }
+  }
+
+  private applyRelationalOperator(
+    operator: RelationalOperatorType,
+    leftValue: number,
+    rightValue: number
+  ): number | null {
+    switch (operator) {
       case RelationalOperatorType.GT:
         return leftValue > rightValue ? 1 : 0;
       case RelationalOperatorType.LT:

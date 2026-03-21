@@ -74,9 +74,7 @@ describe('GCodeInterpreter', () => {
 
     // Only G1 and M30 are MotionCommandNodes (M30 is an MCODE, may or may not be parsed as motion)
     // Let's check we at least get the G1
-    const gcodeMotions = handler.calls.filter((call) =>
-      call.command.toUpperCase().startsWith('G')
-    );
+    const gcodeMotions = handler.calls.filter((call) => call.command.toUpperCase().startsWith('G'));
     expect(gcodeMotions).toHaveLength(1);
   });
 
@@ -90,9 +88,7 @@ describe('GCodeInterpreter', () => {
     const program = parse('#<xpos> = 50\nG1 X#<xpos> Y20');
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(1);
     expect(resolvedAxisValue(gcodeCalls[0], 'X')).toBe(50);
     expect(resolvedAxisValue(gcodeCalls[0], 'Y')).toBe(20);
@@ -104,9 +100,7 @@ describe('GCodeInterpreter', () => {
     const program = parse('#<base> = 10\n#<offset> = [#<base> + 5]\nG1 X#<offset>');
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(1);
     expect(resolvedAxisValue(gcodeCalls[0], 'X')).toBe(15);
   });
@@ -117,9 +111,7 @@ describe('GCodeInterpreter', () => {
     const program = parse('#100 = 25\nG1 X#100');
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(1);
     expect(resolvedAxisValue(gcodeCalls[0], 'X')).toBe(25);
   });
@@ -140,9 +132,7 @@ O100 ENDWHILE
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(3);
 
     // Verify the X values are 0, 1, 2
@@ -163,9 +153,7 @@ O100 ENDWHILE
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(0);
   });
 
@@ -183,9 +171,7 @@ O100 ENDWHILE
 
     expect(interpreter.wasIterationLimitReached).toBe(true);
     // Should have at most 5 motion commands (one per iteration up to limit)
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls.length).toBeLessThanOrEqual(6);
   });
 
@@ -206,9 +192,7 @@ O100 ENDIF
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(1);
     expect(resolvedAxisValue(gcodeCalls[0], 'X')).toBe(10);
   });
@@ -226,9 +210,7 @@ O100 ENDIF
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(1);
     expect(resolvedAxisValue(gcodeCalls[0], 'X')).toBe(20);
   });
@@ -244,9 +226,7 @@ O100 ENDIF
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(0);
   });
 
@@ -270,9 +250,7 @@ O100 ENDWHILE
     `);
     interpreter.interpret(program);
 
-    const gcodeCalls = handler.calls.filter((c) =>
-      c.command.toUpperCase().startsWith('G')
-    );
+    const gcodeCalls = handler.calls.filter((c) => c.command.toUpperCase().startsWith('G'));
     expect(gcodeCalls).toHaveLength(4);
     // First 2 iterations: G1 (IF branch), next 2: G0 (ELSE branch)
     expect(gcodeCalls[0].command).toBe('G1');

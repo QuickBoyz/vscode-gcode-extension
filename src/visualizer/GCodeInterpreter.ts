@@ -26,11 +26,7 @@ import {
 } from '../parser/nodes';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
-import {
-  DEFAULT_INTERPRETER_OPTIONS,
-  InterpreterOptions,
-  MotionHandler,
-} from './types';
+import { DEFAULT_INTERPRETER_OPTIONS, InterpreterOptions, MotionHandler } from './types';
 
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();

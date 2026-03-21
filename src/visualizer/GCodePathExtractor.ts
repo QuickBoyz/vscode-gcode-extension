@@ -17,7 +17,14 @@ import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
-import { MotionHandler, MotionType, PathBounds, PathPoint, PathSegment, ToolPathData } from './types';
+import {
+  MotionHandler,
+  MotionType,
+  PathBounds,
+  PathPoint,
+  PathSegment,
+  ToolPathData,
+} from './types';
 
 /** Number of interpolation segments used to approximate a full circle. */
 const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
