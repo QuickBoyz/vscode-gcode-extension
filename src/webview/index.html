@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}' {{cspSource}};" />
+  <title>G-Code 3D Visualizer</title>
+  <link rel="stylesheet" href="{{styleUri}}" />
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div class="ctrl-group">
+      <label for="rapidColor">Rapid (G0):</label>
+      <input type="color" id="rapidColor" value="#ff6b6b" title="Rapid move colour" />
+    </div>
+    <div class="ctrl-group">
+      <label for="feedColor">Feed (G1):</label>
+      <input type="color" id="feedColor" value="#4ecdc4" title="Feed move colour" />
+    </div>
+    <div class="ctrl-group">
+      <label for="arcColor">Arc (G2/G3):</label>
+      <input type="color" id="arcColor" value="#45b7d1" title="Arc move colour" />
+    </div>
+    <div class="ctrl-group">
+      <label for="thickness">Thickness:</label>
+      <input type="range" id="thickness" min="0.5" max="5" step="0.5"
+             value="1" title="Line thickness" />
+      <span class="thickness-val" id="thicknessVal">1</span>
+    </div>
+    <button id="btnReset" title="Reset camera to fit the whole part">Reset View</button>
+    <span class="hint">Left drag: rotate &nbsp;·&nbsp; Shift+drag / Right drag: pan &nbsp;·&nbsp; Scroll: zoom</span>
+  </div>
+
+  <div id="error-banner">
+    <span class="error-icon">!</span>
+    <span class="error-text" id="error-text"></span>
+  </div>
+
+  <div id="canvas-wrapper">
+    <canvas id="canvas"></canvas>
+    <div id="empty-msg" style="display:none">
+      No tool path loaded.<br>
+      Open a G-code file and run <em>G-Code: Open 3D Visualizer</em>.
+    </div>
+    <div id="stats"></div>
+  </div>
+</div>
+<script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>
