@@ -67,10 +67,17 @@ export class CommandProvider {
           return;
         }
 
-        const pathData = this.visualizerService.extractToolPath(documentText);
+        const result = this.visualizerService.extractToolPath(documentText);
         const settings = this.readVisualizerSettings();
 
-        GCodeVisualizerPanel.createOrShow(context, pathData, settings);
+        if (!result.success) {
+          vscode.window.showErrorMessage(
+            `G-Code visualizer error: ${result.errorMessage}`
+          );
+          return;
+        }
+
+        GCodeVisualizerPanel.createOrShow(context, result.data, settings);
       }
     );
   }
