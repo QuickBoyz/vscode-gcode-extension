@@ -18,6 +18,7 @@
  * statement-level visitor dispatch.
  */
 import {
+  AxisParameterNode,
   IfStatementNode,
   MotionCommandNode,
   StatementNode,
@@ -34,6 +35,14 @@ export class GCodeInterpreter {
   private readonly options: InterpreterOptions;
   private totalIterations = 0;
   private iterationLimitReached = false;
+
+  /**
+   * The last active motion command (modal state). In standard G-code,
+   * once a motion command like G01 is issued, subsequent lines with
+   * only axis parameters (e.g. "X10 Y20") continue using that command.
+   * This is the most common pattern in CAM-generated G-code.
+   */
+  private activeMotionCommand: string | null = null;
 
   constructor(
     private readonly motionHandler: MotionHandler,
@@ -56,18 +65,67 @@ export class GCodeInterpreter {
     this.variableEnvironment.clear();
     this.totalIterations = 0;
     this.iterationLimitReached = false;
+    this.activeMotionCommand = null;
     this.interpretStatements(program.statements);
   }
 
   private interpretStatements(statements: readonly StatementNode[]): void {
+    let pendingAxisParameters: AxisParameterNode[] = [];
+    let pendingLine = -1;
+
     for (const statement of statements) {
       if (this.iterationLimitReached) return;
+
+      if (statement instanceof AxisParameterNode) {
+        const statementLine = statement.getRange().start.line;
+
+        // If this axis parameter is on a different line than the pending
+        // group, flush the previous group first — each source line with
+        // standalone axis parameters is a separate modal motion command.
+        if (pendingAxisParameters.length > 0 && statementLine !== pendingLine) {
+          this.dispatchModalMotion(pendingAxisParameters);
+          pendingAxisParameters = [];
+        }
+
+        pendingAxisParameters.push(statement);
+        pendingLine = statementLine;
+        continue;
+      }
+
+      // Flush any pending axis parameters before processing the next
+      // non-axis statement.
+      if (pendingAxisParameters.length > 0) {
+        this.dispatchModalMotion(pendingAxisParameters);
+        pendingAxisParameters = [];
+      }
+
       this.interpretStatement(statement);
     }
+
+    // Flush trailing axis parameters at the end of the statement list
+    if (pendingAxisParameters.length > 0) {
+      this.dispatchModalMotion(pendingAxisParameters);
+    }
+  }
+
+  /**
+   * Dispatches collected standalone axis parameters as a motion command
+   * using the currently active modal motion command (e.g. G01).
+   */
+  private dispatchModalMotion(parameters: AxisParameterNode[]): void {
+    if (this.activeMotionCommand === null) return;
+
+    this.motionHandler.onMotionCommand(
+      this.activeMotionCommand,
+      parameters,
+      this.expressionEvaluator
+    );
   }
 
   private interpretStatement(node: StatementNode): void {
     if (node instanceof MotionCommandNode) {
+      // Track the active motion command for modal G-code
+      this.activeMotionCommand = node.command;
       this.motionHandler.onMotionCommand(
         node.command,
         node.getParameters(),
@@ -81,7 +139,7 @@ export class GCodeInterpreter {
       this.interpretIfStatement(node);
     }
     // Other statement types (comments, line numbers, subroutine labels,
-    // axis parameters, errors) are silently skipped.
+    // errors) are silently skipped.
   }
 
   private interpretVariableAssignment(node: VariableAssignmentNode): void {
