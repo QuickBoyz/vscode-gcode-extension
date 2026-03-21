@@ -28,31 +28,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   console.info('G-code extension is now active');
 
   // Path to the server module
-  const serverModule = context.asAbsolutePath(path.join('dist', 'server', 'index.js')),
-    // Server options - run the server as a separate Node.js process
-    serverOptions: ServerOptions = {
-      run: {
-        module: serverModule,
-        transport: TransportKind.ipc,
-      },
-      debug: {
-        module: serverModule,
-        transport: TransportKind.ipc,
-        options: {
-          execArgv: ['--nolazy', '--inspect=6009'],
-        },
+  const serverModule = context.asAbsolutePath(path.join('dist', 'server', 'index.js'));
+
+  // Server options - run the server as a separate Node.js process
+  const serverOptions: ServerOptions = {
+    run: {
+      module: serverModule,
+      transport: TransportKind.ipc,
+    },
+    debug: {
+      module: serverModule,
+      transport: TransportKind.ipc,
+      options: {
+        execArgv: ['--nolazy', '--inspect=6009'],
       },
     },
-    // Client options
-    clientOptions: LanguageClientOptions = {
-      // Register the server for G-code documents
-      documentSelector: [{ scheme: 'file', language: GCODE_LANGUAGE_ID }],
-      synchronize: {
-        // Notify the server about file changes to G-code files
-        // Sync configuration section
-        configurationSection: GCODE_LANGUAGE_ID,
-      },
-    };
+  };
+
+  // Client options
+  const clientOptions: LanguageClientOptions = {
+    // Register the server for G-code documents
+    documentSelector: [{ scheme: 'file', language: GCODE_LANGUAGE_ID }],
+    synchronize: {
+      // Notify the server about file changes to G-code files
+      // Sync configuration section
+      configurationSection: GCODE_LANGUAGE_ID,
+    },
+  };
 
   // Create the language client and start it
   client = new LanguageClient(

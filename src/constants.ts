@@ -3,9 +3,6 @@
  */
 
 import { FormatterSettings } from './formatter/types';
-import { DEFAULT_VISUALIZER_SETTINGS } from './visualizer/types';
-
-export { DEFAULT_VISUALIZER_SETTINGS };
 import {
   BinaryOperatorType,
   RelationalOperatorType,
