@@ -15,6 +15,7 @@
  */
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
+import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
 import {
@@ -32,31 +33,29 @@ const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
 /** Minimum arc segments (for very small arcs). */
 const ARC_MIN_SEGMENTS = 4;
 
+/**
+ * Motion command Sets use only the normalized (padded) form because all
+ * incoming command strings are passed through {@link normalizeCommand} first,
+ * which converts "G0" → "G00", "G1" → "G01", etc.
+ */
+
 /** Commands that switch to rapid mode. */
-const RAPID_COMMANDS = new Set(['G0', 'G00']);
+const RAPID_COMMANDS = new Set(['G00']);
 
 /** Commands that switch to feed mode. */
-const FEED_COMMANDS = new Set(['G1', 'G01']);
+const FEED_COMMANDS = new Set(['G01']);
 
 /** Commands that switch to clockwise arc mode. */
-const ARC_CW_COMMANDS = new Set(['G2', 'G02']);
+const ARC_CW_COMMANDS = new Set(['G02']);
 
 /** Commands that switch to counter-clockwise arc mode. */
-const ARC_CCW_COMMANDS = new Set(['G3', 'G03']);
+const ARC_CCW_COMMANDS = new Set(['G03']);
 
 /** Commands that set absolute positioning mode. */
 const ABSOLUTE_COMMANDS = new Set(['G90']);
 
 /** Commands that set incremental positioning mode. */
 const INCREMENTAL_COMMANDS = new Set(['G91']);
-
-/**
- * Normalises a raw G-code command token to uppercase.
- * E.g. "g1" -> "G1", "G01" stays "G01".
- */
-function normaliseCommand(raw: string): string {
-  return raw.toUpperCase();
-}
 
 /**
  * Extracts the evaluated value of a named axis from a list of
@@ -218,7 +217,7 @@ export class GCodePathExtractor implements MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): void {
-    const normalisedCommand = normaliseCommand(command);
+    const normalisedCommand = normalizeCommand(command);
 
     if (ABSOLUTE_COMMANDS.has(normalisedCommand)) {
       this.isAbsoluteMode = true;
