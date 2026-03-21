@@ -11,14 +11,19 @@
  */
 import * as vscode from 'vscode';
 
-import { ToolPathData, VisualizerSettings } from '../visualizer/types';
+import { PathBounds, ToolPathData, VisualizerSettings } from '../visualizer/types';
 import { buildWebviewHtml, generateNonce } from './webviewTemplate';
 
 /**
  * Message types sent from the extension to the webview.
  */
 type ExtensionToWebviewMessage =
-  | { type: 'update'; segments: ToolPathData['segments']; settings: VisualizerSettings }
+  | {
+      type: 'update';
+      segments: ToolPathData['segments'];
+      bounds: PathBounds;
+      settings: VisualizerSettings;
+    }
   | { type: 'updateSettings'; settings: VisualizerSettings };
 
 /**
@@ -110,6 +115,7 @@ export class GCodeVisualizerPanel {
     const msg: ExtensionToWebviewMessage = {
       type: 'update',
       segments: pathData.segments,
+      bounds: pathData.bounds,
       settings,
     };
     this.panel.webview.postMessage(msg);
