@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
@@ -163,5 +165,112 @@ M30
     // Rapid moves should be RAPID type
     const rapidSegs = data.segments.filter((s) => s.type === MotionType.RAPID);
     expect(rapidSegs.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Variable and expression resolution
+  // ---------------------------------------------------------------------------
+
+  it('resolves named variables in axis values', () => {
+    const data = extract('#<xpos> = 50\nG1 X#<xpos> Y20');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: 50, y: 20, z: 0 });
+  });
+
+  it('evaluates arithmetic in variable assignments', () => {
+    const data = extract('#<base> = 10\n#<offset> = [#<base> + 5]\nG1 X#<offset>');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: 15, y: 0, z: 0 });
+  });
+
+  it('resolves numbered variables', () => {
+    const data = extract('#100 = 30\nG1 X#100');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: 30, y: 0, z: 0 });
+  });
+
+  it('evaluates expressions in axis parameters', () => {
+    const data = extract('#<base> = 100\nG1 X[#<base> - 50] Y[#<base> * 2]');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: 50, y: 200, z: 0 });
+  });
+
+  // ---------------------------------------------------------------------------
+  // WHILE loops
+  // ---------------------------------------------------------------------------
+
+  it('iterates WHILE loops', () => {
+    const program = `
+#<i> = 0
+O100 WHILE [#<i> LT 3]
+  G1 X#<i>
+  #<i> = [#<i> + 1]
+O100 ENDWHILE
+    `;
+    const data = extract(program);
+    expect(data.segments).toHaveLength(3);
+  });
+
+  it('handles nested WHILE loops', () => {
+    const program = `
+#<row> = 0
+O100 WHILE [#<row> LT 2]
+  #<col> = 0
+  O200 WHILE [#<col> LT 2]
+    G1 X#<col> Y#<row>
+    #<col> = [#<col> + 1]
+  O200 ENDWHILE
+  #<row> = [#<row> + 1]
+O100 ENDWHILE
+    `;
+    const data = extract(program);
+    // 2 rows x 2 cols = 4 motion commands
+    expect(data.segments).toHaveLength(4);
+  });
+
+  // ---------------------------------------------------------------------------
+  // IF/ELSE branching
+  // ---------------------------------------------------------------------------
+
+  it('handles IF/ELSE branching', () => {
+    const program = `
+#<flag> = 1
+O100 IF [#<flag> EQ 1]
+  G1 X10
+O100 ELSE
+  G1 X20
+O100 ENDIF
+    `;
+    const data = extract(program);
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1].x).toBe(10);
+  });
+
+  it('takes ELSE branch when IF condition is false', () => {
+    const program = `
+#<flag> = 0
+O100 IF [#<flag> EQ 1]
+  G1 X10
+O100 ELSE
+  G1 X20
+O100 ENDIF
+    `;
+    const data = extract(program);
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1].x).toBe(20);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Integration: surface-wasteboard.ngc fixture
+  // ---------------------------------------------------------------------------
+
+  it('handles surface-wasteboard.ngc with variables and loops', () => {
+    const fixturePath = path.join(__dirname, 'fixtures', 'surface-wasteboard.ngc');
+    const fixture = fs.readFileSync(fixturePath, 'utf-8');
+    const data = extract(fixture);
+    // The WHILE loop produces many zigzag passes
+    expect(data.segments.length).toBeGreaterThan(50);
+    const rapidCount = data.segments.filter((s) => s.type === MotionType.RAPID).length;
+    expect(rapidCount).toBeGreaterThan(10);
   });
 });

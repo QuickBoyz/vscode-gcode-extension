@@ -1,0 +1,47 @@
+(Wasteboard surfacing program)
+(Uses variables and WHILE loop to zigzag across the surface)
+
+G90 G21
+G17
+
+#<x_min> = 0
+#<x_max> = 619
+#<y_min> = 0
+#<y_max> = 322
+#<step_over> = 20
+#<depth> = -0.5
+#<safe_z> = 5
+#<feed> = 2000
+
+(Rapid to start position)
+G0 Z#<safe_z>
+G0 X#<x_min> Y#<y_min>
+
+#<y_pos> = #<y_min>
+#<direction> = 0
+
+O100 WHILE [#<y_pos> LE #<y_max>]
+  O110 IF [#<direction> EQ 0]
+    (Forward pass: left to right)
+    G0 X#<x_min> Y#<y_pos>
+    G1 Z#<depth> F#<feed>
+    G1 X#<x_max> Y#<y_pos> F#<feed>
+    G0 Z#<safe_z>
+    #<direction> = 1
+  O110 ELSE
+    (Return pass: right to left)
+    G0 X#<x_max> Y#<y_pos>
+    G1 Z#<depth> F#<feed>
+    G1 X#<x_min> Y#<y_pos> F#<feed>
+    G0 Z#<safe_z>
+    #<direction> = 0
+  O110 ENDIF
+
+  #<y_pos> = [#<y_pos> + #<step_over>]
+O100 ENDWHILE
+
+(Return to safe position)
+G0 Z#<safe_z>
+G0 X0 Y0
+
+M30

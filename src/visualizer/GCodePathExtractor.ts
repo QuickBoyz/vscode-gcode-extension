@@ -1,30 +1,30 @@
 /**
  * GCodePathExtractor
  *
- * Visits a parsed G-code AST and extracts a list of {@link PathSegment}s
- * suitable for 3D rendering.
+ * Implements {@link MotionHandler} and delegates AST walking to
+ * {@link GCodeInterpreter}. This enables variable resolution,
+ * arithmetic evaluation, WHILE loops, and IF/ELSE branches.
  *
  * Supported motion commands
- *   G0 / G00  – rapid positioning
- *   G1 / G01  – linear feed
- *   G2 / G02  – clockwise arc (XY plane, I/J offsets)
- *   G3 / G03  – counter-clockwise arc (XY plane, I/J offsets)
- *   G90       – absolute positioning mode (default)
- *   G91       – incremental positioning mode
- *
- * Variable-based axis values (e.g. X[#1]) are ignored; only literal
- * numbers can be resolved at visualise-time.
+ *   G0 / G00  -- rapid positioning
+ *   G1 / G01  -- linear feed
+ *   G2 / G02  -- clockwise arc (XY plane, I/J offsets)
+ *   G3 / G03  -- counter-clockwise arc (XY plane, I/J offsets)
+ *   G90       -- absolute positioning mode (default)
+ *   G91       -- incremental positioning mode
  */
-import { BaseAstVisitor } from '../parser/BaseAstVisitor';
-import { AstTraverser } from '../parser/AstTraverser';
-import { MotionCommandNode } from '../parser/nodes/MotionCommandNode';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
-import { LiteralExpressionNode } from '../parser/nodes/expressions/LiteralExpressionNode';
-import { UnaryExpressionNode } from '../parser/nodes/expressions/UnaryExpressionNode';
-import { ExpressionNode } from '../parser/nodes/expressions/ExpressionNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
-import { UnaryOperatorType } from '../parser/nodes/expressions/types';
-import { MotionType, PathPoint, PathSegment, PathBounds, ToolPathData } from './types';
+import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
+import { GCodeInterpreter } from './GCodeInterpreter';
+import {
+  MotionHandler,
+  MotionType,
+  PathBounds,
+  PathPoint,
+  PathSegment,
+  ToolPathData,
+} from './types';
 
 /** Number of interpolation segments used to approximate a full circle. */
 const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
@@ -52,37 +52,25 @@ const INCREMENTAL_COMMANDS = new Set(['G91']);
 
 /**
  * Normalises a raw G-code command token to uppercase.
- * E.g. "g1" → "G1", "G01" stays "G01".
+ * E.g. "g1" -> "G1", "G01" stays "G01".
  */
 function normaliseCommand(raw: string): string {
   return raw.toUpperCase();
 }
 
 /**
- * Attempts to extract a numeric value from an expression node.
- * Returns `null` when the expression cannot be statically resolved
- * (e.g. variable references, complex expressions).
+ * Extracts the evaluated value of a named axis from a list of
+ * axis parameter nodes using the expression evaluator.
+ * Returns `null` when the axis is absent or has an unresolvable value.
  */
-function extractNumericValue(expr: ExpressionNode): number | null {
-  if (expr instanceof LiteralExpressionNode) {
-    const parsed = typeof expr.value === 'number' ? expr.value : parseFloat(String(expr.value));
-    return isNaN(parsed) ? null : parsed;
-  }
-  if (expr instanceof UnaryExpressionNode && expr.operator === UnaryOperatorType.Minus) {
-    const inner = extractNumericValue(expr.operand);
-    return inner !== null ? -inner : null;
-  }
-  return null;
-}
-
-/**
- * Extracts the value of a named axis from a list of axis parameter nodes.
- * Returns `null` when the axis is absent or has a non-literal value.
- */
-function axisValue(params: AxisParameterNode[], axis: string): number | null {
-  for (const param of params) {
+function evaluateAxisValue(
+  parameters: readonly AxisParameterNode[],
+  axis: string,
+  evaluator: GCodeExpressionEvaluator
+): number | null {
+  for (const param of parameters) {
     if (param.axis.toUpperCase() === axis) {
-      return extractNumericValue(param.value);
+      return evaluator.evaluate(param.value);
     }
   }
   return null;
@@ -125,13 +113,13 @@ function generateArcPoints(
   if (isFullCircle) {
     sweep = isCW ? -2 * Math.PI : 2 * Math.PI;
   } else if (isCW) {
-    // Clockwise → angle decreases
+    // Clockwise -> angle decreases
     if (endAngle >= startAngle) {
       endAngle -= 2 * Math.PI;
     }
     sweep = endAngle - startAngle; // negative
   } else {
-    // Counter-clockwise → angle increases
+    // Counter-clockwise -> angle increases
     if (endAngle <= startAngle) {
       endAngle += 2 * Math.PI;
     }
@@ -176,14 +164,14 @@ function computeBounds(segments: PathSegment[]): PathBounds {
   let maxY = -Infinity;
   let maxZ = -Infinity;
 
-  for (const seg of segments) {
-    for (const pt of seg.points) {
-      if (pt.x < minX) minX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.z < minZ) minZ = pt.z;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y > maxY) maxY = pt.y;
-      if (pt.z > maxZ) maxZ = pt.z;
+  for (const segment of segments) {
+    for (const point of segment.points) {
+      if (point.x < minX) minX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.z < minZ) minZ = point.z;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y > maxY) maxY = point.y;
+      if (point.z > maxZ) maxZ = point.z;
     }
   }
 
@@ -194,16 +182,19 @@ function computeBounds(segments: PathSegment[]): PathBounds {
 }
 
 /**
- * AST visitor that walks a parsed G-code program and produces
- * a {@link ToolPathData} object ready for rendering.
+ * Extracts 3D tool-path data from a parsed G-code program.
+ *
+ * Implements {@link MotionHandler} and delegates AST walking to
+ * {@link GCodeInterpreter}, which handles variable assignment,
+ * expression evaluation, WHILE loops, and IF/ELSE branches.
  */
-export class GCodePathExtractor extends BaseAstVisitor<void> {
+export class GCodePathExtractor implements MotionHandler {
   private currentPosition: PathPoint = { x: 0, y: 0, z: 0 };
   private isAbsoluteMode = true;
   private segments: PathSegment[] = [];
 
   /**
-   * Entry point: traverse the program AST and return extracted path data.
+   * Entry point: interpret the program AST and return extracted path data.
    * Resets all internal state before each extraction so the same instance
    * can be reused across multiple documents.
    */
@@ -212,39 +203,38 @@ export class GCodePathExtractor extends BaseAstVisitor<void> {
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
 
-    const traverser = new AstTraverser(this);
-    traverser.traverseProgram(program);
+    const interpreter = new GCodeInterpreter(this);
+    interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     return { segments: this.segments, bounds };
   }
 
   // -------------------------------------------------------------------------
-  // Visitor overrides
+  // MotionHandler implementation
   // -------------------------------------------------------------------------
 
-  override visitMotionCommand(node: MotionCommandNode): void {
-    const command = normaliseCommand(node.command);
+  onMotionCommand(
+    command: string,
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): void {
+    const normalisedCommand = normaliseCommand(command);
 
-    if (ABSOLUTE_COMMANDS.has(command)) {
+    if (ABSOLUTE_COMMANDS.has(normalisedCommand)) {
       this.isAbsoluteMode = true;
       return;
     }
-    if (INCREMENTAL_COMMANDS.has(command)) {
+    if (INCREMENTAL_COMMANDS.has(normalisedCommand)) {
       this.isAbsoluteMode = false;
       return;
     }
 
-    const motionType = this.classifyMotionType(command);
+    const motionType = this.classifyMotionType(normalisedCommand);
     if (motionType === null) {
-      return; // Not a motion command we handle (e.g. M-codes, T, S, F…)
+      return; // Not a motion command we handle (e.g. M-codes, T, S, F...)
     }
 
-    const params = node.getParameters();
-    this.processMotion(motionType, params);
-  }
-
-  protected defaultValue(): void {
-    // No-op – we only care about visitMotionCommand.
+    this.processMotion(motionType, parameters, evaluator);
   }
 
   // -------------------------------------------------------------------------
@@ -259,12 +249,16 @@ export class GCodePathExtractor extends BaseAstVisitor<void> {
     return null;
   }
 
-  private processMotion(motionType: MotionType, params: AxisParameterNode[]): void {
-    const newPosition = this.computeNewPosition(params);
+  private processMotion(
+    motionType: MotionType,
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): void {
+    const newPosition = this.computeNewPosition(parameters, evaluator);
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
-      const offsetI = axisValue(params, 'I') ?? 0;
-      const offsetJ = axisValue(params, 'J') ?? 0;
+      const offsetI = evaluateAxisValue(parameters, 'I', evaluator) ?? 0;
+      const offsetJ = evaluateAxisValue(parameters, 'J', evaluator) ?? 0;
       const arcPoints = generateArcPoints(
         this.currentPosition,
         newPosition,
@@ -280,21 +274,24 @@ export class GCodePathExtractor extends BaseAstVisitor<void> {
     this.currentPosition = newPosition;
   }
 
-  private computeNewPosition(params: AxisParameterNode[]): PathPoint {
+  private computeNewPosition(
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): PathPoint {
     let { x, y, z } = this.currentPosition;
 
-    const xVal = axisValue(params, 'X');
-    const yVal = axisValue(params, 'Y');
-    const zVal = axisValue(params, 'Z');
+    const xValue = evaluateAxisValue(parameters, 'X', evaluator);
+    const yValue = evaluateAxisValue(parameters, 'Y', evaluator);
+    const zValue = evaluateAxisValue(parameters, 'Z', evaluator);
 
-    if (xVal !== null) {
-      x = this.isAbsoluteMode ? xVal : x + xVal;
+    if (xValue !== null) {
+      x = this.isAbsoluteMode ? xValue : x + xValue;
     }
-    if (yVal !== null) {
-      y = this.isAbsoluteMode ? yVal : y + yVal;
+    if (yValue !== null) {
+      y = this.isAbsoluteMode ? yValue : y + yValue;
     }
-    if (zVal !== null) {
-      z = this.isAbsoluteMode ? zVal : z + zVal;
+    if (zValue !== null) {
+      z = this.isAbsoluteMode ? zValue : z + zValue;
     }
 
     return { x, y, z };
