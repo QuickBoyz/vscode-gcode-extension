@@ -169,12 +169,12 @@ function computeBounds(segments: PathSegment[]): PathBounds {
     return { min: origin, max: origin };
   }
 
-  let minX = Infinity,
-    minY = Infinity,
-    minZ = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity,
-    maxZ = -Infinity;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
 
   for (const seg of segments) {
     for (const pt of seg.points) {

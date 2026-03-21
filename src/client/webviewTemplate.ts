@@ -199,6 +199,7 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
   // ---------- Viewer state ----------
   let segments  = [];
+  let bounds    = null;   // { min: {x,y,z}, max: {x,y,z} } from extension
   let settings  = {
     rapidColor:    '${settings.rapidColor}',
     feedColor:     '${settings.feedColor}',
@@ -221,6 +222,14 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
   // Resize observer handle
   let animFrameId = null;
+
+  // Cache the VS Code editor background colour so render() does not
+  // call getComputedStyle on every frame.
+  var bgColor = '#1e1e1e';
+  function updateBgColor() {
+    bgColor = getComputedStyle(document.body).getPropertyValue('--vscode-editor-background').trim() || '#1e1e1e';
+  }
+  updateBgColor();
 
   // ---------- 3D Math ----------
 
@@ -287,8 +296,8 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
     ctx.clearRect(0, 0, w, h);
 
-    // Background
-    ctx.fillStyle = '#1e1e1e';
+    // Background – uses the VS Code editor background colour
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
     if (segments.length === 0) return;
@@ -387,22 +396,14 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
   function fitView() {
     if (segments.length === 0) return;
+    if (!bounds) return;
 
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-
-    for (let si = 0; si < segments.length; si++) {
-      const pts = segments[si].points;
-      for (let pi = 0; pi < pts.length; pi++) {
-        const pt = pts[pi];
-        if (pt.x < minX) minX = pt.x;
-        if (pt.y < minY) minY = pt.y;
-        if (pt.z < minZ) minZ = pt.z;
-        if (pt.x > maxX) maxX = pt.x;
-        if (pt.y > maxY) maxY = pt.y;
-        if (pt.z > maxZ) maxZ = pt.z;
-      }
-    }
+    var minX = bounds.min.x;
+    var minY = bounds.min.y;
+    var minZ = bounds.min.z;
+    var maxX = bounds.max.x;
+    var maxY = bounds.max.y;
+    var maxZ = bounds.max.z;
 
     target = {
       x: (minX + maxX) / 2,
@@ -522,6 +523,7 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
     if (msg.type === 'update') {
       segments = msg.segments || [];
+      bounds = msg.bounds || null;
       updateSettingsUI(msg.settings || settings);
       emptyMsg.style.display = segments.length === 0 ? 'flex' : 'none';
       statsEl.textContent =
