@@ -85,6 +85,32 @@ export const DEFAULT_VISUALIZER_SETTINGS: VisualizerSettings = {
 };
 
 // ---------------------------------------------------------------------------
+// Visualizer result types
+// ---------------------------------------------------------------------------
+
+/**
+ * Successful result from the visualizer pipeline.
+ */
+export interface VisualizerSuccess {
+  readonly success: true;
+  readonly data: ToolPathData;
+}
+
+/**
+ * Failed result from the visualizer pipeline.
+ */
+export interface VisualizerFailure {
+  readonly success: false;
+  readonly errorMessage: string;
+}
+
+/**
+ * Discriminated union returned by {@link VisualizerService.extractToolPath}
+ * so callers can handle errors without try/catch.
+ */
+export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
+
+// ---------------------------------------------------------------------------
 // Interpreter types
 // ---------------------------------------------------------------------------
 
