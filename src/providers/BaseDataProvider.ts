@@ -9,6 +9,7 @@ import { AxisParameterInfo } from '../databases/AxisParametersDatabase';
 import { FunctionInfo } from '../databases/FunctionDatabase';
 import { GCodeCommandInfo } from '../databases/types';
 import { OperatorInfo } from '../databases/OperatorDatabase';
+import { normalizeCommand as sharedNormalizeCommand } from '../utils/GCodeNormalizer';
 
 export abstract class BaseDataProvider implements IDataProvider {
   /**
@@ -18,26 +19,7 @@ export abstract class BaseDataProvider implements IDataProvider {
    * @returns Normalized command string
    */
   protected normalizeCommand(command: string): string {
-    let normalizedCommand = command.toUpperCase();
-
-    // Normalize G1 -> G01, M3 -> M03, etc. (pad single digit codes)
-    if (normalizedCommand.startsWith('G') || normalizedCommand.startsWith('M')) {
-      const letter = normalizedCommand[0];
-      const numberPart = normalizedCommand.slice(1);
-      const parsedNumber = parseFloat(numberPart);
-
-      if (!isNaN(parsedNumber) && Number.isFinite(parsedNumber)) {
-        // Pad with leading zero if single digit: G1 -> G01, M3 -> M03
-        // For decimal codes like G10.1, preserve the decimal part
-        const integerPart = Math.floor(parsedNumber);
-        const decimalPart = numberPart.includes('.')
-          ? numberPart.substring(numberPart.indexOf('.'))
-          : '';
-        normalizedCommand = `${letter}${integerPart.toString().padStart(2, '0')}${decimalPart}`;
-      }
-    }
-
-    return normalizedCommand;
+    return sharedNormalizeCommand(command);
   }
 
   /**
