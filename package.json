@@ -10,7 +10,8 @@
   "main": "./dist/client/index.js",
   "activationEvents": [
     "onLanguage:gcode",
-    "onCommand:gcode.formatDocument"
+    "onCommand:gcode.formatDocument",
+    "onCommand:gcode.openVisualizer"
   ],
   "license": "MIT",
   "icon": "images/icon.png",
@@ -168,6 +169,12 @@
         "command": "gcode.formatDocument",
         "title": "Format G-Code Document",
         "category": "G-Code"
+      },
+      {
+        "command": "gcode.openVisualizer",
+        "title": "Open 3D Visualizer",
+        "category": "G-Code",
+        "icon": "$(graph)"
       }
     ],
     "semanticTokenScopes": [
@@ -272,6 +279,28 @@
           "type": "boolean",
           "default": true,
           "description": "Add program delimiters (%) at the beginning and end of the program if not present"
+        },
+        "gcode.visualizer.rapidColor": {
+          "type": "string",
+          "default": "#ff6b6b",
+          "description": "Colour for rapid (G0) moves in the 3D visualizer (CSS hex colour)"
+        },
+        "gcode.visualizer.feedColor": {
+          "type": "string",
+          "default": "#4ecdc4",
+          "description": "Colour for linear feed (G1) moves in the 3D visualizer"
+        },
+        "gcode.visualizer.arcColor": {
+          "type": "string",
+          "default": "#45b7d1",
+          "description": "Colour for arc (G2/G3) moves in the 3D visualizer"
+        },
+        "gcode.visualizer.lineThickness": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 5,
+          "description": "Line thickness (pixels) for tool-path lines in the 3D visualizer"
         }
       }
     }
