@@ -22,6 +22,7 @@ import { TokenType } from '../parser/nodes/tokens';
 import { FormatterSettings } from './types';
 import { ExpressionFormatter } from './ExpressionFormatter';
 import { IFormatter } from './IFormatter';
+import { normalizeCommand } from '../utils/GCodeNormalizer';
 
 /**
  * Base formatter implementation with common formatting logic.
@@ -187,17 +188,10 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
   }
 
   protected formatCommand(node: MotionCommandNode): string {
-    let cmd = node.command.toUpperCase();
-
     if (this.settings.prettyPrintCommands) {
-      const letter = cmd[0],
-        number = parseFloat(cmd.slice(1));
-      if (!isNaN(number)) {
-        cmd = `${letter}${number.toString().padStart(2, '0')}`;
-      }
+      return normalizeCommand(node.command);
     }
-
-    return cmd;
+    return node.command.toUpperCase();
   }
 
   // --- Abstract methods for dialect-specific formatting ---
