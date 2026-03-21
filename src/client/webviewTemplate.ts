@@ -207,9 +207,9 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
     lineThickness: ${settings.lineThickness},
   };
 
-  // Camera / projection
-  let theta  = Math.PI / 4;       // horizontal rotation (azimuth)
-  let phi    = Math.PI / 6;       // vertical rotation (elevation)
+  // Camera / projection  (Z-up: azimuth rotates around Z, elevation tilts from horizontal)
+  let theta  = -Math.PI / 4;      // azimuth: front-right view
+  let phi    =  Math.PI / 5;      // elevation: 36° above the XY plane
   let radius = 200;               // orbit distance
   let panX   = 0;                 // screen-space pan X
   let panY   = 0;                 // screen-space pan Y
@@ -220,21 +220,27 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
   let lastMouseX  = 0;
   let lastMouseY  = 0;
 
+  // Cached background colour from the VS Code CSS variable
+  var bgColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--vscode-editor-background').trim() || '#1e1e1e';
+
   // Resize observer handle
   let animFrameId = null;
-
-  // Cache the VS Code editor background colour so render() does not
-  // call getComputedStyle on every frame.
-  var bgColor = '#1e1e1e';
-  function updateBgColor() {
-    bgColor = getComputedStyle(document.body).getPropertyValue('--vscode-editor-background').trim() || '#1e1e1e';
-  }
-  updateBgColor();
 
   // ---------- 3D Math ----------
 
   /**
-   * Projects a 3D world point to 2D canvas coordinates.
+   * Projects a 3D world point to 2D canvas coordinates (Z-up convention).
+   *
+   * Rotation order:
+   *   1. Azimuth (theta) around the Z axis
+   *   2. Elevation (phi) around the X axis
+   *
+   * After rotation the axes map to:
+   *   x2 → screen horizontal
+   *   z2 → screen vertical (negated so Z-up = canvas-up)
+   *   y2 → depth (into the screen)
+   *
    * Returns null when the point is behind the camera.
    */
   function project(px, py, pz) {
@@ -243,20 +249,20 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
     const dy = py - target.y;
     const dz = pz - target.z;
 
-    // Rotate around Y axis (azimuth)
+    // Rotate around Z axis (azimuth)
     const cosT = Math.cos(theta);
     const sinT = Math.sin(theta);
-    const x1 =  dx * cosT + dz * sinT;
-    const z1 = -dx * sinT + dz * cosT;
+    const x1 =  dx * cosT + dy * sinT;
+    const y1 = -dx * sinT + dy * cosT;
 
     // Rotate around X axis (elevation)
     const cosP = Math.cos(phi);
     const sinP = Math.sin(phi);
-    const y2 =  dy * cosP - z1 * sinP;
-    const z2 =  dy * sinP + z1 * cosP;
+    const y2 = y1 * cosP - dz * sinP;
+    const z2 = y1 * sinP + dz * cosP;
 
-    // Perspective divide
-    const depth = radius + z2;
+    // Perspective divide (y2 is the depth axis in Z-up convention)
+    const depth = radius + y2;
     if (depth < 0.01) return null;
 
     // Canvas-based FOV: at the default orbit distance the geometry fills ~70%
@@ -268,7 +274,7 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
 
     return {
       x: canvas.width  / 2 + panX + x1 * scale,
-      y: canvas.height / 2 + panY - y2 * scale,
+      y: canvas.height / 2 + panY - z2 * scale,
       depth,
     };
   }
@@ -416,8 +422,8 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
     radius = size * 2.0;
     panX   = 0;
     panY   = 0;
-    theta  = Math.PI / 4;
-    phi    = Math.PI / 6;
+    theta  = -Math.PI / 4;
+    phi    =  Math.PI / 5;
   }
 
   function resetView() {
