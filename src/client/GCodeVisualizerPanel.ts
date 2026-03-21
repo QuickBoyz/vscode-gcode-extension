@@ -24,7 +24,8 @@ type ExtensionToWebviewMessage =
       bounds: PathBounds;
       settings: VisualizerSettings;
     }
-  | { type: 'updateSettings'; settings: VisualizerSettings };
+  | { type: 'updateSettings'; settings: VisualizerSettings }
+  | { type: 'error'; message: string };
 
 /**
  * Message types received from the webview.
@@ -35,10 +36,16 @@ interface SettingsChangeMessage {
 }
 
 /**
+ * Callback invoked when the panel is disposed (closed).
+ */
+type DisposeCallback = () => void;
+
+/**
  * Singleton panel wrapper for the 3D visualizer.
  */
 export class GCodeVisualizerPanel {
   private static instance: GCodeVisualizerPanel | undefined;
+  private static disposeCallbacks: DisposeCallback[] = [];
 
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
@@ -102,6 +109,37 @@ export class GCodeVisualizerPanel {
     GCodeVisualizerPanel.instance?.update(pathData, settings);
   }
 
+  /**
+   * Sends an error message to the webview for display.
+   * Does nothing when the panel is not visible.
+   */
+  static showError(message: string): void {
+    GCodeVisualizerPanel.instance?.sendError(message);
+  }
+
+  /**
+   * Returns true when the singleton panel is currently open.
+   */
+  static get isOpen(): boolean {
+    return GCodeVisualizerPanel.instance !== undefined;
+  }
+
+  /**
+   * Registers a callback that fires when the panel is disposed (closed).
+   * Returns a {@link vscode.Disposable} that removes the callback.
+   */
+  static onDidDispose(callback: DisposeCallback): vscode.Disposable {
+    GCodeVisualizerPanel.disposeCallbacks.push(callback);
+    return {
+      dispose: () => {
+        const index = GCodeVisualizerPanel.disposeCallbacks.indexOf(callback);
+        if (index !== -1) {
+          GCodeVisualizerPanel.disposeCallbacks.splice(index, 1);
+        }
+      },
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
@@ -117,6 +155,14 @@ export class GCodeVisualizerPanel {
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
+    };
+    this.panel.webview.postMessage(msg);
+  }
+
+  private sendError(message: string): void {
+    const msg: ExtensionToWebviewMessage = {
+      type: 'error',
+      message,
     };
     this.panel.webview.postMessage(msg);
   }
@@ -139,5 +185,12 @@ export class GCodeVisualizerPanel {
       d.dispose();
     }
     this.disposables = [];
+
+    // Notify all registered dispose callbacks
+    const callbacks = [...GCodeVisualizerPanel.disposeCallbacks];
+    GCodeVisualizerPanel.disposeCallbacks = [];
+    for (const callback of callbacks) {
+      callback();
+    }
   }
 }
