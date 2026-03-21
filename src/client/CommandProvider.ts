@@ -51,23 +51,45 @@ export class CommandProvider {
 
   /**
    * Register the command that opens (or refreshes) the 3D visualizer panel.
+   *
+   * Accepts an optional `uri` parameter so the command can be invoked from
+   * the file-explorer context menu (which passes the selected file's URI).
    */
   private registerOpenVisualizerCommand(context: vscode.ExtensionContext): vscode.Disposable {
-    return vscode.commands.registerCommand('gcode.openVisualizer', (): void => {
-      const editor = vscode.window.activeTextEditor;
+    return vscode.commands.registerCommand(
+      'gcode.openVisualizer',
+      async (uri?: vscode.Uri): Promise<void> => {
+        const documentText = await this.resolveDocumentText(uri);
+        if (documentText === null) {
+          vscode.window.showWarningMessage(
+            'Open a G-Code file first, then run "G-Code: Open 3D Visualizer".'
+          );
+          return;
+        }
 
-      if (!editor || editor.document.languageId !== GCODE_LANGUAGE_ID) {
-        vscode.window.showWarningMessage(
-          'Open a G-Code file first, then run "G-Code: Open 3D Visualizer".'
-        );
-        return;
+        const pathData = this.visualizerService.extractToolPath(documentText);
+        const settings = this.readVisualizerSettings();
+
+        GCodeVisualizerPanel.createOrShow(context, pathData, settings);
       }
+    );
+  }
 
-      const pathData = this.visualizerService.extractToolPath(editor.document.getText());
-      const settings = this.readVisualizerSettings();
+  /**
+   * Resolves the G-code text content from a URI (explorer context menu)
+   * or the active text editor. Returns null if no valid G-code source is found.
+   */
+  private async resolveDocumentText(uri?: vscode.Uri): Promise<string | null> {
+    if (uri) {
+      const document = await vscode.workspace.openTextDocument(uri);
+      return document.getText();
+    }
 
-      GCodeVisualizerPanel.createOrShow(context, pathData, settings);
-    });
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== GCODE_LANGUAGE_ID) {
+      return null;
+    }
+    return editor.document.getText();
   }
 
   /**

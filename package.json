@@ -177,6 +177,22 @@
         "icon": "$(graph)"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "gcode.openVisualizer",
+          "when": "editorLangId == gcode",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "gcode.openVisualizer",
+          "when": "resourceLangId == gcode",
+          "group": "navigation"
+        }
+      ]
+    },
     "semanticTokenScopes": [
       {
         "language": "gcode",
