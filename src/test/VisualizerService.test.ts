@@ -76,16 +76,15 @@ describe('VisualizerService', () => {
     const brokenService = new VisualizerService();
     const lexer = brokenService['lexer'];
     jest.spyOn(lexer, 'tokenize').mockImplementation(() => {
-      throw 'string error'; // eslint-disable-line no-throw-literal
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'string error';
     });
 
     const result = brokenService.extractToolPath('anything');
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.errorMessage).toBe(
-        'An unknown error occurred during G-code parsing'
-      );
+      expect(result.errorMessage).toBe('An unknown error occurred during G-code parsing');
     }
   });
 
