@@ -11,6 +11,9 @@ import { DEFAULT_VISUALIZER_SETTINGS, VisualizerSettings } from '../visualizer/t
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { VisualizerService } from './VisualizerService';
 
+/** Debounce delay in milliseconds for document change events. */
+const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
+
 /**
  * Command Provider
  *
@@ -19,6 +22,15 @@ import { VisualizerService } from './VisualizerService';
 export class CommandProvider {
   private commands: vscode.Disposable[] = [];
   private readonly visualizerService = new VisualizerService();
+
+  /** Active document-change listener (disposed when the visualizer panel closes). */
+  private documentChangeListener: vscode.Disposable | undefined;
+
+  /** Dispose callback registration for panel lifecycle. */
+  private panelDisposeRegistration: vscode.Disposable | undefined;
+
+  /** Handle for the debounce timer. */
+  private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * Register all commands
@@ -71,13 +83,12 @@ export class CommandProvider {
         const settings = this.readVisualizerSettings();
 
         if (!result.success) {
-          vscode.window.showErrorMessage(
-            `G-Code visualizer error: ${result.errorMessage}`
-          );
+          vscode.window.showErrorMessage(`G-Code visualizer error: ${result.errorMessage}`);
           return;
         }
 
         GCodeVisualizerPanel.createOrShow(context, result.data, settings);
+        this.startDocumentChangeListener();
       }
     );
   }
@@ -119,10 +130,99 @@ export class CommandProvider {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Live-update listener
+  // ---------------------------------------------------------------------------
+
   /**
-   * Dispose all registered commands
+   * Starts listening for document changes on G-code files.
+   * When the active G-code document changes, the visualizer panel is
+   * refreshed after a short debounce delay.
+   *
+   * Idempotent: does nothing if a listener is already active.
+   */
+  private startDocumentChangeListener(): void {
+    if (this.documentChangeListener) {
+      return;
+    }
+
+    this.documentChangeListener = vscode.workspace.onDidChangeTextDocument(
+      (event: vscode.TextDocumentChangeEvent) => {
+        this.handleDocumentChange(event);
+      }
+    );
+
+    this.panelDisposeRegistration = GCodeVisualizerPanel.onDidDispose(() => {
+      this.stopDocumentChangeListener();
+    });
+  }
+
+  /**
+   * Stops the document change listener and clears any pending debounce timer.
+   */
+  private stopDocumentChangeListener(): void {
+    this.clearDebounceTimer();
+
+    if (this.documentChangeListener) {
+      this.documentChangeListener.dispose();
+      this.documentChangeListener = undefined;
+    }
+
+    if (this.panelDisposeRegistration) {
+      this.panelDisposeRegistration.dispose();
+      this.panelDisposeRegistration = undefined;
+    }
+  }
+
+  /**
+   * Handles a document change event. Only processes G-code documents
+   * while the visualizer panel is open.
+   */
+  private handleDocumentChange(event: vscode.TextDocumentChangeEvent): void {
+    if (event.document.languageId !== GCODE_LANGUAGE_ID) {
+      return;
+    }
+
+    if (!GCodeVisualizerPanel.isOpen) {
+      return;
+    }
+
+    this.clearDebounceTimer();
+    this.debounceTimer = setTimeout(() => {
+      this.refreshVisualizerFromDocument(event.document);
+    }, DOCUMENT_CHANGE_DEBOUNCE_MS);
+  }
+
+  /**
+   * Re-extracts tool path data from the given document and pushes it
+   * to the visualizer panel, or shows an error if extraction fails.
+   */
+  private refreshVisualizerFromDocument(document: vscode.TextDocument): void {
+    const result = this.visualizerService.extractToolPath(document.getText());
+    const settings = this.readVisualizerSettings();
+
+    if (result.success) {
+      GCodeVisualizerPanel.refresh(result.data, settings);
+    } else {
+      GCodeVisualizerPanel.showError(result.errorMessage);
+    }
+  }
+
+  /**
+   * Clears any active debounce timer.
+   */
+  private clearDebounceTimer(): void {
+    if (this.debounceTimer !== undefined) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = undefined;
+    }
+  }
+
+  /**
+   * Dispose all registered commands and the document change listener.
    */
   dispose(): void {
+    this.stopDocumentChangeListener();
     this.commands.forEach((cmd) => {
       cmd.dispose();
     });
