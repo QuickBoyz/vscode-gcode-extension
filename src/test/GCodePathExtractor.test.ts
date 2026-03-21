@@ -119,6 +119,52 @@ describe('GCodePathExtractor', () => {
     expect(arcSeg.points[0]).toEqual({ x: 5, y: 0, z: 0 });
   });
 
+  it('handles arc with zero radius gracefully', () => {
+    const data = extract('G2 X0 Y0 I0 J0');
+    expect(data.segments).toHaveLength(1);
+    // Zero radius -> should produce start+end points only
+    expect(data.segments[0].points.length).toBeLessThanOrEqual(2);
+  });
+
+  it('handles arc with missing I/J (defaults to 0)', () => {
+    const data = extract('G2 X10 Y0');
+    expect(data.segments).toHaveLength(1);
+  });
+
+  it('handles multiple arcs in sequence', () => {
+    const data = extract('G2 X10 Y0 I5 J0\nG3 X0 Y0 I-5 J0');
+    expect(data.segments).toHaveLength(2);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    expect(data.segments[1].type).toBe(MotionType.ARC_CCW);
+    // Both arcs should have interpolated points
+    expect(data.segments[0].points.length).toBeGreaterThan(2);
+    expect(data.segments[1].points.length).toBeGreaterThan(2);
+  });
+
+  it('handles full circle arc (start == end with non-zero I/J)', () => {
+    // Full circle: start and end are the same point, centre offset by I
+    const data = extract('G1 X10 Y0\nG2 X10 Y0 I-5 J0');
+    const arcSeg = data.segments[1];
+    expect(arcSeg.type).toBe(MotionType.ARC_CW);
+    // Full circle should produce many interpolated points
+    expect(arcSeg.points.length).toBeGreaterThan(10);
+    // First and last points should be the same (start == end)
+    const first = arcSeg.points[0];
+    const last = arcSeg.points[arcSeg.points.length - 1];
+    expect(first.x).toBeCloseTo(last.x, 5);
+    expect(first.y).toBeCloseTo(last.y, 5);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Negative axis values
+  // ---------------------------------------------------------------------------
+
+  it('handles negative axis values with unary minus', () => {
+    const data = extract('G1 X-10 Y-20 Z-5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: -10, y: -20, z: -5 });
+  });
+
   // ---------------------------------------------------------------------------
   // Non-motion commands are ignored
   // ---------------------------------------------------------------------------
