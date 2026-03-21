@@ -307,6 +307,83 @@ O100 ENDIF
   });
 
   // ---------------------------------------------------------------------------
+  // Modal G-code (standalone axis parameters reuse last motion command)
+  // ---------------------------------------------------------------------------
+
+  it('handles modal G01 with standalone axis parameters', () => {
+    const data = extract('G01 X10 Y20 F1000\nX15 Y25\nX20 Y30');
+    expect(data.segments).toHaveLength(3);
+    expect(data.segments[0].type).toBe(MotionType.FEED);
+    expect(data.segments[1].type).toBe(MotionType.FEED);
+    expect(data.segments[2].type).toBe(MotionType.FEED);
+    expect(data.segments[0].points[1]).toEqual({ x: 10, y: 20, z: 0 });
+    expect(data.segments[1].points[1]).toEqual({ x: 15, y: 25, z: 0 });
+    expect(data.segments[2].points[1]).toEqual({ x: 20, y: 30, z: 0 });
+  });
+
+  it('handles modal G00 with standalone axis parameters', () => {
+    const data = extract('G00 X5 Y5\nX10 Y10\nX15 Y15');
+    expect(data.segments).toHaveLength(3);
+    expect(data.segments[0].type).toBe(MotionType.RAPID);
+    expect(data.segments[1].type).toBe(MotionType.RAPID);
+    expect(data.segments[2].type).toBe(MotionType.RAPID);
+  });
+
+  it('switches modal command when a new G-code is issued', () => {
+    const data = extract('G00 X5 Y5\nX10 Y10\nG01 X20 Y20 F500\nX25 Y25');
+    expect(data.segments).toHaveLength(4);
+    expect(data.segments[0].type).toBe(MotionType.RAPID);
+    expect(data.segments[1].type).toBe(MotionType.RAPID);
+    expect(data.segments[2].type).toBe(MotionType.FEED);
+    expect(data.segments[3].type).toBe(MotionType.FEED);
+  });
+
+  it('ignores standalone axis parameters before any motion command', () => {
+    const data = extract('X10 Y20\nG01 X30 Y40');
+    // Only the G01 move should produce a segment
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points[1]).toEqual({ x: 30, y: 40, z: 0 });
+  });
+
+  it('handles CAM-style program with modal moves and Z plunges', () => {
+    const program = `
+G90
+G00 X0 Y0 Z10
+X7.57 Y7.57
+G01 Z-3 F500
+X7.512 Y7.63 F1000
+X7.455 Y7.691
+X7.4 Y7.754
+G00 Z10
+X0 Y0
+    `;
+    const data = extract(program);
+    // G00 X0 Y0 Z10 (1), X7.57 Y7.57 (2), G01 Z-3 (3),
+    // X7.512... (4), X7.455... (5), X7.4... (6), G00 Z10 (7), X0 Y0 (8)
+    expect(data.segments).toHaveLength(8);
+    // First two are rapid
+    expect(data.segments[0].type).toBe(MotionType.RAPID);
+    expect(data.segments[1].type).toBe(MotionType.RAPID);
+    // Then feed moves
+    expect(data.segments[2].type).toBe(MotionType.FEED);
+    expect(data.segments[3].type).toBe(MotionType.FEED);
+    expect(data.segments[4].type).toBe(MotionType.FEED);
+    expect(data.segments[5].type).toBe(MotionType.FEED);
+    // Back to rapid
+    expect(data.segments[6].type).toBe(MotionType.RAPID);
+    expect(data.segments[7].type).toBe(MotionType.RAPID);
+  });
+
+  it('handles cut-out.ngc CAM file with modal moves', () => {
+    const fixturePath = path.join(__dirname, 'fixtures', 'cut-out.ngc');
+    if (!fs.existsSync(fixturePath)) return;
+    const fixture = fs.readFileSync(fixturePath, 'utf-8');
+    const data = extract(fixture);
+    // CAM file should produce many segments from modal G01 moves
+    expect(data.segments.length).toBeGreaterThan(100);
+  });
+
+  // ---------------------------------------------------------------------------
   // Integration: surface-wasteboard.ngc fixture
   // ---------------------------------------------------------------------------
 
