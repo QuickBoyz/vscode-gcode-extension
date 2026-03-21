@@ -141,6 +141,25 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
       color: var(--vscode-descriptionForeground, #555);
       pointer-events: none;
     }
+    #error-banner {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border-bottom: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+      color: var(--vscode-errorForeground, #f48771);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    #error-banner .error-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    #error-banner .error-text {
+      flex: 1;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -166,6 +185,11 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
     </div>
     <button id="btnReset" title="Reset camera to fit the whole part">Reset View</button>
     <span class="hint">Left drag: rotate &nbsp;·&nbsp; Shift+drag / Right drag: pan &nbsp;·&nbsp; Scroll: zoom</span>
+  </div>
+
+  <div id="error-banner">
+    <span class="error-icon">!</span>
+    <span class="error-text" id="error-text"></span>
   </div>
 
   <div id="canvas-wrapper">
@@ -196,6 +220,8 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
   const thicknessEl   = document.getElementById('thickness');
   const thicknessVal  = document.getElementById('thicknessVal');
   const btnReset      = document.getElementById('btnReset');
+  const errorBanner   = document.getElementById('error-banner');
+  const errorText     = document.getElementById('error-text');
 
   // ---------- Viewer state ----------
   let segments  = [];
@@ -536,13 +562,26 @@ export function buildWebviewHtml(nonce: string, settings: VisualizerSettings): s
         segments.length > 0
           ? segments.length + ' segments'
           : '';
+      hideError();
       fitView();
       scheduleRender();
     } else if (msg.type === 'updateSettings') {
       updateSettingsUI(msg.settings || {});
       scheduleRender();
+    } else if (msg.type === 'error') {
+      showError(msg.message || 'An unknown error occurred');
     }
   });
+
+  function showError(message) {
+    errorText.textContent = message;
+    errorBanner.style.display = 'flex';
+  }
+
+  function hideError() {
+    errorBanner.style.display = 'none';
+    errorText.textContent = '';
+  }
 
   function updateSettingsUI(s) {
     if (s.rapidColor    !== undefined) { settings.rapidColor    = s.rapidColor;    rapidColorEl.value      = s.rapidColor; }
