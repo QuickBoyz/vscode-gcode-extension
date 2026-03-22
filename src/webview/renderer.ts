@@ -8,12 +8,7 @@
  * Built as a self-contained IIFE — no exports.
  */
 
-import {
-  MotionType,
-  PathBounds,
-  PathSegment,
-  VisualizerSettings,
-} from '../shared/visualizerTypes';
+import { MotionType, PathBounds, PathSegment, VisualizerSettings } from '../shared/visualizerTypes';
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';
@@ -41,7 +36,7 @@ const MINIMUM_THICKNESS = 0.5;
 const RAPID_THICKNESS_FACTOR = 0.5;
 
 /** Rapid moves are drawn at this opacity. */
-const RAPID_OPACITY = 0.45;
+const RAPID_OPACITY = 0.65;
 
 /** Dash pattern for rapid moves: [dash, gap]. */
 const RAPID_DASH_PATTERN: readonly number[] = [5, 6];
@@ -151,7 +146,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
         midpoint.z,
         camera,
         canvasWidth,
-        canvasHeight,
+        canvasHeight
       );
       return { segment, depth: projected ? projected.depth : Infinity };
     });
@@ -231,12 +226,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       y: (minimumY + maximumY) / 2,
       z: (minimumZ + maximumZ) / 2,
     };
-    const boundingSize = Math.max(
-      maximumX - minimumX,
-      maximumY - minimumY,
-      maximumZ - minimumZ,
-      1,
-    );
+    const boundingSize = Math.max(maximumX - minimumX, maximumY - minimumY, maximumZ - minimumZ, 1);
     // With fov = canvas_min * 1.5, radius = size * 2.0 fits the full bounding-box
     // diagonal (sqrt(2) * size) within ~75% of the smaller canvas dimension.
     camera.radius = boundingSize * FIT_VIEW_RADIUS_FACTOR;
@@ -345,8 +335,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       bounds = message.bounds || null;
       updateSettingsUI(message.settings || mutableSettings);
       emptyMessage.style.display = segments.length === 0 ? 'flex' : 'none';
-      statsElement.textContent =
-        segments.length > 0 ? segments.length + ' segments' : '';
+      statsElement.textContent = segments.length > 0 ? segments.length + ' segments' : '';
       hideError();
       fitView();
       scheduleRender();
