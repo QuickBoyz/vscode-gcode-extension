@@ -107,3 +107,36 @@ export interface VisualizerFailure {
  * so callers can handle errors without try/catch.
  */
 export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
+
+// ---------------------------------------------------------------------------
+// Worker thread message protocol
+// ---------------------------------------------------------------------------
+
+/**
+ * Message sent from the main thread to the visualizer worker.
+ */
+export interface WorkerRequest {
+  readonly type: 'parse';
+  readonly id: number;
+  readonly text: string;
+  readonly maxIterations: number;
+}
+
+/**
+ * Success response sent from the worker back to the main thread.
+ */
+export interface WorkerResponse {
+  readonly type: 'result';
+  readonly id: number;
+  readonly result: VisualizerResult;
+  readonly durationMs: number;
+}
+
+/**
+ * Error response sent from the worker when an unrecoverable error occurs.
+ */
+export interface WorkerErrorResponse {
+  readonly type: 'error';
+  readonly id: number;
+  readonly errorMessage: string;
+}
