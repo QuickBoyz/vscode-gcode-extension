@@ -70,6 +70,10 @@ export interface VisualizerSettings {
   readonly arcColor: string;
   /** Line width in canvas pixels (1 – 5) */
   readonly lineThickness: number;
+  /** Whether to show the reference grid on the XY plane */
+  readonly showGrid: boolean;
+  /** Grid line spacing in work units (mm or inches) */
+  readonly gridSpacing: number;
 }
 
 /**
@@ -80,6 +84,8 @@ export const DEFAULT_VISUALIZER_SETTINGS: VisualizerSettings = {
   feedColor: '#4ecdc4',
   arcColor: '#45b7d1',
   lineThickness: 1,
+  showGrid: true,
+  gridSpacing: 10,
 };
 
 // ---------------------------------------------------------------------------

@@ -148,6 +148,11 @@ export class CommandProvider {
         'visualizer.lineThickness',
         DEFAULT_VISUALIZER_SETTINGS.lineThickness
       ),
+      showGrid: config.get<boolean>('visualizer.showGrid', DEFAULT_VISUALIZER_SETTINGS.showGrid),
+      gridSpacing: config.get<number>(
+        'visualizer.gridSpacing',
+        DEFAULT_VISUALIZER_SETTINGS.gridSpacing
+      ),
     };
   }
 

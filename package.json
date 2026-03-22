@@ -319,6 +319,18 @@
           "minimum": 0.5,
           "maximum": 5,
           "description": "Line thickness (pixels) for tool-path lines in the 3D visualizer"
+        },
+        "gcode.visualizer.showGrid": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show reference grid on the XY plane in the 3D visualizer"
+        },
+        "gcode.visualizer.gridSpacing": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Grid line spacing in work units (mm or inches)"
         }
       }
     }

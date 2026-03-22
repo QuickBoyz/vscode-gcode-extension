@@ -12,6 +12,7 @@ import { MotionType, PathBounds, PathSegment, VisualizerSettings } from '../shar
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';
+import { drawGrid } from './grid';
 import { setupInteraction } from './interaction';
 
 // ---------------------------------------------------------------------------
@@ -93,6 +94,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const thicknessInput = document.getElementById('thickness') as HTMLInputElement;
   const thicknessValueLabel = document.getElementById('thicknessVal') as HTMLSpanElement;
   const resetButton = document.getElementById('btnReset') as HTMLButtonElement;
+  const gridToggleButton = document.getElementById('btnToggleGrid') as HTMLButtonElement;
   const errorBanner = document.getElementById('error-banner') as HTMLDivElement;
   const errorTextElement = document.getElementById('error-text') as HTMLSpanElement;
 
@@ -105,6 +107,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     feedColor: feedColorInput.value,
     arcColor: arcColorInput.value,
     lineThickness: parseFloat(thicknessInput.value),
+    showGrid: true,
+    gridSpacing: 10,
   };
   // Mutable copy that we update from toolbar / messages
   let mutableSettings = { ...settings };
@@ -130,6 +134,10 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     // Background -- uses the VS Code editor background colour
     context.fillStyle = backgroundColor;
     context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    if (bounds && mutableSettings.showGrid) {
+      drawGrid(context, camera, canvasWidth, canvasHeight, bounds, mutableSettings.gridSpacing);
+    }
 
     if (segments.length === 0) {
       return;
@@ -287,6 +295,14 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   resetButton.addEventListener('click', resetView);
 
+  gridToggleButton.classList.toggle('active', mutableSettings.showGrid);
+  gridToggleButton.addEventListener('click', () => {
+    mutableSettings = { ...mutableSettings, showGrid: !mutableSettings.showGrid };
+    gridToggleButton.classList.toggle('active', mutableSettings.showGrid);
+    notifySettingsChange();
+    scheduleRender();
+  });
+
   function notifySettingsChange(): void {
     vscode.postMessage({ type: 'settingsChange', settings: mutableSettings });
   }
@@ -335,6 +351,13 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       mutableSettings = { ...mutableSettings, lineThickness: incoming.lineThickness };
       thicknessInput.value = String(incoming.lineThickness);
       thicknessValueLabel.textContent = String(incoming.lineThickness);
+    }
+    if (incoming.showGrid !== undefined) {
+      mutableSettings = { ...mutableSettings, showGrid: incoming.showGrid };
+      gridToggleButton.classList.toggle('active', incoming.showGrid);
+    }
+    if (incoming.gridSpacing !== undefined) {
+      mutableSettings = { ...mutableSettings, gridSpacing: incoming.gridSpacing };
     }
   }
 
