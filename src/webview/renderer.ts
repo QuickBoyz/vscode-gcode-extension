@@ -303,6 +303,18 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     errorTextElement.textContent = '';
   }
 
+  // ---------- Loading overlay ----------
+
+  const loadingOverlay = document.getElementById('loading-overlay') as HTMLDivElement;
+
+  function showLoading(): void {
+    loadingOverlay.style.display = 'flex';
+  }
+
+  function hideLoading(): void {
+    loadingOverlay.style.display = 'none';
+  }
+
   // ---------- Settings UI sync ----------
 
   function updateSettingsUI(incoming: Partial<VisualizerSettings>): void {
@@ -331,6 +343,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     const message = event.data;
 
     if (message.type === 'update') {
+      hideLoading();
       segments = message.segments || [];
       bounds = message.bounds || null;
       updateSettingsUI(message.settings || mutableSettings);
@@ -343,7 +356,10 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       updateSettingsUI(message.settings || {});
       scheduleRender();
     } else if (message.type === 'error') {
+      hideLoading();
       showError(message.message || DEFAULT_ERROR_MESSAGE);
+    } else if (message.type === 'loading') {
+      showLoading();
     }
   });
 })();
