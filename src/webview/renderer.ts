@@ -8,7 +8,13 @@
  * Built as a self-contained IIFE — no exports.
  */
 
-import { MotionType, PathBounds, PathSegment, ProjectionMode, VisualizerSettings } from '../shared/visualizerTypes';
+import {
+  MotionType,
+  PathBounds,
+  PathSegment,
+  ProjectionMode,
+  VisualizerSettings,
+} from '../shared/visualizerTypes';
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';
@@ -96,7 +102,9 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const resetButton = document.getElementById('btnReset') as HTMLButtonElement;
   const gridToggleButton = document.getElementById('btnToggleGrid') as HTMLButtonElement;
   const rapidToggleButton = document.getElementById('btnToggleRapid') as HTMLButtonElement;
-  const projectionToggleButton = document.getElementById('btnToggleProjection') as HTMLButtonElement;
+  const projectionToggleButton = document.getElementById(
+    'btnToggleProjection'
+  ) as HTMLButtonElement;
   const errorBanner = document.getElementById('error-banner') as HTMLDivElement;
   const errorTextElement = document.getElementById('error-text') as HTMLSpanElement;
 
@@ -140,7 +148,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     context.fillRect(0, 0, canvasWidth, canvasHeight);
 
     if (bounds && mutableSettings.showGrid) {
-      drawGrid(context, camera, canvasWidth, canvasHeight, bounds, mutableSettings.gridSpacing, mutableSettings.projection);
+      drawGrid(
+        context,
+        camera,
+        canvasWidth,
+        canvasHeight,
+        bounds,
+        mutableSettings.gridSpacing,
+        mutableSettings.projection
+      );
     }
 
     if (segments.length === 0) {
@@ -196,7 +212,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       let pathStarted = false;
       const points = segment.points;
       for (const point of points) {
-        const projected = project(point.x, point.y, point.z, camera, canvasWidth, canvasHeight, projectionMode);
+        const projected = project(
+          point.x,
+          point.y,
+          point.z,
+          camera,
+          canvasWidth,
+          canvasHeight,
+          projectionMode
+        );
         if (!projected) {
           pathStarted = false;
           continue;

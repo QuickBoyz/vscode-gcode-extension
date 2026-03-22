@@ -57,7 +57,7 @@ const GRID_LINE_COLOR = '#ffffff';
  */
 export function computeGridExtent(
   bounds: PathBounds,
-  gridSpacing: number,
+  gridSpacing: number
 ): { minX: number; maxX: number; minY: number; maxY: number } {
   const paddedMinX = bounds.min.x - GRID_PADDING_INTERVALS * gridSpacing;
   const paddedMaxX = bounds.max.x + GRID_PADDING_INTERVALS * gridSpacing;
@@ -110,11 +110,31 @@ export function drawGrid(
     const isOrigin = worldX === 0;
     const isMajor = lineIndex % MAJOR_LINE_INTERVAL === 0;
 
-    context.globalAlpha = isOrigin ? ORIGIN_LINE_OPACITY : isMajor ? MAJOR_LINE_OPACITY : MINOR_LINE_OPACITY;
+    context.globalAlpha = isOrigin
+      ? ORIGIN_LINE_OPACITY
+      : isMajor
+        ? MAJOR_LINE_OPACITY
+        : MINOR_LINE_OPACITY;
     context.lineWidth = isOrigin ? ORIGIN_LINE_WIDTH : GRID_LINE_WIDTH;
 
-    const startPoint = project(worldX, extent.minY, 0, camera, canvasWidth, canvasHeight, projectionMode);
-    const endPoint = project(worldX, extent.maxY, 0, camera, canvasWidth, canvasHeight, projectionMode);
+    const startPoint = project(
+      worldX,
+      extent.minY,
+      0,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      projectionMode
+    );
+    const endPoint = project(
+      worldX,
+      extent.maxY,
+      0,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      projectionMode
+    );
 
     if (!startPoint || !endPoint) {
       continue;
@@ -132,11 +152,31 @@ export function drawGrid(
     const isOrigin = worldY === 0;
     const isMajor = lineIndex % MAJOR_LINE_INTERVAL === 0;
 
-    context.globalAlpha = isOrigin ? ORIGIN_LINE_OPACITY : isMajor ? MAJOR_LINE_OPACITY : MINOR_LINE_OPACITY;
+    context.globalAlpha = isOrigin
+      ? ORIGIN_LINE_OPACITY
+      : isMajor
+        ? MAJOR_LINE_OPACITY
+        : MINOR_LINE_OPACITY;
     context.lineWidth = isOrigin ? ORIGIN_LINE_WIDTH : GRID_LINE_WIDTH;
 
-    const startPoint = project(extent.minX, worldY, 0, camera, canvasWidth, canvasHeight, projectionMode);
-    const endPoint = project(extent.maxX, worldY, 0, camera, canvasWidth, canvasHeight, projectionMode);
+    const startPoint = project(
+      extent.minX,
+      worldY,
+      0,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      projectionMode
+    );
+    const endPoint = project(
+      extent.maxX,
+      worldY,
+      0,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      projectionMode
+    );
 
     if (!startPoint || !endPoint) {
       continue;
