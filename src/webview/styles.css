@@ -62,6 +62,10 @@ button {
 button:hover {
   background: var(--vscode-button-secondaryHoverBackground, #45494e);
 }
+button.active {
+  background: var(--vscode-button-background, #0e70c0);
+  color: var(--vscode-button-foreground, #ffffff);
+}
 .hint {
   color: var(--vscode-descriptionForeground, #666);
   font-size: 11px;
