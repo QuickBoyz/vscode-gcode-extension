@@ -7,6 +7,16 @@
  */
 
 /**
+ * Projection mode for the 3D visualizer camera.
+ */
+export enum ProjectionMode {
+  /** Standard perspective projection — distant objects appear smaller. */
+  PERSPECTIVE = 'perspective',
+  /** Orthographic projection — scale is constant regardless of depth. */
+  ORTHOGRAPHIC = 'orthographic',
+}
+
+/**
  * G-code motion type used to colour-code path segments in the viewer.
  */
 export enum MotionType {
@@ -74,6 +84,10 @@ export interface VisualizerSettings {
   readonly showGrid: boolean;
   /** Grid line spacing in work units (mm or inches) */
   readonly gridSpacing: number;
+  /** Whether to render rapid (G0) moves */
+  readonly showRapidMoves: boolean;
+  /** Projection mode (perspective or orthographic) */
+  readonly projection: ProjectionMode;
 }
 
 /**
@@ -86,6 +100,8 @@ export const DEFAULT_VISUALIZER_SETTINGS: VisualizerSettings = {
   lineThickness: 1,
   showGrid: true,
   gridSpacing: 10,
+  showRapidMoves: true,
+  projection: ProjectionMode.PERSPECTIVE,
 };
 
 // ---------------------------------------------------------------------------
