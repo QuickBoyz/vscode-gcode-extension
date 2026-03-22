@@ -309,6 +309,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   function showLoading(): void {
     loadingOverlay.style.display = 'flex';
+    emptyMessage.style.display = 'none';
   }
 
   function hideLoading(): void {
