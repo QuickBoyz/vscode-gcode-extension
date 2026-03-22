@@ -93,7 +93,7 @@ function generateArcPoints(
 ): PathPoint[] {
   const centerX = start.x + offsetI;
   const centerY = start.y + offsetJ;
-  const radius = Math.sqrt(offsetI * offsetI + offsetJ * offsetJ);
+  const radius = Math.hypot(offsetI, offsetJ);
 
   if (radius < 1e-6) {
     return [start, end];
