@@ -8,14 +8,19 @@
  * Supported motion commands
  *   G0 / G00  -- rapid positioning
  *   G1 / G01  -- linear feed
- *   G2 / G02  -- clockwise arc (XY plane, I/J offsets)
- *   G3 / G03  -- counter-clockwise arc (XY plane, I/J offsets)
+ *   G2 / G02  -- clockwise arc
+ *   G3 / G03  -- counter-clockwise arc
+ *   G17       -- select XY arc plane (default)
+ *   G18       -- select XZ arc plane
+ *   G19       -- select YZ arc plane
+ *   G28       -- return to machine home via optional intermediate point
  *   G90       -- absolute positioning mode (default)
  *   G91       -- incremental positioning mode
  */
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import { ARC_PLANE_CONFIGS, ArcPlane, ArcPlaneConfig } from './ArcPlane';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
 import {
@@ -33,6 +38,15 @@ const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
 
 /** Minimum arc segments (for very small arcs). */
 const ARC_MIN_SEGMENTS = 4;
+
+/** Epsilon used for floating-point position comparisons. */
+const POSITION_EPSILON = 1e-6;
+
+/**
+ * Mutable version of {@link PathPoint}, used internally to build
+ * arc points via dynamic axis assignment.
+ */
+type MutablePathPoint = { -readonly [K in keyof PathPoint]: PathPoint[K] };
 
 /**
  * Motion command Sets use only the normalized (padded) form because all
@@ -52,11 +66,26 @@ const ARC_CW_COMMANDS = new Set(['G02']);
 /** Commands that switch to counter-clockwise arc mode. */
 const ARC_CCW_COMMANDS = new Set(['G03']);
 
+/** Commands that select the XY arc plane. */
+const ARC_PLANE_XY_COMMANDS = new Set(['G17']);
+
+/** Commands that select the XZ arc plane. */
+const ARC_PLANE_XZ_COMMANDS = new Set(['G18']);
+
+/** Commands that select the YZ arc plane. */
+const ARC_PLANE_YZ_COMMANDS = new Set(['G19']);
+
+/** Commands that return to machine home position. */
+const HOME_RETURN_COMMANDS = new Set(['G28']);
+
 /** Commands that set absolute positioning mode. */
 const ABSOLUTE_COMMANDS = new Set(['G90']);
 
 /** Commands that set incremental positioning mode. */
 const INCREMENTAL_COMMANDS = new Set(['G91']);
+
+/** Machine home position (origin). */
+const MACHINE_HOME_POSITION: PathPoint = { x: 0, y: 0, z: 0 };
 
 /**
  * Extracts the evaluated value of a named axis from a list of
@@ -77,37 +106,51 @@ function evaluateAxisValue(
 }
 
 /**
- * Generates intermediate 3D points for a circular arc in the XY plane.
+ * Generates intermediate 3D points for a circular arc in an arbitrary plane.
  *
- * @param start   - Arc start point
- * @param end     - Arc end point
- * @param offsetI - I offset (X distance from start to arc centre)
- * @param offsetJ - J offset (Y distance from start to arc centre)
- * @param isCW    - true for G2 (clockwise), false for G3 (CCW)
+ * The arc math is fully plane-agnostic: all coordinate mapping is driven
+ * by the {@link ArcPlaneConfig} so the same code handles G17/G18/G19
+ * without conditionals.
+ *
+ * @param start        - Arc start point
+ * @param end          - Arc end point
+ * @param offsetFirst  - Offset from start to centre along the first in-plane axis
+ * @param offsetSecond - Offset from start to centre along the second in-plane axis
+ * @param isCW         - true for G2 (clockwise), false for G3 (CCW)
+ * @param planeConfig  - Active arc plane configuration
  */
 function generateArcPoints(
   start: PathPoint,
   end: PathPoint,
-  offsetI: number,
-  offsetJ: number,
-  isCW: boolean
+  offsetFirst: number,
+  offsetSecond: number,
+  isCW: boolean,
+  planeConfig: ArcPlaneConfig
 ): PathPoint[] {
-  const centerX = start.x + offsetI;
-  const centerY = start.y + offsetJ;
-  const radius = Math.hypot(offsetI, offsetJ);
+  const startFirst = start[planeConfig.inPlaneFirst];
+  const startSecond = start[planeConfig.inPlaneSecond];
+  const startNormal = start[planeConfig.normal];
 
-  if (radius < 1e-6) {
+  const endFirst = end[planeConfig.inPlaneFirst];
+  const endSecond = end[planeConfig.inPlaneSecond];
+  const endNormal = end[planeConfig.normal];
+
+  const centerFirst = startFirst + offsetFirst;
+  const centerSecond = startSecond + offsetSecond;
+  const radius = Math.hypot(offsetFirst, offsetSecond);
+
+  if (radius < POSITION_EPSILON) {
     return [start, end];
   }
 
-  const startAngle = Math.atan2(start.y - centerY, start.x - centerX);
-  let endAngle = Math.atan2(end.y - centerY, end.x - centerX);
+  const startAngle = Math.atan2(startSecond - centerSecond, startFirst - centerFirst);
+  let endAngle = Math.atan2(endSecond - centerSecond, endFirst - centerFirst);
 
   // Full-circle special case: start and end are the same point.
   const isFullCircle =
-    Math.abs(start.x - end.x) < 1e-6 &&
-    Math.abs(start.y - end.y) < 1e-6 &&
-    Math.abs(start.z - end.z) < 1e-6;
+    Math.abs(startFirst - endFirst) < POSITION_EPSILON &&
+    Math.abs(startSecond - endSecond) < POSITION_EPSILON &&
+    Math.abs(startNormal - endNormal) < POSITION_EPSILON;
 
   let sweep: number;
   if (isFullCircle) {
@@ -132,16 +175,18 @@ function generateArcPoints(
   );
 
   const points: PathPoint[] = [start];
-  const zStep = (end.z - start.z) / numSegments;
+  const normalStep = (endNormal - startNormal) / numSegments;
 
   for (let i = 1; i < numSegments; i++) {
     const fraction = i / numSegments;
     const angle = startAngle + sweep * fraction;
-    points.push({
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-      z: start.z + zStep * i,
-    });
+
+    const point: MutablePathPoint = { x: 0, y: 0, z: 0 };
+    point[planeConfig.inPlaneFirst] = centerFirst + radius * Math.cos(angle);
+    point[planeConfig.inPlaneSecond] = centerSecond + radius * Math.sin(angle);
+    point[planeConfig.normal] = startNormal + normalStep * i;
+
+    points.push(point);
   }
   points.push(end);
   return points;
@@ -191,6 +236,7 @@ function computeBounds(segments: PathSegment[]): PathBounds {
 export class GCodePathExtractor implements MotionHandler {
   private currentPosition: PathPoint = { x: 0, y: 0, z: 0 };
   private isAbsoluteMode = true;
+  private currentArcPlane: ArcPlane = ArcPlane.XY;
   private segments: PathSegment[] = [];
 
   /** Modal feed rate (F value), updated when F appears on any motion line. */
@@ -208,6 +254,7 @@ export class GCodePathExtractor implements MotionHandler {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
+    this.currentArcPlane = ArcPlane.XY;
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
@@ -240,6 +287,26 @@ export class GCodePathExtractor implements MotionHandler {
       return;
     }
 
+    // Arc plane selection — these do NOT affect modal motion command.
+    if (ARC_PLANE_XY_COMMANDS.has(normalisedCommand)) {
+      this.currentArcPlane = ArcPlane.XY;
+      return;
+    }
+    if (ARC_PLANE_XZ_COMMANDS.has(normalisedCommand)) {
+      this.currentArcPlane = ArcPlane.XZ;
+      return;
+    }
+    if (ARC_PLANE_YZ_COMMANDS.has(normalisedCommand)) {
+      this.currentArcPlane = ArcPlane.YZ;
+      return;
+    }
+
+    // Home return — does NOT affect arc plane or modal motion command.
+    if (HOME_RETURN_COMMANDS.has(normalisedCommand)) {
+      this.processHomeReturn(parameters, evaluator);
+      return;
+    }
+
     const motionType = this.classifyMotionType(normalisedCommand);
     if (motionType === null) {
       return; // Not a motion command we handle (e.g. M-codes, T, S, F...)
@@ -269,14 +336,16 @@ export class GCodePathExtractor implements MotionHandler {
     const context = this.buildMotionContext(parameters, evaluator);
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
-      const offsetI = evaluateAxisValue(parameters, 'I', evaluator) ?? 0;
-      const offsetJ = evaluateAxisValue(parameters, 'J', evaluator) ?? 0;
+      const planeConfig = ARC_PLANE_CONFIGS[this.currentArcPlane];
+      const offsetFirst = evaluateAxisValue(parameters, planeConfig.offsetFirst, evaluator) ?? 0;
+      const offsetSecond = evaluateAxisValue(parameters, planeConfig.offsetSecond, evaluator) ?? 0;
       const arcPoints = generateArcPoints(
         this.currentPosition,
         newPosition,
-        offsetI,
-        offsetJ,
-        motionType === MotionType.ARC_CW
+        offsetFirst,
+        offsetSecond,
+        motionType === MotionType.ARC_CW,
+        planeConfig
       );
       this.pushSegment(motionType, arcPoints, context);
     } else {
@@ -284,6 +353,64 @@ export class GCodePathExtractor implements MotionHandler {
     }
 
     this.currentPosition = newPosition;
+  }
+
+  /**
+   * Handles G28: return to machine home position via an optional
+   * intermediate point.
+   *
+   * When axis parameters are provided, the tool first rapids to the
+   * specified intermediate position (in the current positioning mode),
+   * then rapids to the machine home position — but only the axes that
+   * were specified move to zero.
+   *
+   * When no axis parameters are provided, the tool rapids directly to
+   * the machine home position (all axes to 0).
+   */
+  private processHomeReturn(
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): void {
+    const context = this.buildMotionContext(parameters, evaluator);
+    const hasAxisParameters = parameters.some((param) =>
+      ['X', 'Y', 'Z'].includes(param.axis.toUpperCase())
+    );
+
+    if (!hasAxisParameters) {
+      // No parameters: rapid directly to machine home.
+      this.pushSegment(MotionType.RAPID, [this.currentPosition, MACHINE_HOME_POSITION], context);
+      this.currentPosition = MACHINE_HOME_POSITION;
+      return;
+    }
+
+    // Compute the intermediate position (respects absolute/incremental mode).
+    const intermediatePosition = this.computeNewPosition(parameters, evaluator);
+    this.pushSegment(MotionType.RAPID, [this.currentPosition, intermediatePosition], context);
+    this.currentPosition = intermediatePosition;
+
+    // Compute home target: only axes mentioned in the parameters go to zero.
+    const homeTarget = this.computeHomeTarget(parameters);
+    this.pushSegment(MotionType.RAPID, [this.currentPosition, homeTarget], context);
+    this.currentPosition = homeTarget;
+  }
+
+  /**
+   * Computes the home target position for G28. Only axes that were
+   * explicitly specified in the parameters move to zero; the others
+   * retain their current value.
+   */
+  private computeHomeTarget(parameters: readonly AxisParameterNode[]): PathPoint {
+    const specifiedAxes = new Set(
+      parameters
+        .map((param) => param.axis.toUpperCase())
+        .filter((axis) => ['X', 'Y', 'Z'].includes(axis))
+    );
+
+    return {
+      x: specifiedAxes.has('X') ? MACHINE_HOME_POSITION.x : this.currentPosition.x,
+      y: specifiedAxes.has('Y') ? MACHINE_HOME_POSITION.y : this.currentPosition.y,
+      z: specifiedAxes.has('Z') ? MACHINE_HOME_POSITION.z : this.currentPosition.z,
+    };
   }
 
   private computeNewPosition(
