@@ -1,8 +1,4 @@
-import {
-  project,
-  createCameraState,
-  DEFAULT_CAMERA_ANGLES,
-} from '../webview/projection';
+import { project, createCameraState, DEFAULT_CAMERA_ANGLES } from '../webview/projection';
 
 describe('projection', () => {
   it('projects a point at the origin to canvas center', () => {

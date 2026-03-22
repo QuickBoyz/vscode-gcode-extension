@@ -11,6 +11,8 @@ export default defineConfig(
       'out/**',
       'node_modules/**',
       'coverage/**',
+      'scripts/**',
+      'src/webview/**',
       '*.log',
       '*.vsix',
       '.vscode-test*',

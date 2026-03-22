@@ -92,7 +92,7 @@ export function project(
   pointZ: number,
   camera: CameraState,
   canvasWidth: number,
-  canvasHeight: number,
+  canvasHeight: number
 ): ProjectedPoint | null {
   // Translate to camera-relative
   const deltaX = pointX - camera.target.x;
