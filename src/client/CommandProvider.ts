@@ -237,7 +237,11 @@ export class CommandProvider {
         GCodeVisualizerPanel.showError(result.errorMessage);
       }
     } catch {
-      // Request was superseded by a newer parse — ignore silently.
+      console.warn(
+        'Failed to refresh visualizer from document change. ' +
+          'This may occur in unsupported environments (e.g. Electron without nodeIntegration).'
+      );
+      GCodeVisualizerPanel.showError('Failed to refresh visualizer due to an internal error.');
     }
   }
 

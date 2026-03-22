@@ -149,7 +149,14 @@ export class WorkerClient {
       });
       this.worker = worker;
       return worker;
-    } catch {
+    } catch (error) {
+      console.warn(
+        'WorkerClient: Failed to create Worker. Falling back to synchronous parsing. ' +
+          'This may occur in unsupported environments (e.g. Electron without nodeIntegration). ' +
+          'Error details:',
+        (error as Error).message
+      );
+
       return undefined;
     }
   }
