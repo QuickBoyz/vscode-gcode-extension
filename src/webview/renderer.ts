@@ -8,7 +8,7 @@
  * Built as a self-contained IIFE — no exports.
  */
 
-import { MotionType, PathBounds, PathSegment, VisualizerSettings } from '../shared/visualizerTypes';
+import { MotionType, PathBounds, PathSegment, ProjectionMode, VisualizerSettings } from '../shared/visualizerTypes';
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';
@@ -95,6 +95,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const thicknessValueLabel = document.getElementById('thicknessVal') as HTMLSpanElement;
   const resetButton = document.getElementById('btnReset') as HTMLButtonElement;
   const gridToggleButton = document.getElementById('btnToggleGrid') as HTMLButtonElement;
+  const rapidToggleButton = document.getElementById('btnToggleRapid') as HTMLButtonElement;
+  const projectionToggleButton = document.getElementById('btnToggleProjection') as HTMLButtonElement;
   const errorBanner = document.getElementById('error-banner') as HTMLDivElement;
   const errorTextElement = document.getElementById('error-text') as HTMLSpanElement;
 
@@ -109,6 +111,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     lineThickness: parseFloat(thicknessInput.value),
     showGrid: true,
     gridSpacing: 10,
+    showRapidMoves: true,
+    projection: ProjectionMode.PERSPECTIVE,
   };
   // Mutable copy that we update from toolbar / messages
   let mutableSettings = { ...settings };
@@ -136,7 +140,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     context.fillRect(0, 0, canvasWidth, canvasHeight);
 
     if (bounds && mutableSettings.showGrid) {
-      drawGrid(context, camera, canvasWidth, canvasHeight, bounds, mutableSettings.gridSpacing);
+      drawGrid(context, camera, canvasWidth, canvasHeight, bounds, mutableSettings.gridSpacing, mutableSettings.projection);
     }
 
     if (segments.length === 0) {
@@ -144,6 +148,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     }
 
     const thickness = Math.max(MINIMUM_THICKNESS, mutableSettings.lineThickness);
+
+    const projectionMode = mutableSettings.projection;
 
     // --- Depth-sort segments (painter's algorithm using mid-point depth) ---
     const sorted = segments.map((segment) => {
@@ -154,7 +160,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
         midpoint.z,
         camera,
         canvasWidth,
-        canvasHeight
+        canvasHeight,
+        projectionMode
       );
       return { segment, depth: projected ? projected.depth : Infinity };
     });
@@ -164,6 +171,11 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     for (const entry of sorted) {
       const segment = entry.segment;
       const isRapidMove = segment.type === MotionType.RAPID;
+
+      // Skip rapid moves when the user has toggled them off
+      if (isRapidMove && !mutableSettings.showRapidMoves) {
+        continue;
+      }
       const color = getSegmentColor(segment.type, mutableSettings);
 
       context.strokeStyle = color;
@@ -184,7 +196,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       let pathStarted = false;
       const points = segment.points;
       for (const point of points) {
-        const projected = project(point.x, point.y, point.z, camera, canvasWidth, canvasHeight);
+        const projected = project(point.x, point.y, point.z, camera, canvasWidth, canvasHeight, projectionMode);
         if (!projected) {
           pathStarted = false;
           continue;
@@ -203,7 +215,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     context.setLineDash([]);
 
     // --- Draw reference axes ---
-    drawAxes(context, camera, canvasWidth, canvasHeight);
+    drawAxes(context, camera, canvasWidth, canvasHeight, mutableSettings.projection);
   }
 
   function scheduleRender(): void {
@@ -303,6 +315,27 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     scheduleRender();
   });
 
+  rapidToggleButton.classList.toggle('active', mutableSettings.showRapidMoves);
+  rapidToggleButton.addEventListener('click', () => {
+    mutableSettings = { ...mutableSettings, showRapidMoves: !mutableSettings.showRapidMoves };
+    rapidToggleButton.classList.toggle('active', mutableSettings.showRapidMoves);
+    notifySettingsChange();
+    scheduleRender();
+  });
+
+  projectionToggleButton.textContent =
+    mutableSettings.projection === ProjectionMode.PERSPECTIVE ? 'Persp' : 'Ortho';
+  projectionToggleButton.addEventListener('click', () => {
+    const isCurrentlyPerspective = mutableSettings.projection === ProjectionMode.PERSPECTIVE;
+    const newProjection = isCurrentlyPerspective
+      ? ProjectionMode.ORTHOGRAPHIC
+      : ProjectionMode.PERSPECTIVE;
+    mutableSettings = { ...mutableSettings, projection: newProjection };
+    projectionToggleButton.textContent = isCurrentlyPerspective ? 'Ortho' : 'Persp';
+    notifySettingsChange();
+    scheduleRender();
+  });
+
   function notifySettingsChange(): void {
     vscode.postMessage({ type: 'settingsChange', settings: mutableSettings });
   }
@@ -358,6 +391,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     }
     if (incoming.gridSpacing !== undefined) {
       mutableSettings = { ...mutableSettings, gridSpacing: incoming.gridSpacing };
+    }
+    if (incoming.showRapidMoves !== undefined) {
+      mutableSettings = { ...mutableSettings, showRapidMoves: incoming.showRapidMoves };
+      rapidToggleButton.classList.toggle('active', incoming.showRapidMoves);
+    }
+    if (incoming.projection !== undefined) {
+      mutableSettings = { ...mutableSettings, projection: incoming.projection };
+      projectionToggleButton.textContent =
+        incoming.projection === ProjectionMode.PERSPECTIVE ? 'Persp' : 'Ortho';
     }
   }
 

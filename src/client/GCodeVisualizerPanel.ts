@@ -14,7 +14,7 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { PathBounds, ToolPathData, VisualizerSettings } from '../visualizer/types';
+import { PathBounds, ProjectionMode, ToolPathData, VisualizerSettings } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
 /**
@@ -134,6 +134,18 @@ export class GCodeVisualizerPanel {
   }
 
   /**
+   * Sends updated settings to the webview without refreshing path data.
+   * Used for bidirectional sync when the user changes VS Code settings.
+   * Does nothing when the panel is not visible.
+   */
+  static updateSettings(settings: VisualizerSettings): void {
+    if (GCodeVisualizerPanel.instance) {
+      const message: ExtensionToWebviewMessage = { type: 'updateSettings', settings };
+      GCodeVisualizerPanel.instance.panel.webview.postMessage(message);
+    }
+  }
+
+  /**
    * Returns true when the singleton panel is currently open.
    */
   static get isOpen(): boolean {
@@ -211,12 +223,19 @@ export class GCodeVisualizerPanel {
   private handleMessage(msg: SettingsChangeMessage): void {
     if (msg.type !== 'settingsChange') return;
 
-    // Persist the user's colour / thickness choices to workspace settings.
+    // Persist all user-configurable settings to workspace configuration.
     const config = vscode.workspace.getConfiguration('gcode');
-    config.update('visualizer.rapidColor', msg.settings.rapidColor, true);
-    config.update('visualizer.feedColor', msg.settings.feedColor, true);
-    config.update('visualizer.arcColor', msg.settings.arcColor, true);
-    config.update('visualizer.lineThickness', msg.settings.lineThickness, true);
+    void config.update('visualizer.rapidColor', msg.settings.rapidColor, true);
+    void config.update('visualizer.feedColor', msg.settings.feedColor, true);
+    void config.update('visualizer.arcColor', msg.settings.arcColor, true);
+    void config.update('visualizer.lineThickness', msg.settings.lineThickness, true);
+    void config.update('visualizer.showGrid', msg.settings.showGrid, true);
+    void config.update('visualizer.showRapidMoves', msg.settings.showRapidMoves, true);
+    void config.update(
+      'visualizer.projection',
+      msg.settings.projection satisfies ProjectionMode,
+      true
+    );
   }
 
   private dispose(): void {
