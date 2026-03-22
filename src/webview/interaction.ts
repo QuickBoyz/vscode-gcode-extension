@@ -4,10 +4,27 @@
  * Sets up orbit (left drag), pan (shift+drag or right drag), and
  * zoom (scroll wheel) interactions on the canvas element.
  *
- * Returns a cleanup function that removes all event listeners.
+ * Returns an {@link InteractionState} object that exposes a drag-state
+ * query (for hit-testing coordination) and a cleanup function.
  */
 
 import { CameraState, DragMode } from './types';
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle returned by {@link setupInteraction} so that other modules
+ * (e.g. the hit-testing layer) can query whether a drag is in progress
+ * and clean up listeners when the webview is disposed.
+ */
+export interface InteractionState {
+  /** Returns `true` while the user is actively dragging (orbit or pan). */
+  readonly isDragging: () => boolean;
+  /** Removes all event listeners attached by {@link setupInteraction}. */
+  readonly cleanup: () => void;
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -44,13 +61,13 @@ const DRAGGING_CLASS = 'dragging';
  * @param camera         - Mutable camera state that handlers will update
  * @param onCameraChange - Callback invoked after each camera update to
  *                         trigger a re-render
- * @returns A cleanup function that removes all event listeners
+ * @returns An {@link InteractionState} with drag-state query and cleanup
  */
 export function setupInteraction(
   canvas: HTMLCanvasElement,
   camera: CameraState,
   onCameraChange: () => void
-): () => void {
+): InteractionState {
   let dragMode: DragMode | null = null;
   let lastMouseX = 0;
   let lastMouseY = 0;
@@ -112,12 +129,15 @@ export function setupInteraction(
   canvas.addEventListener('wheel', handleWheel, { passive: false });
   canvas.addEventListener('contextmenu', handleContextMenu);
 
-  // Return cleanup function
-  return () => {
-    canvas.removeEventListener('mousedown', handleMouseDown);
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
-    canvas.removeEventListener('wheel', handleWheel);
-    canvas.removeEventListener('contextmenu', handleContextMenu);
+  // Return interaction state handle
+  return {
+    isDragging: () => dragMode !== null,
+    cleanup: () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('contextmenu', handleContextMenu);
+    },
   };
 }
