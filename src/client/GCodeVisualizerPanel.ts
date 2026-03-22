@@ -9,10 +9,13 @@
  * Only one panel is open at a time.  If the panel already exists it is
  * revealed and its content is updated.
  */
+import * as fs from 'fs';
+import * as path from 'path';
+
 import * as vscode from 'vscode';
 
 import { PathBounds, ToolPathData, VisualizerSettings } from '../visualizer/types';
-import { buildWebviewHtml, generateNonce } from './webviewTemplate';
+import { generateNonce } from './nonce';
 
 /**
  * Message types sent from the extension to the webview.
@@ -85,6 +88,9 @@ export class GCodeVisualizerPanel {
       return;
     }
 
+    const extensionUri = context.extensionUri;
+    const webviewDistUri = vscode.Uri.joinPath(extensionUri, 'dist', 'webview');
+
     const panel = vscode.window.createWebviewPanel(
       'gcodeVisualizer',
       'G-Code 3D Visualizer',
@@ -92,12 +98,13 @@ export class GCodeVisualizerPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
+        localResourceRoots: [webviewDistUri],
       }
     );
 
     const instance = new GCodeVisualizerPanel(panel);
     GCodeVisualizerPanel.instance = instance;
-    instance.initContent(settings);
+    instance.initContent(extensionUri);
     instance.update(pathData, settings);
   }
 
@@ -144,9 +151,29 @@ export class GCodeVisualizerPanel {
   // Private helpers
   // ---------------------------------------------------------------------------
 
-  private initContent(settings: VisualizerSettings): void {
+  private initContent(extensionUri: vscode.Uri): void {
+    const webview = this.panel.webview;
+    const webviewDistPath = path.join(extensionUri.fsPath, 'dist', 'webview');
+
+    // Build webview-safe URIs for static assets
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'renderer.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'styles.css')
+    );
+
     const nonce = generateNonce();
-    this.panel.webview.html = buildWebviewHtml(nonce, settings);
+
+    // Read the HTML template and replace placeholders
+    const htmlPath = path.join(webviewDistPath, 'index.html');
+    const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
+
+    webview.html = rawHtml
+      .replace(/\{\{nonce\}\}/g, nonce)
+      .replace(/\{\{scriptUri\}\}/g, scriptUri.toString())
+      .replace(/\{\{styleUri\}\}/g, styleUri.toString())
+      .replace(/\{\{cspSource\}\}/g, webview.cspSource);
   }
 
   private update(pathData: ToolPathData, settings: VisualizerSettings): void {
