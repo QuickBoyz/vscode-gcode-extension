@@ -471,7 +471,7 @@ export class GCodePathExtractor implements MotionHandler {
     }
 
     return {
-      sourceLine: parameters[0].getRange().start.line,
+      sourceLine: parameters.length > 0 ? parameters[0].getRange().start.line : 0,
       feedRate: this.modalFeedRate,
       spindleSpeed: this.modalSpindleSpeed,
       ...(Object.keys(extraParams).length > 0 ? { extraParams } : {}),

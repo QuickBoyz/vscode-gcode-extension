@@ -456,4 +456,199 @@ X0 Y0
     const rapidCount = data.segments.filter((s) => s.type === MotionType.RAPID).length;
     expect(rapidCount).toBeGreaterThan(10);
   });
+
+  // ---------------------------------------------------------------------------
+  // Arc plane selection (G17 / G18 / G19)
+  // ---------------------------------------------------------------------------
+
+  it('uses XY plane by default (G17 baseline)', () => {
+    // Default plane is XY — a semicircle in XY should leave Z unchanged.
+    const data = extract('G2 X10 Y0 I5 J0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    // All Z values should be 0 (no helical component)
+    for (const point of arcPoints) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+    // X and Y should vary
+    const xValues = arcPoints.map((p) => p.x);
+    const yValues = arcPoints.map((p) => p.y);
+    expect(Math.max(...xValues) - Math.min(...xValues)).toBeGreaterThan(0.1);
+    expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(0.1);
+  });
+
+  it('handles G17 XY arc explicitly', () => {
+    const data = extract('G17\nG2 X10 Y0 I5 J0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    // Z should remain 0
+    for (const point of data.segments[0].points) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('handles G18 XZ arc — Y unchanged, X/Z vary', () => {
+    // G18: arcs in XZ plane, using I/K offsets. Y is the normal axis.
+    const data = extract('G18\nG2 X10 Z0 I5 K0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    // Y should remain 0 (normal axis, unchanged)
+    for (const point of arcPoints) {
+      expect(point.y).toBeCloseTo(0, 5);
+    }
+    // X and Z should vary
+    const xValues = arcPoints.map((p) => p.x);
+    const zValues = arcPoints.map((p) => p.z);
+    expect(Math.max(...xValues) - Math.min(...xValues)).toBeGreaterThan(0.1);
+    expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(0.1);
+  });
+
+  it('handles G19 YZ arc — X unchanged, Y/Z vary', () => {
+    // G19: arcs in YZ plane, using J/K offsets. X is the normal axis.
+    const data = extract('G19\nG2 Y10 Z0 J5 K0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    // X should remain 0 (normal axis, unchanged)
+    for (const point of arcPoints) {
+      expect(point.x).toBeCloseTo(0, 5);
+    }
+    // Y and Z should vary
+    const yValues = arcPoints.map((p) => p.y);
+    const zValues = arcPoints.map((p) => p.z);
+    expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(0.1);
+    expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(0.1);
+  });
+
+  it('switches arc plane mid-program', () => {
+    const program = `
+G17
+G2 X10 Y0 I5 J0
+G18
+G2 X20 Z0 I5 K0
+    `;
+    const data = extract(program);
+    expect(data.segments).toHaveLength(2);
+
+    // First arc: XY plane — Z should stay 0
+    for (const point of data.segments[0].points) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+
+    // Second arc: XZ plane — Y should remain unchanged from where it ended
+    const yAfterFirstArc = data.segments[0].points[data.segments[0].points.length - 1].y;
+    for (const point of data.segments[1].points) {
+      expect(point.y).toBeCloseTo(yAfterFirstArc, 5);
+    }
+  });
+
+  it('handles full circle in G18 (XZ plane)', () => {
+    const data = extract('G18\nG1 X10 Z0\nG2 X10 Z0 I-5 K0');
+    const arcSegment = data.segments[1];
+    expect(arcSegment.type).toBe(MotionType.ARC_CW);
+    // Full circle should produce many interpolated points
+    expect(arcSegment.points.length).toBeGreaterThan(10);
+    // First and last points should be the same
+    const first = arcSegment.points[0];
+    const last = arcSegment.points[arcSegment.points.length - 1];
+    expect(first.x).toBeCloseTo(last.x, 5);
+    expect(first.z).toBeCloseTo(last.z, 5);
+  });
+
+  it('handles helical arc in G17 (arc in XY + Z movement)', () => {
+    // Arc from (0,0,0) to (10,0,5) with I5 J0 — the Z movement makes it helical
+    const data = extract('G17\nG2 X10 Y0 Z5 I5 J0');
+    expect(data.segments).toHaveLength(1);
+    const arcPoints = data.segments[0].points;
+    // Z should interpolate from 0 to 5
+    expect(arcPoints[0].z).toBeCloseTo(0, 5);
+    expect(arcPoints[arcPoints.length - 1].z).toBeCloseTo(5, 5);
+    // Intermediate Z values should be between 0 and 5
+    for (const point of arcPoints) {
+      expect(point.z).toBeGreaterThanOrEqual(-0.001);
+      expect(point.z).toBeLessThanOrEqual(5.001);
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // G28 home position
+  // ---------------------------------------------------------------------------
+
+  it('G28 no params rapids directly to machine home (0,0,0)', () => {
+    const data = extract('G1 X10 Y20 Z5\nG28');
+    expect(data.segments).toHaveLength(2);
+    // First segment: feed move to (10, 20, 5)
+    expect(data.segments[0].type).toBe(MotionType.FEED);
+    // Second segment: rapid to home
+    expect(data.segments[1].type).toBe(MotionType.RAPID);
+    const lastPoint = data.segments[1].points[data.segments[1].points.length - 1];
+    expect(lastPoint).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  it('G28 Z0 rapids to intermediate then homes only Z', () => {
+    const data = extract('G1 X10 Y20 Z5\nG28 Z0');
+    // Feed move + intermediate rapid + home rapid
+    expect(data.segments).toHaveLength(3);
+    expect(data.segments[1].type).toBe(MotionType.RAPID);
+    expect(data.segments[2].type).toBe(MotionType.RAPID);
+    // Intermediate position: X/Y unchanged, Z=0 (absolute)
+    const intermediateEnd = data.segments[1].points[data.segments[1].points.length - 1];
+    expect(intermediateEnd).toEqual({ x: 10, y: 20, z: 0 });
+    // Home: only Z goes to 0 (already 0), X/Y stay
+    const homeEnd = data.segments[2].points[data.segments[2].points.length - 1];
+    expect(homeEnd).toEqual({ x: 10, y: 20, z: 0 });
+  });
+
+  it('G28 X0 Y0 Z0 rapids to intermediate then homes all axes', () => {
+    const data = extract('G1 X10 Y20 Z5\nG28 X0 Y0 Z0');
+    expect(data.segments).toHaveLength(3);
+    // Intermediate position in absolute mode: (0, 0, 0)
+    const intermediateEnd = data.segments[1].points[data.segments[1].points.length - 1];
+    expect(intermediateEnd).toEqual({ x: 0, y: 0, z: 0 });
+    // Home: all axes to 0
+    const homeEnd = data.segments[2].points[data.segments[2].points.length - 1];
+    expect(homeEnd).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  it('G28 does not affect arc plane', () => {
+    const data = extract('G18\nG1 X10 Y5 Z0\nG28\nG2 X10 Z0 I5 K0');
+    // After G28, arc plane should still be G18 (XZ)
+    const arcSegment = data.segments.find((s) => s.type === MotionType.ARC_CW);
+    expect(arcSegment).toBeDefined();
+    // Y should remain 0 (unchanged) in XZ arc after G28 homed to origin
+    const arcPoints = arcSegment?.points ?? [];
+    for (const point of arcPoints) {
+      expect(point.y).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('G28 does not affect modal motion command', () => {
+    const data = extract('G01 X10 Y20 F1000\nG28\nX5 Y5');
+    // After G28, the modal command should still be G01 (feed)
+    const lastSegment = data.segments[data.segments.length - 1];
+    expect(lastSegment.type).toBe(MotionType.FEED);
+    expect(lastSegment.points[lastSegment.points.length - 1]).toEqual({ x: 5, y: 5, z: 0 });
+  });
+
+  it('subsequent move starts from home position after G28', () => {
+    const data = extract('G1 X10 Y20 Z5\nG28\nG1 X5 Y5 Z2');
+    // After G28 (no params), position is (0,0,0)
+    // Next G1 X5 Y5 Z2 should start from (0,0,0)
+    const lastSegment = data.segments[data.segments.length - 1];
+    expect(lastSegment.points[0]).toEqual({ x: 0, y: 0, z: 0 });
+    expect(lastSegment.points[lastSegment.points.length - 1]).toEqual({ x: 5, y: 5, z: 2 });
+  });
+
+  it('G28 in incremental mode computes intermediate relative to current position', () => {
+    const data = extract('G1 X10 Y20 Z5\nG91\nG28 X1 Y2 Z3');
+    // Incremental: intermediate = (10+1, 20+2, 5+3) = (11, 22, 8)
+    expect(data.segments).toHaveLength(3);
+    const intermediateEnd = data.segments[1].points[data.segments[1].points.length - 1];
+    expect(intermediateEnd).toEqual({ x: 11, y: 22, z: 8 });
+    // Home: all specified axes go to 0
+    const homeEnd = data.segments[2].points[data.segments[2].points.length - 1];
+    expect(homeEnd).toEqual({ x: 0, y: 0, z: 0 });
+  });
 });
