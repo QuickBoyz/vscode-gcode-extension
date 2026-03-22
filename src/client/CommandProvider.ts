@@ -9,7 +9,11 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { DEFAULT_VISUALIZER_SETTINGS, VisualizerSettings } from '../visualizer/types';
+import {
+  DEFAULT_VISUALIZER_SETTINGS,
+  ProjectionMode,
+  VisualizerSettings,
+} from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';
 
@@ -27,6 +31,9 @@ export class CommandProvider {
 
   /** Active document-change listener (disposed when the visualizer panel closes). */
   private documentChangeListener: vscode.Disposable | undefined;
+
+  /** Active VS Code configuration-change listener (disposed with the panel). */
+  private configChangeListener: vscode.Disposable | undefined;
 
   /** Dispose callback registration for panel lifecycle. */
   private panelDisposeRegistration: vscode.Disposable | undefined;
@@ -153,6 +160,14 @@ export class CommandProvider {
         'visualizer.gridSpacing',
         DEFAULT_VISUALIZER_SETTINGS.gridSpacing
       ),
+      showRapidMoves: config.get<boolean>(
+        'visualizer.showRapidMoves',
+        DEFAULT_VISUALIZER_SETTINGS.showRapidMoves
+      ),
+      projection: config.get<ProjectionMode>(
+        'visualizer.projection',
+        DEFAULT_VISUALIZER_SETTINGS.projection
+      ),
     };
   }
 
@@ -178,6 +193,15 @@ export class CommandProvider {
       }
     );
 
+    this.configChangeListener = vscode.workspace.onDidChangeConfiguration(
+      (event: vscode.ConfigurationChangeEvent) => {
+        if (event.affectsConfiguration('gcode.visualizer')) {
+          const settings = this.readVisualizerSettings();
+          GCodeVisualizerPanel.updateSettings(settings);
+        }
+      }
+    );
+
     this.panelDisposeRegistration = GCodeVisualizerPanel.onDidDispose(() => {
       this.stopDocumentChangeListener();
     });
@@ -192,6 +216,11 @@ export class CommandProvider {
     if (this.documentChangeListener) {
       this.documentChangeListener.dispose();
       this.documentChangeListener = undefined;
+    }
+
+    if (this.configChangeListener) {
+      this.configChangeListener.dispose();
+      this.configChangeListener = undefined;
     }
 
     if (this.panelDisposeRegistration) {

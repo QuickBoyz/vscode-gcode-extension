@@ -6,7 +6,7 @@
  * Only types that depend on the parser layer are defined below.
  */
 
-export { MotionType, DEFAULT_VISUALIZER_SETTINGS } from '../shared/visualizerTypes';
+export { MotionType, ProjectionMode, DEFAULT_VISUALIZER_SETTINGS } from '../shared/visualizerTypes';
 export type {
   PathPoint,
   PathSegment,

@@ -5,6 +5,7 @@
  * so the user can see the current orientation at a glance.
  */
 
+import { ProjectionMode } from '../shared/visualizerTypes';
 import { CameraState } from './types';
 import { project } from './projection';
 
@@ -51,16 +52,18 @@ const Z_AXIS_COLOR = '#5588ff';
 /**
  * Draws XYZ reference axes at the camera look-at target.
  *
- * @param context      - The 2D rendering context to draw into
- * @param camera       - Current camera state
- * @param canvasWidth  - Canvas width in pixels
- * @param canvasHeight - Canvas height in pixels
+ * @param context        - The 2D rendering context to draw into
+ * @param camera         - Current camera state
+ * @param canvasWidth    - Canvas width in pixels
+ * @param canvasHeight   - Canvas height in pixels
+ * @param projectionMode - Projection mode to use (default: perspective)
  */
 export function drawAxes(
   context: CanvasRenderingContext2D,
   camera: CameraState,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  projectionMode: ProjectionMode = ProjectionMode.PERSPECTIVE
 ): void {
   const axisLength = camera.radius * AXIS_LENGTH_FACTOR;
 
@@ -70,7 +73,8 @@ export function drawAxes(
     camera.target.z,
     camera,
     canvasWidth,
-    canvasHeight
+    canvasHeight,
+    projectionMode
   );
   if (!origin) {
     return;
@@ -92,7 +96,8 @@ export function drawAxes(
       camera.target.z + axis.deltaZ,
       camera,
       canvasWidth,
-      canvasHeight
+      canvasHeight,
+      projectionMode
     );
     if (!tip) {
       continue;

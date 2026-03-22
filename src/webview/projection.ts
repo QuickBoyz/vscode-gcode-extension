@@ -12,6 +12,7 @@
  *     (negated so Z-up = canvas-up), y2 -> depth (into screen)
  */
 
+import { ProjectionMode } from '../shared/visualizerTypes';
 import { CameraState, ProjectedPoint } from './types';
 
 // ---------------------------------------------------------------------------
@@ -78,12 +79,13 @@ export function createCameraState(): CameraState {
  *   z2 -> screen vertical (negated so Z-up = canvas-up)
  *   y2 -> depth (into the screen)
  *
- * @param pointX       - World X coordinate
- * @param pointY       - World Y coordinate
- * @param pointZ       - World Z coordinate
- * @param camera       - Current camera state
- * @param canvasWidth  - Canvas width in pixels
- * @param canvasHeight - Canvas height in pixels
+ * @param pointX         - World X coordinate
+ * @param pointY         - World Y coordinate
+ * @param pointZ         - World Z coordinate
+ * @param camera         - Current camera state
+ * @param canvasWidth    - Canvas width in pixels
+ * @param canvasHeight   - Canvas height in pixels
+ * @param projectionMode - Perspective or orthographic projection (default: perspective)
  * @returns The projected 2D point with depth, or `null` if behind the camera.
  */
 export function project(
@@ -92,7 +94,8 @@ export function project(
   pointZ: number,
   camera: CameraState,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  projectionMode: ProjectionMode = ProjectionMode.PERSPECTIVE
 ): ProjectedPoint | null {
   // Translate to camera-relative
   const deltaX = pointX - camera.target.x;
@@ -111,7 +114,7 @@ export function project(
   const depthAxis = rotatedY1 * cosPhi - deltaZ * sinPhi;
   const verticalAxis = rotatedY1 * sinPhi + deltaZ * cosPhi;
 
-  // Perspective divide (depthAxis is the depth axis in Z-up convention)
+  // Depth (used for painter's algorithm sorting and null-check)
   const depth = camera.radius + depthAxis;
   if (depth < MINIMUM_DEPTH) {
     return null;
@@ -119,7 +122,14 @@ export function project(
 
   // Canvas-based FOV
   const fieldOfView = Math.min(canvasWidth, canvasHeight) * FOV_MULTIPLIER;
-  const scale = fieldOfView / depth;
+
+  // In orthographic mode the scale is constant (based on orbit radius rather
+  // than per-point depth), so all points render at the same size regardless of
+  // how far they are from the camera.  Depth is still returned for sorting.
+  const scale =
+    projectionMode === ProjectionMode.ORTHOGRAPHIC
+      ? fieldOfView / camera.radius
+      : fieldOfView / depth;
 
   return {
     x: canvasWidth / 2 + camera.panX + rotatedX * scale,
