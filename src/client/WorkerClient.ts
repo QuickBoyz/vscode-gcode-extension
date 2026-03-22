@@ -33,8 +33,19 @@ interface PendingRequest {
   readonly reject: (error: Error) => void;
 }
 
+/**
+ * Factory function that creates a Worker instance.
+ * Defaults to the standard Node.js Worker constructor.
+ * Accepting this as a parameter enables testing the sync fallback.
+ */
+export type WorkerFactory = (scriptPath: string) => Worker;
+
+/** Default factory that uses the standard Worker constructor. */
+const defaultWorkerFactory: WorkerFactory = (scriptPath: string): Worker => new Worker(scriptPath);
+
 export class WorkerClient {
   private readonly workerScriptPath: string;
+  private readonly workerFactory: WorkerFactory;
   private worker: Worker | undefined;
   private pendingRequest: PendingRequest | undefined;
   private generationCounter = 0;
@@ -47,8 +58,9 @@ export class WorkerClient {
   private synchronousFallback = false;
   private readonly fallbackService: VisualizerService;
 
-  constructor(workerScriptPath: string) {
+  constructor(workerScriptPath: string, workerFactory: WorkerFactory = defaultWorkerFactory) {
     this.workerScriptPath = workerScriptPath;
+    this.workerFactory = workerFactory;
     this.fallbackService = new VisualizerService();
   }
 
@@ -125,7 +137,7 @@ export class WorkerClient {
     }
 
     try {
-      const worker = new Worker(this.workerScriptPath);
+      const worker = this.workerFactory(this.workerScriptPath);
       worker.on('message', (message: WorkerMessage) => {
         this.handleWorkerMessage(message);
       });

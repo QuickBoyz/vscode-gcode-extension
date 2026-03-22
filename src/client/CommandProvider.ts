@@ -81,9 +81,9 @@ export class CommandProvider {
           return;
         }
 
-        this.ensureWorkerClient(context);
+        const workerClient = this.ensureWorkerClient(context);
 
-        const result = await this.workerClient!.parse(documentText);
+        const result = await workerClient.parse(documentText);
         const settings = this.readVisualizerSettings();
 
         if (!result.success) {
@@ -100,15 +100,18 @@ export class CommandProvider {
   /**
    * Creates the {@link WorkerClient} lazily on first use, passing
    * the path to the compiled worker script.
+   *
+   * @returns The existing or newly created WorkerClient
    */
-  private ensureWorkerClient(context: vscode.ExtensionContext): void {
+  private ensureWorkerClient(context: vscode.ExtensionContext): WorkerClient {
     if (this.workerClient) {
-      return;
+      return this.workerClient;
     }
     const workerScriptPath = context.asAbsolutePath(
       path.join('dist', 'visualizer', 'visualizerWorker.js')
     );
     this.workerClient = new WorkerClient(workerScriptPath);
+    return this.workerClient;
   }
 
   /**
