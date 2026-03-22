@@ -60,7 +60,7 @@ export function drawAxes(
   context: CanvasRenderingContext2D,
   camera: CameraState,
   canvasWidth: number,
-  canvasHeight: number,
+  canvasHeight: number
 ): void {
   const axisLength = camera.radius * AXIS_LENGTH_FACTOR;
 
@@ -70,7 +70,7 @@ export function drawAxes(
     camera.target.z,
     camera,
     canvasWidth,
-    canvasHeight,
+    canvasHeight
   );
   if (!origin) {
     return;
@@ -92,7 +92,7 @@ export function drawAxes(
       camera.target.z + axis.deltaZ,
       camera,
       canvasWidth,
-      canvasHeight,
+      canvasHeight
     );
     if (!tip) {
       continue;

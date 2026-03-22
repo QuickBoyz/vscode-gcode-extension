@@ -28,7 +28,8 @@ type ExtensionToWebviewMessage =
       settings: VisualizerSettings;
     }
   | { type: 'updateSettings'; settings: VisualizerSettings }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'loading' };
 
 /**
  * Message types received from the webview.
@@ -125,6 +126,14 @@ export class GCodeVisualizerPanel {
   }
 
   /**
+   * Shows a loading overlay in the webview while parsing is in progress.
+   * Does nothing when the panel is not visible.
+   */
+  static showLoading(): void {
+    GCodeVisualizerPanel.instance?.sendLoading();
+  }
+
+  /**
    * Returns true when the singleton panel is currently open.
    */
   static get isOpen(): boolean {
@@ -191,6 +200,11 @@ export class GCodeVisualizerPanel {
       type: 'error',
       message,
     };
+    this.panel.webview.postMessage(msg);
+  }
+
+  private sendLoading(): void {
+    const msg: ExtensionToWebviewMessage = { type: 'loading' };
     this.panel.webview.postMessage(msg);
   }
 

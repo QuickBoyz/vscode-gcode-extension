@@ -49,7 +49,7 @@ const DRAGGING_CLASS = 'dragging';
 export function setupInteraction(
   canvas: HTMLCanvasElement,
   camera: CameraState,
-  onCameraChange: () => void,
+  onCameraChange: () => void
 ): () => void {
   let dragMode: DragMode | null = null;
   let lastMouseX = 0;
@@ -80,7 +80,7 @@ export function setupInteraction(
       camera.theta -= deltaX * ORBIT_SENSITIVITY;
       camera.phi = Math.max(
         -Math.PI / 2 + POLE_MARGIN,
-        Math.min(Math.PI / 2 - POLE_MARGIN, camera.phi + deltaY * ORBIT_SENSITIVITY),
+        Math.min(Math.PI / 2 - POLE_MARGIN, camera.phi + deltaY * ORBIT_SENSITIVITY)
       );
     } else {
       camera.panX += deltaX;

@@ -16,6 +16,9 @@ export type {
   VisualizerSuccess,
   VisualizerFailure,
   VisualizerResult,
+  WorkerRequest,
+  WorkerResponse,
+  WorkerErrorResponse,
 } from '../shared/visualizerTypes';
 
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';

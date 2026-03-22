@@ -4,12 +4,14 @@
  * Centralized command registration and management for the G-Code extension.
  * New commands should be added here to keep extension.ts clean.
  */
+import * as path from 'path';
+
 import * as vscode from 'vscode';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { DEFAULT_VISUALIZER_SETTINGS, VisualizerSettings } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
-import { VisualizerService } from './VisualizerService';
+import { WorkerClient } from './WorkerClient';
 
 /** Debounce delay in milliseconds for document change events. */
 const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
@@ -21,7 +23,7 @@ const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
  */
 export class CommandProvider {
   private commands: vscode.Disposable[] = [];
-  private readonly visualizerService = new VisualizerService();
+  private workerClient: WorkerClient | undefined;
 
   /** Active document-change listener (disposed when the visualizer panel closes). */
   private documentChangeListener: vscode.Disposable | undefined;
@@ -79,7 +81,9 @@ export class CommandProvider {
           return;
         }
 
-        const result = this.visualizerService.extractToolPath(documentText);
+        const workerClient = this.ensureWorkerClient(context);
+
+        const result = await workerClient.parse(documentText);
         const settings = this.readVisualizerSettings();
 
         if (!result.success) {
@@ -91,6 +95,23 @@ export class CommandProvider {
         this.startDocumentChangeListener();
       }
     );
+  }
+
+  /**
+   * Creates the {@link WorkerClient} lazily on first use, passing
+   * the path to the compiled worker script.
+   *
+   * @returns The existing or newly created WorkerClient
+   */
+  private ensureWorkerClient(context: vscode.ExtensionContext): WorkerClient {
+    if (this.workerClient) {
+      return this.workerClient;
+    }
+    const workerScriptPath = context.asAbsolutePath(
+      path.join('dist', 'visualizer', 'visualizerWorker.js')
+    );
+    this.workerClient = new WorkerClient(workerScriptPath);
+    return this.workerClient;
   }
 
   /**
@@ -172,6 +193,8 @@ export class CommandProvider {
       this.panelDisposeRegistration.dispose();
       this.panelDisposeRegistration = undefined;
     }
+
+    this.disposeWorkerClient();
   }
 
   /**
@@ -189,7 +212,7 @@ export class CommandProvider {
 
     this.clearDebounceTimer();
     this.debounceTimer = setTimeout(() => {
-      this.refreshVisualizerFromDocument(event.document);
+      void this.refreshVisualizerFromDocument(event.document);
     }, DOCUMENT_CHANGE_DEBOUNCE_MS);
   }
 
@@ -197,14 +220,28 @@ export class CommandProvider {
    * Re-extracts tool path data from the given document and pushes it
    * to the visualizer panel, or shows an error if extraction fails.
    */
-  private refreshVisualizerFromDocument(document: vscode.TextDocument): void {
-    const result = this.visualizerService.extractToolPath(document.getText());
-    const settings = this.readVisualizerSettings();
+  private async refreshVisualizerFromDocument(document: vscode.TextDocument): Promise<void> {
+    if (!this.workerClient) {
+      return;
+    }
 
-    if (result.success) {
-      GCodeVisualizerPanel.refresh(result.data, settings);
-    } else {
-      GCodeVisualizerPanel.showError(result.errorMessage);
+    GCodeVisualizerPanel.showLoading();
+
+    try {
+      const result = await this.workerClient.parse(document.getText());
+      const settings = this.readVisualizerSettings();
+
+      if (result.success) {
+        GCodeVisualizerPanel.refresh(result.data, settings);
+      } else {
+        GCodeVisualizerPanel.showError(result.errorMessage);
+      }
+    } catch {
+      console.warn(
+        'Failed to refresh visualizer from document change. ' +
+          'This may occur in unsupported environments (e.g. Electron without nodeIntegration).'
+      );
+      GCodeVisualizerPanel.showError('Failed to refresh visualizer due to an internal error.');
     }
   }
 
@@ -219,13 +256,25 @@ export class CommandProvider {
   }
 
   /**
-   * Dispose all registered commands and the document change listener.
+   * Dispose all registered commands, the document change listener,
+   * and the worker client.
    */
   dispose(): void {
     this.stopDocumentChangeListener();
+    this.disposeWorkerClient();
     this.commands.forEach((cmd) => {
       cmd.dispose();
     });
     this.commands = [];
+  }
+
+  /**
+   * Disposes the worker client if it exists.
+   */
+  private disposeWorkerClient(): void {
+    if (this.workerClient) {
+      this.workerClient.dispose();
+      this.workerClient = undefined;
+    }
   }
 }
