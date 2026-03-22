@@ -1,3 +1,4 @@
+import { ProjectionMode } from '../shared/visualizerTypes';
 import { project, createCameraState, DEFAULT_CAMERA_ANGLES } from '../webview/projection';
 
 describe('projection', () => {
@@ -77,5 +78,69 @@ describe('projection', () => {
     const offsetDefault = Math.abs(near!.x - 200);
     const offsetClose = Math.abs(nearSmallRadius!.x - 200);
     expect(offsetClose).toBeGreaterThan(offsetDefault);
+  });
+
+  describe('orthographic projection', () => {
+    it('scale is constant regardless of depth (unlike perspective)', () => {
+      // Project the same world-X offset using two different orbit radii.
+      // In orthographic mode scale = fov/radius, so halving the radius
+      // should double the screen offset.  This confirms the scale is tied
+      // to radius, not to per-point depth.
+      const cameraClose = createCameraState();
+      cameraClose.radius = 100;
+      const cameraFar = createCameraState();
+      cameraFar.radius = 200;
+
+      const resultClose = project(10, 0, 0, cameraClose, 400, 300, ProjectionMode.ORTHOGRAPHIC);
+      const resultFar = project(10, 0, 0, cameraFar, 400, 300, ProjectionMode.ORTHOGRAPHIC);
+
+      expect(resultClose).not.toBeNull();
+      expect(resultFar).not.toBeNull();
+
+      // With half the radius the scale doubles, so the offset from centre doubles
+      const offsetClose = Math.abs(resultClose!.x - 200);
+      const offsetFar = Math.abs(resultFar!.x - 200);
+      expect(offsetClose).toBeCloseTo(offsetFar * 2, 1);
+    });
+
+    it('depth values still differ between points at different positions', () => {
+      const camera = createCameraState();
+      // Two points separated only in the camera depth direction (along Y in world space)
+      const pointA = project(0, 0, 0, camera, 400, 300, ProjectionMode.ORTHOGRAPHIC);
+      const pointB = project(0, 50, 0, camera, 400, 300, ProjectionMode.ORTHOGRAPHIC);
+      expect(pointA).not.toBeNull();
+      expect(pointB).not.toBeNull();
+      // Depth must differ so painter's algorithm still works in orthographic mode
+      expect(pointA!.depth).not.toBeCloseTo(pointB!.depth, 0);
+    });
+
+    it('projects a point at the origin to canvas centre', () => {
+      const camera = createCameraState();
+      const result = project(0, 0, 0, camera, 400, 300, ProjectionMode.ORTHOGRAPHIC);
+      expect(result).not.toBeNull();
+      expect(result!.x).toBeCloseTo(200);
+      expect(result!.y).toBeCloseTo(150);
+    });
+  });
+
+  describe('perspective projection', () => {
+    it('a point with less depth produces a larger screen offset than the same point with more depth', () => {
+      // Move the camera closer (smaller radius) to increase scale for perspective
+      const cameraClose = createCameraState();
+      cameraClose.radius = 50;
+      const cameraFar = createCameraState();
+      cameraFar.radius = 200;
+
+      const closeResult = project(10, 0, 0, cameraClose, 400, 300, ProjectionMode.PERSPECTIVE);
+      const farResult = project(10, 0, 0, cameraFar, 400, 300, ProjectionMode.PERSPECTIVE);
+
+      expect(closeResult).not.toBeNull();
+      expect(farResult).not.toBeNull();
+
+      // Closer camera (less depth) must produce a larger offset from centre
+      const closeOffset = Math.abs(closeResult!.x - 200);
+      const farOffset = Math.abs(farResult!.x - 200);
+      expect(closeOffset).toBeGreaterThan(farOffset);
+    });
   });
 });

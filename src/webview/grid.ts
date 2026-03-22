@@ -11,7 +11,7 @@
  * under Node.js.
  */
 
-import { PathBounds } from '../shared/visualizerTypes';
+import { PathBounds, ProjectionMode } from '../shared/visualizerTypes';
 import { project } from './projection';
 import { CameraState } from './types';
 
@@ -82,12 +82,13 @@ export function computeGridExtent(
  * Must be called BEFORE drawing path segments so the grid renders
  * behind the tool path (painter's algorithm).
  *
- * @param context      - The 2D rendering context to draw into
- * @param camera       - Current camera state
- * @param canvasWidth  - Canvas width in pixels
- * @param canvasHeight - Canvas height in pixels
- * @param bounds       - Axis-aligned bounding box of the tool path
- * @param gridSpacing  - Distance between grid lines in world units
+ * @param context        - The 2D rendering context to draw into
+ * @param camera         - Current camera state
+ * @param canvasWidth    - Canvas width in pixels
+ * @param canvasHeight   - Canvas height in pixels
+ * @param bounds         - Axis-aligned bounding box of the tool path
+ * @param gridSpacing    - Distance between grid lines in world units
+ * @param projectionMode - Projection mode to use (default: perspective)
  */
 export function drawGrid(
   context: CanvasRenderingContext2D,
@@ -96,6 +97,7 @@ export function drawGrid(
   canvasHeight: number,
   bounds: PathBounds,
   gridSpacing: number,
+  projectionMode: ProjectionMode = ProjectionMode.PERSPECTIVE
 ): void {
   const extent = computeGridExtent(bounds, gridSpacing);
 
@@ -111,8 +113,8 @@ export function drawGrid(
     context.globalAlpha = isOrigin ? ORIGIN_LINE_OPACITY : isMajor ? MAJOR_LINE_OPACITY : MINOR_LINE_OPACITY;
     context.lineWidth = isOrigin ? ORIGIN_LINE_WIDTH : GRID_LINE_WIDTH;
 
-    const startPoint = project(worldX, extent.minY, 0, camera, canvasWidth, canvasHeight);
-    const endPoint = project(worldX, extent.maxY, 0, camera, canvasWidth, canvasHeight);
+    const startPoint = project(worldX, extent.minY, 0, camera, canvasWidth, canvasHeight, projectionMode);
+    const endPoint = project(worldX, extent.maxY, 0, camera, canvasWidth, canvasHeight, projectionMode);
 
     if (!startPoint || !endPoint) {
       continue;
@@ -133,8 +135,8 @@ export function drawGrid(
     context.globalAlpha = isOrigin ? ORIGIN_LINE_OPACITY : isMajor ? MAJOR_LINE_OPACITY : MINOR_LINE_OPACITY;
     context.lineWidth = isOrigin ? ORIGIN_LINE_WIDTH : GRID_LINE_WIDTH;
 
-    const startPoint = project(extent.minX, worldY, 0, camera, canvasWidth, canvasHeight);
-    const endPoint = project(extent.maxX, worldY, 0, camera, canvasWidth, canvasHeight);
+    const startPoint = project(extent.minX, worldY, 0, camera, canvasWidth, canvasHeight, projectionMode);
+    const endPoint = project(extent.maxX, worldY, 0, camera, canvasWidth, canvasHeight, projectionMode);
 
     if (!startPoint || !endPoint) {
       continue;
