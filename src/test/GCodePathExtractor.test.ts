@@ -384,6 +384,66 @@ X0 Y0
   });
 
   // ---------------------------------------------------------------------------
+  // Motion context (source line, modal F/S)
+  // ---------------------------------------------------------------------------
+
+  it('attaches source line to each segment', () => {
+    const data = extract('G0 X0 Y0\nG1 X10 Y20 F500');
+    expect(data.segments).toHaveLength(2);
+    expect(data.segments[0].context?.sourceLine).toBe(0);
+    expect(data.segments[1].context?.sourceLine).toBe(1);
+  });
+
+  it('tracks modal feed rate from F parameter', () => {
+    const data = extract('G1 X10 F500\nG1 X20');
+    expect(data.segments[0].context?.feedRate).toBe(500);
+    // F500 persists modally
+    expect(data.segments[1].context?.feedRate).toBe(500);
+  });
+
+  it('updates feed rate when a new F value appears', () => {
+    const data = extract('G1 X10 F500\nG1 X20 F1000');
+    expect(data.segments[0].context?.feedRate).toBe(500);
+    expect(data.segments[1].context?.feedRate).toBe(1000);
+  });
+
+  it('tracks modal spindle speed from S parameter', () => {
+    const data = extract('G1 X10 S12000 F500\nG1 X20');
+    expect(data.segments[0].context?.spindleSpeed).toBe(12000);
+    expect(data.segments[1].context?.spindleSpeed).toBe(12000);
+  });
+
+  it('reports null feed rate and spindle speed before they are set', () => {
+    const data = extract('G0 X10 Y10');
+    expect(data.segments[0].context?.feedRate).toBeNull();
+    expect(data.segments[0].context?.spindleSpeed).toBeNull();
+  });
+
+  it('preserves modal F/S across modal (standalone axis) moves', () => {
+    const data = extract('G1 X10 F500 S8000\nX20 Y30\nX40 Y50');
+    expect(data.segments).toHaveLength(3);
+    for (const seg of data.segments) {
+      expect(seg.context?.feedRate).toBe(500);
+      expect(seg.context?.spindleSpeed).toBe(8000);
+    }
+  });
+
+  it('attaches correct source lines for modal moves', () => {
+    const data = extract('G1 X10 Y20 F500\nX15 Y25\nX20 Y30');
+    expect(data.segments).toHaveLength(3);
+    expect(data.segments[0].context?.sourceLine).toBe(0);
+    expect(data.segments[1].context?.sourceLine).toBe(1);
+    expect(data.segments[2].context?.sourceLine).toBe(2);
+  });
+
+  it('tracks F/S set on non-motion lines', () => {
+    // G90 is not a motion command but F/S on the same line should be tracked
+    const data = extract('G90 F600 S10000\nG1 X10');
+    expect(data.segments[0].context?.feedRate).toBe(600);
+    expect(data.segments[0].context?.spindleSpeed).toBe(10000);
+  });
+
+  // ---------------------------------------------------------------------------
   // Integration: surface-wasteboard.ngc fixture
   // ---------------------------------------------------------------------------
 
