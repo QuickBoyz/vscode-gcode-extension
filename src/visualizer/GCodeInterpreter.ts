@@ -26,8 +26,16 @@ import {
   WhileStatementNode,
 } from '../parser/nodes';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
+import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { DEFAULT_INTERPRETER_OPTIONS, InterpreterOptions, MotionHandler } from './types';
+
+/**
+ * G-code Group 1 modal motion commands.
+ * When one of these is issued, it becomes the active motion mode for
+ * subsequent standalone axis parameters (e.g. "X10 Y20" without a G-code).
+ */
+const MODAL_MOTION_COMMANDS = new Set(['G00', 'G01', 'G02', 'G03']);
 
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();
@@ -124,13 +132,18 @@ export class GCodeInterpreter {
 
   private interpretStatement(node: StatementNode): void {
     if (node instanceof MotionCommandNode) {
-      // Track the active motion command for modal G-code
-      this.activeMotionCommand = node.command;
       this.motionHandler.onMotionCommand(
         node.command,
         node.getParameters(),
         this.expressionEvaluator
       );
+
+      // Only update the active modal motion command for Group 1 commands
+      // (G00, G01, G02, G03). Non-modal commands (G17, G28, G90, etc.)
+      // must not overwrite the active motion mode.
+      if (MODAL_MOTION_COMMANDS.has(normalizeCommand(node.command))) {
+        this.activeMotionCommand = node.command;
+      }
     } else if (node instanceof VariableAssignmentNode) {
       this.interpretVariableAssignment(node);
     } else if (node instanceof WhileStatementNode) {
