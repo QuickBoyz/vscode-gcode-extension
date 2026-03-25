@@ -392,9 +392,9 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     }
 
     // Display extra axes (I, J, K, etc.) when present
-    const extraAxes = motionContext?.extraAxes;
-    if (extraAxes && Object.keys(extraAxes).length > 0) {
-      infoExtraElement.textContent = Object.entries(extraAxes)
+    const extraParams = motionContext?.extraParams;
+    if (extraParams && Object.keys(extraParams).length > 0) {
+      infoExtraElement.textContent = Object.entries(extraParams)
         .map(([axis, value]) => `${axis}:${value.toFixed(3)}`)
         .join(' ');
     } else {

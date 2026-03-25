@@ -323,8 +323,8 @@ export class GCodePathExtractor implements MotionHandler {
     if (spindleSpeedValue !== null) this.modalSpindleSpeed = spindleSpeedValue;
   }
 
-  /** Axes that are tracked separately and should not appear in extraAxes. */
-  private static readonly TRACKED_AXES = new Set(['X', 'Y', 'Z', 'F', 'S']);
+  /** Axes that are tracked separately and should not appear in extraParams. */
+  private static readonly TRACKED_PARAMS = new Set(['X', 'Y', 'Z', 'F', 'S']);
 
   /**
    * Builds a {@link MotionContext} snapshot from the current modal state
@@ -334,12 +334,12 @@ export class GCodePathExtractor implements MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): MotionContext {
-    const extraAxes: Record<string, number> = {};
+    const extraParams: Record<string, number> = {};
     for (const param of parameters) {
       const axis = param.axis.toUpperCase();
-      if (!GCodePathExtractor.TRACKED_AXES.has(axis)) {
+      if (!GCodePathExtractor.TRACKED_PARAMS.has(axis)) {
         const value = evaluator.evaluate(param.value);
-        if (value !== null) extraAxes[axis] = value;
+        if (value !== null) extraParams[axis] = value;
       }
     }
 
@@ -347,7 +347,7 @@ export class GCodePathExtractor implements MotionHandler {
       sourceLine: parameters[0].getRange().start.line,
       feedRate: this.modalFeedRate,
       spindleSpeed: this.modalSpindleSpeed,
-      ...(Object.keys(extraAxes).length > 0 ? { extraAxes } : {}),
+      ...(Object.keys(extraParams).length > 0 ? { extraParams } : {}),
     };
   }
 
