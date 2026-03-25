@@ -535,10 +535,13 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     if (newIndex !== hoveredSegmentIndex) {
       hoveredSegmentIndex = newIndex;
       canvas.style.cursor = hoveredSegmentIndex !== null ? 'pointer' : 'grab';
-      hideInfoPanel();
       renderOverlay();
-      startDwellTimer();
     }
+
+    // Always restart the dwell timer when hovering a segment.
+    // The mousemove handler clears the timer on every move, so we
+    // must restart it here even if the segment hasn't changed.
+    startDwellTimer();
   }
 
   canvas.addEventListener('mousemove', (event: MouseEvent) => {
