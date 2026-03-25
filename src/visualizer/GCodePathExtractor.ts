@@ -19,6 +19,7 @@ import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
 import {
+  MotionContext,
   MotionHandler,
   MotionType,
   PathBounds,
@@ -192,6 +193,12 @@ export class GCodePathExtractor implements MotionHandler {
   private isAbsoluteMode = true;
   private segments: PathSegment[] = [];
 
+  /** Modal feed rate (F value), updated when F appears on any motion line. */
+  private modalFeedRate: number | null = null;
+
+  /** Modal spindle speed (S value), updated when S appears on any motion line. */
+  private modalSpindleSpeed: number | null = null;
+
   /**
    * Entry point: interpret the program AST and return extracted path data.
    * Resets all internal state before each extraction so the same instance
@@ -201,6 +208,8 @@ export class GCodePathExtractor implements MotionHandler {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
+    this.modalFeedRate = null;
+    this.modalSpindleSpeed = null;
 
     const interpreter = new GCodeInterpreter(this);
     interpreter.interpret(program);
@@ -217,6 +226,9 @@ export class GCodePathExtractor implements MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): void {
+    // Track modal F/S values from parameters on any motion line.
+    this.updateModalFeedAndSpindle(parameters, evaluator);
+
     const normalisedCommand = normalizeCommand(command);
 
     if (ABSOLUTE_COMMANDS.has(normalisedCommand)) {
@@ -254,6 +266,7 @@ export class GCodePathExtractor implements MotionHandler {
     evaluator: GCodeExpressionEvaluator
   ): void {
     const newPosition = this.computeNewPosition(parameters, evaluator);
+    const context = this.buildMotionContext(parameters);
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
       const offsetI = evaluateAxisValue(parameters, 'I', evaluator) ?? 0;
@@ -265,9 +278,9 @@ export class GCodePathExtractor implements MotionHandler {
         offsetJ,
         motionType === MotionType.ARC_CW
       );
-      this.pushSegment(motionType, arcPoints);
+      this.pushSegment(motionType, arcPoints, context);
     } else {
-      this.pushSegment(motionType, [this.currentPosition, newPosition]);
+      this.pushSegment(motionType, [this.currentPosition, newPosition], context);
     }
 
     this.currentPosition = newPosition;
@@ -296,8 +309,34 @@ export class GCodePathExtractor implements MotionHandler {
     return { x, y, z };
   }
 
-  private pushSegment(type: MotionType, points: PathPoint[]): void {
+  /**
+   * Updates the modal feed rate and spindle speed from the parameters list.
+   * F and S are modal — once set, they persist across subsequent commands.
+   */
+  private updateModalFeedAndSpindle(
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): void {
+    const feedRateValue = evaluateAxisValue(parameters, 'F', evaluator);
+    if (feedRateValue !== null) this.modalFeedRate = feedRateValue;
+    const spindleSpeedValue = evaluateAxisValue(parameters, 'S', evaluator);
+    if (spindleSpeedValue !== null) this.modalSpindleSpeed = spindleSpeedValue;
+  }
+
+  /**
+   * Builds a {@link MotionContext} snapshot from the current modal state
+   * and the source line of the first parameter in the list.
+   */
+  private buildMotionContext(parameters: readonly AxisParameterNode[]): MotionContext {
+    return {
+      sourceLine: parameters[0].getRange().start.line,
+      feedRate: this.modalFeedRate,
+      spindleSpeed: this.modalSpindleSpeed,
+    };
+  }
+
+  private pushSegment(type: MotionType, points: PathPoint[], context: MotionContext): void {
     if (points.length < 2) return;
-    this.segments.push({ type, points });
+    this.segments.push({ type, points, context });
   }
 }

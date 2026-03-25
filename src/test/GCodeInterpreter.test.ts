@@ -260,6 +260,37 @@ O100 ENDWHILE
   });
 
   // ---------------------------------------------------------------------------
+  // Modal motion command filtering (Group 1 only)
+  // ---------------------------------------------------------------------------
+
+  it('does not overwrite active motion with non-Group-1 commands', () => {
+    const handler = new MockMotionHandler();
+    const interpreter = new GCodeInterpreter(handler);
+    // G90 is not Group 1 — it should not replace G1 as the active motion.
+    const program = parse('G1 X10 Y20 F500\nG90\nX30 Y40');
+    interpreter.interpret(program);
+
+    // G1, G90, and the modal X30 Y40 (still G1)
+    expect(handler.calls).toHaveLength(3);
+    expect(handler.calls[0].command).toBe('G1');
+    expect(handler.calls[1].command).toBe('G90');
+    expect(handler.calls[2].command).toBe('G1'); // modal — still G1, not G90
+  });
+
+  it('updates active motion for all Group 1 commands (G0, G1, G2, G3)', () => {
+    const handler = new MockMotionHandler();
+    const interpreter = new GCodeInterpreter(handler);
+    const program = parse('G0 X0 Y0\nX5 Y5\nG1 X10 Y10 F500\nX15 Y15');
+    interpreter.interpret(program);
+
+    expect(handler.calls).toHaveLength(4);
+    expect(handler.calls[0].command).toBe('G0');
+    expect(handler.calls[1].command).toBe('G0'); // modal G0
+    expect(handler.calls[2].command).toBe('G1');
+    expect(handler.calls[3].command).toBe('G1'); // modal G1
+  });
+
+  // ---------------------------------------------------------------------------
   // Reusability
   // ---------------------------------------------------------------------------
 
