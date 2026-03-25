@@ -20,6 +20,7 @@ import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection'
 import { drawAxes } from './axes';
 import { drawGrid } from './grid';
 import { setupInteraction } from './interaction';
+import { hitTestSegments, ProjectedSegmentData } from './hitTesting';
 
 // ---------------------------------------------------------------------------
 // VS Code webview API
@@ -60,6 +61,18 @@ const FIT_VIEW_RADIUS_FACTOR = 2.0;
 /** Default error message when none is provided. */
 const DEFAULT_ERROR_MESSAGE = 'An unknown error occurred';
 
+/** Maximum distance in canvas pixels for a hit test to register. */
+const HIT_TEST_TOLERANCE = 8;
+
+/** Line thickness multiplier for the hover highlight on the overlay. */
+const HOVER_THICKNESS_FACTOR = 3.0;
+
+/** Alpha value for the hover highlight glow. */
+const HOVER_ALPHA = 0.5;
+
+/** Shadow blur radius for the hover highlight. */
+const HOVER_SHADOW_BLUR = 6;
+
 // ---------------------------------------------------------------------------
 // Colour mapping
 // ---------------------------------------------------------------------------
@@ -92,6 +105,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const context = canvas.getContext('2d')!;
+  const overlay = document.getElementById('overlay') as HTMLCanvasElement;
+  const overlayContext = overlay.getContext('2d')!;
   const emptyMessage = document.getElementById('empty-msg') as HTMLDivElement;
   const statsElement = document.getElementById('stats') as HTMLDivElement;
   const rapidColorInput = document.getElementById('rapidColor') as HTMLInputElement;
@@ -127,6 +142,17 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   const camera: CameraState = createCameraState();
   let animationFrameId: number | null = null;
+
+  /** Projected 2D polylines cached during each render pass for hit testing. */
+  let projectedSegmentCache: ProjectedSegmentData[] = [];
+
+  /** Index of the segment currently under the cursor (null when none). */
+  let hoveredSegmentIndex: number | null = null;
+
+  /** Pending mouse position for rAF-gated hit testing. */
+  let pendingHitTestX = 0;
+  let pendingHitTestY = 0;
+  let hitTestScheduled = false;
 
   // Cached background colour from the VS Code CSS variable
   const backgroundColor =
@@ -183,7 +209,9 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     });
     sorted.sort((a, b) => b.depth - a.depth);
 
-    // --- Draw segments ---
+    // --- Draw segments and build projected segment cache ---
+    const newProjectedCache: ProjectedSegmentData[] = [];
+
     for (const entry of sorted) {
       const segment = entry.segment;
       const isRapidMove = segment.type === MotionType.RAPID;
@@ -211,6 +239,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       context.beginPath();
       let pathStarted = false;
       const points = segment.points;
+      const projectedPoints: { x: number; y: number }[] = [];
       for (const point of points) {
         const projected = project(
           point.x,
@@ -225,6 +254,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
           pathStarted = false;
           continue;
         }
+        projectedPoints.push({ x: projected.x, y: projected.y });
         if (!pathStarted) {
           context.moveTo(projected.x, projected.y);
           pathStarted = true;
@@ -233,8 +263,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
         }
       }
       context.stroke();
+
+      // Cache projected points for hit testing (use original segment index)
+      if (projectedPoints.length >= 2) {
+        const segmentIndex = segments.indexOf(entry.segment);
+        newProjectedCache.push({ segmentIndex, points: projectedPoints });
+      }
     }
 
+    projectedSegmentCache = newProjectedCache;
     context.globalAlpha = 1.0;
     context.setLineDash([]);
 
@@ -246,6 +283,48 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     if (animationFrameId === null) {
       animationFrameId = requestAnimationFrame(render);
     }
+  }
+
+  /**
+   * Redraws the overlay canvas with the current hover highlight.
+   * Reads from the projected segment cache — no reprojection needed.
+   */
+  function renderOverlay(): void {
+    const overlayWidth = overlay.width;
+    const overlayHeight = overlay.height;
+    overlayContext.clearRect(0, 0, overlayWidth, overlayHeight);
+
+    if (hoveredSegmentIndex === null || hoveredSegmentIndex >= segments.length) {
+      return;
+    }
+
+    // Find the projected data for the hovered segment
+    const cached = projectedSegmentCache.find((c) => c.segmentIndex === hoveredSegmentIndex);
+    if (!cached || cached.points.length < 2) {
+      return;
+    }
+
+    const segment = segments[hoveredSegmentIndex];
+    const color = getSegmentColor(segment.type, mutableSettings);
+    const thickness = Math.max(MINIMUM_THICKNESS, mutableSettings.lineThickness);
+
+    overlayContext.save();
+    overlayContext.strokeStyle = color;
+    overlayContext.lineWidth = thickness * HOVER_THICKNESS_FACTOR;
+    overlayContext.globalAlpha = HOVER_ALPHA;
+    overlayContext.lineCap = 'round';
+    overlayContext.lineJoin = 'round';
+    overlayContext.shadowColor = color;
+    overlayContext.shadowBlur = HOVER_SHADOW_BLUR;
+    overlayContext.setLineDash([]);
+
+    overlayContext.beginPath();
+    overlayContext.moveTo(cached.points[0].x, cached.points[0].y);
+    for (let i = 1; i < cached.points.length; i++) {
+      overlayContext.lineTo(cached.points[i].x, cached.points[i].y);
+    }
+    overlayContext.stroke();
+    overlayContext.restore();
   }
 
   // ---------- Camera helpers ----------
@@ -289,8 +368,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   function resizeCanvas(): void {
     const wrapper = document.getElementById('canvas-wrapper')!;
-    canvas.width = wrapper.clientWidth;
-    canvas.height = wrapper.clientHeight;
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+    canvas.width = width;
+    canvas.height = height;
+    overlay.width = width;
+    overlay.height = height;
     scheduleRender();
   }
 
@@ -299,7 +382,59 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   // ---------- Mouse interaction ----------
 
-  setupInteraction(canvas, camera, scheduleRender);
+  const interaction = setupInteraction(canvas, camera, scheduleRender);
+
+  // ---------- Hit testing (rAF-gated) ----------
+
+  /**
+   * Converts a MouseEvent to canvas-local coordinates accounting for DPI.
+   */
+  function canvasCoords(event: MouseEvent): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    };
+  }
+
+  function processHitTest(): void {
+    hitTestScheduled = false;
+    const hit = hitTestSegments(pendingHitTestX, pendingHitTestY, projectedSegmentCache, HIT_TEST_TOLERANCE);
+    const newIndex = hit ? hit.segmentIndex : null;
+
+    if (newIndex !== hoveredSegmentIndex) {
+      hoveredSegmentIndex = newIndex;
+      canvas.style.cursor = hoveredSegmentIndex !== null ? 'pointer' : 'grab';
+      renderOverlay();
+    }
+  }
+
+  canvas.addEventListener('mousemove', (event: MouseEvent) => {
+    if (interaction.isDragging()) {
+      if (hoveredSegmentIndex !== null) {
+        hoveredSegmentIndex = null;
+        renderOverlay();
+      }
+      return;
+    }
+    const { x, y } = canvasCoords(event);
+    pendingHitTestX = x;
+    pendingHitTestY = y;
+    if (!hitTestScheduled) {
+      hitTestScheduled = true;
+      requestAnimationFrame(processHitTest);
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    if (hoveredSegmentIndex !== null) {
+      hoveredSegmentIndex = null;
+      canvas.style.cursor = 'grab';
+      renderOverlay();
+    }
+  });
 
   // ---------- Toolbar controls ----------
 
@@ -436,6 +571,11 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       hideLoading();
       segments = message.segments || [];
       bounds = message.bounds || null;
+      // Clear stale hover state
+      hoveredSegmentIndex = null;
+      projectedSegmentCache = [];
+      canvas.style.cursor = 'grab';
+      renderOverlay();
       updateSettingsUI(message.settings || mutableSettings);
       emptyMessage.style.display = segments.length === 0 ? 'flex' : 'none';
       statsElement.textContent = segments.length > 0 ? segments.length + ' segments' : '';
