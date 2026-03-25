@@ -35,10 +35,9 @@ type ExtensionToWebviewMessage =
 /**
  * Message types received from the webview.
  */
-interface SettingsChangeMessage {
-  type: 'settingsChange';
-  settings: VisualizerSettings;
-}
+type WebviewToExtensionMessage =
+  | { type: 'settingsChange'; settings: VisualizerSettings }
+  | { type: 'navigateToLine'; line: number };
 
 /**
  * Callback invoked when the panel is disposed (closed).
@@ -46,11 +45,17 @@ interface SettingsChangeMessage {
 type DisposeCallback = () => void;
 
 /**
+ * Callback invoked when the webview requests navigation to a source line.
+ */
+type NavigateCallback = (line: number) => void;
+
+/**
  * Singleton panel wrapper for the 3D visualizer.
  */
 export class GCodeVisualizerPanel {
   private static instance: GCodeVisualizerPanel | undefined;
   private static disposeCallbacks: DisposeCallback[] = [];
+  private static navigateCallbacks: NavigateCallback[] = [];
 
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
@@ -61,7 +66,7 @@ export class GCodeVisualizerPanel {
     panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
     panel.webview.onDidReceiveMessage(
-      (msg: SettingsChangeMessage) => this.handleMessage(msg),
+      (msg: WebviewToExtensionMessage) => this.handleMessage(msg),
       null,
       this.disposables
     );
@@ -166,6 +171,22 @@ export class GCodeVisualizerPanel {
     };
   }
 
+  /**
+   * Registers a callback that fires when the webview requests navigation
+   * to a source line. Returns a {@link vscode.Disposable} that removes the callback.
+   */
+  static onNavigateToLine(callback: NavigateCallback): vscode.Disposable {
+    GCodeVisualizerPanel.navigateCallbacks.push(callback);
+    return {
+      dispose: () => {
+        const index = GCodeVisualizerPanel.navigateCallbacks.indexOf(callback);
+        if (index !== -1) {
+          GCodeVisualizerPanel.navigateCallbacks.splice(index, 1);
+        }
+      },
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
@@ -219,7 +240,14 @@ export class GCodeVisualizerPanel {
     this.panel.webview.postMessage(msg);
   }
 
-  private handleMessage(msg: SettingsChangeMessage): void {
+  private handleMessage(msg: WebviewToExtensionMessage): void {
+    if (msg.type === 'navigateToLine') {
+      for (const callback of GCodeVisualizerPanel.navigateCallbacks) {
+        callback(msg.line);
+      }
+      return;
+    }
+
     if (msg.type !== 'settingsChange') return;
 
     // Persist all user-configurable settings to workspace configuration.
@@ -248,6 +276,7 @@ export class GCodeVisualizerPanel {
     // Notify all registered dispose callbacks
     const callbacks = [...GCodeVisualizerPanel.disposeCallbacks];
     GCodeVisualizerPanel.disposeCallbacks = [];
+    GCodeVisualizerPanel.navigateCallbacks = [];
     for (const callback of callbacks) {
       callback();
     }

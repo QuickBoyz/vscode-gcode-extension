@@ -41,6 +41,12 @@ export class CommandProvider {
   /** Handle for the debounce timer. */
   private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /** URI of the document that was open when the visualizer was launched. */
+  private activeDocumentUri: vscode.Uri | undefined;
+
+  /** Navigation callback registration (disposed with the panel). */
+  private navigationRegistration: vscode.Disposable | undefined;
+
   /**
    * Register all commands
    */
@@ -98,7 +104,11 @@ export class CommandProvider {
           return;
         }
 
+        // Track the source document URI for navigation
+        this.activeDocumentUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+
         GCodeVisualizerPanel.createOrShow(context, result.data, settings, documentText);
+        this.registerNavigationCallback();
         this.startDocumentChangeListener();
       }
     );
@@ -208,6 +218,38 @@ export class CommandProvider {
   }
 
   /**
+   * Registers a callback to handle source line navigation requests
+   * from the webview. Idempotent: does nothing if already registered.
+   */
+  private registerNavigationCallback(): void {
+    if (this.navigationRegistration) {
+      return;
+    }
+    this.navigationRegistration = GCodeVisualizerPanel.onNavigateToLine((line) => {
+      void this.navigateToSourceLine(line);
+    });
+  }
+
+  /**
+   * Opens (or reveals) the source document and scrolls to the given line.
+   */
+  private async navigateToSourceLine(line: number): Promise<void> {
+    if (!this.activeDocumentUri) {
+      return;
+    }
+
+    const document = await vscode.workspace.openTextDocument(this.activeDocumentUri);
+    const editor = await vscode.window.showTextDocument(document, {
+      viewColumn: vscode.ViewColumn.One,
+      preserveFocus: false,
+    });
+
+    const range = new vscode.Range(line, 0, line, 0);
+    editor.selection = new vscode.Selection(range.start, range.start);
+    editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+  }
+
+  /**
    * Stops the document change listener and clears any pending debounce timer.
    */
   private stopDocumentChangeListener(): void {
@@ -221,6 +263,11 @@ export class CommandProvider {
     if (this.configChangeListener) {
       this.configChangeListener.dispose();
       this.configChangeListener = undefined;
+    }
+
+    if (this.navigationRegistration) {
+      this.navigationRegistration.dispose();
+      this.navigationRegistration = undefined;
     }
 
     if (this.panelDisposeRegistration) {
