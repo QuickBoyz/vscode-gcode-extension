@@ -56,7 +56,7 @@ export function pointToSegmentDistance(
   if (segmentLengthSquared === 0) {
     const deltaX = pointX - segmentStartX;
     const deltaY = pointY - segmentStartY;
-    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    return Math.hypot(deltaX, deltaY);
   }
 
   // Project point onto the line, clamped to [0, 1]
@@ -64,8 +64,7 @@ export function pointToSegmentDistance(
     0,
     Math.min(
       1,
-      ((pointX - segmentStartX) * segmentDeltaX +
-        (pointY - segmentStartY) * segmentDeltaY) /
+      ((pointX - segmentStartX) * segmentDeltaX + (pointY - segmentStartY) * segmentDeltaY) /
         segmentLengthSquared
     )
   );
@@ -75,7 +74,7 @@ export function pointToSegmentDistance(
 
   const distanceDeltaX = pointX - closestX;
   const distanceDeltaY = pointY - closestY;
-  return Math.sqrt(distanceDeltaX * distanceDeltaX + distanceDeltaY * distanceDeltaY);
+  return Math.hypot(distanceDeltaX, distanceDeltaY);
 }
 
 // ---------------------------------------------------------------------------

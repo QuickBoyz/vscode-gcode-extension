@@ -137,6 +137,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const infoFeedElement = document.getElementById('info-feed') as HTMLDivElement;
   const infoSpindleElement = document.getElementById('info-spindle') as HTMLDivElement;
   const infoCoordsElement = document.getElementById('info-coords') as HTMLDivElement;
+  const infoExtraElement = document.getElementById('info-extra') as HTMLDivElement;
 
   // ---------- Viewer state ----------
 
@@ -390,12 +391,22 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       infoSpindleElement.textContent = '';
     }
 
+    // Display extra axes (I, J, K, etc.) when present
+    const extraAxes = motionContext?.extraAxes;
+    if (extraAxes && Object.keys(extraAxes).length > 0) {
+      infoExtraElement.textContent = Object.entries(extraAxes)
+        .map(([axis, value]) => `${axis}:${value.toFixed(3)}`)
+        .join(' ');
+    } else {
+      infoExtraElement.textContent = '';
+    }
+
     const startPoint = segment.points[0];
     const endPoint = segment.points[segment.points.length - 1];
     infoCoordsElement.textContent =
-      `(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, ${startPoint.z.toFixed(3)})` +
+      `X:${startPoint.x.toFixed(3)} Y:${startPoint.y.toFixed(3)} Z:${startPoint.z.toFixed(3)}` +
       ` → ` +
-      `(${endPoint.x.toFixed(3)}, ${endPoint.y.toFixed(3)}, ${endPoint.z.toFixed(3)})`;
+      `X:${endPoint.x.toFixed(3)} Y:${endPoint.y.toFixed(3)} Z:${endPoint.z.toFixed(3)}`;
 
     // Position the panel to the left of the cursor, flip if near left edge
     const wrapper = document.getElementById('canvas-wrapper')!;

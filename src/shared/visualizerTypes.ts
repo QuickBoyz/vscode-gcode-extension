@@ -50,6 +50,8 @@ export interface MotionContext {
   readonly feedRate: number | null;
   /** Active S (spindle speed) value at the time of the move, null if not yet set. */
   readonly spindleSpeed: number | null;
+  /** Extra axis parameters (I, J, K, etc.) present on this command. */
+  readonly extraAxes?: Readonly<Record<string, number>>;
 }
 
 /**
