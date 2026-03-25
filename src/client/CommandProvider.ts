@@ -98,7 +98,7 @@ export class CommandProvider {
           return;
         }
 
-        GCodeVisualizerPanel.createOrShow(context, result.data, settings);
+        GCodeVisualizerPanel.createOrShow(context, result.data, settings, documentText);
         this.startDocumentChangeListener();
       }
     );
@@ -262,11 +262,12 @@ export class CommandProvider {
     GCodeVisualizerPanel.showLoading();
 
     try {
-      const result = await this.workerClient.parse(document.getText());
+      const sourceText = document.getText();
+      const result = await this.workerClient.parse(sourceText);
       const settings = this.readVisualizerSettings();
 
       if (result.success) {
-        GCodeVisualizerPanel.refresh(result.data, settings);
+        GCodeVisualizerPanel.refresh(result.data, settings, sourceText);
       } else {
         GCodeVisualizerPanel.showError(result.errorMessage);
       }

@@ -20,6 +20,7 @@ import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection'
 import { drawAxes } from './axes';
 import { drawGrid } from './grid';
 import { setupInteraction } from './interaction';
+import { hitTestSegments, ProjectedSegmentData } from './hitTesting';
 
 // ---------------------------------------------------------------------------
 // VS Code webview API
@@ -60,6 +61,27 @@ const FIT_VIEW_RADIUS_FACTOR = 2.0;
 /** Default error message when none is provided. */
 const DEFAULT_ERROR_MESSAGE = 'An unknown error occurred';
 
+/** Maximum distance in canvas pixels for a hit test to register. */
+const HIT_TEST_TOLERANCE = 8;
+
+/** Line thickness multiplier for the hover highlight on the overlay. */
+const HOVER_THICKNESS_FACTOR = 3.0;
+
+/** Alpha value for the hover highlight glow. */
+const HOVER_ALPHA = 0.5;
+
+/** Shadow blur radius for the hover highlight. */
+const HOVER_SHADOW_BLUR = 6;
+
+/** Dwell time in milliseconds before showing the info panel. */
+const DWELL_DELAY_MS = 80;
+
+/** Horizontal offset (in CSS pixels) from the cursor to the info panel. */
+const INFO_PANEL_OFFSET_X = 16;
+
+/** Vertical offset (in CSS pixels) from the cursor to the info panel. */
+const INFO_PANEL_OFFSET_Y = 8;
+
 // ---------------------------------------------------------------------------
 // Colour mapping
 // ---------------------------------------------------------------------------
@@ -92,6 +114,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   const context = canvas.getContext('2d')!;
+  const overlay = document.getElementById('overlay') as HTMLCanvasElement;
+  const overlayContext = overlay.getContext('2d')!;
   const emptyMessage = document.getElementById('empty-msg') as HTMLDivElement;
   const statsElement = document.getElementById('stats') as HTMLDivElement;
   const rapidColorInput = document.getElementById('rapidColor') as HTMLInputElement;
@@ -107,6 +131,13 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   ) as HTMLButtonElement;
   const errorBanner = document.getElementById('error-banner') as HTMLDivElement;
   const errorTextElement = document.getElementById('error-text') as HTMLSpanElement;
+  const infoPanel = document.getElementById('info-panel') as HTMLDivElement;
+  const infoTypeElement = document.getElementById('info-type') as HTMLDivElement;
+  const infoSourceElement = document.getElementById('info-source') as HTMLDivElement;
+  const infoFeedElement = document.getElementById('info-feed') as HTMLDivElement;
+  const infoSpindleElement = document.getElementById('info-spindle') as HTMLDivElement;
+  const infoCoordsElement = document.getElementById('info-coords') as HTMLDivElement;
+  const infoExtraElement = document.getElementById('info-extra') as HTMLDivElement;
 
   // ---------- Viewer state ----------
 
@@ -127,6 +158,27 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   const camera: CameraState = createCameraState();
   let animationFrameId: number | null = null;
+
+  /** Projected 2D polylines cached during each render pass for hit testing. */
+  let projectedSegmentCache: ProjectedSegmentData[] = [];
+
+  /** Index of the segment currently under the cursor (null when none). */
+  let hoveredSegmentIndex: number | null = null;
+
+  /** Source file lines from the most recent update message. */
+  let sourceLines: readonly string[] | undefined;
+
+  /** Pending mouse position for rAF-gated hit testing. */
+  let pendingHitTestX = 0;
+  let pendingHitTestY = 0;
+  let hitTestScheduled = false;
+
+  /** Dwell timer for showing the info panel after the cursor pauses. */
+  let dwellTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Last raw mouse position (CSS pixels) for anchoring the info panel. */
+  let lastMouseClientX = 0;
+  let lastMouseClientY = 0;
 
   // Cached background colour from the VS Code CSS variable
   const backgroundColor =
@@ -183,7 +235,9 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     });
     sorted.sort((a, b) => b.depth - a.depth);
 
-    // --- Draw segments ---
+    // --- Draw segments and build projected segment cache ---
+    const newProjectedCache: ProjectedSegmentData[] = [];
+
     for (const entry of sorted) {
       const segment = entry.segment;
       const isRapidMove = segment.type === MotionType.RAPID;
@@ -211,6 +265,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       context.beginPath();
       let pathStarted = false;
       const points = segment.points;
+      const projectedPoints: { x: number; y: number }[] = [];
       for (const point of points) {
         const projected = project(
           point.x,
@@ -225,6 +280,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
           pathStarted = false;
           continue;
         }
+        projectedPoints.push({ x: projected.x, y: projected.y });
         if (!pathStarted) {
           context.moveTo(projected.x, projected.y);
           pathStarted = true;
@@ -233,8 +289,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
         }
       }
       context.stroke();
+
+      // Cache projected points for hit testing (use original segment index)
+      if (projectedPoints.length >= 2) {
+        const segmentIndex = segments.indexOf(entry.segment);
+        newProjectedCache.push({ segmentIndex, points: projectedPoints });
+      }
     }
 
+    projectedSegmentCache = newProjectedCache;
     context.globalAlpha = 1.0;
     context.setLineDash([]);
 
@@ -245,6 +308,161 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   function scheduleRender(): void {
     if (animationFrameId === null) {
       animationFrameId = requestAnimationFrame(render);
+    }
+  }
+
+  /**
+   * Redraws the overlay canvas with the current hover highlight.
+   * Reads from the projected segment cache — no reprojection needed.
+   */
+  function renderOverlay(): void {
+    const overlayWidth = overlay.width;
+    const overlayHeight = overlay.height;
+    overlayContext.clearRect(0, 0, overlayWidth, overlayHeight);
+
+    if (hoveredSegmentIndex === null || hoveredSegmentIndex >= segments.length) {
+      return;
+    }
+
+    // Find the projected data for the hovered segment
+    const cached = projectedSegmentCache.find((c) => c.segmentIndex === hoveredSegmentIndex);
+    if (!cached || cached.points.length < 2) {
+      return;
+    }
+
+    const segment = segments[hoveredSegmentIndex];
+    const color = getSegmentColor(segment.type, mutableSettings);
+    const thickness = Math.max(MINIMUM_THICKNESS, mutableSettings.lineThickness);
+
+    overlayContext.save();
+    overlayContext.strokeStyle = color;
+    overlayContext.lineWidth = thickness * HOVER_THICKNESS_FACTOR;
+    overlayContext.globalAlpha = HOVER_ALPHA;
+    overlayContext.lineCap = 'round';
+    overlayContext.lineJoin = 'round';
+    overlayContext.shadowColor = color;
+    overlayContext.shadowBlur = HOVER_SHADOW_BLUR;
+    overlayContext.setLineDash([]);
+
+    overlayContext.beginPath();
+    overlayContext.moveTo(cached.points[0].x, cached.points[0].y);
+    for (let i = 1; i < cached.points.length; i++) {
+      overlayContext.lineTo(cached.points[i].x, cached.points[i].y);
+    }
+    overlayContext.stroke();
+    overlayContext.restore();
+  }
+
+  // ---------- Info panel (dwell tooltip) ----------
+
+  function formatMotionType(type: MotionType): string {
+    switch (type) {
+      case MotionType.RAPID:
+        return 'Rapid (G0)';
+      case MotionType.FEED:
+        return 'Feed (G1)';
+      case MotionType.ARC_CW:
+        return 'Arc CW (G2)';
+      case MotionType.ARC_CCW:
+        return 'Arc CCW (G3)';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  function showInfoPanel(segmentIndex: number): void {
+    const segment = segments[segmentIndex];
+    const motionContext = segment.context;
+
+    infoTypeElement.textContent = formatMotionType(segment.type);
+
+    if (motionContext) {
+      const lineText = sourceLines?.[motionContext.sourceLine];
+      infoSourceElement.textContent = lineText !== undefined
+        ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
+        : `Line ${motionContext.sourceLine + 1}`;
+      infoFeedElement.textContent =
+        motionContext.feedRate !== null ? `Feed: ${motionContext.feedRate}` : '';
+      infoSpindleElement.textContent =
+        motionContext.spindleSpeed !== null ? `Spindle: ${motionContext.spindleSpeed}` : '';
+    } else {
+      infoSourceElement.textContent = '';
+      infoFeedElement.textContent = '';
+      infoSpindleElement.textContent = '';
+    }
+
+    // Display extra axes (I, J, K, etc.) when present
+    const extraParams = motionContext?.extraParams;
+    if (extraParams && Object.keys(extraParams).length > 0) {
+      infoExtraElement.textContent = Object.entries(extraParams)
+        .map(([axis, value]) => `${axis}:${value.toFixed(3)}`)
+        .join(' ');
+    } else {
+      infoExtraElement.textContent = '';
+    }
+
+    const startPoint = segment.points[0];
+    const endPoint = segment.points[segment.points.length - 1];
+    infoCoordsElement.textContent =
+      `X:${startPoint.x.toFixed(3)} Y:${startPoint.y.toFixed(3)} Z:${startPoint.z.toFixed(3)}` +
+      ` → ` +
+      `X:${endPoint.x.toFixed(3)} Y:${endPoint.y.toFixed(3)} Z:${endPoint.z.toFixed(3)}`;
+
+    // Position the panel to the left of the cursor, flip if near left edge
+    const wrapper = document.getElementById('canvas-wrapper')!;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const cursorX = lastMouseClientX - wrapperRect.left;
+    const cursorY = lastMouseClientY - wrapperRect.top;
+
+    // Temporarily show to measure dimensions
+    infoPanel.style.display = 'block';
+    infoPanel.style.left = '0';
+    infoPanel.style.top = '0';
+    const panelWidth = infoPanel.offsetWidth;
+    const panelHeight = infoPanel.offsetHeight;
+
+    // Default: anchor to the left of cursor
+    let panelX = cursorX - panelWidth - INFO_PANEL_OFFSET_X;
+    if (panelX < 0) {
+      // Flip to the right
+      panelX = cursorX + INFO_PANEL_OFFSET_X;
+    }
+
+    let panelY = cursorY - INFO_PANEL_OFFSET_Y;
+    // Keep within vertical bounds
+    if (panelY + panelHeight > wrapperRect.height) {
+      panelY = wrapperRect.height - panelHeight;
+    }
+    if (panelY < 0) {
+      panelY = 0;
+    }
+
+    infoPanel.style.left = `${panelX}px`;
+    infoPanel.style.top = `${panelY}px`;
+  }
+
+  function hideInfoPanel(): void {
+    infoPanel.style.display = 'none';
+  }
+
+  function clearDwellTimer(): void {
+    if (dwellTimer !== undefined) {
+      clearTimeout(dwellTimer);
+      dwellTimer = undefined;
+    }
+  }
+
+  function startDwellTimer(): void {
+    clearDwellTimer();
+    if (hoveredSegmentIndex !== null) {
+      const segmentIndex = hoveredSegmentIndex;
+      dwellTimer = setTimeout(() => {
+        dwellTimer = undefined;
+        // Only show if still hovering the same segment
+        if (hoveredSegmentIndex === segmentIndex) {
+          showInfoPanel(segmentIndex);
+        }
+      }, DWELL_DELAY_MS);
     }
   }
 
@@ -289,8 +507,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   function resizeCanvas(): void {
     const wrapper = document.getElementById('canvas-wrapper')!;
-    canvas.width = wrapper.clientWidth;
-    canvas.height = wrapper.clientHeight;
+    const width = wrapper.clientWidth;
+    const height = wrapper.clientHeight;
+    canvas.width = width;
+    canvas.height = height;
+    overlay.width = width;
+    overlay.height = height;
     scheduleRender();
   }
 
@@ -299,7 +521,76 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   // ---------- Mouse interaction ----------
 
-  setupInteraction(canvas, camera, scheduleRender);
+  const interaction = setupInteraction(canvas, camera, scheduleRender);
+
+  // ---------- Hit testing (rAF-gated) ----------
+
+  /**
+   * Converts a MouseEvent to canvas-local coordinates accounting for DPI.
+   */
+  function canvasCoords(event: MouseEvent): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    };
+  }
+
+  function processHitTest(): void {
+    hitTestScheduled = false;
+    const hit = hitTestSegments(pendingHitTestX, pendingHitTestY, projectedSegmentCache, HIT_TEST_TOLERANCE);
+    const newIndex = hit ? hit.segmentIndex : null;
+
+    if (newIndex !== hoveredSegmentIndex) {
+      hoveredSegmentIndex = newIndex;
+      canvas.style.cursor = hoveredSegmentIndex !== null ? 'pointer' : 'grab';
+      renderOverlay();
+    }
+
+    // Always restart the dwell timer when hovering a segment.
+    // The mousemove handler clears the timer on every move, so we
+    // must restart it here even if the segment hasn't changed.
+    startDwellTimer();
+  }
+
+  canvas.addEventListener('mousemove', (event: MouseEvent) => {
+    lastMouseClientX = event.clientX;
+    lastMouseClientY = event.clientY;
+
+    if (interaction.isDragging()) {
+      if (hoveredSegmentIndex !== null) {
+        hoveredSegmentIndex = null;
+        clearDwellTimer();
+        hideInfoPanel();
+        renderOverlay();
+      }
+      return;
+    }
+
+    // Any movement resets the dwell timer and hides the info panel
+    clearDwellTimer();
+    hideInfoPanel();
+
+    const { x, y } = canvasCoords(event);
+    pendingHitTestX = x;
+    pendingHitTestY = y;
+    if (!hitTestScheduled) {
+      hitTestScheduled = true;
+      requestAnimationFrame(processHitTest);
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    clearDwellTimer();
+    hideInfoPanel();
+    if (hoveredSegmentIndex !== null) {
+      hoveredSegmentIndex = null;
+      canvas.style.cursor = 'grab';
+      renderOverlay();
+    }
+  });
 
   // ---------- Toolbar controls ----------
 
@@ -436,6 +727,14 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       hideLoading();
       segments = message.segments || [];
       bounds = message.bounds || null;
+      sourceLines = message.sourceLines;
+      // Clear stale hover / dwell state
+      hoveredSegmentIndex = null;
+      projectedSegmentCache = [];
+      clearDwellTimer();
+      hideInfoPanel();
+      canvas.style.cursor = 'grab';
+      renderOverlay();
       updateSettingsUI(message.settings || mutableSettings);
       emptyMessage.style.display = segments.length === 0 ? 'flex' : 'none';
       statsElement.textContent = segments.length > 0 ? segments.length + ' segments' : '';

@@ -26,6 +26,7 @@ type ExtensionToWebviewMessage =
       segments: ToolPathData['segments'];
       bounds: PathBounds;
       settings: VisualizerSettings;
+      sourceLines: readonly string[];
     }
   | { type: 'updateSettings'; settings: VisualizerSettings }
   | { type: 'error'; message: string }
@@ -77,7 +78,8 @@ export class GCodeVisualizerPanel {
   static createOrShow(
     context: vscode.ExtensionContext,
     pathData: ToolPathData,
-    settings: VisualizerSettings
+    settings: VisualizerSettings,
+    sourceText: string
   ): void {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
@@ -85,7 +87,7 @@ export class GCodeVisualizerPanel {
 
     if (GCodeVisualizerPanel.instance) {
       GCodeVisualizerPanel.instance.panel.reveal(column);
-      GCodeVisualizerPanel.instance.update(pathData, settings);
+      GCodeVisualizerPanel.instance.update(pathData, settings, sourceText);
       return;
     }
 
@@ -106,15 +108,15 @@ export class GCodeVisualizerPanel {
     const instance = new GCodeVisualizerPanel(panel);
     GCodeVisualizerPanel.instance = instance;
     instance.initContent(extensionUri);
-    instance.update(pathData, settings);
+    instance.update(pathData, settings, sourceText);
   }
 
   /**
    * Pushes updated path data and settings to an already-open panel.
    * Does nothing when the panel is not visible.
    */
-  static refresh(pathData: ToolPathData, settings: VisualizerSettings): void {
-    GCodeVisualizerPanel.instance?.update(pathData, settings);
+  static refresh(pathData: ToolPathData, settings: VisualizerSettings, sourceText: string): void {
+    GCodeVisualizerPanel.instance?.update(pathData, settings, sourceText);
   }
 
   /**
@@ -197,12 +199,13 @@ export class GCodeVisualizerPanel {
       .replace(/\{\{cspSource\}\}/g, webview.cspSource);
   }
 
-  private update(pathData: ToolPathData, settings: VisualizerSettings): void {
+  private update(pathData: ToolPathData, settings: VisualizerSettings, sourceText: string): void {
     const msg: ExtensionToWebviewMessage = {
       type: 'update',
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
+      sourceLines: sourceText.split(/\r?\n/),
     };
     this.panel.webview.postMessage(msg);
   }

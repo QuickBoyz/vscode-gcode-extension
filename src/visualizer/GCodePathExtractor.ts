@@ -266,7 +266,7 @@ export class GCodePathExtractor implements MotionHandler {
     evaluator: GCodeExpressionEvaluator
   ): void {
     const newPosition = this.computeNewPosition(parameters, evaluator);
-    const context = this.buildMotionContext(parameters);
+    const context = this.buildMotionContext(parameters, evaluator);
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
       const offsetI = evaluateAxisValue(parameters, 'I', evaluator) ?? 0;
@@ -323,15 +323,31 @@ export class GCodePathExtractor implements MotionHandler {
     if (spindleSpeedValue !== null) this.modalSpindleSpeed = spindleSpeedValue;
   }
 
+  /** Axes that are tracked separately and should not appear in extraParams. */
+  private static readonly TRACKED_PARAMS = new Set(['X', 'Y', 'Z', 'F', 'S']);
+
   /**
    * Builds a {@link MotionContext} snapshot from the current modal state
    * and the source line of the first parameter in the list.
    */
-  private buildMotionContext(parameters: readonly AxisParameterNode[]): MotionContext {
+  private buildMotionContext(
+    parameters: readonly AxisParameterNode[],
+    evaluator: GCodeExpressionEvaluator
+  ): MotionContext {
+    const extraParams: Record<string, number> = {};
+    for (const param of parameters) {
+      const axis = param.axis.toUpperCase();
+      if (!GCodePathExtractor.TRACKED_PARAMS.has(axis)) {
+        const value = evaluator.evaluate(param.value);
+        if (value !== null) extraParams[axis] = value;
+      }
+    }
+
     return {
       sourceLine: parameters[0].getRange().start.line,
       feedRate: this.modalFeedRate,
       spindleSpeed: this.modalSpindleSpeed,
+      ...(Object.keys(extraParams).length > 0 ? { extraParams } : {}),
     };
   }
 

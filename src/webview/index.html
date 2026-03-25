@@ -43,6 +43,7 @@
 
   <div id="canvas-wrapper">
     <canvas id="canvas"></canvas>
+    <canvas id="overlay"></canvas>
     <div id="empty-msg" style="display:none">
       No tool path loaded.<br>
       Open a G-code file and run <em>G-Code: Open 3D Visualizer</em>.
@@ -52,6 +53,14 @@
       <span class="loading-text">Parsing...</span>
     </div>
     <div id="stats"></div>
+    <div id="info-panel" style="display:none">
+      <div id="info-type"></div>
+      <div id="info-source"></div>
+      <div id="info-feed"></div>
+      <div id="info-spindle"></div>
+      <div id="info-coords"></div>
+      <div id="info-extra"></div>
+    </div>
   </div>
 </div>
 <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
