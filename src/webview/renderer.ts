@@ -73,6 +73,15 @@ const HOVER_ALPHA = 0.5;
 /** Shadow blur radius for the hover highlight. */
 const HOVER_SHADOW_BLUR = 6;
 
+/** Dwell time in milliseconds before showing the info panel. */
+const DWELL_DELAY_MS = 80;
+
+/** Horizontal offset (in CSS pixels) from the cursor to the info panel. */
+const INFO_PANEL_OFFSET_X = 16;
+
+/** Vertical offset (in CSS pixels) from the cursor to the info panel. */
+const INFO_PANEL_OFFSET_Y = 8;
+
 // ---------------------------------------------------------------------------
 // Colour mapping
 // ---------------------------------------------------------------------------
@@ -122,6 +131,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   ) as HTMLButtonElement;
   const errorBanner = document.getElementById('error-banner') as HTMLDivElement;
   const errorTextElement = document.getElementById('error-text') as HTMLSpanElement;
+  const infoPanel = document.getElementById('info-panel') as HTMLDivElement;
+  const infoTypeElement = document.getElementById('info-type') as HTMLDivElement;
+  const infoSourceElement = document.getElementById('info-source') as HTMLDivElement;
+  const infoFeedElement = document.getElementById('info-feed') as HTMLDivElement;
+  const infoSpindleElement = document.getElementById('info-spindle') as HTMLDivElement;
+  const infoCoordsElement = document.getElementById('info-coords') as HTMLDivElement;
 
   // ---------- Viewer state ----------
 
@@ -149,10 +164,20 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   /** Index of the segment currently under the cursor (null when none). */
   let hoveredSegmentIndex: number | null = null;
 
+  /** Source file lines from the most recent update message. */
+  let sourceLines: readonly string[] | undefined;
+
   /** Pending mouse position for rAF-gated hit testing. */
   let pendingHitTestX = 0;
   let pendingHitTestY = 0;
   let hitTestScheduled = false;
+
+  /** Dwell timer for showing the info panel after the cursor pauses. */
+  let dwellTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Last raw mouse position (CSS pixels) for anchoring the info panel. */
+  let lastMouseClientX = 0;
+  let lastMouseClientY = 0;
 
   // Cached background colour from the VS Code CSS variable
   const backgroundColor =
@@ -327,6 +352,109 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     overlayContext.restore();
   }
 
+  // ---------- Info panel (dwell tooltip) ----------
+
+  function formatMotionType(type: MotionType): string {
+    switch (type) {
+      case MotionType.RAPID:
+        return 'Rapid (G0)';
+      case MotionType.FEED:
+        return 'Feed (G1)';
+      case MotionType.ARC_CW:
+        return 'Arc CW (G2)';
+      case MotionType.ARC_CCW:
+        return 'Arc CCW (G3)';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  function showInfoPanel(segmentIndex: number): void {
+    const segment = segments[segmentIndex];
+    const motionContext = segment.context;
+
+    infoTypeElement.textContent = formatMotionType(segment.type);
+
+    if (motionContext) {
+      const lineText = sourceLines?.[motionContext.sourceLine];
+      infoSourceElement.textContent = lineText !== undefined
+        ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
+        : `Line ${motionContext.sourceLine + 1}`;
+      infoFeedElement.textContent =
+        motionContext.feedRate !== null ? `Feed: ${motionContext.feedRate}` : '';
+      infoSpindleElement.textContent =
+        motionContext.spindleSpeed !== null ? `Spindle: ${motionContext.spindleSpeed}` : '';
+    } else {
+      infoSourceElement.textContent = '';
+      infoFeedElement.textContent = '';
+      infoSpindleElement.textContent = '';
+    }
+
+    const startPoint = segment.points[0];
+    const endPoint = segment.points[segment.points.length - 1];
+    infoCoordsElement.textContent =
+      `(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, ${startPoint.z.toFixed(3)})` +
+      ` → ` +
+      `(${endPoint.x.toFixed(3)}, ${endPoint.y.toFixed(3)}, ${endPoint.z.toFixed(3)})`;
+
+    // Position the panel to the left of the cursor, flip if near left edge
+    const wrapper = document.getElementById('canvas-wrapper')!;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const cursorX = lastMouseClientX - wrapperRect.left;
+    const cursorY = lastMouseClientY - wrapperRect.top;
+
+    // Temporarily show to measure dimensions
+    infoPanel.style.display = 'block';
+    infoPanel.style.left = '0';
+    infoPanel.style.top = '0';
+    const panelWidth = infoPanel.offsetWidth;
+    const panelHeight = infoPanel.offsetHeight;
+
+    // Default: anchor to the left of cursor
+    let panelX = cursorX - panelWidth - INFO_PANEL_OFFSET_X;
+    if (panelX < 0) {
+      // Flip to the right
+      panelX = cursorX + INFO_PANEL_OFFSET_X;
+    }
+
+    let panelY = cursorY - INFO_PANEL_OFFSET_Y;
+    // Keep within vertical bounds
+    if (panelY + panelHeight > wrapperRect.height) {
+      panelY = wrapperRect.height - panelHeight;
+    }
+    if (panelY < 0) {
+      panelY = 0;
+    }
+
+    infoPanel.style.left = `${panelX}px`;
+    infoPanel.style.top = `${panelY}px`;
+  }
+
+  function hideInfoPanel(): void {
+    infoPanel.style.display = 'none';
+  }
+
+  function clearDwellTimer(): void {
+    if (dwellTimer !== undefined) {
+      clearTimeout(dwellTimer);
+      dwellTimer = undefined;
+    }
+  }
+
+  function startDwellTimer(): void {
+    clearDwellTimer();
+    if (hoveredSegmentIndex !== null) {
+      const segmentIndex = hoveredSegmentIndex;
+      dwellTimer = setTimeout(() => {
+        dwellTimer = undefined;
+        // Only show if still hovering the same segment
+        if (hoveredSegmentIndex === segmentIndex) {
+          showInfoPanel(segmentIndex);
+        }
+      }, DWELL_DELAY_MS);
+    }
+  }
+
   // ---------- Camera helpers ----------
 
   function fitView(): void {
@@ -407,18 +535,30 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
     if (newIndex !== hoveredSegmentIndex) {
       hoveredSegmentIndex = newIndex;
       canvas.style.cursor = hoveredSegmentIndex !== null ? 'pointer' : 'grab';
+      hideInfoPanel();
       renderOverlay();
+      startDwellTimer();
     }
   }
 
   canvas.addEventListener('mousemove', (event: MouseEvent) => {
+    lastMouseClientX = event.clientX;
+    lastMouseClientY = event.clientY;
+
     if (interaction.isDragging()) {
       if (hoveredSegmentIndex !== null) {
         hoveredSegmentIndex = null;
+        clearDwellTimer();
+        hideInfoPanel();
         renderOverlay();
       }
       return;
     }
+
+    // Any movement resets the dwell timer and hides the info panel
+    clearDwellTimer();
+    hideInfoPanel();
+
     const { x, y } = canvasCoords(event);
     pendingHitTestX = x;
     pendingHitTestY = y;
@@ -429,6 +569,8 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   });
 
   canvas.addEventListener('mouseleave', () => {
+    clearDwellTimer();
+    hideInfoPanel();
     if (hoveredSegmentIndex !== null) {
       hoveredSegmentIndex = null;
       canvas.style.cursor = 'grab';
@@ -571,9 +713,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       hideLoading();
       segments = message.segments || [];
       bounds = message.bounds || null;
-      // Clear stale hover state
+      sourceLines = message.sourceLines;
+      // Clear stale hover / dwell state
       hoveredSegmentIndex = null;
       projectedSegmentCache = [];
+      clearDwellTimer();
+      hideInfoPanel();
       canvas.style.cursor = 'grab';
       renderOverlay();
       updateSettingsUI(message.settings || mutableSettings);
