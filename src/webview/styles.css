@@ -179,6 +179,16 @@ button.active {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vscode-editor-font-size, 12px);
 }
+#info-panel #info-goto {
+  display: none;
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: none;
+  cursor: pointer;
+  margin-top: 2px;
+}
+#info-panel #info-goto:hover {
+  text-decoration: underline;
+}
 #error-banner {
   display: none;
   align-items: center;
