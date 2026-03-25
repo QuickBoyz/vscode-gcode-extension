@@ -81,12 +81,8 @@ export class GCodeVisualizerPanel {
     settings: VisualizerSettings,
     sourceText: string
   ): void {
-    const column = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
-
     if (GCodeVisualizerPanel.instance) {
-      GCodeVisualizerPanel.instance.panel.reveal(column);
+      GCodeVisualizerPanel.instance.panel.reveal();
       GCodeVisualizerPanel.instance.update(pathData, settings, sourceText);
       return;
     }
@@ -97,7 +93,7 @@ export class GCodeVisualizerPanel {
     const panel = vscode.window.createWebviewPanel(
       'gcodeVisualizer',
       'G-Code 3D Visualizer',
-      column ?? vscode.ViewColumn.Beside,
+      vscode.ViewColumn.Beside,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
