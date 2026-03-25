@@ -40,6 +40,19 @@ export interface PathPoint {
 }
 
 /**
+ * Per-segment metadata linking a path segment back to its G-code source.
+ * Built by the extractor from modal interpreter state.
+ */
+export interface MotionContext {
+  /** 0-based line number in the source file that produced this segment. */
+  readonly sourceLine: number;
+  /** Active F (feed rate) value at the time of the move, null if not yet set. */
+  readonly feedRate: number | null;
+  /** Active S (spindle speed) value at the time of the move, null if not yet set. */
+  readonly spindleSpeed: number | null;
+}
+
+/**
  * A single motion segment.
  *
  * For linear moves (RAPID / FEED) `points` has exactly two entries.
@@ -50,6 +63,8 @@ export interface PathSegment {
   readonly type: MotionType;
   /** Ordered points, at minimum [start, end]. */
   readonly points: readonly PathPoint[];
+  /** Source context (line number, feed rate, spindle speed). */
+  readonly context?: MotionContext;
 }
 
 /**

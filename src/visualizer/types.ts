@@ -8,6 +8,7 @@
 
 export { MotionType, ProjectionMode, DEFAULT_VISUALIZER_SETTINGS } from '../shared/visualizerTypes';
 export type {
+  MotionContext,
   PathPoint,
   PathSegment,
   PathBounds,
