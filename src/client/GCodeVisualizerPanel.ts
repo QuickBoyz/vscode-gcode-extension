@@ -14,7 +14,8 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { PathBounds, ProjectionMode, ToolPathData, VisualizerSettings } from '../visualizer/types';
+import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
+import { PathBounds, ToolPathData, VisualizerSettings } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
 /**
@@ -58,10 +59,12 @@ export class GCodeVisualizerPanel {
   private static navigateCallbacks: NavigateCallback[] = [];
 
   private readonly panel: vscode.WebviewPanel;
+  private readonly configProvider: ClientConfigProvider;
   private disposables: vscode.Disposable[] = [];
 
-  private constructor(panel: vscode.WebviewPanel) {
+  private constructor(panel: vscode.WebviewPanel, configProvider: ClientConfigProvider) {
     this.panel = panel;
+    this.configProvider = configProvider;
 
     panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
@@ -84,7 +87,8 @@ export class GCodeVisualizerPanel {
     context: vscode.ExtensionContext,
     pathData: ToolPathData,
     settings: VisualizerSettings,
-    sourceText: string
+    sourceText: string,
+    configProvider: ClientConfigProvider
   ): void {
     if (GCodeVisualizerPanel.instance) {
       GCodeVisualizerPanel.instance.panel.reveal();
@@ -106,7 +110,7 @@ export class GCodeVisualizerPanel {
       }
     );
 
-    const instance = new GCodeVisualizerPanel(panel);
+    const instance = new GCodeVisualizerPanel(panel, configProvider);
     GCodeVisualizerPanel.instance = instance;
     instance.initContent(extensionUri);
     instance.update(pathData, settings, sourceText);
@@ -250,19 +254,8 @@ export class GCodeVisualizerPanel {
 
     if (msg.type !== 'settingsChange') return;
 
-    // Persist all user-configurable settings to workspace configuration.
-    const config = vscode.workspace.getConfiguration('gcode');
-    void config.update('visualizer.rapidColor', msg.settings.rapidColor, true);
-    void config.update('visualizer.feedColor', msg.settings.feedColor, true);
-    void config.update('visualizer.arcColor', msg.settings.arcColor, true);
-    void config.update('visualizer.lineThickness', msg.settings.lineThickness, true);
-    void config.update('visualizer.showGrid', msg.settings.showGrid, true);
-    void config.update('visualizer.showRapidMoves', msg.settings.showRapidMoves, true);
-    void config.update(
-      'visualizer.projection',
-      msg.settings.projection satisfies ProjectionMode,
-      true
-    );
+    // Persist visualizer settings via the config provider.
+    void this.configProvider.updateConfig({ visualizer: msg.settings });
   }
 
   private dispose(): void {
