@@ -17,20 +17,17 @@ import {
   SEMANTIC_TOKENS_LEGEND,
   SemanticTokensProvider,
 } from '../providers/SemanticTokensProvider';
-import { GCODE_LANGUAGE_ID } from '../constants';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { HoverProvider } from '../providers/HoverProvider';
 import { CompletionProvider } from '../providers/CompletionProvider';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
+import { GCodeConfig } from '../config';
+import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
 
 // Create a connection to the client
-const connection = createConnection(ProposedFeatures.all),
-  // Create a text document manager
-  documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument),
-  // Note: GCodeSettings is now imported from DocumentStateManager
-
-  // Cache document settings
-  documentSettings: Map<string, Thenable<GCodeSettings>> = new Map();
+const connection = createConnection(ProposedFeatures.all);
+const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+const configProvider = new ServerConfigProvider(connection);
 
 // Server settings synced from the client
 connection.onInitialize((_params: InitializeParams): InitializeResult => {
@@ -70,23 +67,31 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
 
 // Handle settings changes
 connection.onDidChangeConfiguration(() => {
-  // Clear cached settings when configuration changes
-  documentSettings.clear();
-  // Clear all cached document states and data providers
+  // Clear cached config and document states when configuration changes
+  configProvider.invalidate();
   documentStateManager.clearAll();
   connection.console.log('Configuration changed - caches cleared');
 });
 
-function getDocumentSettings(uri: string): Thenable<GCodeSettings> {
-  let settings = documentSettings.get(uri);
-  if (!settings) {
-    settings = connection.workspace.getConfiguration({
-      scopeUri: uri,
-      section: GCODE_LANGUAGE_ID,
-    });
-    documentSettings.set(uri, settings);
-  }
-  return settings;
+/**
+ * Fetches the scoped {@link GCodeConfig} for a document URI and
+ * bridges it to the {@link GCodeSettings} shape expected by
+ * existing providers.
+ */
+async function getDocumentSettings(uri: string): Promise<GCodeSettings> {
+  const config = await configProvider.getConfig(uri);
+  return toGCodeSettings(config);
+}
+
+/**
+ * Converts a {@link GCodeConfig} to the {@link GCodeSettings} bridge
+ * type consumed by existing providers.
+ */
+function toGCodeSettings(config: GCodeConfig): GCodeSettings {
+  return {
+    formatter: config.formatter,
+    dialect: config.dialect,
+  };
 }
 
 const formatterService = new FormatterService(),
