@@ -203,7 +203,9 @@ export enum CompletionItemTypes {
 export const OPERATORS_SORT_PREFIX = 'z_';
 
 /**
- * Default formatter options
+ * Default formatter options.
+ *
+ * @deprecated Use `DEFAULT_GCODE_CONFIG.formatter` from `src/config/defaults` instead.
  */
 export const DEFAULT_FORMATTER_SETTINGS: FormatterSettings = {
   addLineNumbers: false,

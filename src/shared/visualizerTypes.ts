@@ -87,6 +87,9 @@ export interface ToolPathData {
 
 /**
  * User-configurable visual appearance for the 3D viewer.
+ *
+ * @deprecated Use `VisualizerConfig` from `src/config/types` instead.
+ * This type is retained because the webview imports it directly.
  */
 export interface VisualizerSettings {
   /** Hex colour string for rapid (G0) moves, e.g. "#ff6b6b" */
@@ -109,6 +112,8 @@ export interface VisualizerSettings {
 
 /**
  * Sensible defaults that are also reflected in `package.json` configuration.
+ *
+ * @deprecated Use `DEFAULT_GCODE_CONFIG.visualizer` from `src/config/defaults` instead.
  */
 export const DEFAULT_VISUALIZER_SETTINGS: VisualizerSettings = {
   rapidColor: '#ff6b6b',

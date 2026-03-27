@@ -1,5 +1,7 @@
 /**
- * Formatter configuration options
+ * Formatter configuration options.
+ *
+ * @deprecated Use `FormatterConfig` from `src/config/types` instead.
  */
 export interface FormatterSettings {
   /**

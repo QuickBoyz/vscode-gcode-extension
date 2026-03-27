@@ -31,6 +31,8 @@ import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 
 /**
  * Configuration options for the G-code interpreter.
+ *
+ * @deprecated Use `ExtractorConfig` from `src/config/types` instead.
  */
 export interface InterpreterOptions {
   /** Maximum total loop iterations before the interpreter stops. */
@@ -39,6 +41,8 @@ export interface InterpreterOptions {
 
 /**
  * Sensible defaults for the interpreter.
+ *
+ * @deprecated Use `DEFAULT_GCODE_CONFIG.extractor` from `src/config/defaults` instead.
  */
 export const DEFAULT_INTERPRETER_OPTIONS: InterpreterOptions = {
   maxIterations: 10_000,
