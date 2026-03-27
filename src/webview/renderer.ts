@@ -388,9 +388,10 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
     if (motionContext) {
       const lineText = sourceLines?.[motionContext.sourceLine];
-      infoSourceElement.textContent = lineText !== undefined
-        ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
-        : `Line ${motionContext.sourceLine + 1}`;
+      infoSourceElement.textContent =
+        lineText !== undefined
+          ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
+          : `Line ${motionContext.sourceLine + 1}`;
       infoFeedElement.textContent =
         motionContext.feedRate !== null ? `Feed: ${motionContext.feedRate}` : '';
       infoSpindleElement.textContent =
@@ -605,7 +606,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   function processHitTest(): void {
     hitTestScheduled = false;
-    const hit = hitTestSegments(pendingHitTestX, pendingHitTestY, projectedSegmentCache, HIT_TEST_TOLERANCE);
+    const hit = hitTestSegments(
+      pendingHitTestX,
+      pendingHitTestY,
+      projectedSegmentCache,
+      HIT_TEST_TOLERANCE
+    );
     const newIndex = hit ? hit.segmentIndex : null;
 
     if (newIndex !== hoveredSegmentIndex) {
@@ -657,10 +663,13 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   canvas.addEventListener('mouseleave', () => {
     clearDwellTimer();
-    clearGraceZoneTimer();
-    // Don't hide panel if cursor moved into it (mouseleave fires on canvas
-    // when entering the overlapping info panel)
-    if (!cursorInInfoPanel) {
+    // When the cursor leaves the canvas it may be entering the info panel.
+    // mouseleave fires BEFORE mouseenter on the panel, so cursorInInfoPanel
+    // is still false. Use the grace zone timer to give the panel's
+    // mouseenter a chance to fire before we dismiss.
+    if (infoPanel.style.display === 'block' && !cursorInInfoPanel) {
+      startGraceZoneDismiss();
+    } else if (!cursorInInfoPanel) {
       hideInfoPanel();
     }
     if (hoveredSegmentIndex !== null) {
