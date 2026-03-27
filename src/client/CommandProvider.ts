@@ -249,7 +249,9 @@ export class CommandProvider {
       editor.selection = new vscode.Selection(range.start, range.start);
       editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
     } catch {
-      // Document may have been deleted from disk
+      vscode.window.showErrorMessage(
+        'Could not open the source file. It may have been moved or deleted.'
+      );
     }
   }
 
@@ -323,7 +325,7 @@ export class CommandProvider {
         GCodeVisualizerPanel.showError(result.errorMessage);
       }
     } catch {
-      console.warn(
+      vscode.window.showErrorMessage(
         'Failed to refresh visualizer from document change. ' +
           'This may occur in unsupported environments (e.g. Electron without nodeIntegration).'
       );
