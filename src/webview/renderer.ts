@@ -141,7 +141,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const infoSpindleElement = document.getElementById('info-spindle') as HTMLDivElement;
   const infoCoordsElement = document.getElementById('info-coords') as HTMLDivElement;
   const infoExtraElement = document.getElementById('info-extra') as HTMLDivElement;
-  const infoGotoLink = document.getElementById('info-goto') as HTMLAnchorElement;
+  const infoGotoLink = document.getElementById('info-goto') as HTMLButtonElement;
 
   // ---------- Viewer state ----------
 
@@ -498,13 +498,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   infoPanel.addEventListener('mouseleave', () => {
     cursorInInfoPanel = false;
+    clearGraceZoneTimer();
     hideInfoPanel();
-    // The cursor may re-enter the canvas — let the next mousemove handle it
   });
 
   // "Go to line" link click — post navigation message to extension
-  infoGotoLink.addEventListener('click', (event: MouseEvent) => {
-    event.preventDefault();
+  infoGotoLink.addEventListener('click', () => {
     const line = infoGotoLink.dataset.line;
     if (line !== undefined) {
       vscode.postMessage({ type: 'navigateToLine', line: parseInt(line, 10) });

@@ -238,15 +238,19 @@ export class CommandProvider {
       return;
     }
 
-    const document = await vscode.workspace.openTextDocument(this.activeDocumentUri);
-    const editor = await vscode.window.showTextDocument(document, {
-      viewColumn: vscode.ViewColumn.One,
-      preserveFocus: false,
-    });
+    try {
+      const document = await vscode.workspace.openTextDocument(this.activeDocumentUri);
+      const editor = await vscode.window.showTextDocument(document, {
+        viewColumn: vscode.ViewColumn.One,
+        preserveFocus: false,
+      });
 
-    const range = new vscode.Range(line, 0, line, 0);
-    editor.selection = new vscode.Selection(range.start, range.start);
-    editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+      const range = new vscode.Range(line, 0, line, 0);
+      editor.selection = new vscode.Selection(range.start, range.start);
+      editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+    } catch {
+      // Document may have been deleted from disk
+    }
   }
 
   /**
