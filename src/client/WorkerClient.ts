@@ -18,10 +18,11 @@ import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
   WorkerErrorResponse,
+  WorkerExtractorConfig,
   WorkerRequest,
   WorkerResponse,
 } from '../shared/visualizerTypes';
-import { DEFAULT_INTERPRETER_OPTIONS } from '../visualizer/types';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;
@@ -71,20 +72,20 @@ export class WorkerClient {
    * (generation-counter cancellation). Only the most recent request
    * resolves to the caller.
    *
-   * @param text            Raw G-code file content
-   * @param maxIterations   Maximum interpreter loop iterations
-   * @returns               A {@link VisualizerResult} discriminated union
+   * @param text             Raw G-code file content
+   * @param extractorConfig  Extractor / interpreter configuration
+   * @returns                A {@link VisualizerResult} discriminated union
    */
   parse(
     text: string,
-    maxIterations: number = DEFAULT_INTERPRETER_OPTIONS.maxIterations
+    extractorConfig: WorkerExtractorConfig = DEFAULT_GCODE_CONFIG.extractor
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
     if (this.synchronousFallback) {
-      return Promise.resolve(this.fallbackService.extractToolPath(text));
+      return Promise.resolve(this.fallbackService.extractToolPath(text, extractorConfig));
     }
 
     this.generationCounter += 1;
@@ -97,14 +98,14 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      return Promise.resolve(this.fallbackService.extractToolPath(text));
+      return Promise.resolve(this.fallbackService.extractToolPath(text, extractorConfig));
     }
 
     const request: WorkerRequest = {
       type: 'parse',
       id: requestId,
       text,
-      maxIterations,
+      extractor: extractorConfig,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {

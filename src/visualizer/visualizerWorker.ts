@@ -22,7 +22,7 @@ parentPort?.on('message', (request: WorkerRequest) => {
 
   try {
     const startTime = Date.now();
-    const result = service.extractToolPath(request.text);
+    const result = service.extractToolPath(request.text, request.extractor);
     const durationMs = Date.now() - startTime;
 
     const response: WorkerResponse = {

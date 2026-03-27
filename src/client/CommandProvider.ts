@@ -99,7 +99,7 @@ export class CommandProvider {
         const workerClient = this.ensureWorkerClient(context);
         const config = await this.configProvider.getConfig();
 
-        const result = await workerClient.parse(documentText);
+        const result = await workerClient.parse(documentText, config.extractor);
         const settings: VisualizerSettings = config.visualizer;
 
         if (!result.success) {
@@ -294,8 +294,8 @@ export class CommandProvider {
 
     try {
       const sourceText = document.getText();
-      const result = await this.workerClient.parse(sourceText);
       const config = await this.configProvider.getConfig();
+      const result = await this.workerClient.parse(sourceText, config.extractor);
       const settings: VisualizerSettings = config.visualizer;
 
       if (result.success) {
