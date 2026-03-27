@@ -6,17 +6,17 @@
  * the build job, so we compile the TypeScript here if the file is absent.
  */
 
-'use strict';
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-
-module.exports = async function () {
+export default function () {
   const workerDist = path.resolve(__dirname, 'dist/visualizer/visualizerWorker.js');
   if (!fs.existsSync(workerDist)) {
-    console.log('\n[jest globalSetup] dist/visualizer/visualizerWorker.js not found — building...');
+    console.info(
+      '\n[jest globalSetup] dist/visualizer/visualizerWorker.js not found — building...'
+    );
     execSync('npx tsc --project tsconfig.build.json', { stdio: 'inherit', cwd: __dirname });
-    console.log('[jest globalSetup] Build complete.\n');
+    console.info('[jest globalSetup] Build complete.\n');
   }
-};
+}

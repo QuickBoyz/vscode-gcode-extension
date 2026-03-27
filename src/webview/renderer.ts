@@ -82,6 +82,9 @@ const INFO_PANEL_OFFSET_X = 16;
 /** Vertical offset (in CSS pixels) from the cursor to the info panel. */
 const INFO_PANEL_OFFSET_Y = 8;
 
+/** Grace zone delay in ms — time allowed for cursor to reach the tooltip. */
+const GRACE_ZONE_DELAY_MS = 300;
+
 // ---------------------------------------------------------------------------
 // Colour mapping
 // ---------------------------------------------------------------------------
@@ -138,6 +141,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   const infoSpindleElement = document.getElementById('info-spindle') as HTMLDivElement;
   const infoCoordsElement = document.getElementById('info-coords') as HTMLDivElement;
   const infoExtraElement = document.getElementById('info-extra') as HTMLDivElement;
+  const infoGotoLink = document.getElementById('info-goto') as HTMLButtonElement;
 
   // ---------- Viewer state ----------
 
@@ -179,6 +183,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
   /** Last raw mouse position (CSS pixels) for anchoring the info panel. */
   let lastMouseClientX = 0;
   let lastMouseClientY = 0;
+
+  /** Grace zone dismiss timer — allows cursor to reach the tooltip. */
+  let graceZoneTimer: ReturnType<typeof setTimeout> | undefined;
+
+  /** Whether the cursor is currently inside the info panel. */
+  let cursorInInfoPanel = false;
 
   // Cached background colour from the VS Code CSS variable
   const backgroundColor =
@@ -378,9 +388,10 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
     if (motionContext) {
       const lineText = sourceLines?.[motionContext.sourceLine];
-      infoSourceElement.textContent = lineText !== undefined
-        ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
-        : `Line ${motionContext.sourceLine + 1}`;
+      infoSourceElement.textContent =
+        lineText !== undefined
+          ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
+          : `Line ${motionContext.sourceLine + 1}`;
       infoFeedElement.textContent =
         motionContext.feedRate !== null ? `Feed: ${motionContext.feedRate}` : '';
       infoSpindleElement.textContent =
@@ -439,11 +450,65 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
     infoPanel.style.left = `${panelX}px`;
     infoPanel.style.top = `${panelY}px`;
+    infoPanel.style.pointerEvents = 'auto';
+
+    // Show "Go to line N" link when context is available
+    if (motionContext) {
+      infoGotoLink.textContent = `Go to line ${motionContext.sourceLine + 1}`;
+      infoGotoLink.style.display = 'block';
+      infoGotoLink.dataset.line = String(motionContext.sourceLine);
+    } else {
+      infoGotoLink.style.display = 'none';
+    }
   }
 
   function hideInfoPanel(): void {
     infoPanel.style.display = 'none';
+    infoPanel.style.pointerEvents = 'none';
+    cursorInInfoPanel = false;
   }
+
+  function clearGraceZoneTimer(): void {
+    if (graceZoneTimer !== undefined) {
+      clearTimeout(graceZoneTimer);
+      graceZoneTimer = undefined;
+    }
+  }
+
+  /**
+   * Starts the grace zone dismiss timer. If the cursor doesn't enter
+   * the info panel within the grace period, the panel is hidden.
+   */
+  function startGraceZoneDismiss(): void {
+    clearGraceZoneTimer();
+    graceZoneTimer = setTimeout(() => {
+      graceZoneTimer = undefined;
+      if (!cursorInInfoPanel) {
+        hideInfoPanel();
+      }
+    }, GRACE_ZONE_DELAY_MS);
+  }
+
+  // Info panel mouse events — keep panel open while cursor is inside
+  infoPanel.addEventListener('mouseenter', () => {
+    cursorInInfoPanel = true;
+    clearGraceZoneTimer();
+    clearDwellTimer();
+  });
+
+  infoPanel.addEventListener('mouseleave', () => {
+    cursorInInfoPanel = false;
+    clearGraceZoneTimer();
+    hideInfoPanel();
+  });
+
+  // "Go to line" link click — post navigation message to extension
+  infoGotoLink.addEventListener('click', () => {
+    const line = infoGotoLink.dataset.line;
+    if (line !== undefined) {
+      vscode.postMessage({ type: 'navigateToLine', line: parseInt(line, 10) });
+    }
+  });
 
   function clearDwellTimer(): void {
     if (dwellTimer !== undefined) {
@@ -540,7 +605,12 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   function processHitTest(): void {
     hitTestScheduled = false;
-    const hit = hitTestSegments(pendingHitTestX, pendingHitTestY, projectedSegmentCache, HIT_TEST_TOLERANCE);
+    const hit = hitTestSegments(
+      pendingHitTestX,
+      pendingHitTestY,
+      projectedSegmentCache,
+      HIT_TEST_TOLERANCE
+    );
     const newIndex = hit ? hit.segmentIndex : null;
 
     if (newIndex !== hoveredSegmentIndex) {
@@ -563,15 +633,23 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       if (hoveredSegmentIndex !== null) {
         hoveredSegmentIndex = null;
         clearDwellTimer();
+        clearGraceZoneTimer();
         hideInfoPanel();
         renderOverlay();
       }
       return;
     }
 
-    // Any movement resets the dwell timer and hides the info panel
+    // Any movement resets the dwell timer.
+    // If the info panel is visible, start the grace zone timer
+    // instead of hiding immediately — gives the user time to
+    // move the cursor into the panel.
     clearDwellTimer();
-    hideInfoPanel();
+    if (infoPanel.style.display === 'block' && !cursorInInfoPanel) {
+      startGraceZoneDismiss();
+    } else if (!cursorInInfoPanel) {
+      hideInfoPanel();
+    }
 
     const { x, y } = canvasCoords(event);
     pendingHitTestX = x;
@@ -584,7 +662,15 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   canvas.addEventListener('mouseleave', () => {
     clearDwellTimer();
-    hideInfoPanel();
+    // When the cursor leaves the canvas it may be entering the info panel.
+    // mouseleave fires BEFORE mouseenter on the panel, so cursorInInfoPanel
+    // is still false. Use the grace zone timer to give the panel's
+    // mouseenter a chance to fire before we dismiss.
+    if (infoPanel.style.display === 'block' && !cursorInInfoPanel) {
+      startGraceZoneDismiss();
+    } else if (!cursorInInfoPanel) {
+      hideInfoPanel();
+    }
     if (hoveredSegmentIndex !== null) {
       hoveredSegmentIndex = null;
       canvas.style.cursor = 'grab';
@@ -732,6 +818,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
       hoveredSegmentIndex = null;
       projectedSegmentCache = [];
       clearDwellTimer();
+      clearGraceZoneTimer();
       hideInfoPanel();
       canvas.style.cursor = 'grab';
       renderOverlay();
