@@ -77,7 +77,7 @@ export class WorkerClient {
    */
   parse(
     text: string,
-    maxIterations = DEFAULT_GCODE_CONFIG.extractor.maxIterations
+    maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));

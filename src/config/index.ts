@@ -15,6 +15,7 @@ export type {
   ExtractorConfig,
   FormatterConfig,
   GCodeConfig,
+  InterpreterConfig,
   MachineHomePosition,
   VisualizerConfig,
 } from './types';

@@ -153,7 +153,7 @@ describe('ConfigProvider', () => {
     const config = await provider.getConfig();
 
     expect(config.extractor.machineHome).toEqual({ x: 10, y: 20, z: 30 });
-    expect(config.extractor.maxIterations).toBe(DEFAULT_GCODE_CONFIG.extractor.maxIterations);
+    expect(config.interpreter.maxIterations).toBe(DEFAULT_GCODE_CONFIG.interpreter.maxIterations);
   });
 
   it('ignores undefined values in partial config', async () => {

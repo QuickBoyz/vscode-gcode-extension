@@ -43,10 +43,14 @@ describe('DEFAULT_GCODE_CONFIG', () => {
   it('has all required extractor fields', () => {
     const extractor = DEFAULT_GCODE_CONFIG.extractor;
     expect(extractor).toHaveProperty('machineHome');
-    expect(extractor).toHaveProperty('maxIterations');
     expect(extractor.machineHome).toHaveProperty('x');
     expect(extractor.machineHome).toHaveProperty('y');
     expect(extractor.machineHome).toHaveProperty('z');
+  });
+
+  it('has all required interpreter fields', () => {
+    const interpreter = DEFAULT_GCODE_CONFIG.interpreter;
+    expect(interpreter).toHaveProperty('maxIterations');
   });
 
   // ---------------------------------------------------------------------------
@@ -86,6 +90,10 @@ describe('DEFAULT_GCODE_CONFIG', () => {
   it('extractor defaults match package.json', () => {
     const extractor = DEFAULT_GCODE_CONFIG.extractor;
     expect(extractor.machineHome).toEqual({ x: 0, y: 0, z: 0 });
-    expect(extractor.maxIterations).toBe(10_000);
+  });
+
+  it('interpreter defaults match package.json', () => {
+    const interpreter = DEFAULT_GCODE_CONFIG.interpreter;
+    expect(interpreter.maxIterations).toBe(10_000);
   });
 });

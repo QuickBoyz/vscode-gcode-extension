@@ -26,7 +26,7 @@ import {
   WhileStatementNode,
 } from '../parser/nodes';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
-import { DEFAULT_GCODE_CONFIG, ExtractorConfig } from '../config';
+import { DEFAULT_GCODE_CONFIG, InterpreterConfig } from '../config';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { MotionHandler } from './types';
@@ -41,7 +41,7 @@ const MODAL_MOTION_COMMANDS = new Set(['G00', 'G01', 'G02', 'G03']);
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
-  private readonly options: ExtractorConfig;
+  private readonly options: InterpreterConfig;
   private totalIterations = 0;
   private iterationLimitReached = false;
 
@@ -55,9 +55,9 @@ export class GCodeInterpreter {
 
   constructor(
     private readonly motionHandler: MotionHandler,
-    options?: Partial<ExtractorConfig>
+    options?: Partial<InterpreterConfig>
   ) {
-    this.options = { ...DEFAULT_GCODE_CONFIG.extractor, ...options };
+    this.options = { ...DEFAULT_GCODE_CONFIG.interpreter, ...options };
     this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
   }
 

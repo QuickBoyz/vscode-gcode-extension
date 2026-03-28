@@ -53,13 +53,19 @@ export interface FormatterConfig {
 }
 
 /**
- * Configuration for the G-code path extractor / interpreter.
+ * Configuration for the G-code interpreter (loop limits, execution behaviour).
+ */
+export interface InterpreterConfig {
+  /** Maximum total loop iterations before the interpreter stops. */
+  readonly maxIterations: number;
+}
+
+/**
+ * Configuration for the G-code path extractor (geometry extraction settings).
  */
 export interface ExtractorConfig {
   /** Machine home position for G28 return-to-home. */
   readonly machineHome: MachineHomePosition;
-  /** Maximum total loop iterations before the interpreter stops. */
-  readonly maxIterations: number;
 }
 
 /**
@@ -72,8 +78,10 @@ export interface GCodeConfig {
   readonly formatter: FormatterConfig;
   /** 3D visualizer settings. */
   readonly visualizer: VisualizerConfig;
-  /** Path extractor / interpreter settings. */
+  /** Path extractor settings. */
   readonly extractor: ExtractorConfig;
+  /** Interpreter settings (loop limits, execution behaviour). */
+  readonly interpreter: InterpreterConfig;
 }
 
 /**

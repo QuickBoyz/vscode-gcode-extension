@@ -71,7 +71,9 @@ export class ClientConfigProvider extends ConfigProvider {
       },
       extractor: {
         machineHome: config.get<Record<string, number>>('extractor.machineHome'),
-        maxIterations: config.get<number>('extractor.maxIterations'),
+      },
+      interpreter: {
+        maxIterations: config.get<number>('interpreter.maxIterations'),
       },
     };
 

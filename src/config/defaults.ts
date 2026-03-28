@@ -44,6 +44,9 @@ export const DEFAULT_GCODE_CONFIG: GCodeConfig = {
 
   extractor: {
     machineHome: { x: 0, y: 0, z: 0 },
+  },
+
+  interpreter: {
     maxIterations: 10_000,
   },
 };
