@@ -14,6 +14,7 @@
  */
 import { Worker } from 'worker_threads';
 
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
@@ -74,7 +75,10 @@ export class WorkerClient {
    * @param maxIterations    Maximum loop iterations for the interpreter
    * @returns                A {@link VisualizerResult} discriminated union
    */
-  parse(text: string, maxIterations = 10_000): Promise<VisualizerResult> {
+  parse(
+    text: string,
+    maxIterations = DEFAULT_GCODE_CONFIG.extractor.maxIterations
+  ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
