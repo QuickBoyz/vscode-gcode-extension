@@ -18,11 +18,9 @@ import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
   WorkerErrorResponse,
-  WorkerExtractorConfig,
   WorkerRequest,
   WorkerResponse,
 } from '../shared/visualizerTypes';
-import { DEFAULT_GCODE_CONFIG } from '../config';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;
@@ -73,19 +71,16 @@ export class WorkerClient {
    * resolves to the caller.
    *
    * @param text             Raw G-code file content
-   * @param extractorConfig  Extractor / interpreter configuration
+   * @param maxIterations    Maximum loop iterations for the interpreter
    * @returns                A {@link VisualizerResult} discriminated union
    */
-  parse(
-    text: string,
-    extractorConfig: WorkerExtractorConfig = DEFAULT_GCODE_CONFIG.extractor
-  ): Promise<VisualizerResult> {
+  parse(text: string, maxIterations = 10_000): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
     if (this.synchronousFallback) {
-      return Promise.resolve(this.fallbackService.extractToolPath(text, extractorConfig));
+      return Promise.resolve(this.fallbackService.extractToolPath(text));
     }
 
     this.generationCounter += 1;
@@ -98,14 +93,14 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      return Promise.resolve(this.fallbackService.extractToolPath(text, extractorConfig));
+      return Promise.resolve(this.fallbackService.extractToolPath(text));
     }
 
     const request: WorkerRequest = {
       type: 'parse',
       id: requestId,
       text,
-      extractorConfig: extractorConfig,
+      maxIterations,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {

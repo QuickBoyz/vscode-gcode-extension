@@ -13,7 +13,6 @@
  *   G90       -- absolute positioning mode (default)
  *   G91       -- incremental positioning mode
  */
-import { DEFAULT_GCODE_CONFIG, ExtractorConfig } from '../config';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
@@ -191,7 +190,6 @@ function computeBounds(segments: PathSegment[]): PathBounds {
  */
 export class GCodePathExtractor implements MotionHandler {
   private currentPosition: PathPoint = { x: 0, y: 0, z: 0 };
-  private machineHome: PathPoint = { x: 0, y: 0, z: 0 };
   private isAbsoluteMode = true;
   private segments: PathSegment[] = [];
 
@@ -205,23 +203,15 @@ export class GCodePathExtractor implements MotionHandler {
    * Entry point: interpret the program AST and return extracted path data.
    * Resets all internal state before each extraction so the same instance
    * can be reused across multiple documents.
-   *
-   * @param program          Parsed G-code AST
-   * @param extractorConfig  Optional extractor configuration (machine home, max iterations)
    */
-  extract(program: ProgramNode, extractorConfig?: ExtractorConfig): ToolPathData {
-    const resolvedConfig = extractorConfig ?? DEFAULT_GCODE_CONFIG.extractor;
-
+  extract(program: ProgramNode): ToolPathData {
     this.segments = [];
-    this.machineHome = { ...resolvedConfig.machineHome };
-    this.currentPosition = { ...this.machineHome };
+    this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
-    const interpreter = new GCodeInterpreter(this, {
-      maxIterations: resolvedConfig.maxIterations,
-    });
+    const interpreter = new GCodeInterpreter(this);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     return { segments: this.segments, bounds };

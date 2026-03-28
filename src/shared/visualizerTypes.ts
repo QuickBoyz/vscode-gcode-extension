@@ -138,25 +138,13 @@ export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
 // ---------------------------------------------------------------------------
 
 /**
- * Extractor configuration embedded in worker requests.
- *
- * Re-declared here (instead of importing from `config/types`) because
- * `shared/visualizerTypes` must remain free of VS Code, Node.js, and
- * extension-host dependencies so the webview can import it.
- */
-export interface WorkerExtractorConfig {
-  readonly machineHome: { readonly x: number; readonly y: number; readonly z: number };
-  readonly maxIterations: number;
-}
-
-/**
  * Message sent from the main thread to the visualizer worker.
  */
 export interface WorkerRequest {
   readonly type: 'parse';
   readonly id: number;
   readonly text: string;
-  readonly extractorConfig: WorkerExtractorConfig;
+  readonly maxIterations: number;
 }
 
 /**

@@ -345,36 +345,6 @@
             "orthographic"
           ],
           "description": "Projection mode for the 3D visualizer"
-        },
-        "gcode.extractor.machineHome": {
-          "type": "object",
-          "default": {
-            "x": 0,
-            "y": 0,
-            "z": 0
-          },
-          "properties": {
-            "x": {
-              "type": "number",
-              "description": "X coordinate of machine home position"
-            },
-            "y": {
-              "type": "number",
-              "description": "Y coordinate of machine home position"
-            },
-            "z": {
-              "type": "number",
-              "description": "Z coordinate of machine home position"
-            }
-          },
-          "description": "Machine home position (X/Y/Z coordinates) used by G28 return-to-home"
-        },
-        "gcode.extractor.maxIterations": {
-          "type": "integer",
-          "default": 10000,
-          "minimum": 100,
-          "maximum": 1000000,
-          "description": "Maximum loop iterations before the G-code interpreter stops (prevents infinite loops)"
         }
       }
     }
