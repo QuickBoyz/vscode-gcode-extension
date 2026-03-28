@@ -26,9 +26,10 @@ import {
   WhileStatementNode,
 } from '../parser/nodes';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
+import { DEFAULT_GCODE_CONFIG, ExtractorConfig } from '../config';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
-import { DEFAULT_INTERPRETER_OPTIONS, InterpreterOptions, MotionHandler } from './types';
+import { MotionHandler } from './types';
 
 /**
  * G-code Group 1 modal motion commands.
@@ -40,7 +41,7 @@ const MODAL_MOTION_COMMANDS = new Set(['G00', 'G01', 'G02', 'G03']);
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
-  private readonly options: InterpreterOptions;
+  private readonly options: ExtractorConfig;
   private totalIterations = 0;
   private iterationLimitReached = false;
 
@@ -54,9 +55,9 @@ export class GCodeInterpreter {
 
   constructor(
     private readonly motionHandler: MotionHandler,
-    options?: Partial<InterpreterOptions>
+    options?: Partial<ExtractorConfig>
   ) {
-    this.options = { ...DEFAULT_INTERPRETER_OPTIONS, ...options };
+    this.options = { ...DEFAULT_GCODE_CONFIG.extractor, ...options };
     this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
   }
 

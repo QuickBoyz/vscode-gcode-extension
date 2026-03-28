@@ -7,7 +7,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 import { Range } from '../parser/nodes';
@@ -19,7 +19,7 @@ describe('VariableAnalysisService', () => {
 
   const createSettings = (): GCodeSettings => {
     return {
-      formatter: DEFAULT_FORMATTER_SETTINGS,
+      formatter: DEFAULT_GCODE_CONFIG.formatter,
     };
   };
 

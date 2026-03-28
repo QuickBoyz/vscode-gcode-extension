@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VisualizerSettings } from '../visualizer/types';
+import { VisualizerConfig } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';
 
@@ -100,7 +100,7 @@ export class CommandProvider {
         const config = await this.configProvider.getConfig();
 
         const result = await workerClient.parse(documentText, config.extractor);
-        const settings: VisualizerSettings = config.visualizer;
+        const settings: VisualizerConfig = config.visualizer;
 
         if (!result.success) {
           vscode.window.showErrorMessage(`G-Code visualizer error: ${result.errorMessage}`);
@@ -296,7 +296,7 @@ export class CommandProvider {
       const sourceText = document.getText();
       const config = await this.configProvider.getConfig();
       const result = await this.workerClient.parse(sourceText, config.extractor);
-      const settings: VisualizerSettings = config.visualizer;
+      const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText);

@@ -105,7 +105,7 @@ export class WorkerClient {
       type: 'parse',
       id: requestId,
       text,
-      extractor: extractorConfig,
+      extractorConfig: extractorConfig,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {

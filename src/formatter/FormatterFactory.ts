@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { FormatterSettings } from './types';
+import { FormatterConfig } from '../config/types';
 import { IFormatter } from './IFormatter';
 import { LinuxCNCFormatter } from './dialects/LinuxCNCFormatter';
 import { FanucFormatter } from './dialects/FanucFormatter';
@@ -21,7 +21,7 @@ export class FormatterFactory {
    * @returns Dialect-specific formatter instance
    * @throws Error if dialect is not recognized
    */
-  static create(dialect: DialectType, settings?: Partial<FormatterSettings>): IFormatter {
+  static create(dialect: DialectType, settings?: Partial<FormatterConfig>): IFormatter {
     const normalizedDialect = DialectValidator.normalize(dialect);
 
     switch (normalizedDialect) {
@@ -49,7 +49,7 @@ export class FormatterFactory {
    * @param settings - Optional formatter settings
    * @returns LinuxCNC formatter instance
    */
-  static createDefault(settings?: Partial<FormatterSettings>): IFormatter {
+  static createDefault(settings?: Partial<FormatterConfig>): IFormatter {
     return new LinuxCNCFormatter(settings);
   }
 }

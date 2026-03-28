@@ -8,7 +8,7 @@ import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { MarkupKind } from 'vscode-languageserver/node';
 
-import { DEFAULT_FORMATTER_SETTINGS } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { HoverProvider } from '../providers/HoverProvider';
 
@@ -19,7 +19,7 @@ describe('HoverProvider', () => {
 
   const createSettings = (): GCodeSettings => {
     return {
-      formatter: DEFAULT_FORMATTER_SETTINGS,
+      formatter: DEFAULT_GCODE_CONFIG.formatter,
     };
   };
 

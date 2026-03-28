@@ -7,7 +7,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
-import { FormatterSettings } from '../formatter/types';
+import { FormatterConfig } from '../config/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
 import { ProgramNode } from '../parser/nodes';
@@ -20,7 +20,7 @@ import { DataProviderFactory } from './DataProviderFactory';
  * Settings interface for G-code documents
  */
 export interface GCodeSettings {
-  formatter: FormatterSettings;
+  formatter: FormatterConfig;
   dialect?: DialectType;
 }
 

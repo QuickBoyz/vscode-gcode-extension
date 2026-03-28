@@ -87,11 +87,8 @@ export interface ToolPathData {
 
 /**
  * User-configurable visual appearance for the 3D viewer.
- *
- * @deprecated Use `VisualizerConfig` from `src/config/types` instead.
- * This type is retained because the webview imports it directly.
  */
-export interface VisualizerSettings {
+export interface VisualizerConfig {
   /** Hex colour string for rapid (G0) moves, e.g. "#ff6b6b" */
   readonly rapidColor: string;
   /** Hex colour string for feed (G1) moves */
@@ -109,22 +106,6 @@ export interface VisualizerSettings {
   /** Projection mode (perspective or orthographic) */
   readonly projection: ProjectionMode;
 }
-
-/**
- * Sensible defaults that are also reflected in `package.json` configuration.
- *
- * @deprecated Use `DEFAULT_GCODE_CONFIG.visualizer` from `src/config/defaults` instead.
- */
-export const DEFAULT_VISUALIZER_SETTINGS: VisualizerSettings = {
-  rapidColor: '#ff6b6b',
-  feedColor: '#4ecdc4',
-  arcColor: '#45b7d1',
-  lineThickness: 1,
-  showGrid: true,
-  gridSpacing: 10,
-  showRapidMoves: true,
-  projection: ProjectionMode.PERSPECTIVE,
-};
 
 // ---------------------------------------------------------------------------
 // Visualizer result types
@@ -175,7 +156,7 @@ export interface WorkerRequest {
   readonly type: 'parse';
   readonly id: number;
   readonly text: string;
-  readonly extractor: WorkerExtractorConfig;
+  readonly extractorConfig: WorkerExtractorConfig;
 }
 
 /**

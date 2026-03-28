@@ -2,7 +2,7 @@ import { TextEdit } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { FormatterFactory } from '../formatter/FormatterFactory';
-import { FormatterSettings } from '../formatter/types';
+import { FormatterConfig } from '../config/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
 import { GCodeParser } from '../parser/GCodeParser';
@@ -11,7 +11,7 @@ import { DialectType } from '../constants';
 import { ErrorDetectorVisitor } from './ErrorDetectorVisitor';
 
 export class FormatterService {
-  formatDocument(text: string, settings: FormatterSettings, dialect?: DialectType): string {
+  formatDocument(text: string, settings: FormatterConfig, dialect?: DialectType): string {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(text),
       parser = new GCodeParser(tokens, text),
@@ -36,7 +36,7 @@ export class FormatterService {
   formatAsTextEdits(
     document: TextDocument,
     range: Range | null,
-    settings: FormatterSettings,
+    settings: FormatterConfig,
     dialect?: DialectType
   ): TextEdit[] {
     const formatted = this.formatDocument(document.getText(), settings, dialect);

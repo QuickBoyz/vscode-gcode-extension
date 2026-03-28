@@ -1,7 +1,7 @@
 import { AstTraverser } from '../parser/AstTraverser';
 import { AstVisitor } from '../parser/AstVisitor';
 import { ProgramNode } from '../parser/nodes';
-import { FormatterSettings } from './types';
+import { FormatterConfig } from '../config/types';
 
 /**
  * Interface for dialect-specific G-code formatters.
@@ -27,5 +27,5 @@ export interface IFormatter extends AstVisitor<void> {
    * Update formatter settings.
    * @param settings - Partial formatter settings to apply
    */
-  setOptions(settings: Partial<FormatterSettings>): void;
+  setOptions(settings: Partial<FormatterConfig>): void;
 }

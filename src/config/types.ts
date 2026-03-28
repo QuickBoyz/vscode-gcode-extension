@@ -7,7 +7,15 @@
  */
 
 import { DialectType } from '../constants';
-import { ProjectionMode } from '../shared/visualizerTypes';
+import { VisualizerConfig } from '../shared/visualizerTypes';
+
+/**
+ * Re-export VisualizerConfig from shared types so consumers can
+ * import it from either location. The canonical definition lives
+ * in `shared/visualizerTypes` because the webview depends on it
+ * and cannot import from `config/`.
+ */
+export type { VisualizerConfig } from '../shared/visualizerTypes';
 
 /**
  * Machine home position coordinates used by the G28 return-to-home command.
@@ -20,8 +28,6 @@ export interface MachineHomePosition {
 
 /**
  * Formatter configuration options.
- *
- * Structurally identical to {@link import('../formatter/types').FormatterSettings}.
  */
 export interface FormatterConfig {
   /** Add N-block line numbers to each line. */
@@ -44,30 +50,6 @@ export interface FormatterConfig {
   readonly compactOutput: boolean;
   /** Add program delimiters (%) at the beginning and end of the program if not present. */
   readonly addProgramDelimiters: boolean;
-}
-
-/**
- * Visualizer configuration for the 3D tool-path viewer.
- *
- * Structurally identical to {@link import('../shared/visualizerTypes').VisualizerSettings}.
- */
-export interface VisualizerConfig {
-  /** Hex colour string for rapid (G0) moves. */
-  readonly rapidColor: string;
-  /** Hex colour string for feed (G1) moves. */
-  readonly feedColor: string;
-  /** Hex colour string for arc (G2/G3) moves. */
-  readonly arcColor: string;
-  /** Line width in canvas pixels (1 - 5). */
-  readonly lineThickness: number;
-  /** Whether to show the reference grid on the XY plane. */
-  readonly showGrid: boolean;
-  /** Grid line spacing in work units (mm or inches). */
-  readonly gridSpacing: number;
-  /** Whether to render rapid (G0) moves. */
-  readonly showRapidMoves: boolean;
-  /** Projection mode (perspective or orthographic). */
-  readonly projection: ProjectionMode;
 }
 
 /**

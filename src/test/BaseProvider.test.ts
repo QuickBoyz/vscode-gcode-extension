@@ -7,7 +7,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS, DialectType } from '../constants';
+import { DialectType } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { BaseProvider } from '../providers/BaseProvider';
 
@@ -39,7 +40,7 @@ describe('BaseProvider', () => {
 
   const createSettings = (dialect?: DialectType): GCodeSettings => {
     return {
-      formatter: DEFAULT_FORMATTER_SETTINGS,
+      formatter: DEFAULT_GCODE_CONFIG.formatter,
       dialect,
     };
   };

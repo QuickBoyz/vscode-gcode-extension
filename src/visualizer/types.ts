@@ -6,14 +6,14 @@
  * Only types that depend on the parser layer are defined below.
  */
 
-export { MotionType, ProjectionMode, DEFAULT_VISUALIZER_SETTINGS } from '../shared/visualizerTypes';
+export { MotionType, ProjectionMode } from '../shared/visualizerTypes';
 export type {
   MotionContext,
   PathPoint,
   PathSegment,
   PathBounds,
   ToolPathData,
-  VisualizerSettings,
+  VisualizerConfig,
   VisualizerSuccess,
   VisualizerFailure,
   VisualizerResult,
@@ -28,25 +28,6 @@ import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 // ---------------------------------------------------------------------------
 // Interpreter types
 // ---------------------------------------------------------------------------
-
-/**
- * Configuration options for the G-code interpreter.
- *
- * @deprecated Use `ExtractorConfig` from `src/config/types` instead.
- */
-export interface InterpreterOptions {
-  /** Maximum total loop iterations before the interpreter stops. */
-  readonly maxIterations: number;
-}
-
-/**
- * Sensible defaults for the interpreter.
- *
- * @deprecated Use `DEFAULT_GCODE_CONFIG.extractor` from `src/config/defaults` instead.
- */
-export const DEFAULT_INTERPRETER_OPTIONS: InterpreterOptions = {
-  maxIterations: 10_000,
-};
 
 /**
  * Callback interface for motion commands encountered during interpretation.

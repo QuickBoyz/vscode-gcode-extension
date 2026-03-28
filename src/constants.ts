@@ -2,7 +2,6 @@
  * Constants used throughout the G-code extension
  */
 
-import { FormatterSettings } from './formatter/types';
 import {
   BinaryOperatorType,
   RelationalOperatorType,
@@ -201,21 +200,3 @@ export enum CompletionItemTypes {
  * Sort prefix constants for completion items
  */
 export const OPERATORS_SORT_PREFIX = 'z_';
-
-/**
- * Default formatter options.
- *
- * @deprecated Use `DEFAULT_GCODE_CONFIG.formatter` from `src/config/defaults` instead.
- */
-export const DEFAULT_FORMATTER_SETTINGS: FormatterSettings = {
-  addLineNumbers: false,
-  lineNumberStart: DEFAULTS.LINE_NUMBER_START,
-  lineNumberIncrement: DEFAULTS.LINE_NUMBER_INCREMENT,
-  prettyPrintCommands: true,
-  prettyPrintNumbers: true,
-  indentSize: DEFAULTS.INDENT_SIZE,
-  useTabs: false,
-  indent: true,
-  compactOutput: false,
-  addProgramDelimiters: true,
-};

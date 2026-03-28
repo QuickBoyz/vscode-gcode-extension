@@ -1,12 +1,12 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../../constants';
-import { FormatterSettings } from '../../formatter/types';
+import { FormatterConfig } from '../../config/types';
 import { DocumentFormattingProvider } from '../../providers/DocumentFormattingProvider';
 import { FormatterService } from '../../providers/FormatterService';
 import { Range } from '../../parser/nodes';
 
-const DEFAULT_SETTINGS: FormatterSettings = {
+const DEFAULT_SETTINGS: FormatterConfig = {
   addLineNumbers: false,
   lineNumberStart: 1,
   lineNumberIncrement: 1,
@@ -94,7 +94,7 @@ describe('LinuxCNCProvider', () => {
     it('respects formatter settings', () => {
       const input = 'G0 X10';
       const document = TextDocument.create('test.nc', 'gcode', 1, input);
-      const settings: FormatterSettings = {
+      const settings: FormatterConfig = {
         ...DEFAULT_SETTINGS,
         prettyPrintCommands: true,
       };
