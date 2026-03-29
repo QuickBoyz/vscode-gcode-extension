@@ -1,7 +1,7 @@
+import { LexerToken } from '../lexer/LexerToken';
 import { AstNode, Range } from './nodes';
-import { Token } from './nodes/tokens';
 
-export function rangeFrom(start?: Token | AstNode, end?: Token | AstNode): Range {
+export function rangeFrom(start?: LexerToken | AstNode, end?: LexerToken | AstNode): Range {
   if (!start) {
     return {
       start: { line: 0, character: 0 },
@@ -10,7 +10,7 @@ export function rangeFrom(start?: Token | AstNode, end?: Token | AstNode): Range
   }
 
   const startPos =
-      start instanceof Token
+      start instanceof LexerToken
         ? {
             line: start.line - 1,
             character: start.col - 1,
@@ -18,10 +18,10 @@ export function rangeFrom(start?: Token | AstNode, end?: Token | AstNode): Range
         : start.getRange().start,
     endSource = end ?? start,
     endPos =
-      endSource instanceof Token
+      endSource instanceof LexerToken
         ? {
             line: endSource.line - 1,
-            character: endSource.col - 1 + endSource.text.length,
+            character: endSource.col - 1 + endSource.value.length,
           }
         : endSource.getRange().end;
 

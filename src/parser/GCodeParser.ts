@@ -1,3 +1,6 @@
+import { KeywordType } from '../lexer/KeywordType';
+import { LexerToken } from '../lexer/LexerToken';
+import { TokenCategory } from '../lexer/TokenCategory';
 import { AstFactory } from './AstFactory';
 import {
   AstNode,
@@ -11,8 +14,42 @@ import {
   StatementNode,
   WhileStatementNode,
 } from './nodes';
-import { Token, TokenType } from './nodes/tokens';
 import { ParseError, TokenStream } from './TokenStream';
+
+/**
+ * Relational and logical operator keywords used in expression parsing.
+ */
+const RELATIONAL_KEYWORDS: readonly KeywordType[] = [
+  KeywordType.EQ,
+  KeywordType.NE,
+  KeywordType.LT,
+  KeywordType.GT,
+  KeywordType.LE,
+  KeywordType.GE,
+  KeywordType.AND,
+  KeywordType.OR,
+  KeywordType.XOR,
+];
+
+/**
+ * Function keywords recognized in expression parsing.
+ */
+const FUNCTION_KEYWORDS: ReadonlySet<KeywordType> = new Set([
+  KeywordType.SIN,
+  KeywordType.COS,
+  KeywordType.TAN,
+  KeywordType.ASIN,
+  KeywordType.ACOS,
+  KeywordType.ATAN,
+  KeywordType.SQRT,
+  KeywordType.ABS,
+  KeywordType.ROUND,
+  KeywordType.FIX,
+  KeywordType.FUP,
+  KeywordType.LN,
+  KeywordType.EXP,
+  KeywordType.EXISTS,
+]);
 
 export class GCodeParser {
   private tokens: TokenStream;
@@ -21,7 +58,7 @@ export class GCodeParser {
   // Track the last motion command that had parameters (for parameter-only lines)
   lastCommandWithParams: MotionCommandNode | null = null;
 
-  constructor(tokens: readonly Token[], inputText?: string) {
+  constructor(tokens: readonly LexerToken[], inputText?: string) {
     this.tokens = new TokenStream(tokens);
     this.factory = new AstFactory();
     // Store input lines for error reporting
@@ -30,17 +67,17 @@ export class GCodeParser {
 
   parseProgram(): ProgramNode {
     const statements: StatementNode[] = [];
-    let hasEndDelimiter = false,
-      hasStartDelimiter = false;
+    let hasEndDelimiter = false;
+    let hasStartDelimiter = false;
 
-    hasStartDelimiter = Boolean(this.tokens.consume(TokenType.PERCENT));
+    hasStartDelimiter = Boolean(this.tokens.consumeCategory(TokenCategory.PERCENT));
 
     while (!this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) statements.push(stmt);
     }
 
-    if (this.tokens.match(TokenType.PERCENT)) {
+    if (this.tokens.matchCategory(TokenCategory.PERCENT)) {
       this.tokens.next();
       hasEndDelimiter = true;
     }
@@ -54,9 +91,9 @@ export class GCodeParser {
       return this.parseStatement();
     } catch (e) {
       // Handle both ParseError and generic Error
-      const err = e as ParseError | Error,
-        message = err.message || 'Parse error',
-        token = err instanceof ParseError ? err.token : this.tokens.peek();
+      const err = e as ParseError | Error;
+      const message = err.message || 'Parse error';
+      const token = err instanceof ParseError ? err.token : this.tokens.peek();
 
       // Capture original line text if available
       const originalText = this.getOriginalLineText(startToken);
@@ -69,65 +106,69 @@ export class GCodeParser {
     const token = this.tokens.peek();
     if (!token) return null;
 
-    switch (token.type) {
-      case TokenType.VAR:
+    // First check keywords (these are IDENTIFIER category with a keyword set)
+    if (token.keyword !== null) {
+      switch (token.keyword) {
+        case KeywordType.IF:
+          return this.parseIf();
+        case KeywordType.WHILE:
+          return this.parseWhile();
+      }
+    }
+
+    // Then check categories
+    switch (token.category) {
+      case TokenCategory.VARIABLE:
         return this.parseVariableAssignment();
 
-      case TokenType.OSUB:
+      case TokenCategory.OSUB:
         return this.parseOBlock();
 
-      case TokenType.IF:
-        return this.parseIf();
-
-      case TokenType.WHILE:
-        return this.parseWhile();
-
-      case TokenType.GCODE:
-      case TokenType.MCODE:
+      case TokenCategory.GCODE:
+      case TokenCategory.MCODE:
         return this.parseMotionCommand();
 
-      case TokenType.COMMENT:
-      case TokenType.PARENCOMMENT:
+      case TokenCategory.COMMENT:
+      case TokenCategory.PAREN_COMMENT:
         return this.parseComment();
 
-      case TokenType.PARAM:
+      case TokenCategory.PARAM:
         return this.parseAxisParam();
 
-      case TokenType.NL:
-      case TokenType.PERCENT:
+      case TokenCategory.NL:
+      case TokenCategory.PERCENT:
         this.tokens.next();
         return null;
 
-      case TokenType.LineNumber:
+      case TokenCategory.LINE_NUMBER:
         return this.parseLineNumber();
 
       default:
-        throw new ParseError(`Unexpected token ${token.type}`, token);
+        throw new ParseError(`Unexpected token ${token.category}`, token);
     }
   }
 
   private parseOBlock(): StatementNode {
-    const label = this.tokens.expect(TokenType.OSUB),
-      token = this.tokens.peek();
+    const label = this.tokens.expectCategory(TokenCategory.OSUB);
+    const token = this.tokens.peek();
 
-    switch (token?.type) {
-      case TokenType.WHILE:
-        return this.parseWhile(label);
-      case TokenType.IF:
-        return this.parseIf(label);
-      default:
-        // Standalone O-block label (e.g., O01234 for subroutine marker)
-        return this.factory.subroutineLabel(label);
+    if (token?.isKeyword(KeywordType.WHILE)) {
+      return this.parseWhile(label);
     }
+    if (token?.isKeyword(KeywordType.IF)) {
+      return this.parseIf(label);
+    }
+    // Standalone O-block label (e.g., O01234 for subroutine marker)
+    return this.factory.subroutineLabel(label);
   }
 
-  private parseIf(label?: Token): IfStatementNode {
-    const ifToken = this.tokens.expect(TokenType.IF),
-      condition = this.parseExpression(),
-      thenToken = this.tokens.match(TokenType.THEN) ? this.tokens.next() : undefined,
-      ifBody = this.parseUntilControlBoundary(label),
-      ifClause = this.factory.ifClause(ifToken, condition, ifBody, label, thenToken),
-      elseIfClauses: IfClauseNode[] = [];
+  private parseIf(label?: LexerToken): IfStatementNode {
+    const ifToken = this.tokens.expectKeyword(KeywordType.IF);
+    const condition = this.parseExpression();
+    const thenToken = this.tokens.matchKeyword(KeywordType.THEN) ? this.tokens.next() : undefined;
+    const ifBody = this.parseUntilControlBoundary(label);
+    const ifClause = this.factory.ifClause(ifToken, condition, ifBody, label, thenToken);
+    const elseIfClauses: IfClauseNode[] = [];
     let elseClause: ElseClauseNode | undefined;
 
     // Parse ELSEIF clauses
@@ -135,9 +176,9 @@ export class GCodeParser {
       if (label) {
         // With label: check for OSUB label ELSEIF pattern
         if (
-          this.tokens.match(TokenType.OSUB) &&
+          this.tokens.matchCategory(TokenCategory.OSUB) &&
           this.tokens.peek()?.value === label.value &&
-          this.tokens.peek(1)?.hasType(TokenType.ELSEIF)
+          this.tokens.peek(1)?.hasKeyword(KeywordType.ELSEIF)
         ) {
           this.tokens.next(); // OSUB
           const elseifToken = this.tokens.next();
@@ -145,7 +186,7 @@ export class GCodeParser {
             throw new ParseError('Unexpected EOF while parsing ELSEIF clause', elseifToken);
           }
           const elseifCondition = this.parseExpression();
-          const elseifThenToken = this.tokens.match(TokenType.THEN)
+          const elseifThenToken = this.tokens.matchKeyword(KeywordType.THEN)
             ? this.tokens.next()
             : undefined;
           const body = this.parseUntilControlBoundary(label);
@@ -157,13 +198,13 @@ export class GCodeParser {
         }
       } else {
         // Without label: check for ELSEIF directly
-        if (this.tokens.match(TokenType.ELSEIF)) {
+        if (this.tokens.matchKeyword(KeywordType.ELSEIF)) {
           const elseifToken = this.tokens.next();
           if (!elseifToken) {
             throw new ParseError('Unexpected EOF while parsing ELSEIF clause', elseifToken);
           }
           const elseifCondition = this.parseExpression();
-          const elseifThenToken = this.tokens.match(TokenType.THEN)
+          const elseifThenToken = this.tokens.matchKeyword(KeywordType.THEN)
             ? this.tokens.next()
             : undefined;
           const body = this.parseUntilControlBoundary(label);
@@ -180,9 +221,9 @@ export class GCodeParser {
     if (label) {
       // With label: expect OSUB before ELSE
       if (
-        this.tokens.match(TokenType.OSUB) &&
+        this.tokens.matchCategory(TokenCategory.OSUB) &&
         this.tokens.peek()?.value === label.value &&
-        this.tokens.peek(1)?.hasType(TokenType.ELSE)
+        this.tokens.peek(1)?.hasKeyword(KeywordType.ELSE)
       ) {
         this.tokens.next(); // OSUB
         const elseToken = this.tokens.next();
@@ -194,7 +235,7 @@ export class GCodeParser {
       }
     } else {
       // Without label: ELSE comes directly
-      if (this.tokens.match(TokenType.ELSE)) {
+      if (this.tokens.matchKeyword(KeywordType.ELSE)) {
         const elseToken = this.tokens.next();
         if (!elseToken) {
           throw new ParseError('Unexpected EOF while parsing ELSE clause', elseToken);
@@ -206,17 +247,17 @@ export class GCodeParser {
 
     // Expect ENDIF - with OSUB only if there's a label
     if (label) {
-      if (!this.tokens.match(TokenType.OSUB)) {
+      if (!this.tokens.matchCategory(TokenCategory.OSUB)) {
         throw new ParseError('Expected ENDIF with label', ifToken);
       }
-      this.tokens.expect(TokenType.OSUB);
+      this.tokens.expectCategory(TokenCategory.OSUB);
     }
 
     // Check if we have ENDIF before calling expect to provide better error positioning
-    if (!this.tokens.match(TokenType.ENDIF)) {
+    if (!this.tokens.matchKeyword(KeywordType.ENDIF)) {
       throw new ParseError('Expected ENDIF', ifToken);
     }
-    const endIfToken = this.tokens.expect(TokenType.ENDIF);
+    const endIfToken = this.tokens.expectKeyword(KeywordType.ENDIF);
 
     return this.factory.ifStatement({
       label,
@@ -227,26 +268,33 @@ export class GCodeParser {
     });
   }
 
-  private parseUntilControlBoundary(label?: Token): StatementNode[] {
+  private parseUntilControlBoundary(label?: LexerToken): StatementNode[] {
     const body: StatementNode[] = [];
     let hasErrors = false;
 
     while (!this.tokens.eof()) {
-      if (label && this.tokens.match(TokenType.OSUB) && this.tokens.peek()?.value === label.value) {
+      if (
+        label &&
+        this.tokens.matchCategory(TokenCategory.OSUB) &&
+        this.tokens.peek()?.value === label.value
+      ) {
         const next = this.tokens.peek(1);
-        if (next?.hasType(TokenType.ELSE, TokenType.ELSEIF, TokenType.ENDIF)) {
+        if (next?.hasKeyword(KeywordType.ELSE, KeywordType.ELSEIF, KeywordType.ENDIF)) {
           break;
         }
       }
 
-      if (!label && this.tokens.match(TokenType.ELSE, TokenType.ELSEIF, TokenType.ENDIF)) {
+      if (
+        !label &&
+        this.tokens.matchKeyword(KeywordType.ELSE, KeywordType.ELSEIF, KeywordType.ENDIF)
+      ) {
         break;
       }
 
       // If we've encountered errors while parsing this body and we now see another control structure,
       // it's likely we've gone too far and the current block is malformed.
       // Stop parsing to avoid consuming subsequent top-level statements.
-      if (hasErrors && !label && this.tokens.match(TokenType.IF, TokenType.WHILE)) {
+      if (hasErrors && !label && this.tokens.matchKeyword(KeywordType.IF, KeywordType.WHILE)) {
         break;
       }
 
@@ -263,30 +311,30 @@ export class GCodeParser {
     return body;
   }
 
-  private parseWhile(label?: Token): WhileStatementNode {
-    const whileToken = this.tokens.expect(TokenType.WHILE),
-      condition = this.parseExpression(),
-      // DO is expected, but we tolerate missing DO for error recovery
-      hasDo = this.tokens.match(TokenType.DO),
-      doToken = hasDo ? this.tokens.next() : undefined,
-      body: StatementNode[] = [];
+  private parseWhile(label?: LexerToken): WhileStatementNode {
+    const whileToken = this.tokens.expectKeyword(KeywordType.WHILE);
+    const condition = this.parseExpression();
+    // DO is expected, but we tolerate missing DO for error recovery
+    const hasDo = this.tokens.matchKeyword(KeywordType.DO);
+    const doToken = hasDo ? this.tokens.next() : undefined;
+    const body: StatementNode[] = [];
     while (!this.isEndWhile(label) && !this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) body.push(stmt);
     }
 
     // If there's a label, consume the OSUB label token before expecting END/ENDWHILE
-    if (label && this.tokens.match(TokenType.OSUB)) {
+    if (label && this.tokens.matchCategory(TokenCategory.OSUB)) {
       if (this.tokens.peek()?.value === label.value) {
         this.tokens.next(); // Consume the OSUB label
       }
     }
 
     // Check if we have END or ENDWHILE before calling expect to provide better error positioning
-    if (!this.tokens.match(TokenType.END, TokenType.ENDWHILE)) {
+    if (!this.tokens.matchKeyword(KeywordType.END, KeywordType.ENDWHILE)) {
       throw new ParseError('Expected END or ENDWHILE', whileToken);
     }
-    const endWhileToken = this.tokens.expect(TokenType.END, TokenType.ENDWHILE);
+    const endWhileToken = this.tokens.expectKeyword(KeywordType.END, KeywordType.ENDWHILE);
 
     return this.factory.whileStatement({
       condition,
@@ -298,34 +346,34 @@ export class GCodeParser {
     });
   }
 
-  private isEndWhile(startLabel?: Token): boolean {
+  private isEndWhile(startLabel?: LexerToken): boolean {
     const token = this.tokens.peek();
     if (!token) return false;
 
     // Without label: check for END or ENDWHILE directly
     if (!startLabel) {
-      return token.hasType(TokenType.END, TokenType.ENDWHILE);
+      return token.hasKeyword(KeywordType.END, KeywordType.ENDWHILE);
     }
 
     // With label: check for OSUB followed by END or ENDWHILE
-    if (token.isType(TokenType.OSUB) && token.value === startLabel.value) {
+    if (token.hasCategory(TokenCategory.OSUB) && token.value === startLabel.value) {
       const next = this.tokens.peek(1);
-      return next?.hasType(TokenType.END, TokenType.ENDWHILE) ?? false;
+      return next?.hasKeyword(KeywordType.END, KeywordType.ENDWHILE) ?? false;
     }
 
     return false;
   }
 
   private parseVariableAssignment(): StatementNode {
-    const variable = this.tokens.expect(TokenType.VAR);
-    this.tokens.expect(TokenType.EQUALS);
+    const variable = this.tokens.expectCategory(TokenCategory.VARIABLE);
+    this.tokens.expectCategory(TokenCategory.EQUALS);
 
     try {
       const value = this.parseExpression();
       return this.factory.variableAssignment(variable, value);
     } catch (e) {
-      const err = e as Error | ParseError,
-        token = this.tokens.peek();
+      const err = e as Error | ParseError;
+      const token = this.tokens.peek();
 
       this.recoverToNextLine();
       return this.factory.error(err.message, token);
@@ -339,12 +387,12 @@ export class GCodeParser {
   /**
    * Parse relational operators (lowest precedence)
    * Corresponds to OPERATOR_PRECEDENCE.RELATIONAL in constants.ts
-   * Operators: EQ, NE, LT, LE, GT, GE
+   * Operators: EQ, NE, LT, LE, GT, GE, AND, OR, XOR
    */
   private parseRelational(): ExpressionNode {
-    const left = this.parseAdditive(),
-      op = this.tokens.peek();
-    if (op?.type === TokenType.RELOP) {
+    const left = this.parseAdditive();
+    const op = this.tokens.peek();
+    if (op?.keyword !== null && op !== undefined && RELATIONAL_KEYWORDS.includes(op.keyword)) {
       this.tokens.next();
       const right = this.parseAdditive();
       return this.factory.binary(left, op, right);
@@ -361,7 +409,7 @@ export class GCodeParser {
   private parseAdditive(): ExpressionNode {
     let expr = this.parseMultiplicative();
 
-    while (this.tokens.match(TokenType.PLUS) || this.tokens.match(TokenType.MINUS)) {
+    while (this.tokens.matchCategory(TokenCategory.PLUS, TokenCategory.MINUS)) {
       const op = this.tokens.next();
       if (!op) throw new ParseError('Unexpected EOF while parsing additive expression', op);
       const right = this.parseMultiplicative();
@@ -380,9 +428,8 @@ export class GCodeParser {
     let expr = this.parseUnary();
 
     while (
-      this.tokens.match(TokenType.STAR) ||
-      this.tokens.match(TokenType.SLASH) ||
-      this.tokens.match(TokenType.MOD)
+      this.tokens.matchCategory(TokenCategory.STAR, TokenCategory.SLASH) ||
+      this.tokens.matchKeyword(KeywordType.MOD)
     ) {
       const op = this.tokens.next();
       if (!op) throw new ParseError('Unexpected EOF while parsing multiplicative expression', op);
@@ -394,7 +441,7 @@ export class GCodeParser {
   }
 
   private parseUnary(): ExpressionNode {
-    if (this.tokens.match(TokenType.MINUS)) {
+    if (this.tokens.matchCategory(TokenCategory.MINUS)) {
       const op = this.tokens.next();
       if (!op) throw new ParseError('Unexpected EOF while parsing unary expression', op);
       return this.factory.unary(op, this.parseUnary());
@@ -409,53 +456,64 @@ export class GCodeParser {
       throw new ParseError('Unexpected EOF', token);
     }
 
-    switch (token.type) {
-      case TokenType.NUMBER: {
-        const token = this.tokens.next();
-        if (!token) throw new ParseError('Unexpected EOF while parsing number', token);
-        return this.factory.literal(token);
+    // Check for function call (keyword that is a function name)
+    if (token.keyword !== null && this.isFunctionKeyword(token.keyword)) {
+      return this.parseFunctionCall();
+    }
+
+    switch (token.category) {
+      case TokenCategory.NUMBER: {
+        const numberToken = this.tokens.next();
+        if (!numberToken) throw new ParseError('Unexpected EOF while parsing number', numberToken);
+        return this.factory.literal(numberToken);
       }
 
-      case TokenType.VAR: {
-        const token = this.tokens.next();
-        if (!token) throw new ParseError('Unexpected EOF while parsing variable reference', token);
-        return this.factory.variableRef(token);
+      case TokenCategory.VARIABLE: {
+        const varToken = this.tokens.next();
+        if (!varToken)
+          throw new ParseError('Unexpected EOF while parsing variable reference', varToken);
+        return this.factory.variableRef(varToken);
       }
 
-      case TokenType.LBRACKET: {
+      case TokenCategory.LBRACKET: {
         this.tokens.next();
         const expr = this.parseExpression();
-        this.tokens.expect(TokenType.RBRACKET);
+        this.tokens.expectCategory(TokenCategory.RBRACKET);
         return expr;
       }
-      case TokenType.FUNC:
-        return this.parseFunctionCall();
 
       default:
-        throw new ParseError(`Unexpected token in expression: ${token.type}`, token);
+        throw new ParseError(`Unexpected token in expression: ${token.category}`, token);
     }
   }
 
+  private isFunctionKeyword(keyword: KeywordType): boolean {
+    return FUNCTION_KEYWORDS.has(keyword);
+  }
+
   private parseFunctionCall(): ExpressionNode {
-    const func = this.tokens.expect(TokenType.FUNC);
-    this.tokens.expect(TokenType.LBRACKET);
+    const func = this.tokens.next();
+    if (!func || func.keyword === null || !this.isFunctionKeyword(func.keyword)) {
+      throw new ParseError('Expected function name', func);
+    }
+    this.tokens.expectCategory(TokenCategory.LBRACKET);
 
     const argument = this.parseExpression();
 
-    this.tokens.expect(TokenType.RBRACKET);
+    this.tokens.expectCategory(TokenCategory.RBRACKET);
 
     return this.factory.functionCall(func, argument);
   }
 
   private parseAxisParam(parent?: AstNode): AxisParameterNode {
-    const axis = this.tokens.expect(TokenType.PARAM);
+    const axis = this.tokens.expectCategory(TokenCategory.PARAM);
 
     let value: ExpressionNode;
 
-    if (this.tokens.match(TokenType.LBRACKET)) {
+    if (this.tokens.matchCategory(TokenCategory.LBRACKET)) {
       this.tokens.next();
       value = this.parseExpression();
-      this.tokens.expect(TokenType.RBRACKET);
+      this.tokens.expectCategory(TokenCategory.RBRACKET);
     } else {
       value = this.parseExpression();
     }
@@ -464,18 +522,18 @@ export class GCodeParser {
   }
 
   private parseMotionCommand(): StatementNode {
-    const command = this.tokens.expect(TokenType.GCODE, TokenType.MCODE),
-      params: AxisParameterNode[] = [];
+    const command = this.tokens.expectCategory(TokenCategory.GCODE, TokenCategory.MCODE);
+    const params: AxisParameterNode[] = [];
 
     // Parse parameters until we hit a newline, another G/M code, or EOF
     while (
-      !this.tokens.match(
-        TokenType.NL,
-        TokenType.GCODE,
-        TokenType.MCODE,
-        TokenType.PERCENT,
-        TokenType.COMMENT,
-        TokenType.PARENCOMMENT
+      !this.tokens.matchCategory(
+        TokenCategory.NL,
+        TokenCategory.GCODE,
+        TokenCategory.MCODE,
+        TokenCategory.PERCENT,
+        TokenCategory.COMMENT,
+        TokenCategory.PAREN_COMMENT
       ) &&
       !this.tokens.eof()
     ) {
@@ -508,7 +566,7 @@ export class GCodeParser {
       if (!token) return;
 
       // If we hit a newline, consume it and stop
-      if (token.hasType(TokenType.NL)) {
+      if (token.hasCategory(TokenCategory.NL)) {
         this.tokens.next(); // Consume the NL
         return; // Resume from next iteration of main loop
       }
@@ -524,7 +582,7 @@ export class GCodeParser {
     return this.factory.lineNumber(token);
   }
 
-  private getOriginalLineText(token?: Token): string {
+  private getOriginalLineText(token?: LexerToken): string {
     if (!token || this.inputLines.length === 0) return '';
 
     // Token line is 1-based, array is 0-based

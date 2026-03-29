@@ -12,7 +12,8 @@
  */
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { TokenType } from '../parser/nodes/tokens';
+import { LexerToken } from '../lexer/LexerToken';
+import { TokenCategory } from '../lexer/TokenCategory';
 
 /**
  * A lightweight token span for the webview to render syntax-highlighted
@@ -21,6 +22,36 @@ import { TokenType } from '../parser/nodes/tokens';
 export interface TokenSpan {
   readonly text: string;
   readonly type: string;
+}
+
+/**
+ * Maps a LexerToken to a CSS class name that matches the existing
+ * webview stylesheet. For identifier tokens with keywords, the keyword
+ * value is used (e.g., 'IF', 'WHILE', 'EQ', 'ABS') to preserve
+ * backward compatibility with the old TokenType-based class names.
+ */
+function tokenToCssClass(token: LexerToken): string {
+  // For identifiers with keywords, use the keyword as the CSS class
+  if (token.keyword !== null) {
+    return token.keyword;
+  }
+
+  switch (token.category) {
+    case TokenCategory.COMMENT:
+      return 'comment';
+    case TokenCategory.PAREN_COMMENT:
+      return 'parenComment';
+    case TokenCategory.VARIABLE:
+      return 'VAR';
+    case TokenCategory.LINE_NUMBER:
+      return 'lineNumber';
+    case TokenCategory.WS:
+      return 'ws';
+    case TokenCategory.NL:
+      return 'nl';
+    default:
+      return token.category;
+  }
 }
 
 /**
@@ -50,23 +81,14 @@ function tokenizeSingleLine(lexer: GCodeLexer, line: string): TokenSpan[] {
     let cursor = 0;
 
     for (const token of tokens) {
-      if (token.type === TokenType.NL) continue;
-      let offset = token.getOffset();
-
-      // The lexer combines MINUS + NUMBER into a single token but keeps
-      // the NUMBER's original offset. When the combined value starts
-      // with '-' and the character at offset - 1 in the original line
-      // is also '-', adjust the offset back by 1 so the gap-filling
-      // logic does not create a duplicate minus sign.
-      if (token.value.startsWith('-') && offset > 0 && line[offset - 1] === '-') {
-        offset = offset - 1;
-      }
+      if (token.category === TokenCategory.NL) continue;
+      const offset = token.offset;
 
       // Fill gap with whitespace
       if (offset > cursor) {
         spans.push({ text: line.slice(cursor, offset), type: 'ws' });
       }
-      spans.push({ text: token.value, type: token.type });
+      spans.push({ text: token.value, type: tokenToCssClass(token) });
       cursor = offset + token.value.length;
     }
 

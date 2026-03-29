@@ -19,7 +19,7 @@ import {
   VariableAssignmentNode,
   WhileStatementNode,
 } from '../parser/nodes';
-import { TokenType } from '../parser/nodes/tokens';
+import { IfClauseKind } from '../parser/nodes';
 import { ExpressionFormatter } from './ExpressionFormatter';
 import { IFormatter } from './IFormatter';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
@@ -268,7 +268,7 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
 
   visitIfClause(node: IfClauseNode): void {
     this.handleLineGap(node.getRange().start.line);
-    const isElseIf = node.kind === TokenType.ELSEIF,
+    const isElseIf = node.kind === IfClauseKind.ELSEIF,
       keyword = isElseIf ? this.getElseIfKeyword() : this.getIfKeyword();
 
     if (isElseIf) {

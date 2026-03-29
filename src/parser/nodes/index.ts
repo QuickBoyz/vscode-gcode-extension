@@ -2,7 +2,13 @@ export { AstNode } from './AstNode';
 export { AxisParameterNode } from './AxisParameterNode';
 export { BlockStatementNode } from './BlockStatementNode';
 export { CommentNode } from './CommentNode';
-export { ElseClauseNode, IfClauseNode, IfStatementNode, WhileStatementNode } from './conditionals';
+export {
+  ElseClauseNode,
+  IfClauseKind,
+  IfClauseNode,
+  IfStatementNode,
+  WhileStatementNode,
+} from './conditionals';
 export { ErrorNode } from './ErrorNode';
 export {
   BinaryExpressionNode,

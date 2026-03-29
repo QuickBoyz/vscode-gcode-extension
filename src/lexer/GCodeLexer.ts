@@ -1,16 +1,12 @@
-import { Token } from '../parser/nodes/tokens';
 import { GCodeScanner } from './GCodeScanner';
-import { TokenCategory } from './TokenCategory';
-import { toLegacyToken } from './tokenMapping';
+import { LexerToken } from './LexerToken';
 
 /**
  * G-code Lexer
  *
  * Tokenizes G-code input using GCodeScanner (hand-written character scanner).
- * Emits legacy Token objects for backward compatibility with the parser.
- *
- * Whitespace tokens are filtered out (matching previous Moo behavior)
- * and the MINUS+NUMBER combining is removed (parser handles unary minus).
+ * Returns LexerToken[] including whitespace tokens.
+ * The TokenStream handles whitespace skipping for the parser.
  */
 export class GCodeLexer {
   private scanner: GCodeScanner;
@@ -20,20 +16,10 @@ export class GCodeLexer {
   }
 
   /**
-   * Tokenize G-code input, filtering out whitespace but keeping newlines
+   * Tokenize G-code input into LexerToken array.
+   * All tokens are included, including whitespace.
    */
-  tokenize(input: string): Token[] {
-    const lexerTokens = this.scanner.tokenize(input);
-
-    // Filter out whitespace tokens to match the existing parser expectation
-    // (the parser currently does not expect WS tokens in the stream)
-    const filteredTokens: Token[] = [];
-    for (const lexerToken of lexerTokens) {
-      if (lexerToken.category !== TokenCategory.WS) {
-        filteredTokens.push(toLegacyToken(lexerToken));
-      }
-    }
-
-    return filteredTokens;
+  tokenize(input: string): LexerToken[] {
+    return this.scanner.tokenize(input);
   }
 }

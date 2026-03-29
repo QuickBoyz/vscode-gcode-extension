@@ -8,7 +8,7 @@ import {
   ProgramNode,
   WhileStatementNode,
 } from '../../parser/nodes';
-import { TokenType } from '../../parser/nodes/tokens';
+import { IfClauseKind } from '../../parser/nodes';
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
@@ -66,7 +66,7 @@ export class LinuxCNCFormatter extends BaseFormatter {
    */
   visitIfClause(node: IfClauseNode): void {
     // Only push for the initial IF, not ELSEIF
-    if (node.kind === TokenType.IF) {
+    if (node.kind === IfClauseKind.IF) {
       const label = node.label ?? this.generateOBlockLabel();
       this.labelStack.push(label);
     }
