@@ -1,7 +1,7 @@
 import { AstTraverser } from '../parser/AstTraverser';
 import { AstVisitor } from '../parser/AstVisitor';
 import { ProgramNode } from '../parser/nodes';
-import { FormatterConfig } from '../config/types';
+import { FormatterConfig } from './types';
 
 /**
  * Interface for dialect-specific G-code formatters.

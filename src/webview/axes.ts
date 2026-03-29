@@ -5,7 +5,7 @@
  * so the user can see the current orientation at a glance.
  */
 
-import { ProjectionMode } from '../shared/visualizerTypes';
+import { ProjectionMode } from '../visualizer/types';
 import { CameraState } from './types';
 import { project } from './projection';
 

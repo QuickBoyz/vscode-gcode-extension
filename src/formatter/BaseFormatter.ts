@@ -1,5 +1,5 @@
 import { DEFAULTS, GCodeSymbols } from '../constants';
-import { DEFAULT_GCODE_CONFIG, FormatterConfig } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { AstTraverser } from '../parser/AstTraverser';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
@@ -23,6 +23,7 @@ import { TokenType } from '../parser/nodes/tokens';
 import { ExpressionFormatter } from './ExpressionFormatter';
 import { IFormatter } from './IFormatter';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import { FormatterConfig } from './types';
 
 /**
  * Base formatter implementation with common formatting logic.

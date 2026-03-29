@@ -1,9 +1,9 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 
-import { FormatterConfig } from '../config/types';
 import { FormatterService } from './FormatterService';
 import { DialectType } from '../constants';
 import { Range } from '../parser/nodes';
+import { FormatterConfig } from '../formatter/types';
 
 /**
  * Document Formatting Provider

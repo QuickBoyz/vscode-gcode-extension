@@ -2,13 +2,13 @@ import { TextEdit } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { FormatterFactory } from '../formatter/FormatterFactory';
-import { FormatterConfig } from '../config/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
 import { GCodeParser } from '../parser/GCodeParser';
 import { Range } from '../parser/nodes';
 import { DialectType } from '../constants';
 import { ErrorDetectorVisitor } from './ErrorDetectorVisitor';
+import { FormatterConfig } from '../formatter/types';
 
 export class FormatterService {
   formatDocument(text: string, settings: FormatterConfig, dialect?: DialectType): string {

@@ -11,7 +11,7 @@
 import { parentPort } from 'worker_threads';
 
 import { VisualizerService } from '../client/VisualizerService';
-import { WorkerErrorResponse, WorkerRequest, WorkerResponse } from '../shared/visualizerTypes';
+import { WorkerErrorResponse, WorkerRequest, WorkerResponse } from './types';
 
 const service = new VisualizerService();
 

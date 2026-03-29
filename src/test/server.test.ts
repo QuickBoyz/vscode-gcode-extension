@@ -6,11 +6,12 @@
  * classes that are tested in their respective test files.
  */
 import { DialectType, GCodeSymbols } from '../constants';
-import { DEFAULT_GCODE_CONFIG, FormatterConfig } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { FormatterFactory } from '../formatter/FormatterFactory';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
 import { GCodeParser } from '../parser/GCodeParser';
+import { FormatterConfig } from '../formatter/types';
 
 /**
  * Helper function that mimics what the server does when formatting

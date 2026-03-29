@@ -14,7 +14,7 @@ import {
   PathSegment,
   ProjectionMode,
   VisualizerConfig,
-} from '../shared/visualizerTypes';
+} from '../visualizer/types';
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';

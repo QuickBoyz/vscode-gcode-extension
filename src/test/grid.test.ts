@@ -1,5 +1,5 @@
 import { computeGridExtent } from '../webview/grid';
-import { PathBounds } from '../shared/visualizerTypes';
+import { PathBounds } from '../visualizer/types';
 
 describe('computeGridExtent', () => {
   it('snaps grid boundaries outward to the nearest grid interval', () => {

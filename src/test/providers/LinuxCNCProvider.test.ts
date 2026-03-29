@@ -1,10 +1,10 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../../constants';
-import { FormatterConfig } from '../../config/types';
 import { DocumentFormattingProvider } from '../../providers/DocumentFormattingProvider';
 import { FormatterService } from '../../providers/FormatterService';
 import { Range } from '../../parser/nodes';
+import { FormatterConfig } from '../../formatter/types';
 
 const DEFAULT_SETTINGS: FormatterConfig = {
   addLineNumbers: false,

@@ -6,7 +6,7 @@
  */
 
 import { DialectType } from '../constants';
-import { ProjectionMode } from '../shared/visualizerTypes';
+import { ProjectionMode } from '../visualizer/types';
 import { GCodeConfig } from './types';
 
 /**

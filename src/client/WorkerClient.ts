@@ -21,7 +21,7 @@ import {
   WorkerErrorResponse,
   WorkerRequest,
   WorkerResponse,
-} from '../shared/visualizerTypes';
+} from '../visualizer/types';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;

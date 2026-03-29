@@ -1,11 +1,11 @@
 import { DialectType } from '../constants';
-import { FormatterConfig } from '../config/types';
 import { IFormatter } from './IFormatter';
 import { LinuxCNCFormatter } from './dialects/LinuxCNCFormatter';
 import { FanucFormatter } from './dialects/FanucFormatter';
 import { HaasFormatter } from './dialects/HaasFormatter';
 import { SiemensFormatter } from './dialects/SiemensFormatter';
 import { DialectValidator } from '../utils/DialectValidator';
+import { FormatterConfig } from './types';
 
 /**
  * Factory for creating dialect-specific formatters.

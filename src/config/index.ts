@@ -10,12 +10,4 @@
 
 export { ConfigProvider } from './ConfigProvider';
 export { DEFAULT_GCODE_CONFIG } from './defaults';
-export type {
-  DeepPartial,
-  ExtractorConfig,
-  FormatterConfig,
-  GCodeConfig,
-  InterpreterConfig,
-  MachineHomePosition,
-  VisualizerConfig,
-} from './types';
+export type { DeepPartial, GCodeConfig } from './types';

@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { WorkerClient, WorkerFactory } from '../client/WorkerClient';
-import { MotionType, VisualizerResult } from '../shared/visualizerTypes';
+import { MotionType, VisualizerResult } from '../visualizer/types';
 
 /**
  * Path to the compiled worker script.
