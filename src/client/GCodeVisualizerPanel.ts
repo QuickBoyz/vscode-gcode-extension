@@ -38,7 +38,6 @@ type ExtensionToWebviewMessage =
       segments: ToolPathData['segments'];
       bounds: PathBounds;
       settings: VisualizerConfig;
-      sourceLines: readonly string[];
       sourceTokens: readonly TokenSpan[][];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
@@ -233,14 +232,12 @@ export class GCodeVisualizerPanel {
   }
 
   private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
-    const sourceLines = sourceText.split(/\r?\n/);
     const msg: ExtensionToWebviewMessage = {
       type: 'update',
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
-      sourceLines,
-      sourceTokens: GCodeVisualizerPanel.tokenizeLines(sourceLines),
+      sourceTokens: GCodeVisualizerPanel.tokenizeLines(sourceText.split(/\r?\n/)),
     };
     this.panel.webview.postMessage(msg);
   }

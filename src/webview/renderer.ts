@@ -169,10 +169,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
   /** Index of the segment currently under the cursor (null when none). */
   let hoveredSegmentIndex: number | null = null;
 
-  /** Source file lines from the most recent update message. */
-  let sourceLines: readonly string[] | undefined;
-
-  /** Tokenized source lines for syntax highlighting. */
+  /** Tokenized source lines for syntax highlighting and source display. */
   let sourceTokens: readonly { text: string; type: string }[][] | undefined;
 
   /** Pending mouse position for rAF-gated hit testing. */
@@ -409,14 +406,6 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
           span.className = `token-${token.type}`;
           span.textContent = token.text;
           infoSourceElement.appendChild(span);
-        }
-      } else {
-        // Fallback to plain text
-        const lineText = sourceLines?.[lineNum];
-        if (lineText !== undefined) {
-          const plain = document.createElement('span');
-          plain.textContent = lineText.trim();
-          infoSourceElement.appendChild(plain);
         }
       }
 
@@ -841,7 +830,6 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
       hideLoading();
       segments = message.segments || [];
       bounds = message.bounds || null;
-      sourceLines = message.sourceLines;
       sourceTokens = message.sourceTokens;
       // Clear stale hover / dwell state
       hoveredSegmentIndex = null;
