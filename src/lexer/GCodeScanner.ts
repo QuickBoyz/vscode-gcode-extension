@@ -175,9 +175,16 @@ export class GCodeScanner {
       return;
     }
 
-    // Single letter not followed by another letter/underscore -> PARAM
-    // (e.g., X, Y, Z, F, S followed by number or whitespace)
-    this.emit(TokenCategory.PARAM, null, firstChar, startOffset, startLine, startCol);
+    // Single ASCII letter (A-Z) not followed by another letter -> PARAM
+    // (e.g., X, Y, Z, F, S followed by number or whitespace).
+    // Underscore is not a valid G-code parameter letter.
+    if (upperFirstChar >= 'A' && upperFirstChar <= 'Z' && firstChar !== '_') {
+      this.emit(TokenCategory.PARAM, null, firstChar, startOffset, startLine, startCol);
+      return;
+    }
+
+    // Bare underscore or other non-letter identifier start -> IDENTIFIER
+    this.emit(TokenCategory.IDENTIFIER, null, firstChar, startOffset, startLine, startCol);
   }
 
   /**
@@ -216,13 +223,10 @@ export class GCodeScanner {
       this.readDigits();
     } else {
       this.readDigits();
-      // Optional decimal part
+      // Optional decimal part: only consume dot when followed by a digit
       if (this.peek() === '.' && this.isDigit(this.peek(1))) {
         this.advance(); // consume '.'
         this.readDigits();
-      } else if (this.peek() === '.' && !this.isAlpha(this.peek(1))) {
-        // Trailing dot: 5. (consumed as part of number)
-        this.advance();
       }
     }
 
