@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
+import { tokenizeSourceLines, TokenSpan } from '../visualizer/sourceTokenizer';
 import { PathBounds, ToolPathData, VisualizerConfig } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
@@ -27,7 +28,7 @@ type ExtensionToWebviewMessage =
       segments: ToolPathData['segments'];
       bounds: PathBounds;
       settings: VisualizerConfig;
-      sourceLines: readonly string[];
+      sourceTokens: readonly TokenSpan[][];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
@@ -226,7 +227,7 @@ export class GCodeVisualizerPanel {
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
-      sourceLines: sourceText.split(/\r?\n/),
+      sourceTokens: tokenizeSourceLines(sourceText.split(/\r?\n/)),
     };
     this.panel.webview.postMessage(msg);
   }
