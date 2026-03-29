@@ -15,8 +15,19 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
+import { GCodeLexer } from '../lexer/GCodeLexer';
+import { TokenType } from '../parser/nodes/tokens';
 import { PathBounds, ToolPathData, VisualizerConfig } from '../visualizer/types';
 import { generateNonce } from './nonce';
+
+/**
+ * A lightweight token span for the webview to render syntax-highlighted
+ * source lines. Only carries the text and a token type string.
+ */
+export interface TokenSpan {
+  readonly text: string;
+  readonly type: string;
+}
 
 /**
  * Message types sent from the extension to the webview.
@@ -28,6 +39,7 @@ type ExtensionToWebviewMessage =
       bounds: PathBounds;
       settings: VisualizerConfig;
       sourceLines: readonly string[];
+      sourceTokens: readonly TokenSpan[][];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
@@ -221,14 +233,53 @@ export class GCodeVisualizerPanel {
   }
 
   private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
+    const sourceLines = sourceText.split(/\r?\n/);
     const msg: ExtensionToWebviewMessage = {
       type: 'update',
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
-      sourceLines: sourceText.split(/\r?\n/),
+      sourceLines,
+      sourceTokens: GCodeVisualizerPanel.tokenizeLines(sourceLines),
     };
     this.panel.webview.postMessage(msg);
+  }
+
+  /**
+   * Tokenizes each source line using the G-code lexer and returns
+   * lightweight token spans for syntax highlighting in the webview.
+   * Whitespace between tokens is preserved as 'ws' spans so the
+   * rendered output matches the original line exactly.
+   */
+  private static tokenizeLines(lines: readonly string[]): TokenSpan[][] {
+    const lexer = new GCodeLexer();
+    return lines.map((line) => {
+      try {
+        const tokens = lexer.tokenize(line);
+        const spans: TokenSpan[] = [];
+        let cursor = 0;
+
+        for (const token of tokens) {
+          if (token.type === TokenType.NL) continue;
+          const offset = token.getOffset();
+          // Fill gap with whitespace
+          if (offset > cursor) {
+            spans.push({ text: line.slice(cursor, offset), type: 'ws' });
+          }
+          spans.push({ text: token.value, type: token.type });
+          cursor = offset + token.value.length;
+        }
+
+        // Trailing whitespace
+        if (cursor < line.length) {
+          spans.push({ text: line.slice(cursor), type: 'ws' });
+        }
+
+        return spans;
+      } catch {
+        return [{ text: line, type: 'plain' }];
+      }
+    });
   }
 
   private sendError(message: string): void {

@@ -172,7 +172,42 @@ button.active {
 }
 #info-panel #info-source {
   color: var(--vscode-descriptionForeground, #999);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 12px);
 }
+/* Syntax highlighting token colours using VS Code theme variables */
+#info-panel .token-line-num { color: var(--vscode-editorLineNumber-foreground, #858585); }
+#info-panel .token-GCODE { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
+#info-panel .token-MCODE { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
+#info-panel .token-PARAM { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
+#info-panel .token-NUMBER { color: var(--vscode-symbolIcon-constantForeground, #b5cea8); }
+#info-panel .token-VAR { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
+#info-panel .token-hash { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
+#info-panel .token-comment,
+#info-panel .token-parenComment { color: var(--vscode-symbolIcon-enumeratorForeground, #6a9955); }
+#info-panel .token-lineNumber { color: var(--vscode-editorLineNumber-foreground, #858585); }
+#info-panel .token-IF,
+#info-panel .token-ELSE,
+#info-panel .token-ELSEIF,
+#info-panel .token-ENDIF,
+#info-panel .token-WHILE,
+#info-panel .token-ENDWHILE,
+#info-panel .token-DO,
+#info-panel .token-END,
+#info-panel .token-THEN,
+#info-panel .token-GOTO,
+#info-panel .token-OSUB { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
+#info-panel .token-FUNC { color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); }
+#info-panel .token-RELOP,
+#info-panel .token-MOD,
+#info-panel .token-equals,
+#info-panel .token-plus,
+#info-panel .token-minus,
+#info-panel .token-star,
+#info-panel .token-slash { color: var(--vscode-symbolIcon-operatorForeground, #d4d4d4); }
+#info-panel .token-percent { color: var(--vscode-descriptionForeground, #858585); }
+#info-panel .token-ws,
+#info-panel .token-plain { color: inherit; }
 #info-panel #info-coords,
 #info-panel #info-extra {
   color: var(--vscode-descriptionForeground, #999);

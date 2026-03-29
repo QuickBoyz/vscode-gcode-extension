@@ -172,6 +172,9 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
   /** Source file lines from the most recent update message. */
   let sourceLines: readonly string[] | undefined;
 
+  /** Tokenized source lines for syntax highlighting. */
+  let sourceTokens: readonly { text: string; type: string }[][] | undefined;
+
   /** Pending mouse position for rAF-gated hit testing. */
   let pendingHitTestX = 0;
   let pendingHitTestY = 0;
@@ -387,11 +390,36 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
     infoTypeElement.textContent = formatMotionType(segment.type);
 
     if (motionContext) {
-      const lineText = sourceLines?.[motionContext.sourceLine];
-      infoSourceElement.textContent =
-        lineText !== undefined
-          ? `Line ${motionContext.sourceLine + 1}: ${lineText.trim()}`
-          : `Line ${motionContext.sourceLine + 1}`;
+      const lineNum = motionContext.sourceLine;
+      const tokens = sourceTokens?.[lineNum];
+
+      // Clear previous content
+      infoSourceElement.textContent = '';
+
+      // Line number prefix
+      const linePrefix = document.createElement('span');
+      linePrefix.className = 'token-line-num';
+      linePrefix.textContent = `Line ${lineNum + 1}: `;
+      infoSourceElement.appendChild(linePrefix);
+
+      if (tokens && tokens.length > 0) {
+        // Render syntax-highlighted tokens
+        for (const token of tokens) {
+          const span = document.createElement('span');
+          span.className = `token-${token.type}`;
+          span.textContent = token.text;
+          infoSourceElement.appendChild(span);
+        }
+      } else {
+        // Fallback to plain text
+        const lineText = sourceLines?.[lineNum];
+        if (lineText !== undefined) {
+          const plain = document.createElement('span');
+          plain.textContent = lineText.trim();
+          infoSourceElement.appendChild(plain);
+        }
+      }
+
       infoFeedElement.textContent =
         motionContext.feedRate !== null ? `Feed: ${motionContext.feedRate}` : '';
       infoSpindleElement.textContent =
@@ -814,6 +842,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): st
       segments = message.segments || [];
       bounds = message.bounds || null;
       sourceLines = message.sourceLines;
+      sourceTokens = message.sourceTokens;
       // Clear stale hover / dwell state
       hoveredSegmentIndex = null;
       projectedSegmentCache = [];
