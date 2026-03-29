@@ -20,16 +20,14 @@ export enum ArcPlane {
 
 /**
  * Axis identifier restricted to the three Cartesian axes.
- * Lowercase to match {@link PathPoint} property names (used for dynamic indexing).
  */
 export type AxisKey = 'x' | 'y' | 'z';
 
 /**
  * Offset letter restricted to I/J/K, which are used in G-code to specify
  * the arc centre relative to the start point.
- * Uppercase to match the parser's axis parameter convention.
  */
-export type OffsetKey = 'I' | 'J' | 'K';
+export type OffsetKey = 'i' | 'j' | 'k';
 
 /**
  * Configuration that describes how a particular arc plane maps onto
@@ -60,21 +58,21 @@ export const ARC_PLANE_CONFIGS: Readonly<Record<ArcPlane, ArcPlaneConfig>> = {
     inPlaneFirst: 'x',
     inPlaneSecond: 'y',
     normal: 'z',
-    offsetFirst: 'I',
-    offsetSecond: 'J',
+    offsetFirst: 'i',
+    offsetSecond: 'j',
   },
   [ArcPlane.XZ]: {
     inPlaneFirst: 'x',
     inPlaneSecond: 'z',
     normal: 'y',
-    offsetFirst: 'I',
-    offsetSecond: 'K',
+    offsetFirst: 'i',
+    offsetSecond: 'k',
   },
   [ArcPlane.YZ]: {
     inPlaneFirst: 'y',
     inPlaneSecond: 'z',
     normal: 'x',
-    offsetFirst: 'J',
-    offsetSecond: 'K',
+    offsetFirst: 'j',
+    offsetSecond: 'k',
   },
 };

@@ -328,8 +328,10 @@ export class GCodePathExtractor implements MotionHandler {
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
       const planeConfig = ARC_PLANE_CONFIGS[this.currentArcPlane];
-      const offsetFirst = evaluateAxisValue(parameters, planeConfig.offsetFirst, evaluator) ?? 0;
-      const offsetSecond = evaluateAxisValue(parameters, planeConfig.offsetSecond, evaluator) ?? 0;
+      const offsetFirst =
+        evaluateAxisValue(parameters, planeConfig.offsetFirst.toUpperCase(), evaluator) ?? 0;
+      const offsetSecond =
+        evaluateAxisValue(parameters, planeConfig.offsetSecond.toUpperCase(), evaluator) ?? 0;
       const arcPoints = generateArcPoints(
         this.currentPosition,
         newPosition,
