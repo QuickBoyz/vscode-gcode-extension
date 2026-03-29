@@ -66,14 +66,12 @@ const ARC_CW_COMMANDS = new Set(['G02']);
 /** Commands that switch to counter-clockwise arc mode. */
 const ARC_CCW_COMMANDS = new Set(['G03']);
 
-/** Commands that select the XY arc plane. */
-const ARC_PLANE_XY_COMMANDS = new Set(['G17']);
-
-/** Commands that select the XZ arc plane. */
-const ARC_PLANE_XZ_COMMANDS = new Set(['G18']);
-
-/** Commands that select the YZ arc plane. */
-const ARC_PLANE_YZ_COMMANDS = new Set(['G19']);
+/** Maps arc plane selection commands to their corresponding plane. */
+const ARC_PLANE_COMMANDS = new Map<string, ArcPlane>([
+  ['G17', ArcPlane.XY],
+  ['G18', ArcPlane.XZ],
+  ['G19', ArcPlane.YZ],
+]);
 
 /** Commands that return to machine home position. */
 const HOME_RETURN_COMMANDS = new Set(['G28']);
@@ -288,16 +286,9 @@ export class GCodePathExtractor implements MotionHandler {
     }
 
     // Arc plane selection — these do NOT affect modal motion command.
-    if (ARC_PLANE_XY_COMMANDS.has(normalisedCommand)) {
-      this.currentArcPlane = ArcPlane.XY;
-      return;
-    }
-    if (ARC_PLANE_XZ_COMMANDS.has(normalisedCommand)) {
-      this.currentArcPlane = ArcPlane.XZ;
-      return;
-    }
-    if (ARC_PLANE_YZ_COMMANDS.has(normalisedCommand)) {
-      this.currentArcPlane = ArcPlane.YZ;
+    const arcPlane = ARC_PLANE_COMMANDS.get(normalisedCommand);
+    if (arcPlane !== undefined) {
+      this.currentArcPlane = arcPlane;
       return;
     }
 

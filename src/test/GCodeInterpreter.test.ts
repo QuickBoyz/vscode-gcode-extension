@@ -23,13 +23,12 @@ class MockMotionHandler implements MotionHandler {
     command: string,
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
-  ): boolean {
+  ): void {
     const resolvedAxes = new Map<string, number | null>();
     for (const param of parameters) {
       resolvedAxes.set(param.axis.toUpperCase(), evaluator.evaluate(param.value));
     }
     this.calls.push({ command, resolvedAxes });
-    return true;
   }
 }
 

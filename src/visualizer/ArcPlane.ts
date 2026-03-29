@@ -20,8 +20,16 @@ export enum ArcPlane {
 
 /**
  * Axis identifier restricted to the three Cartesian axes.
+ * Lowercase to match {@link PathPoint} property names (used for dynamic indexing).
  */
 export type AxisKey = 'x' | 'y' | 'z';
+
+/**
+ * Offset letter restricted to I/J/K, which are used in G-code to specify
+ * the arc centre relative to the start point.
+ * Uppercase to match the parser's axis parameter convention.
+ */
+export type OffsetKey = 'I' | 'J' | 'K';
 
 /**
  * Configuration that describes how a particular arc plane maps onto
@@ -39,9 +47,9 @@ export interface ArcPlaneConfig {
   /** Normal axis — linear (helical) interpolation direction. */
   readonly normal: AxisKey;
   /** Offset letter for the first in-plane axis (I, J, or K). */
-  readonly offsetFirst: string;
+  readonly offsetFirst: OffsetKey;
   /** Offset letter for the second in-plane axis (I, J, or K). */
-  readonly offsetSecond: string;
+  readonly offsetSecond: OffsetKey;
 }
 
 /**
