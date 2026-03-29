@@ -11,7 +11,7 @@
  * under Node.js.
  */
 
-import { PathBounds, ProjectionMode } from '../shared/visualizerTypes';
+import { PathBounds, ProjectionMode } from '../visualizer/types';
 import { project } from './projection';
 import { CameraState } from './types';
 

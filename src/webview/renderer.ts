@@ -13,8 +13,8 @@ import {
   PathBounds,
   PathSegment,
   ProjectionMode,
-  VisualizerSettings,
-} from '../shared/visualizerTypes';
+  VisualizerConfig,
+} from '../visualizer/types';
 import { CameraState } from './types';
 import { createCameraState, DEFAULT_CAMERA_ANGLES, project } from './projection';
 import { drawAxes } from './axes';
@@ -92,7 +92,7 @@ const GRACE_ZONE_DELAY_MS = 300;
 /**
  * Returns the user-configured colour for a given motion type.
  */
-function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): string {
+function getSegmentColor(motionType: MotionType, settings: VisualizerConfig): string {
   switch (motionType) {
     case MotionType.RAPID:
       return settings.rapidColor;
@@ -147,7 +147,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   let segments: PathSegment[] = [];
   let bounds: PathBounds | null = null;
-  const settings: VisualizerSettings = {
+  const settings: VisualizerConfig = {
     rapidColor: rapidColorInput.value,
     feedColor: feedColorInput.value,
     arcColor: arcColorInput.value,
@@ -768,7 +768,7 @@ function getSegmentColor(motionType: MotionType, settings: VisualizerSettings): 
 
   // ---------- Settings UI sync ----------
 
-  function updateSettingsUI(incoming: Partial<VisualizerSettings>): void {
+  function updateSettingsUI(incoming: Partial<VisualizerConfig>): void {
     if (incoming.rapidColor !== undefined) {
       mutableSettings = { ...mutableSettings, rapidColor: incoming.rapidColor };
       rapidColorInput.value = incoming.rapidColor;

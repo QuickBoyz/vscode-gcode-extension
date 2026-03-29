@@ -1,4 +1,4 @@
-import { ProjectionMode } from '../shared/visualizerTypes';
+import { ProjectionMode } from '../visualizer/types';
 import { project, createCameraState, DEFAULT_CAMERA_ANGLES } from '../webview/projection';
 
 describe('projection', () => {

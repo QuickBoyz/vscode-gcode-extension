@@ -3,13 +3,14 @@
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
+import { GCODE_LANGUAGE_ID } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 describe('DocumentStateManager', () => {
   let manager: DocumentStateManager;
   const defaultSettings: GCodeSettings = {
-    formatter: DEFAULT_FORMATTER_SETTINGS,
+    formatter: DEFAULT_GCODE_CONFIG.formatter,
   };
 
   beforeEach(() => {
@@ -46,10 +47,10 @@ describe('DocumentStateManager', () => {
       const uri = 'file:///test.nc',
         text = '#<x> = 10',
         settings1: GCodeSettings = {
-          formatter: { ...DEFAULT_FORMATTER_SETTINGS, indentSize: 2 },
+          formatter: { ...DEFAULT_GCODE_CONFIG.formatter, indentSize: 2 },
         },
         settings2: GCodeSettings = {
-          formatter: { ...DEFAULT_FORMATTER_SETTINGS, indentSize: 4 },
+          formatter: { ...DEFAULT_GCODE_CONFIG.formatter, indentSize: 4 },
         },
         state1 = manager.getOrParseDocument(uri, text, settings1),
         state2 = manager.getOrParseDocument(uri, text, settings2);

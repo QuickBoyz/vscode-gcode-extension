@@ -14,7 +14,8 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
-import { PathBounds, ProjectionMode, ToolPathData, VisualizerSettings } from '../visualizer/types';
+import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
+import { PathBounds, ToolPathData, VisualizerConfig } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
 /**
@@ -25,10 +26,10 @@ type ExtensionToWebviewMessage =
       type: 'update';
       segments: ToolPathData['segments'];
       bounds: PathBounds;
-      settings: VisualizerSettings;
+      settings: VisualizerConfig;
       sourceLines: readonly string[];
     }
-  | { type: 'updateSettings'; settings: VisualizerSettings }
+  | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
   | { type: 'loading' };
 
@@ -36,7 +37,7 @@ type ExtensionToWebviewMessage =
  * Message types received from the webview.
  */
 type WebviewToExtensionMessage =
-  | { type: 'settingsChange'; settings: VisualizerSettings }
+  | { type: 'settingsChange'; settings: VisualizerConfig }
   | { type: 'navigateToLine'; line: number };
 
 /**
@@ -58,10 +59,12 @@ export class GCodeVisualizerPanel {
   private static navigateCallbacks: NavigateCallback[] = [];
 
   private readonly panel: vscode.WebviewPanel;
+  private readonly configProvider: ClientConfigProvider;
   private disposables: vscode.Disposable[] = [];
 
-  private constructor(panel: vscode.WebviewPanel) {
+  private constructor(panel: vscode.WebviewPanel, configProvider: ClientConfigProvider) {
     this.panel = panel;
+    this.configProvider = configProvider;
 
     panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
@@ -83,8 +86,9 @@ export class GCodeVisualizerPanel {
   static createOrShow(
     context: vscode.ExtensionContext,
     pathData: ToolPathData,
-    settings: VisualizerSettings,
-    sourceText: string
+    settings: VisualizerConfig,
+    sourceText: string,
+    configProvider: ClientConfigProvider
   ): void {
     if (GCodeVisualizerPanel.instance) {
       GCodeVisualizerPanel.instance.panel.reveal();
@@ -106,7 +110,7 @@ export class GCodeVisualizerPanel {
       }
     );
 
-    const instance = new GCodeVisualizerPanel(panel);
+    const instance = new GCodeVisualizerPanel(panel, configProvider);
     GCodeVisualizerPanel.instance = instance;
     instance.initContent(extensionUri);
     instance.update(pathData, settings, sourceText);
@@ -116,7 +120,7 @@ export class GCodeVisualizerPanel {
    * Pushes updated path data and settings to an already-open panel.
    * Does nothing when the panel is not visible.
    */
-  static refresh(pathData: ToolPathData, settings: VisualizerSettings, sourceText: string): void {
+  static refresh(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
     GCodeVisualizerPanel.instance?.update(pathData, settings, sourceText);
   }
 
@@ -141,7 +145,7 @@ export class GCodeVisualizerPanel {
    * Used for bidirectional sync when the user changes VS Code settings.
    * Does nothing when the panel is not visible.
    */
-  static updateSettings(settings: VisualizerSettings): void {
+  static updateSettings(settings: VisualizerConfig): void {
     if (GCodeVisualizerPanel.instance) {
       const message: ExtensionToWebviewMessage = { type: 'updateSettings', settings };
       GCodeVisualizerPanel.instance.panel.webview.postMessage(message);
@@ -216,7 +220,7 @@ export class GCodeVisualizerPanel {
       .replace(/\{\{cspSource\}\}/g, webview.cspSource);
   }
 
-  private update(pathData: ToolPathData, settings: VisualizerSettings, sourceText: string): void {
+  private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
     const msg: ExtensionToWebviewMessage = {
       type: 'update',
       segments: pathData.segments,
@@ -250,19 +254,8 @@ export class GCodeVisualizerPanel {
 
     if (msg.type !== 'settingsChange') return;
 
-    // Persist all user-configurable settings to workspace configuration.
-    const config = vscode.workspace.getConfiguration('gcode');
-    void config.update('visualizer.rapidColor', msg.settings.rapidColor, true);
-    void config.update('visualizer.feedColor', msg.settings.feedColor, true);
-    void config.update('visualizer.arcColor', msg.settings.arcColor, true);
-    void config.update('visualizer.lineThickness', msg.settings.lineThickness, true);
-    void config.update('visualizer.showGrid', msg.settings.showGrid, true);
-    void config.update('visualizer.showRapidMoves', msg.settings.showRapidMoves, true);
-    void config.update(
-      'visualizer.projection',
-      msg.settings.projection satisfies ProjectionMode,
-      true
-    );
+    // Persist visualizer settings via the config provider.
+    void this.configProvider.updateConfig({ visualizer: msg.settings });
   }
 
   private dispose(): void {

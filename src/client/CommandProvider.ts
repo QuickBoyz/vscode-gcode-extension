@@ -8,12 +8,9 @@ import * as path from 'path';
 
 import * as vscode from 'vscode';
 
+import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import {
-  DEFAULT_VISUALIZER_SETTINGS,
-  ProjectionMode,
-  VisualizerSettings,
-} from '../visualizer/types';
+import { VisualizerConfig } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';
 
@@ -26,6 +23,7 @@ const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
  * Manages all extension commands in a centralized location.
  */
 export class CommandProvider {
+  private readonly configProvider: ClientConfigProvider;
   private commands: vscode.Disposable[] = [];
   private workerClient: WorkerClient | undefined;
 
@@ -46,6 +44,10 @@ export class CommandProvider {
 
   /** Navigation callback registration (disposed with the panel). */
   private navigationRegistration: vscode.Disposable | undefined;
+
+  constructor(configProvider: ClientConfigProvider) {
+    this.configProvider = configProvider;
+  }
 
   /**
    * Register all commands
@@ -95,9 +97,10 @@ export class CommandProvider {
         }
 
         const workerClient = this.ensureWorkerClient(context);
+        const config = await this.configProvider.getConfig();
 
         const result = await workerClient.parse(documentText);
-        const settings = this.readVisualizerSettings();
+        const settings: VisualizerConfig = config.visualizer;
 
         if (!result.success) {
           vscode.window.showErrorMessage(`G-Code visualizer error: ${result.errorMessage}`);
@@ -107,7 +110,13 @@ export class CommandProvider {
         // Track the source document URI for navigation
         this.activeDocumentUri = uri ?? vscode.window.activeTextEditor?.document.uri;
 
-        GCodeVisualizerPanel.createOrShow(context, result.data, settings, documentText);
+        GCodeVisualizerPanel.createOrShow(
+          context,
+          result.data,
+          settings,
+          documentText,
+          this.configProvider
+        );
         this.registerNavigationCallback();
         this.startDocumentChangeListener();
       }
@@ -148,39 +157,6 @@ export class CommandProvider {
     return editor.document.getText();
   }
 
-  /**
-   * Reads visualizer colour/thickness settings from VS Code configuration,
-   * falling back to {@link DEFAULT_VISUALIZER_SETTINGS} when a key is absent.
-   */
-  private readVisualizerSettings(): VisualizerSettings {
-    const config = vscode.workspace.getConfiguration('gcode');
-    return {
-      rapidColor: config.get<string>(
-        'visualizer.rapidColor',
-        DEFAULT_VISUALIZER_SETTINGS.rapidColor
-      ),
-      feedColor: config.get<string>('visualizer.feedColor', DEFAULT_VISUALIZER_SETTINGS.feedColor),
-      arcColor: config.get<string>('visualizer.arcColor', DEFAULT_VISUALIZER_SETTINGS.arcColor),
-      lineThickness: config.get<number>(
-        'visualizer.lineThickness',
-        DEFAULT_VISUALIZER_SETTINGS.lineThickness
-      ),
-      showGrid: config.get<boolean>('visualizer.showGrid', DEFAULT_VISUALIZER_SETTINGS.showGrid),
-      gridSpacing: config.get<number>(
-        'visualizer.gridSpacing',
-        DEFAULT_VISUALIZER_SETTINGS.gridSpacing
-      ),
-      showRapidMoves: config.get<boolean>(
-        'visualizer.showRapidMoves',
-        DEFAULT_VISUALIZER_SETTINGS.showRapidMoves
-      ),
-      projection: config.get<ProjectionMode>(
-        'visualizer.projection',
-        DEFAULT_VISUALIZER_SETTINGS.projection
-      ),
-    };
-  }
-
   // ---------------------------------------------------------------------------
   // Live-update listener
   // ---------------------------------------------------------------------------
@@ -206,8 +182,10 @@ export class CommandProvider {
     this.configChangeListener = vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
         if (event.affectsConfiguration('gcode.visualizer')) {
-          const settings = this.readVisualizerSettings();
-          GCodeVisualizerPanel.updateSettings(settings);
+          this.configProvider.invalidate();
+          void this.configProvider.getConfig().then((config) => {
+            GCodeVisualizerPanel.updateSettings(config.visualizer);
+          });
         }
       }
     );
@@ -316,8 +294,9 @@ export class CommandProvider {
 
     try {
       const sourceText = document.getText();
+      const config = await this.configProvider.getConfig();
       const result = await this.workerClient.parse(sourceText);
-      const settings = this.readVisualizerSettings();
+      const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText);

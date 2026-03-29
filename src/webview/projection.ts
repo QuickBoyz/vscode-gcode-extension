@@ -12,7 +12,7 @@
  *     (negated so Z-up = canvas-up), y2 -> depth (into screen)
  */
 
-import { ProjectionMode } from '../shared/visualizerTypes';
+import { ProjectionMode } from '../visualizer/types';
 import { CameraState, ProjectedPoint } from './types';
 
 // ---------------------------------------------------------------------------

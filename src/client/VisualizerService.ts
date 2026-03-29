@@ -27,8 +27,8 @@ export class VisualizerService {
    * Returns a discriminated union so callers can handle parse or extraction
    * errors without try/catch.
    *
-   * @param text - Raw G-code file content
-   * @returns   A {@link VisualizerResult} indicating success with data or failure with a message
+   * @param text  Raw G-code file content
+   * @returns     A {@link VisualizerResult} indicating success with data or failure with a message
    */
   extractToolPath(text: string): VisualizerResult {
     try {

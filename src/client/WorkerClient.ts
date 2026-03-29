@@ -14,14 +14,14 @@
  */
 import { Worker } from 'worker_threads';
 
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
   WorkerErrorResponse,
   WorkerRequest,
   WorkerResponse,
-} from '../shared/visualizerTypes';
-import { DEFAULT_INTERPRETER_OPTIONS } from '../visualizer/types';
+} from '../visualizer/types';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;
@@ -71,13 +71,13 @@ export class WorkerClient {
    * (generation-counter cancellation). Only the most recent request
    * resolves to the caller.
    *
-   * @param text            Raw G-code file content
-   * @param maxIterations   Maximum interpreter loop iterations
-   * @returns               A {@link VisualizerResult} discriminated union
+   * @param text             Raw G-code file content
+   * @param maxIterations    Maximum loop iterations for the interpreter
+   * @returns                A {@link VisualizerResult} discriminated union
    */
   parse(
     text: string,
-    maxIterations: number = DEFAULT_INTERPRETER_OPTIONS.maxIterations
+    maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));

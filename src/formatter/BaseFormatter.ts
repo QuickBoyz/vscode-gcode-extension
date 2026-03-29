@@ -1,4 +1,5 @@
-import { DEFAULT_FORMATTER_SETTINGS, DEFAULTS, GCodeSymbols } from '../constants';
+import { DEFAULTS, GCodeSymbols } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { AstTraverser } from '../parser/AstTraverser';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
@@ -19,10 +20,10 @@ import {
   WhileStatementNode,
 } from '../parser/nodes';
 import { TokenType } from '../parser/nodes/tokens';
-import { FormatterSettings } from './types';
 import { ExpressionFormatter } from './ExpressionFormatter';
 import { IFormatter } from './IFormatter';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import { FormatterConfig } from './types';
 
 /**
  * Base formatter implementation with common formatting logic.
@@ -44,12 +45,12 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
   protected currentFormattedLineNumber: number;
   protected lastFormattedLineNumber: number = 0;
   protected lastSourceLineNumber: number = -1;
-  protected settings: FormatterSettings;
+  protected settings: FormatterConfig;
   protected expressionFormatter: ExpressionFormatter;
 
-  constructor(settings: Partial<FormatterSettings> = {}) {
+  constructor(settings: Partial<FormatterConfig> = {}) {
     super();
-    this.settings = { ...DEFAULT_FORMATTER_SETTINGS, ...settings };
+    this.settings = { ...DEFAULT_GCODE_CONFIG.formatter, ...settings };
     this.currentFormattedLineNumber = this.settings.lineNumberStart ?? DEFAULTS.LINE_NUMBER_START;
 
     this.expressionFormatter = new ExpressionFormatter({
@@ -62,9 +63,9 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
     // No-op default
   }
 
-  public setOptions(settings: Partial<FormatterSettings>): void {
+  public setOptions(settings: Partial<FormatterConfig>): void {
     this.settings = {
-      ...DEFAULT_FORMATTER_SETTINGS,
+      ...DEFAULT_GCODE_CONFIG.formatter,
       ...settings,
     };
 

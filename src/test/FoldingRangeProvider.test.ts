@@ -2,12 +2,13 @@ import { describe, expect, it } from '@jest/globals';
 import { FoldingRangeKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
+import { GCODE_LANGUAGE_ID } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 const TEST_SETTINGS: GCodeSettings = {
-  formatter: DEFAULT_FORMATTER_SETTINGS,
+  formatter: DEFAULT_GCODE_CONFIG.formatter,
 };
 
 function provideFolding(text: string) {

@@ -5,19 +5,20 @@
  * the actual LSP server. The LSP server uses the same GCodeParser and GCodeFormatter
  * classes that are tested in their respective test files.
  */
-import { DEFAULT_FORMATTER_SETTINGS, DialectType, GCodeSymbols } from '../constants';
+import { DialectType, GCodeSymbols } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { FormatterFactory } from '../formatter/FormatterFactory';
-import { FormatterSettings } from '../formatter/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
 import { GCodeParser } from '../parser/GCodeParser';
+import { FormatterConfig } from '../formatter/types';
 
 /**
  * Helper function that mimics what the server does when formatting
  */
 function formatGCode(
   text: string,
-  options: Partial<FormatterSettings> = {},
+  options: Partial<FormatterConfig> = {},
   dialect: DialectType = DialectType.LINUXCNC
 ): string | null {
   // Skip empty documents (same as server behavior)
@@ -25,8 +26,8 @@ function formatGCode(
     return null;
   }
 
-  const formatterOptions: FormatterSettings = {
-      ...DEFAULT_FORMATTER_SETTINGS,
+  const formatterOptions: FormatterConfig = {
+      ...DEFAULT_GCODE_CONFIG.formatter,
       ...options,
     },
     lexer = new GCodeLexer(),

@@ -13,6 +13,7 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node';
 
+import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { CommandProvider } from './CommandProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
 
@@ -69,7 +70,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(client);
 
   // Register all commands
-  commandProvider = new CommandProvider();
+  const configProvider = new ClientConfigProvider();
+  commandProvider = new CommandProvider(configProvider);
   commandProvider.registerCommands(context);
 }
 

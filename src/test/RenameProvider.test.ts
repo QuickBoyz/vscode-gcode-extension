@@ -3,13 +3,14 @@
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_FORMATTER_SETTINGS, GCODE_LANGUAGE_ID } from '../constants';
+import { GCODE_LANGUAGE_ID } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config';
 import { Position } from '../parser/nodes';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { RenameProvider } from '../providers/RenameProvider';
 
 const TEST_SETTINGS: GCodeSettings = {
-  formatter: DEFAULT_FORMATTER_SETTINGS,
+  formatter: DEFAULT_GCODE_CONFIG.formatter,
 };
 
 describe('RenameProvider', () => {

@@ -1,9 +1,9 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 
-import { FormatterSettings } from '../formatter/types';
 import { FormatterService } from './FormatterService';
 import { DialectType } from '../constants';
 import { Range } from '../parser/nodes';
+import { FormatterConfig } from '../formatter/types';
 
 /**
  * Document Formatting Provider
@@ -25,7 +25,7 @@ export class DocumentFormattingProvider {
    */
   provide(
     document: TextDocument,
-    settings: FormatterSettings,
+    settings: FormatterConfig,
     dialect?: DialectType,
     range?: Range
   ): TextEdit[] {
@@ -42,7 +42,7 @@ export class DocumentFormattingProvider {
    */
   provideDocument(
     document: TextDocument,
-    settings: FormatterSettings,
+    settings: FormatterConfig,
     dialect?: DialectType
   ): TextEdit[] {
     return this.provide(document, settings, dialect);
@@ -60,7 +60,7 @@ export class DocumentFormattingProvider {
   provideRange(
     document: TextDocument,
     range: Range,
-    settings: FormatterSettings,
+    settings: FormatterConfig,
     dialect?: DialectType
   ): TextEdit[] {
     return this.provide(document, settings, dialect, range);

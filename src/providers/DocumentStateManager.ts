@@ -7,7 +7,6 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
-import { FormatterSettings } from '../formatter/types';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { GCodeParser } from '../parser/GCodeParser';
 import { ProgramNode } from '../parser/nodes';
@@ -15,12 +14,13 @@ import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
 import { IDataProvider } from './IDataProvider';
 import { DataProviderFactory } from './DataProviderFactory';
+import { FormatterConfig } from '../formatter/types';
 
 /**
  * Settings interface for G-code documents
  */
 export interface GCodeSettings {
-  formatter: FormatterSettings;
+  formatter: FormatterConfig;
   dialect?: DialectType;
 }
 
