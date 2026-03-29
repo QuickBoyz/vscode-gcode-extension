@@ -177,16 +177,33 @@ button.active {
 }
 /* Syntax highlighting — class names and colours match the
    extension's TextMate theme (themes/gcode-theme.json). */
-#info-panel .token-line-num { color: var(--vscode-editorLineNumber-foreground, #858585); }
+#info-panel .token-line-num {
+  color: var(--vscode-editorLineNumber-foreground, #858585);
+}
 #info-panel .token-comment,
-#info-panel .token-parenComment { color: #7d7d7d; font-style: italic; }
+#info-panel .token-parenComment {
+  color: #7d7d7d;
+  font-style: italic;
+}
 #info-panel .token-GCODE,
-#info-panel .token-MCODE { color: #C678DD; font-weight: 600; }
-#info-panel .token-PARAM { color: #E06C75; }
-#info-panel .token-NUMBER { color: #D19A66; }
+#info-panel .token-MCODE {
+  color: #c678dd;
+  font-weight: 600;
+}
+#info-panel .token-PARAM {
+  color: #e06c75;
+}
+#info-panel .token-NUMBER {
+  color: #d19a66;
+}
 #info-panel .token-VAR,
-#info-panel .token-hash { color: #E06C75; font-style: italic; }
-#info-panel .token-lineNumber { color: #d5d5d5; }
+#info-panel .token-hash {
+  color: #e06c75;
+  font-style: italic;
+}
+#info-panel .token-lineNumber {
+  color: #d5d5d5;
+}
 #info-panel .token-IF,
 #info-panel .token-ELSE,
 #info-panel .token-ELSEIF,
@@ -197,18 +214,62 @@ button.active {
 #info-panel .token-END,
 #info-panel .token-THEN,
 #info-panel .token-GOTO,
-#info-panel .token-OSUB { color: #C678DD; }
-#info-panel .token-FUNC { color: #56B6C2; }
+#info-panel .token-OSUB {
+  color: #c678dd;
+}
+#info-panel .token-FUNC {
+  color: #56b6c2;
+}
 #info-panel .token-RELOP,
 #info-panel .token-MOD,
 #info-panel .token-equals,
 #info-panel .token-plus,
 #info-panel .token-minus,
 #info-panel .token-star,
-#info-panel .token-slash { color: #56B6C2; }
-#info-panel .token-percent { color: #98C379; }
+#info-panel .token-slash {
+  color: #56b6c2;
+}
+#info-panel .token-percent {
+  color: #98c379;
+}
+#info-panel .token-lBracket,
+#info-panel .token-rBracket,
+#info-panel .token-comma,
+#info-panel .token-dot,
 #info-panel .token-ws,
-#info-panel .token-plain { color: inherit; }
+#info-panel .token-plain {
+  color: inherit;
+}
+/* Light theme overrides — VS Code adds .vscode-light to <body> */
+.vscode-light #info-panel .token-comment,
+.vscode-light #info-panel .token-parenComment { color: #008000; }
+.vscode-light #info-panel .token-GCODE,
+.vscode-light #info-panel .token-MCODE { color: #0000ff; font-weight: 600; }
+.vscode-light #info-panel .token-PARAM { color: #001080; }
+.vscode-light #info-panel .token-NUMBER { color: #098658; }
+.vscode-light #info-panel .token-VAR,
+.vscode-light #info-panel .token-hash { color: #001080; }
+.vscode-light #info-panel .token-lineNumber { color: #333333; }
+.vscode-light #info-panel .token-IF,
+.vscode-light #info-panel .token-ELSE,
+.vscode-light #info-panel .token-ELSEIF,
+.vscode-light #info-panel .token-ENDIF,
+.vscode-light #info-panel .token-WHILE,
+.vscode-light #info-panel .token-ENDWHILE,
+.vscode-light #info-panel .token-DO,
+.vscode-light #info-panel .token-END,
+.vscode-light #info-panel .token-THEN,
+.vscode-light #info-panel .token-GOTO,
+.vscode-light #info-panel .token-OSUB { color: #af00db; }
+.vscode-light #info-panel .token-FUNC { color: #795e26; }
+.vscode-light #info-panel .token-RELOP,
+.vscode-light #info-panel .token-MOD,
+.vscode-light #info-panel .token-equals,
+.vscode-light #info-panel .token-plus,
+.vscode-light #info-panel .token-minus,
+.vscode-light #info-panel .token-star,
+.vscode-light #info-panel .token-slash { color: #000000; }
+.vscode-light #info-panel .token-percent { color: #098658; }
 #info-panel #info-coords,
 #info-panel #info-extra {
   color: var(--vscode-descriptionForeground, #999);
