@@ -175,17 +175,18 @@ button.active {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vscode-editor-font-size, 12px);
 }
-/* Syntax highlighting token colours using VS Code theme variables */
+/* Syntax highlighting — class names and colours match the
+   extension's TextMate theme (themes/gcode-theme.json). */
 #info-panel .token-line-num { color: var(--vscode-editorLineNumber-foreground, #858585); }
-#info-panel .token-GCODE { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
-#info-panel .token-MCODE { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
-#info-panel .token-PARAM { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
-#info-panel .token-NUMBER { color: var(--vscode-symbolIcon-constantForeground, #b5cea8); }
-#info-panel .token-VAR { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
-#info-panel .token-hash { color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); }
 #info-panel .token-comment,
-#info-panel .token-parenComment { color: var(--vscode-symbolIcon-enumeratorForeground, #6a9955); }
-#info-panel .token-lineNumber { color: var(--vscode-editorLineNumber-foreground, #858585); }
+#info-panel .token-parenComment { color: #7d7d7d; font-style: italic; }
+#info-panel .token-GCODE,
+#info-panel .token-MCODE { color: #C678DD; font-weight: 600; }
+#info-panel .token-PARAM { color: #E06C75; }
+#info-panel .token-NUMBER { color: #D19A66; }
+#info-panel .token-VAR,
+#info-panel .token-hash { color: #E06C75; font-style: italic; }
+#info-panel .token-lineNumber { color: #d5d5d5; }
 #info-panel .token-IF,
 #info-panel .token-ELSE,
 #info-panel .token-ELSEIF,
@@ -196,16 +197,16 @@ button.active {
 #info-panel .token-END,
 #info-panel .token-THEN,
 #info-panel .token-GOTO,
-#info-panel .token-OSUB { color: var(--vscode-symbolIcon-keywordForeground, #c586c0); }
-#info-panel .token-FUNC { color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); }
+#info-panel .token-OSUB { color: #C678DD; }
+#info-panel .token-FUNC { color: #56B6C2; }
 #info-panel .token-RELOP,
 #info-panel .token-MOD,
 #info-panel .token-equals,
 #info-panel .token-plus,
 #info-panel .token-minus,
 #info-panel .token-star,
-#info-panel .token-slash { color: var(--vscode-symbolIcon-operatorForeground, #d4d4d4); }
-#info-panel .token-percent { color: var(--vscode-descriptionForeground, #858585); }
+#info-panel .token-slash { color: #56B6C2; }
+#info-panel .token-percent { color: #98C379; }
 #info-panel .token-ws,
 #info-panel .token-plain { color: inherit; }
 #info-panel #info-coords,
