@@ -1,6 +1,7 @@
 import { DialectType } from '../../constants';
-import { ConfigProvider, DEFAULT_GCODE_CONFIG, DeepPartial, GCodeConfig } from '../../config';
-
+import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
+import { DeepPartial, GCodeConfig } from '../../config/types';
+import { ConfigProvider } from '../../config/ConfigProvider';
 /**
  * Concrete test implementation of the abstract {@link ConfigProvider}.
  * Allows tests to control the raw config returned by fetchRawConfig

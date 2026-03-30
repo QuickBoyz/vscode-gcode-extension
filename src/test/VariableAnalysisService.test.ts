@@ -7,7 +7,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 import { Range } from '../parser/nodes';

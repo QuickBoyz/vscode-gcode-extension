@@ -12,7 +12,7 @@ import {
   VariableReferenceNode,
   WhileStatementNode,
 } from '../parser/nodes';
-import { TokenType } from '../parser/nodes/tokens';
+import { IfClauseKind } from '../parser/nodes';
 
 describe('GCodeParser', () => {
   function parse(input: string): ProgramNode {
@@ -218,9 +218,9 @@ O1 ENDIF
 `),
       ifStmt = program.statements[0] as IfStatementNode;
 
-    expect(ifStmt.ifClause.kind).toBe(TokenType.IF);
+    expect(ifStmt.ifClause.kind).toBe(IfClauseKind.IF);
     expect(ifStmt.elseIfClauses).toHaveLength(1);
-    expect(ifStmt.elseIfClauses?.[0].kind).toBe(TokenType.ELSEIF);
+    expect(ifStmt.elseIfClauses?.[0].kind).toBe(IfClauseKind.ELSEIF);
 
     expect(ifStmt.elseClause).toBeDefined();
     expect(ifStmt.elseClause?.body).toHaveLength(1);
@@ -240,9 +240,9 @@ ENDIF
 
     expect(ifStmt).toBeInstanceOf(IfStatementNode);
     expect(ifStmt.label).toBeUndefined();
-    expect(ifStmt.ifClause.kind).toBe(TokenType.IF);
+    expect(ifStmt.ifClause.kind).toBe(IfClauseKind.IF);
     expect(ifStmt.elseIfClauses).toHaveLength(1);
-    expect(ifStmt.elseIfClauses?.[0].kind).toBe(TokenType.ELSEIF);
+    expect(ifStmt.elseIfClauses?.[0].kind).toBe(IfClauseKind.ELSEIF);
     expect(ifStmt.elseClause).toBeDefined();
     expect(ifStmt.elseClause?.body).toHaveLength(1);
   });

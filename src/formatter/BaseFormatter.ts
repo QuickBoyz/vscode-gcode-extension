@@ -1,5 +1,5 @@
 import { DEFAULTS, GCodeSymbols } from '../constants';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { AstTraverser } from '../parser/AstTraverser';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
@@ -19,11 +19,10 @@ import {
   VariableAssignmentNode,
   WhileStatementNode,
 } from '../parser/nodes';
-import { TokenType } from '../parser/nodes/tokens';
+import { IfClauseKind } from '../parser/nodes';
 import { ExpressionFormatter } from './ExpressionFormatter';
-import { IFormatter } from './IFormatter';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
-import { FormatterConfig } from './types';
+import { FormatterConfig, FormatterInterface } from './types';
 
 /**
  * Base formatter implementation with common formatting logic.
@@ -39,7 +38,7 @@ import { FormatterConfig } from './types';
  * - Control flow keyword formatting (IF/WHILE/END/etc.)
  * - Label formatting
  */
-export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFormatter {
+export abstract class BaseFormatter extends BaseAstVisitor<void> implements FormatterInterface {
   protected lines: string[] = [];
   protected currentIndent = 0;
   protected currentFormattedLineNumber: number;
@@ -268,7 +267,7 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFor
 
   visitIfClause(node: IfClauseNode): void {
     this.handleLineGap(node.getRange().start.line);
-    const isElseIf = node.kind === TokenType.ELSEIF,
+    const isElseIf = node.kind === IfClauseKind.ELSEIF,
       keyword = isElseIf ? this.getElseIfKeyword() : this.getIfKeyword();
 
     if (isElseIf) {

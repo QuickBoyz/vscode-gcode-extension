@@ -21,7 +21,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { HoverProvider } from '../providers/HoverProvider';
 import { CompletionProvider } from '../providers/CompletionProvider';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
-import { GCodeConfig } from '../config';
+import { GCodeConfig } from '../config/types';
 import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
 
 // Create a connection to the client

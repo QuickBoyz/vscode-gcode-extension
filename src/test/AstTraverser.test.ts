@@ -11,7 +11,7 @@ import {
   ProgramNode,
   VariableAssignmentNode,
 } from '../parser/nodes';
-import { TokenType } from '../parser/nodes/tokens';
+import { IfClauseKind } from '../parser/nodes';
 
 describe('AstTraverser', () => {
   function parse(input: string): ProgramNode {
@@ -112,7 +112,7 @@ o100 endif
         visitIfStatement: () => visited.push('if'),
         visitIfStatementEnd: () => visited.push('endif'),
         visitIfClause: (node: IfClauseNode) =>
-          visited.push(node.kind === TokenType.IF ? 'ifclause' : 'elseifclause'),
+          visited.push(node.kind === IfClauseKind.IF ? 'ifclause' : 'elseifclause'),
         visitElseClause: () => visited.push('elseclause'),
         visitMotionCommand: (node: MotionCommandNode) => visited.push(`cmd:${node.command}`),
         visitAxisParameter: (node: AxisParameterNode) => visited.push(`axis:${node.axis}`),

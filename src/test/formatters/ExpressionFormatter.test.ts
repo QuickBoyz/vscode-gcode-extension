@@ -5,7 +5,8 @@ import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstFactory } from '../../parser/AstFactory';
 import { GCodeParser } from '../../parser/GCodeParser';
 import { VariableAssignmentNode } from '../../parser/nodes';
-import { Token, TokenType } from '../../parser/nodes/tokens';
+import { TokenCategory } from '../../lexer/types';
+import { LexerToken } from '../../lexer/LexerToken';
 
 describe('ExpressionFormatter', () => {
   const parseExpression = (code: string) => {
@@ -205,15 +206,23 @@ describe('ExpressionFormatter', () => {
   describe('Edge Cases', () => {
     it('should handle deeply nested expressions without stack overflow', () => {
       // Create a deeply nested expression: ((((a + b) + c) + d) + e) + f
-      const tokens = ['a', 'b', 'c', 'd', 'e', 'f'].map(
-        (name) => new Token(TokenType.VAR, `#<${name}>`, 0, `#<${name}>`, 0, 1, 1)
+      const lexerTokens = ['a', 'b', 'c', 'd', 'e', 'f'].map(
+        (name) => new LexerToken(TokenCategory.VARIABLE, null, `#<${name}>`, 0, 1, 1)
       );
-      const vars = tokens.map((token) => factory.variableRef(token));
+      const vars = lexerTokens.map((token) => factory.variableRef(token));
 
       // Build nested structure
-      let expr = factory.binary(vars[0], new Token(TokenType.PLUS, '+', 0, '+', 0, 1, 1), vars[1]);
+      let expr = factory.binary(
+        vars[0],
+        new LexerToken(TokenCategory.PLUS, null, '+', 0, 1, 1),
+        vars[1]
+      );
       for (let i = 2; i < vars.length; i++) {
-        expr = factory.binary(expr, new Token(TokenType.PLUS, '+', 0, '+', 0, 1, 1), vars[i]);
+        expr = factory.binary(
+          expr,
+          new LexerToken(TokenCategory.PLUS, null, '+', 0, 1, 1),
+          vars[i]
+        );
       }
 
       const result = formatter.format(expr);
@@ -222,18 +231,22 @@ describe('ExpressionFormatter', () => {
 
     it('should handle deeply nested mixed precedence without stack overflow', () => {
       // Create: a + b * c + d * e + f
-      const a = factory.variableRef(new Token(TokenType.VAR, '#<a>', 0, '#<a>', 0, 1, 1));
-      const b = factory.variableRef(new Token(TokenType.VAR, '#<b>', 0, '#<b>', 0, 1, 1));
-      const c = factory.variableRef(new Token(TokenType.VAR, '#<c>', 0, '#<c>', 0, 1, 1));
-      const d = factory.variableRef(new Token(TokenType.VAR, '#<d>', 0, '#<d>', 0, 1, 1));
-      const e = factory.variableRef(new Token(TokenType.VAR, '#<e>', 0, '#<e>', 0, 1, 1));
-      const f = factory.variableRef(new Token(TokenType.VAR, '#<f>', 0, '#<f>', 0, 1, 1));
+      const a = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<a>', 0, 1, 1));
+      const b = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<b>', 0, 1, 1));
+      const c = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<c>', 0, 1, 1));
+      const d = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<d>', 0, 1, 1));
+      const e = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<e>', 0, 1, 1));
+      const f = factory.variableRef(new LexerToken(TokenCategory.VARIABLE, null, '#<f>', 0, 1, 1));
 
-      const mult1 = factory.binary(b, new Token(TokenType.STAR, '*', 0, '*', 0, 1, 1), c);
-      const add1 = factory.binary(a, new Token(TokenType.PLUS, '+', 0, '+', 0, 1, 1), mult1);
-      const mult2 = factory.binary(d, new Token(TokenType.STAR, '*', 0, '*', 0, 1, 1), e);
-      const add2 = factory.binary(add1, new Token(TokenType.PLUS, '+', 0, '+', 0, 1, 1), mult2);
-      const add3 = factory.binary(add2, new Token(TokenType.PLUS, '+', 0, '+', 0, 1, 1), f);
+      const mult1 = factory.binary(b, new LexerToken(TokenCategory.STAR, null, '*', 0, 1, 1), c);
+      const add1 = factory.binary(a, new LexerToken(TokenCategory.PLUS, null, '+', 0, 1, 1), mult1);
+      const mult2 = factory.binary(d, new LexerToken(TokenCategory.STAR, null, '*', 0, 1, 1), e);
+      const add2 = factory.binary(
+        add1,
+        new LexerToken(TokenCategory.PLUS, null, '+', 0, 1, 1),
+        mult2
+      );
+      const add3 = factory.binary(add2, new LexerToken(TokenCategory.PLUS, null, '+', 0, 1, 1), f);
 
       const result = formatter.format(add3);
       expect(result).toBe('#<a> + #<b> * #<c> + #<d> * #<e> + #<f>');

@@ -4,12 +4,20 @@ import { BlockStatementNode } from '../BlockStatementNode';
 import { ExpressionNode } from '../expressions';
 import { Range } from '../Range';
 import { StatementNode } from '../StatementNode';
-import { TokenType } from '../tokens';
+
+/**
+ * Discriminator for whether an IfClauseNode represents the initial IF
+ * or a subsequent ELSEIF clause.
+ */
+export enum IfClauseKind {
+  IF = 'IF',
+  ELSEIF = 'ELSEIF',
+}
 
 export class IfClauseNode extends BlockStatementNode {
   constructor(
     range: Range,
-    readonly kind: TokenType.IF | TokenType.ELSEIF,
+    readonly kind: IfClauseKind,
     readonly condition: ExpressionNode,
     body: StatementNode[],
     readonly keywordTokenRange: Range,

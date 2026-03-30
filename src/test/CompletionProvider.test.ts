@@ -8,7 +8,7 @@ import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompletionItemKind, MarkupContent } from 'vscode-languageserver/node';
 
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { CompletionProvider } from '../providers/CompletionProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
