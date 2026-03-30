@@ -12,6 +12,7 @@
  */
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
+import { LexerFactory } from '../lexer/LexerFactory';
 import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
 
@@ -121,7 +122,7 @@ function tokenToCssClass(token: LexerToken): string {
  * benefit for realistic file sizes.
  */
 export function tokenizeSourceLines(lines: readonly string[]): TokenSpan[][] {
-  const lexer = new GCodeLexer();
+  const lexer = LexerFactory.create();
   return lines.map((line) => tokenizeSingleLine(lexer, line));
 }
 

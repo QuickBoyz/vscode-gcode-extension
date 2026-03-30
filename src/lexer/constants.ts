@@ -112,6 +112,7 @@ export const SIEMENS_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
   ['THEN', KeywordType.THEN],
   ['WHILE', KeywordType.WHILE],
   ['ENDWHILE', KeywordType.ENDWHILE],
+  ['DO', KeywordType.DO],
   // Subroutine keywords
   ['PROC', KeywordType.PROC],
   ['RET', KeywordType.RET],
@@ -123,18 +124,6 @@ export const SIEMENS_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
   // Functions (no EXISTS)
   ...FUNCTION_ENTRIES,
 ];
-
-/**
- * Case-insensitive keyword lookup table.
- *
- * This is the single source of truth for which identifiers are keywords.
- * Adding a new keyword = one entry here plus one enum value in KeywordType.ts.
- * Zero parser or lexer changes required.
- *
- * @deprecated Use getKeywordEntries(dialect) for dialect-aware keyword lookup.
- *             Kept as an alias for LINUXCNC_KEYWORDS for backward compatibility.
- */
-export const KEYWORD_ENTRIES: ReadonlyArray<[string, KeywordType]> = LINUXCNC_KEYWORDS;
 
 /**
  * Returns the keyword entries for the given dialect.

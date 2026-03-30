@@ -9,6 +9,7 @@
  */
 import { DialectType } from '../constants';
 import { GCodeLexer } from '../lexer/GCodeLexer';
+import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { VisualizerResult } from '../visualizer/types';
@@ -18,7 +19,7 @@ export class VisualizerService {
   private readonly extractor: GCodePathExtractor;
 
   constructor() {
-    this.lexer = new GCodeLexer();
+    this.lexer = LexerFactory.create();
     this.extractor = new GCodePathExtractor();
   }
 

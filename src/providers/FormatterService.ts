@@ -2,9 +2,9 @@ import { TextEdit } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { FormatterFactory } from '../formatter/FormatterFactory';
-import { GCodeLexer } from '../lexer/GCodeLexer';
+import { LexerFactory } from '../lexer/LexerFactory';
 import { AstTraverser } from '../parser/AstTraverser';
-import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
+import { ParserFactory } from '../parser/ParserFactory';
 import { Range } from '../parser/nodes';
 import { DialectType } from '../constants';
 import { ErrorDetectorVisitor } from './ErrorDetectorVisitor';
@@ -15,9 +15,9 @@ export class FormatterService {
     // Always parse with LinuxCNC dialect (superset of all keywords).
     // The dialect parameter only affects formatter output, not parsing.
     // Dialect-aware parsing is handled at the DocumentStateManager level.
-    const lexer = new GCodeLexer(),
+    const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(text),
-      parser = new LinuxCNCParser(tokens, text),
+      parser = ParserFactory.create(DialectType.LINUXCNC, tokens, text),
       program = parser.parseProgram();
 
     // Check for syntax errors and block formatting if any exist
