@@ -214,3 +214,71 @@ describe('Fanuc/Haas subroutines', () => {
     expect(call.target).toBe('1000');
   });
 });
+
+describe('Siemens subroutines', () => {
+  function parse(input: string): ProgramNode {
+    const lexer = LexerFactory.create(DialectType.SIEMENS);
+    const tokens = lexer.tokenize(input);
+    const parser = ParserFactory.create(DialectType.SIEMENS, tokens, input);
+    return parser.parseProgram();
+  }
+
+  it('parses PROC/RET with body', () => {
+    const code = `PROC MyProc
+G0 X10
+RET`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const node = program.statements[0];
+    expect(node).toBeInstanceOf(SubroutineDefinitionNode);
+
+    const sub = node as SubroutineDefinitionNode;
+    expect(sub.label).toBe('MyProc');
+    expect(sub.body.length).toBe(1);
+    expect(sub.body[0]).toBeInstanceOf(MotionCommandNode);
+  });
+
+  it('parses PROC/RET with empty body', () => {
+    const code = `PROC MyProc
+RET`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect(sub).toBeInstanceOf(SubroutineDefinitionNode);
+    expect(sub.label).toBe('MyProc');
+    expect(sub.body.length).toBe(0);
+  });
+
+  it('parses CALL with procedure name', () => {
+    const code = 'CALL MyProc';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('MyProc');
+    expect(call.callArguments.length).toBe(0);
+  });
+
+  it('parses standalone RET as return statement', () => {
+    const code = 'RET';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const ret = program.statements[0] as ReturnStatementNode;
+    expect(ret).toBeInstanceOf(ReturnStatementNode);
+    expect(ret.label).toBeUndefined();
+  });
+
+  it('parses RETURN as return statement', () => {
+    const code = 'RETURN';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const ret = program.statements[0] as ReturnStatementNode;
+    expect(ret).toBeInstanceOf(ReturnStatementNode);
+    expect(ret.label).toBeUndefined();
+  });
+});
