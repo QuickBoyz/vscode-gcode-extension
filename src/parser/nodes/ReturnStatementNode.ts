@@ -6,8 +6,8 @@ import { StatementNode } from './StatementNode';
 export class ReturnStatementNode extends StatementNode {
   constructor(
     range: Range,
-    readonly label?: string,
-    readonly returnTokenRange?: Range,
+    readonly label: string | undefined,
+    readonly returnTokenRange: Range,
     parent?: AstNode
   ) {
     super(range, parent);

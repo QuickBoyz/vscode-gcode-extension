@@ -137,6 +137,13 @@ G0 X0 Y0`;
 
     expect(program.statements[3]).toBeInstanceOf(MotionCommandNode);
   });
+
+  it('recovers gracefully when ENDSUB is missing', () => {
+    const code = 'O100 SUB\nG0 X10';
+    const program = parse(code);
+    expect(program.statements.length).toBeGreaterThan(0);
+    // Should not crash — error recovery handles the missing ENDSUB
+  });
 });
 
 describe('Fanuc/Haas subroutines', () => {
@@ -280,5 +287,14 @@ RET`;
     const ret = program.statements[0] as ReturnStatementNode;
     expect(ret).toBeInstanceOf(ReturnStatementNode);
     expect(ret.label).toBeUndefined();
+  });
+
+  it('parses PROC with multiple body statements', () => {
+    const code = 'PROC MyProc\n#1 = 5\nG0 X#1\nG1 Y10 F500\nRET';
+    const program = parse(code);
+
+    const def = program.statements.find((s) => s instanceof SubroutineDefinitionNode);
+    expect(def).toBeDefined();
+    expect((def as SubroutineDefinitionNode).body.length).toBe(3);
   });
 });

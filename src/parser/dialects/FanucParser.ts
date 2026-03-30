@@ -1,5 +1,5 @@
 import { KeywordType, TokenCategory } from '../../lexer/types';
-import { AxisParameterNode, ExpressionNode, StatementNode } from '../nodes';
+import { AxisParameterNode, ExpressionNode, LiteralExpressionNode, StatementNode } from '../nodes';
 import { ParseError } from '../TokenStream';
 import { BaseParser } from '../BaseParser';
 
@@ -8,6 +8,7 @@ import { BaseParser } from '../BaseParser';
  */
 const MCODE_SUBROUTINE_CALL = 'M98';
 const MCODE_SUBROUTINE_RETURN = 'M99';
+const UNKNOWN_SUBROUTINE_TARGET = 'unknown';
 
 /**
  * Fanuc dialect parser.
@@ -98,7 +99,10 @@ export class FanucParser extends BaseParser {
       return this.factory.error('M98 requires P parameter for subroutine number', m98Token);
     }
 
-    const target = pParam.value && 'value' in pParam.value ? String(pParam.value.value) : 'unknown';
+    const target =
+      pParam.value instanceof LiteralExpressionNode
+        ? String(pParam.value.value)
+        : UNKNOWN_SUBROUTINE_TARGET;
 
     // Extract L parameter for repeat count (optional)
     const lParam = params.find((p) => p.axis.toUpperCase() === 'L');
@@ -107,11 +111,13 @@ export class FanucParser extends BaseParser {
       repeatCount = lParam.value;
     }
 
+    const lastParam = params[params.length - 1];
+
     return this.factory.subroutineCall({
       callToken: m98Token,
       target,
       callArguments: [],
-      lastToken: params.length > 0 ? m98Token : m98Token,
+      lastToken: lastParam,
       repeatCount,
     });
   }

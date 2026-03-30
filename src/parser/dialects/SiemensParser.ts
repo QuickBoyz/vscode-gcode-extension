@@ -68,9 +68,9 @@ export class SiemensParser extends BaseParser {
     const nameToken = this.tokens.expectCategory(TokenCategory.IDENTIFIER);
     const body: StatementNode[] = [];
 
-    // Parse body until RET keyword is encountered (or EOF)
+    // Parse body until RET or RETURN keyword is encountered (or EOF)
     while (!this.tokens.eof()) {
-      if (this.tokens.matchKeyword(KeywordType.RET)) {
+      if (this.tokens.matchKeyword(KeywordType.RET, KeywordType.RETURN)) {
         break;
       }
       const stmt = this.parseStatementSafe();
@@ -79,11 +79,11 @@ export class SiemensParser extends BaseParser {
       }
     }
 
-    // Consume the terminating RET
-    if (!this.tokens.matchKeyword(KeywordType.RET)) {
-      throw new ParseError('Expected RET to terminate PROC', procToken);
+    // Consume the terminating RET or RETURN
+    if (!this.tokens.matchKeyword(KeywordType.RET, KeywordType.RETURN)) {
+      throw new ParseError('Expected RET or RETURN to terminate PROC', procToken);
     }
-    const retToken = this.tokens.expectKeyword(KeywordType.RET);
+    const retToken = this.tokens.expectKeyword(KeywordType.RET, KeywordType.RETURN);
 
     return this.factory.subroutineDefinition({
       label: nameToken,

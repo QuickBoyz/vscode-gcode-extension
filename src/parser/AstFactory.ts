@@ -222,7 +222,7 @@ export class AstFactory {
     callToken: LexerToken;
     target: string;
     callArguments: ExpressionNode[];
-    lastToken: LexerToken;
+    lastToken: LexerToken | AstNode;
     repeatCount?: ExpressionNode;
   }): SubroutineCallNode {
     return new SubroutineCallNode(
