@@ -2,11 +2,13 @@ import { DialectType } from '../constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
 import {
+  ErrorNode,
   MotionCommandNode,
   ProgramNode,
   ReturnStatementNode,
   SubroutineCallNode,
   SubroutineDefinitionNode,
+  SubroutineLabelNode,
   VariableAssignmentNode,
 } from '../parser/nodes';
 
@@ -134,5 +136,81 @@ G0 X0 Y0`;
     expect(call.callArguments.length).toBe(2);
 
     expect(program.statements[3]).toBeInstanceOf(MotionCommandNode);
+  });
+});
+
+describe('Fanuc/Haas subroutines', () => {
+  function parseFanuc(input: string): ProgramNode {
+    const lexer = LexerFactory.create(DialectType.FANUC);
+    const tokens = lexer.tokenize(input);
+    const parser = ParserFactory.create(DialectType.FANUC, tokens, input);
+    return parser.parseProgram();
+  }
+
+  function parseHaas(input: string): ProgramNode {
+    const lexer = LexerFactory.create(DialectType.HAAS);
+    const tokens = lexer.tokenize(input);
+    const parser = ParserFactory.create(DialectType.HAAS, tokens, input);
+    return parser.parseProgram();
+  }
+
+  it('parses M98 P1000 as subroutine call with target', () => {
+    const program = parseFanuc('M98 P1000');
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('1000');
+    expect(call.callArguments.length).toBe(0);
+    expect(call.repeatCount).toBeUndefined();
+  });
+
+  it('parses M98 P1000 L3 as subroutine call with repeat count', () => {
+    const program = parseFanuc('M98 P1000 L3');
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('1000');
+    expect(call.repeatCount).toBeDefined();
+  });
+
+  it('parses M99 as return statement', () => {
+    const program = parseFanuc('M99');
+
+    expect(program.statements.length).toBe(1);
+    const ret = program.statements[0] as ReturnStatementNode;
+    expect(ret).toBeInstanceOf(ReturnStatementNode);
+    expect(ret.label).toBeUndefined();
+  });
+
+  it('parses M30 as regular motion command', () => {
+    const program = parseFanuc('M30');
+
+    expect(program.statements.length).toBe(1);
+    expect(program.statements[0]).toBeInstanceOf(MotionCommandNode);
+  });
+
+  it('parses M98 without P parameter as error', () => {
+    const program = parseFanuc('M98');
+
+    expect(program.statements.length).toBe(1);
+    expect(program.statements[0]).toBeInstanceOf(ErrorNode);
+  });
+
+  it('parses O0001 as SubroutineLabelNode', () => {
+    const program = parseFanuc('O0001');
+
+    expect(program.statements.length).toBe(1);
+    expect(program.statements[0]).toBeInstanceOf(SubroutineLabelNode);
+  });
+
+  it('Haas parses M98 P1000 the same as Fanuc', () => {
+    const program = parseHaas('M98 P1000');
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('1000');
   });
 });
