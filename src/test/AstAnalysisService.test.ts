@@ -1,14 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { AstAnalysisService } from '../providers/AstAnalysisService';
 import { ProgramNode } from '../parser/nodes';
 
 function parseCode(code: string): ProgramNode {
   const lexer = new GCodeLexer(),
     tokens = lexer.tokenize(code),
-    parser = new GCodeParser(tokens, code);
+    parser = new LinuxCNCParser(tokens, code);
   return parser.parseProgram();
 }
 

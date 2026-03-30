@@ -50,10 +50,18 @@ const FUNCTION_KEYWORDS: ReadonlySet<KeywordType> = new Set([
   KeywordType.EXISTS,
 ]);
 
-export class GCodeParser {
-  private tokens: TokenStream;
-  private factory: AstFactory;
-  private inputLines: string[];
+/**
+ * Abstract base parser for G-code.
+ *
+ * Contains all shared parsing logic (expressions, motion commands, axis
+ * parameters, variables, comments, line numbers, control flow, error
+ * recovery). Dialect-specific parsers extend this and implement
+ * `parseStatement()` to handle dialect-specific top-level dispatch.
+ */
+export abstract class BaseParser {
+  protected tokens: TokenStream;
+  protected factory: AstFactory;
+  protected inputLines: string[];
   // Track the last motion command that had parameters (for parameter-only lines)
   lastCommandWithParams: MotionCommandNode | null = null;
 
@@ -84,7 +92,7 @@ export class GCodeParser {
     return this.factory.program(statements, hasStartDelimiter, hasEndDelimiter);
   }
 
-  private parseStatementSafe(): StatementNode | null {
+  protected parseStatementSafe(): StatementNode | null {
     const startToken = this.tokens.peek();
     try {
       return this.parseStatement();
@@ -101,67 +109,13 @@ export class GCodeParser {
     }
   }
 
-  private parseStatement(): StatementNode | null {
-    const token = this.tokens.peek();
-    if (!token) return null;
+  /**
+   * Parse a single statement. Each dialect implements this to handle
+   * its specific top-level constructs (O-blocks, M98/M99, PROC/RET, etc.).
+   */
+  protected abstract parseStatement(): StatementNode | null;
 
-    // First check keywords (these are IDENTIFIER category with a keyword set)
-    if (token.keyword !== null) {
-      switch (token.keyword) {
-        case KeywordType.IF:
-          return this.parseIf();
-        case KeywordType.WHILE:
-          return this.parseWhile();
-      }
-    }
-
-    // Then check categories
-    switch (token.category) {
-      case TokenCategory.VARIABLE:
-        return this.parseVariableAssignment();
-
-      case TokenCategory.OSUB:
-        return this.parseOBlock();
-
-      case TokenCategory.GCODE:
-      case TokenCategory.MCODE:
-        return this.parseMotionCommand();
-
-      case TokenCategory.COMMENT:
-      case TokenCategory.PAREN_COMMENT:
-        return this.parseComment();
-
-      case TokenCategory.PARAM:
-        return this.parseAxisParam();
-
-      case TokenCategory.NL:
-      case TokenCategory.PERCENT:
-        this.tokens.next();
-        return null;
-
-      case TokenCategory.LINE_NUMBER:
-        return this.parseLineNumber();
-
-      default:
-        throw new ParseError(`Unexpected token ${token.category}`, token);
-    }
-  }
-
-  private parseOBlock(): StatementNode {
-    const label = this.tokens.expectCategory(TokenCategory.OSUB);
-    const token = this.tokens.peek();
-
-    if (token?.isKeyword(KeywordType.WHILE)) {
-      return this.parseWhile(label);
-    }
-    if (token?.isKeyword(KeywordType.IF)) {
-      return this.parseIf(label);
-    }
-    // Standalone O-block label (e.g., O01234 for subroutine marker)
-    return this.factory.subroutineLabel(label);
-  }
-
-  private parseIf(label?: LexerToken): IfStatementNode {
+  protected parseIf(label?: LexerToken): IfStatementNode {
     const ifToken = this.tokens.expectKeyword(KeywordType.IF);
     const condition = this.parseExpression();
     const thenToken = this.tokens.matchKeyword(KeywordType.THEN) ? this.tokens.next() : undefined;
@@ -267,7 +221,7 @@ export class GCodeParser {
     });
   }
 
-  private parseUntilControlBoundary(label?: LexerToken): StatementNode[] {
+  protected parseUntilControlBoundary(label?: LexerToken): StatementNode[] {
     const body: StatementNode[] = [];
     let hasErrors = false;
 
@@ -310,7 +264,7 @@ export class GCodeParser {
     return body;
   }
 
-  private parseWhile(label?: LexerToken): WhileStatementNode {
+  protected parseWhile(label?: LexerToken): WhileStatementNode {
     const whileToken = this.tokens.expectKeyword(KeywordType.WHILE);
     const condition = this.parseExpression();
     // DO is expected, but we tolerate missing DO for error recovery
@@ -345,7 +299,7 @@ export class GCodeParser {
     });
   }
 
-  private isEndWhile(startLabel?: LexerToken): boolean {
+  protected isEndWhile(startLabel?: LexerToken): boolean {
     const token = this.tokens.peek();
     if (!token) return false;
 
@@ -363,7 +317,7 @@ export class GCodeParser {
     return false;
   }
 
-  private parseVariableAssignment(): StatementNode {
+  protected parseVariableAssignment(): StatementNode {
     const variable = this.tokens.expectCategory(TokenCategory.VARIABLE);
     this.tokens.expectCategory(TokenCategory.EQUALS);
 
@@ -379,7 +333,7 @@ export class GCodeParser {
     }
   }
 
-  private parseExpression(): ExpressionNode {
+  protected parseExpression(): ExpressionNode {
     return this.parseRelational();
   }
 
@@ -504,7 +458,7 @@ export class GCodeParser {
     return this.factory.functionCall(func, argument);
   }
 
-  private parseAxisParam(parent?: AstNode): AxisParameterNode {
+  protected parseAxisParam(parent?: AstNode): AxisParameterNode {
     const axis = this.tokens.expectCategory(TokenCategory.PARAM);
 
     let value: ExpressionNode;
@@ -520,7 +474,7 @@ export class GCodeParser {
     return this.factory.axisParam(axis, value, parent);
   }
 
-  private parseMotionCommand(): StatementNode {
+  protected parseMotionCommand(): StatementNode {
     const command = this.tokens.expectCategory(TokenCategory.GCODE, TokenCategory.MCODE);
     const params: AxisParameterNode[] = [];
 
@@ -551,13 +505,13 @@ export class GCodeParser {
     return commandNode;
   }
 
-  private parseComment(): StatementNode {
+  protected parseComment(): StatementNode {
     const token = this.tokens.next();
     if (!token) throw new ParseError('Unexpected EOF while parsing comment', token);
     return this.factory.comment(token);
   }
 
-  private recoverToNextLine(): void {
+  protected recoverToNextLine(): void {
     // Skip all tokens on the current error line until end of line
     // Strategy: consume until NL, then check if next line starts with a boundary
     while (!this.tokens.eof()) {
@@ -575,13 +529,13 @@ export class GCodeParser {
     }
   }
 
-  private parseLineNumber(): StatementNode {
+  protected parseLineNumber(): StatementNode {
     const token = this.tokens.next();
     if (!token) throw new ParseError('Unexpected EOF while parsing line number', token);
     return this.factory.lineNumber(token);
   }
 
-  private getOriginalLineText(token?: LexerToken): string {
+  protected getOriginalLineText(token?: LexerToken): string {
     if (!token || this.inputLines.length === 0) return '';
 
     // Token line is 1-based, array is 0-based

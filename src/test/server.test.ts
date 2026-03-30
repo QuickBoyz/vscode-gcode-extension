@@ -10,7 +10,7 @@ import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { FormatterFactory } from '../formatter/FormatterFactory';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { FormatterConfig } from '../formatter/types';
 
 /**
@@ -32,7 +32,7 @@ function formatGCode(
     },
     lexer = new GCodeLexer(),
     tokens = lexer.tokenize(text),
-    parser = new GCodeParser(tokens, text),
+    parser = new LinuxCNCParser(tokens, text),
     program = parser.parseProgram(),
     formatter = FormatterFactory.create(dialect, formatterOptions),
     traverser = new AstTraverser(formatter);

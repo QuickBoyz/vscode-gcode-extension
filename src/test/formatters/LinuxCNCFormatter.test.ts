@@ -1,15 +1,16 @@
+import { DialectType } from '../../constants';
 import { LinuxCNCFormatter } from '../../formatter/dialects/LinuxCNCFormatter';
-import { GCodeLexer } from '../../lexer/GCodeLexer';
+import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { ParserFactory } from '../../parser/ParserFactory';
 
 describe('LinuxCNCFormatter', () => {
   let formatter: LinuxCNCFormatter;
 
   function parse(code: string) {
-    const lexer = new GCodeLexer(),
+    const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = ParserFactory.create(DialectType.LINUXCNC, tokens, code);
     return parser.parseProgram();
   }
 

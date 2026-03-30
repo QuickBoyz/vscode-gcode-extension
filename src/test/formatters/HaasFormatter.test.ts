@@ -1,15 +1,17 @@
+import { DialectType } from '../../constants';
 import { HaasFormatter } from '../../formatter/dialects/HaasFormatter';
-import { GCodeLexer } from '../../lexer/GCodeLexer';
+import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { ParserFactory } from '../../parser/ParserFactory';
 
 describe('HaasFormatter', () => {
   let formatter: HaasFormatter;
 
+  // See FanucFormatter.test.ts for rationale on using LinuxCNC parser.
   function parse(code: string) {
-    const lexer = new GCodeLexer(),
+    const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = ParserFactory.create(DialectType.LINUXCNC, tokens, code);
     return parser.parseProgram();
   }
 

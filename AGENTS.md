@@ -24,7 +24,7 @@ All changes must respect the existing lexer → parser → AST → services pipe
 The codebase is divided into the following layers:
 
 1. **Lexing**
-   - Moo lexer
+   - Hand-written character scanner (`GCodeScanner`) with dialect-aware keyword tables
    - Token definitions only
    - No parsing logic
    - No VS Code API usage

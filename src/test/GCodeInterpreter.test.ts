@@ -1,6 +1,6 @@
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { GCodeExpressionEvaluator } from '../visualizer/GCodeExpressionEvaluator';
 import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
 import { MotionHandler } from '../visualizer/types';
@@ -38,7 +38,7 @@ class MockMotionHandler implements MotionHandler {
 function parse(input: string) {
   const lexer = new GCodeLexer();
   const tokens = lexer.tokenize(input);
-  const parser = new GCodeParser(tokens, input);
+  const parser = new LinuxCNCParser(tokens, input);
   return parser.parseProgram();
 }
 

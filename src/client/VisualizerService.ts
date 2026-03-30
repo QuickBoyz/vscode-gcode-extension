@@ -7,17 +7,16 @@
  * This service is VS Code-free so it can be tested in isolation without
  * the extension host.
  */
-import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { DialectType } from '../constants';
+import { LexerFactory } from '../lexer/LexerFactory';
+import { ParserFactory } from '../parser/ParserFactory';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { VisualizerResult } from '../visualizer/types';
 
 export class VisualizerService {
-  private readonly lexer: GCodeLexer;
   private readonly extractor: GCodePathExtractor;
 
   constructor() {
-    this.lexer = new GCodeLexer();
     this.extractor = new GCodePathExtractor();
   }
 
@@ -27,13 +26,15 @@ export class VisualizerService {
    * Returns a discriminated union so callers can handle parse or extraction
    * errors without try/catch.
    *
-   * @param text  Raw G-code file content
-   * @returns     A {@link VisualizerResult} indicating success with data or failure with a message
+   * @param text    Raw G-code file content
+   * @param dialect G-code dialect for lexing and parsing
+   * @returns       A {@link VisualizerResult} indicating success with data or failure with a message
    */
-  extractToolPath(text: string): VisualizerResult {
+  extractToolPath(text: string, dialect: DialectType = DialectType.LINUXCNC): VisualizerResult {
     try {
-      const tokens = this.lexer.tokenize(text);
-      const parser = new GCodeParser(tokens, text);
+      const lexer = LexerFactory.create(dialect);
+      const tokens = lexer.tokenize(text);
+      const parser = ParserFactory.create(dialect, tokens, text);
       const ast = parser.parseProgram();
       const data = this.extractor.extract(ast);
       return { success: true, data };

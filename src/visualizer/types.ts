@@ -6,6 +6,10 @@
  * the webview bundle.
  */
 
+import { DialectType } from '../constants';
+import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
+import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
+
 /**
  * Projection mode for the 3D visualizer camera.
  */
@@ -145,6 +149,7 @@ export interface WorkerRequest {
   readonly id: number;
   readonly text: string;
   readonly maxIterations: number;
+  readonly dialect: DialectType;
 }
 
 /**
@@ -165,9 +170,6 @@ export interface WorkerErrorResponse {
   readonly id: number;
   readonly errorMessage: string;
 }
-
-import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
-import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 
 // ---------------------------------------------------------------------------
 // Interpreter types

@@ -1,4 +1,5 @@
 import { VisualizerService } from '../client/VisualizerService';
+import * as LexerFactoryModule from '../lexer/LexerFactory';
 import { MotionType } from '../visualizer/types';
 
 describe('VisualizerService', () => {
@@ -56,36 +57,38 @@ describe('VisualizerService', () => {
   // ---------------------------------------------------------------------------
 
   it('returns a failure result when the lexer throws', () => {
-    // Inject a broken lexer by mocking the tokenize method
-    const brokenService = new VisualizerService();
-    // Access private lexer via bracket notation for testing
-    const lexer = brokenService['lexer'];
-    jest.spyOn(lexer, 'tokenize').mockImplementation(() => {
-      throw new Error('Unexpected character at line 1');
-    });
+    jest.spyOn(LexerFactoryModule.LexerFactory, 'create').mockReturnValue({
+      tokenize: () => {
+        throw new Error('Unexpected character at line 1');
+      },
+    } as unknown as ReturnType<typeof LexerFactoryModule.LexerFactory.create>);
 
-    const result = brokenService.extractToolPath('!!!invalid!!!');
+    const result = service.extractToolPath('!!!invalid!!!');
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.errorMessage).toBe('Unexpected character at line 1');
     }
+
+    jest.restoreAllMocks();
   });
 
   it('returns a failure result with a generic message for non-Error throws', () => {
-    const brokenService = new VisualizerService();
-    const lexer = brokenService['lexer'];
-    jest.spyOn(lexer, 'tokenize').mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw 'string error';
-    });
+    jest.spyOn(LexerFactoryModule.LexerFactory, 'create').mockReturnValue({
+      tokenize: () => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'string error';
+      },
+    } as unknown as ReturnType<typeof LexerFactoryModule.LexerFactory.create>);
 
-    const result = brokenService.extractToolPath('anything');
+    const result = service.extractToolPath('anything');
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.errorMessage).toBe('An unknown error occurred during G-code parsing');
     }
+
+    jest.restoreAllMocks();
   });
 
   // ---------------------------------------------------------------------------

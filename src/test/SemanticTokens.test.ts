@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { AstAnalysisService } from '../providers/AstAnalysisService';
 import { SEMANTIC_TOKENS_LEGEND } from '../providers/SemanticTokensProvider';
 
@@ -40,7 +40,7 @@ function decodeSemanticTokens(data: number[]): DecodedToken[] {
 function parseAndAnalyze(code: string) {
   const lexer = new GCodeLexer(),
     tokens = lexer.tokenize(code),
-    parser = new GCodeParser(tokens, code),
+    parser = new LinuxCNCParser(tokens, code),
     ast = parser.parseProgram(),
     analysisService = new AstAnalysisService(),
     results = analysisService.analyze(ast, { includeTokens: true });

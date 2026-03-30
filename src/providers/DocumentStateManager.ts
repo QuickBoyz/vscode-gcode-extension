@@ -8,8 +8,10 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LexerFactory } from '../lexer/LexerFactory';
+import { BaseParser } from '../parser/BaseParser';
 import { ProgramNode } from '../parser/nodes';
+import { ParserFactory } from '../parser/ParserFactory';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
 import { IDataProvider } from './IDataProvider';
@@ -30,7 +32,7 @@ export interface GCodeSettings {
 export interface DocumentState {
   ast: ProgramNode;
   lexer: GCodeLexer;
-  parser: GCodeParser;
+  parser: BaseParser;
   settings: GCodeSettings;
   version: number;
   lastModified: number;
@@ -47,13 +49,19 @@ export class DocumentStateManager {
   private documentStates = new Map<string, DocumentState>();
   private documentVersions = new Map<string, number>();
   private dataProviderCache = new Map<string, IDataProvider>();
-  private readonly lexer: GCodeLexer;
+  private readonly lexerCache = new Map<DialectType, GCodeLexer>();
   private readonly analysisService: AstAnalysisService;
 
   constructor() {
-    // Reuse a single lexer instance (stateless after tokenization)
-    this.lexer = new GCodeLexer();
     this.analysisService = new AstAnalysisService();
+  }
+
+  private getLexer(dialect: DialectType): GCodeLexer {
+    const cached = this.lexerCache.get(dialect);
+    if (cached) return cached;
+    const lexer = LexerFactory.create(dialect);
+    this.lexerCache.set(dialect, lexer);
+    return lexer;
   }
 
   /**
@@ -71,8 +79,10 @@ export class DocumentStateManager {
     }
 
     // Parse the document
-    const tokens = this.lexer.tokenize(text),
-      parser = new GCodeParser(tokens, text),
+    const dialect = settings.dialect ?? DialectType.LINUXCNC,
+      lexer = this.getLexer(dialect),
+      tokens = lexer.tokenize(text),
+      parser = ParserFactory.create(dialect, tokens, text),
       ast = parser.parseProgram(),
       // Get or increment version (persists across invalidations)
       currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;
@@ -81,7 +91,7 @@ export class DocumentStateManager {
     // Create new state
     const state: DocumentState = {
       ast,
-      lexer: this.lexer,
+      lexer,
       parser,
       settings,
       version: currentDocVersion,

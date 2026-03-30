@@ -37,8 +37,8 @@ Strict layered architecture — see `AGENTS.md` for full rules. The pipeline is:
 
 Each layer may only depend on the layer directly below it. Never skip layers or introduce circular dependencies.
 
-1. **Lexer** (`src/lexer/`) — Moo-based tokenizer. Token definitions only, no parsing or VS Code logic.
-2. **Parser** (`src/parser/`) — Consumes tokens, produces an immutable AST. `GCodeParser` builds `ProgramNode` trees. `AstFactory` handles node creation. `AstVisitor<T>` is the abstract visitor base class; `BaseAstVisitor<T>` provides default implementations. `AstTraverser` walks the tree and dispatches to a visitor.
+1. **Lexer** (`src/lexer/`) — Hand-written character scanner (`GCodeScanner`) with case-insensitive keyword lookup table. Emits `LexerToken` with `TokenCategory` and optional `KeywordType`. No parsing or VS Code logic.
+2. **Parser** (`src/parser/`) — Consumes tokens, produces an immutable AST. `BaseParser` is the abstract base with shared parsing logic; dialect-specific subclasses (`LinuxCNCParser`, `FanucParser`, `HaasParser`, `SiemensParser`) handle top-level dispatch. `ParserFactory.create(dialect)` selects the correct parser. `AstFactory` handles node creation. `AstVisitor<T>` is the abstract visitor base class; `BaseAstVisitor<T>` provides default implementations. `AstTraverser` walks the tree and dispatches to a visitor.
 3. **AST nodes** (`src/parser/nodes/`) — Pure domain classes. `AstNode` is the abstract base. Key node types: `ProgramNode`, `StatementNode`, `MotionCommandNode`, `VariableAssignmentNode`, `IfStatementNode`, `WhileStatementNode`, `BlockStatementNode`, `ErrorNode`. All properties should be `readonly`.
 4. **Services** — consume the AST, never mutate it:
    - `src/formatter/` — `BaseFormatter` (extends `BaseAstVisitor<void>`) with dialect subclasses (`LinuxCNCFormatter`, `FanucFormatter`, `HaasFormatter`, `SiemensFormatter`) created via `FormatterFactory`. `ExpressionFormatter` handles expression pretty-printing.
@@ -52,7 +52,7 @@ Each layer may only depend on the layer directly below it. Never skip layers or 
 ### Key patterns
 
 - **Visitor pattern**: All AST traversal (formatting, semantic tokens, analysis) uses `AstVisitor<T>` / `BaseAstVisitor<T>` + `AstTraverser`.
-- **Factory pattern**: `FormatterFactory.create(dialect)` and `DataProviderFactory.create(dialect)` select dialect strategies.
+- **Factory pattern**: `LexerFactory.create(dialect)`, `ParserFactory.create(dialect)`, `FormatterFactory.create(dialect)`, and `DataProviderFactory.create(dialect)` select dialect strategies.
 - **Strategy pattern**: Dialect-specific formatters and data providers.
 - **Composite pattern**: AST tree structure (`ProgramNode` → `StatementNode` → child nodes).
 
@@ -76,3 +76,9 @@ Four supported dialects defined in `DialectType` enum (`src/constants.ts`): `lin
 - Conventional commit messages (`feat:`, `fix:`, `refactor:`, etc.)
 - Prefer classes over functions, enums over union types for fixed sets
 - Named constants for magic numbers/strings
+
+## Development principles
+
+- **Always do full, proper refactors** — never partial solutions, synthetic workarounds, or hacky shortcuts. When a change reveals that a deeper abstraction is needed, do the abstraction properly rather than bolting on a one-off hook.
+- **Reuse existing infrastructure** — use the existing lexer/parser for syntax features instead of introducing duplicate regex logic. Build on the established patterns (visitor, factory, strategy) rather than inventing new ones.
+- **Dialect-aware design** — all four dialects (LinuxCNC, Fanuc, Haas, Siemens) must be considered when adding dialect-sensitive features. Use the strategy pattern with abstract base classes and per-dialect implementations, matching the formatter/data provider pattern.

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { MotionType, ToolPathData } from '../visualizer/types';
 
@@ -12,7 +12,7 @@ describe('GCodePathExtractor', () => {
   function extract(input: string): ToolPathData {
     const lexer = new GCodeLexer();
     const tokens = lexer.tokenize(input);
-    const parser = new GCodeParser(tokens, input);
+    const parser = new LinuxCNCParser(tokens, input);
     const ast = parser.parseProgram();
     const extractor = new GCodePathExtractor();
     return extractor.extract(ast);
