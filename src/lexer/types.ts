@@ -57,6 +57,8 @@ export enum KeywordType {
   CALL = 'CALL',
   RETURN = 'RETURN',
   GOTO = 'GOTO',
+  PROC = 'PROC',
+  RET = 'RET',
 
   // Relational operators
   EQ = 'EQ',
