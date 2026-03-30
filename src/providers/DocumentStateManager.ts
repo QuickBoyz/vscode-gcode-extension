@@ -8,8 +8,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { BaseParser } from '../parser/BaseParser';
 import { ProgramNode } from '../parser/nodes';
+import { ParserFactory } from '../parser/ParserFactory';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
 import { IDataProvider } from './IDataProvider';
@@ -30,7 +31,7 @@ export interface GCodeSettings {
 export interface DocumentState {
   ast: ProgramNode;
   lexer: GCodeLexer;
-  parser: GCodeParser;
+  parser: BaseParser;
   settings: GCodeSettings;
   version: number;
   lastModified: number;
@@ -71,8 +72,9 @@ export class DocumentStateManager {
     }
 
     // Parse the document
-    const tokens = this.lexer.tokenize(text),
-      parser = new GCodeParser(tokens, text),
+    const dialect = settings.dialect ?? DialectType.LINUXCNC,
+      tokens = this.lexer.tokenize(text),
+      parser = ParserFactory.create(dialect, tokens, text),
       ast = parser.parseProgram(),
       // Get or increment version (persists across invalidations)
       currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;

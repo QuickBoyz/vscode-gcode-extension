@@ -1,5 +1,5 @@
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import {
   AxisParameterNode,
   CommentNode,
@@ -18,7 +18,7 @@ describe('GCodeParser', () => {
   function parse(input: string): ProgramNode {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(input),
-      parser = new GCodeParser(tokens, input);
+      parser = new LinuxCNCParser(tokens, input);
     return parser.parseProgram();
   }
 
@@ -119,7 +119,7 @@ describe('GCodeParser - Full AST Tests', () => {
   function parse(input: string): ProgramNode {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(input),
-      parser = new GCodeParser(tokens);
+      parser = new LinuxCNCParser(tokens);
     return parser.parseProgram();
   }
 

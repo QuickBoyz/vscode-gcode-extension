@@ -1,7 +1,7 @@
 import { HaasFormatter } from '../../formatter/dialects/HaasFormatter';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 
 describe('HaasFormatter', () => {
   let formatter: HaasFormatter;
@@ -9,7 +9,7 @@ describe('HaasFormatter', () => {
   function parse(code: string) {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = new LinuxCNCParser(tokens, code);
     return parser.parseProgram();
   }
 

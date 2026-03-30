@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import {
   BinaryExpressionNode,
   FunctionCallNode,
@@ -68,7 +68,7 @@ describe('NodeFinder', () => {
     const parseCode = (code: string) => {
       const lexer = new GCodeLexer();
       const tokens = lexer.tokenize(code);
-      const parser = new GCodeParser(tokens, code);
+      const parser = new LinuxCNCParser(tokens, code);
       return parser.parseProgram();
     };
 

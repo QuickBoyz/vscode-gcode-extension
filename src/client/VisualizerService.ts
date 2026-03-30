@@ -7,8 +7,9 @@
  * This service is VS Code-free so it can be tested in isolation without
  * the extension host.
  */
+import { DialectType } from '../constants';
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { ParserFactory } from '../parser/ParserFactory';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { VisualizerResult } from '../visualizer/types';
 
@@ -33,7 +34,7 @@ export class VisualizerService {
   extractToolPath(text: string): VisualizerResult {
     try {
       const tokens = this.lexer.tokenize(text);
-      const parser = new GCodeParser(tokens, text);
+      const parser = ParserFactory.create(DialectType.LINUXCNC, tokens, text);
       const ast = parser.parseProgram();
       const data = this.extractor.extract(ast);
       return { success: true, data };

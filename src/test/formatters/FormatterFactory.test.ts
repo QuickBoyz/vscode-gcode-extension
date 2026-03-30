@@ -2,13 +2,13 @@ import { DialectType } from '../../constants';
 import { FormatterFactory } from '../../formatter/FormatterFactory';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 
 describe('Dialect-Specific Formatters', () => {
   function parse(code: string) {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = new LinuxCNCParser(tokens, code);
     return parser.parseProgram();
   }
 

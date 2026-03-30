@@ -1,7 +1,7 @@
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';
 import { AstVisitor } from '../parser/AstVisitor';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import {
   AxisParameterNode,
   ErrorNode,
@@ -17,7 +17,7 @@ describe('AstTraverser', () => {
   function parse(input: string): ProgramNode {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(input),
-      parser = new GCodeParser(tokens, input);
+      parser = new LinuxCNCParser(tokens, input);
     return parser.parseProgram();
   }
 

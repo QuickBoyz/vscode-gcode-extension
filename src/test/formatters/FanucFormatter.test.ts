@@ -1,7 +1,7 @@
 import { FanucFormatter } from '../../formatter/dialects/FanucFormatter';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 
 describe('FanucFormatter', () => {
   let formatter: FanucFormatter;
@@ -9,7 +9,7 @@ describe('FanucFormatter', () => {
   function parse(code: string) {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = new LinuxCNCParser(tokens, code);
     return parser.parseProgram();
   }
 

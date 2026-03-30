@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { GCodeParser } from '../parser/GCodeParser';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { ErrorDetectorVisitor } from '../providers/ErrorDetectorVisitor';
 import { LinuxCNCFormatter } from '../formatter/dialects/LinuxCNCFormatter';
 import { AstTraverser } from '../parser/AstTraverser';
@@ -8,7 +8,7 @@ import { AstTraverser } from '../parser/AstTraverser';
 function formatCode(code: string): string {
   const lexer = new GCodeLexer();
   const tokens = lexer.tokenize(code);
-  const parser = new GCodeParser(tokens, code);
+  const parser = new LinuxCNCParser(tokens, code);
   const ast = parser.parseProgram();
 
   // Check for syntax errors and block formatting if any exist

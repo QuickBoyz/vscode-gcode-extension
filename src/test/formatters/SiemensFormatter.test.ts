@@ -1,7 +1,7 @@
 import { SiemensFormatter } from '../../formatter/dialects/SiemensFormatter';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 
 describe('SiemensFormatter', () => {
   let formatter: SiemensFormatter;
@@ -9,7 +9,7 @@ describe('SiemensFormatter', () => {
   function parse(code: string) {
     const lexer = new GCodeLexer(),
       tokens = lexer.tokenize(code),
-      parser = new GCodeParser(tokens, code);
+      parser = new LinuxCNCParser(tokens, code);
     return parser.parseProgram();
   }
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import { ExpressionFormatter, formatExpression } from '../../formatter/ExpressionFormatter';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstFactory } from '../../parser/AstFactory';
-import { GCodeParser } from '../../parser/GCodeParser';
+import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 import { VariableAssignmentNode } from '../../parser/nodes';
 import { TokenCategory } from '../../lexer/types';
 import { LexerToken } from '../../lexer/LexerToken';
@@ -12,7 +12,7 @@ describe('ExpressionFormatter', () => {
   const parseExpression = (code: string) => {
     const lexer = new GCodeLexer();
     const tokens = lexer.tokenize(code);
-    const parser = new GCodeParser(tokens, code);
+    const parser = new LinuxCNCParser(tokens, code);
     const program = parser.parseProgram();
     const firstStmt = program.statements[0];
 
