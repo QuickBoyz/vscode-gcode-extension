@@ -1,3 +1,4 @@
+import { DialectType } from '../constants';
 import { GCodeScanner } from './GCodeScanner';
 import { LexerToken } from './LexerToken';
 
@@ -11,8 +12,8 @@ import { LexerToken } from './LexerToken';
 export class GCodeLexer {
   private scanner: GCodeScanner;
 
-  constructor() {
-    this.scanner = new GCodeScanner();
+  constructor(dialect: DialectType = DialectType.LINUXCNC) {
+    this.scanner = new GCodeScanner(dialect);
   }
 
   /**

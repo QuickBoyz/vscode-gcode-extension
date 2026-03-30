@@ -1,4 +1,5 @@
-import { KEYWORD_ENTRIES } from './constants';
+import { DialectType } from '../constants';
+import { getKeywordEntries } from './constants';
 import { LexerToken } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
@@ -25,6 +26,11 @@ export class GCodeScanner {
   private line: number = 1;
   private col: number = 1;
   private tokens: LexerToken[] = [];
+  private readonly keywordMap: ReadonlyMap<string, KeywordType>;
+
+  constructor(dialect: DialectType = DialectType.LINUXCNC) {
+    this.keywordMap = new Map(getKeywordEntries(dialect));
+  }
 
   /**
    * Tokenize the given source text.
@@ -190,7 +196,7 @@ export class GCodeScanner {
    * Resolve the keyword for an identifier, including DO/END with trailing digits.
    */
   private resolveKeyword(text: string): KeywordType | null {
-    const keyword = GCodeScanner.lookupKeyword(text);
+    const keyword = this.lookupKeywordInMap(text);
     if (keyword !== null) {
       return keyword;
     }
@@ -199,13 +205,20 @@ export class GCodeScanner {
     // Strip trailing digits and try again
     const strippedText = text.replace(/\d+$/, '');
     if (strippedText.length > 0 && strippedText.length < text.length) {
-      const strippedKeyword = GCodeScanner.lookupKeyword(strippedText);
+      const strippedKeyword = this.lookupKeywordInMap(strippedText);
       if (strippedKeyword === KeywordType.DO || strippedKeyword === KeywordType.END) {
         return strippedKeyword;
       }
     }
 
     return null;
+  }
+
+  /**
+   * Look up a keyword in the instance keyword map (dialect-aware).
+   */
+  private lookupKeywordInMap(text: string): KeywordType | null {
+    return this.keywordMap.get(text.toUpperCase()) ?? null;
   }
 
   /**
@@ -424,11 +437,18 @@ export class GCodeScanner {
     );
   }
 
-  static KEYWORD_MAP: ReadonlyMap<string, KeywordType> = new Map(KEYWORD_ENTRIES);
+  /**
+   * Default keyword map (LinuxCNC) for static lookup.
+   *
+   * Used by callers that need keyword lookup outside of a scanner instance.
+   * For dialect-aware scanning, use the constructor with a DialectType.
+   */
+  static KEYWORD_MAP: ReadonlyMap<string, KeywordType> = new Map(getKeywordEntries());
 
   /**
-   * Look up a keyword by its text. The input is normalized to uppercase
-   * so the lookup is effectively case-insensitive.
+   * Look up a keyword by its text using the default (LinuxCNC) keyword map.
+   * The input is normalized to uppercase so the lookup is effectively
+   * case-insensitive.
    *
    * @param text - The raw identifier text from the source
    * @returns The KeywordType if the text is a recognized keyword, null otherwise
