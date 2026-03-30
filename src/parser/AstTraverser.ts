@@ -14,7 +14,10 @@ import {
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
+  ReturnStatementNode,
   StatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
@@ -65,6 +68,15 @@ export class AstTraverser<T = void> {
         break;
       case node instanceof SubroutineLabelNode:
         this.visitor.visitSubroutineLabel(node);
+        break;
+      case node instanceof SubroutineDefinitionNode:
+        this.traverseSubroutineDefinition(node);
+        break;
+      case node instanceof SubroutineCallNode:
+        this.traverseSubroutineCall(node);
+        break;
+      case node instanceof ReturnStatementNode:
+        this.visitor.visitReturnStatement(node);
         break;
       default:
         if (this.visitor.visitStatement) this.visitor.visitStatement(node);
@@ -171,5 +183,21 @@ export class AstTraverser<T = void> {
   private traverseAxisParameter(node: AxisParameterNode): void {
     this.visitor.visitAxisParameter(node);
     this.traverseExpression(node.value);
+  }
+
+  private traverseSubroutineDefinition(node: SubroutineDefinitionNode): void {
+    this.visitor.visitSubroutineDefinition(node);
+    this.traverseStatements(node.body);
+    this.visitor.visitSubroutineDefinitionEnd(node);
+  }
+
+  private traverseSubroutineCall(node: SubroutineCallNode): void {
+    this.visitor.visitSubroutineCall(node);
+    for (const arg of node.callArguments) {
+      this.traverseExpression(arg);
+    }
+    if (node.repeatCount) {
+      this.traverseExpression(node.repeatCount);
+    }
   }
 }

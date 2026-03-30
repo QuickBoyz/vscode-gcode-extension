@@ -14,7 +14,10 @@ import {
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
+  ReturnStatementNode,
   StatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
@@ -121,6 +124,22 @@ export abstract class BaseAstVisitor<T> implements AstVisitor<T> {
   }
 
   visitSubroutineLabel(_node: SubroutineLabelNode): T {
+    return this.defaultValue();
+  }
+
+  visitSubroutineDefinition(_node: SubroutineDefinitionNode): T {
+    return this.defaultValue();
+  }
+
+  visitSubroutineDefinitionEnd(_node: SubroutineDefinitionNode): T {
+    return this.defaultValue();
+  }
+
+  visitSubroutineCall(_node: SubroutineCallNode): T {
+    return this.defaultValue();
+  }
+
+  visitReturnStatement(_node: ReturnStatementNode): T {
     return this.defaultValue();
   }
 }

@@ -13,7 +13,10 @@ import {
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
+  ReturnStatementNode,
   StatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
@@ -44,4 +47,8 @@ export abstract class AstVisitor<T> {
   abstract visitError(node: ErrorNode): T;
   abstract visitLineNumber(node: LineNumberNode): T;
   abstract visitSubroutineLabel(node: SubroutineLabelNode): T;
+  abstract visitSubroutineDefinition(node: SubroutineDefinitionNode): T;
+  abstract visitSubroutineDefinitionEnd(node: SubroutineDefinitionNode): T;
+  abstract visitSubroutineCall(node: SubroutineCallNode): T;
+  abstract visitReturnStatement(node: ReturnStatementNode): T;
 }

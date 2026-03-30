@@ -14,6 +14,9 @@ import {
   LineNumberNode,
   MotionCommandNode,
   ProgramNode,
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
@@ -308,6 +311,24 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements Form
     this.handleLineGap(node.getRange().end.line);
     this.decrementIndent();
     this.addLine(`${this.formatLabel(node.label)}${this.getEndWhileKeyword()}`);
+  }
+
+  // --- Subroutine visitors (stubs for PR 3 dialect-specific formatting) ---
+
+  visitSubroutineDefinition(_node: SubroutineDefinitionNode): void {
+    // No-op: dialect-specific formatting to be added in PR 3
+  }
+
+  visitSubroutineDefinitionEnd(_node: SubroutineDefinitionNode): void {
+    // No-op: dialect-specific formatting to be added in PR 3
+  }
+
+  visitSubroutineCall(_node: SubroutineCallNode): void {
+    // No-op: dialect-specific formatting to be added in PR 3
+  }
+
+  visitReturnStatement(_node: ReturnStatementNode): void {
+    // No-op: dialect-specific formatting to be added in PR 3
   }
 
   // --- Output ---
