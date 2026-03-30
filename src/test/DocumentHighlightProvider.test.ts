@@ -5,7 +5,7 @@ import { DocumentHighlightKind } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { Position } from '../parser/nodes';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';

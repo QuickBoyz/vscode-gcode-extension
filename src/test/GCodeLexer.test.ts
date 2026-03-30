@@ -1,6 +1,5 @@
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { KeywordType } from '../lexer/KeywordType';
-import { TokenCategory } from '../lexer/TokenCategory';
+import { KeywordType, TokenCategory } from '../lexer/types';
 
 describe('GCodeLexer', () => {
   const lexer = new GCodeLexer();
@@ -51,9 +50,9 @@ describe('GCodeLexer', () => {
       const doToken = tokens.find((t) => t.keyword === KeywordType.DO);
       const endToken = tokens.find((t) => t.keyword === KeywordType.END);
       expect(doToken).toBeDefined();
-      expect(doToken!.value).toBe('DO0');
+      expect(doToken?.value).toBe('DO0');
       expect(endToken).toBeDefined();
-      expect(endToken!.value).toBe('END5');
+      expect(endToken?.value).toBe('END5');
     });
 
     it('should classify all control flow keywords', () => {
@@ -138,7 +137,7 @@ describe('GCodeLexer', () => {
       const tokens = lexer.tokenize('G51.2');
       const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
       expect(gcode).toBeDefined();
-      expect(gcode!.value).toBe('G51.2');
+      expect(gcode?.value).toBe('G51.2');
     });
 
     it('should tokenize simple G-codes', () => {
@@ -182,14 +181,14 @@ describe('GCodeLexer', () => {
       const tokens = lexer.tokenize('; this is a comment');
       const comment = tokens.find((t) => t.category === TokenCategory.COMMENT);
       expect(comment).toBeDefined();
-      expect(comment!.value).toBe('; this is a comment');
+      expect(comment?.value).toBe('; this is a comment');
     });
 
     it('should tokenize parenthetical comments', () => {
       const tokens = lexer.tokenize('(tool change)');
       const comment = tokens.find((t) => t.category === TokenCategory.PAREN_COMMENT);
       expect(comment).toBeDefined();
-      expect(comment!.value).toBe('(tool change)');
+      expect(comment?.value).toBe('(tool change)');
     });
   });
 
@@ -198,23 +197,23 @@ describe('GCodeLexer', () => {
       const tokens = lexer.tokenize('G01\nX10');
       const xToken = tokens.find((t) => t.category === TokenCategory.PARAM && t.value === 'X');
       expect(xToken).toBeDefined();
-      expect(xToken!.line).toBe(2);
-      expect(xToken!.col).toBe(1);
+      expect(xToken?.line).toBe(2);
+      expect(xToken?.col).toBe(1);
     });
 
     it('should track offset correctly', () => {
       const tokens = lexer.tokenize('G01 X10');
       const xToken = tokens.find((t) => t.category === TokenCategory.PARAM && t.value === 'X');
       expect(xToken).toBeDefined();
-      expect(xToken!.offset).toBe(4);
+      expect(xToken?.offset).toBe(4);
     });
 
     it('should track positions across multiple lines', () => {
       const tokens = lexer.tokenize('G01\nG02\nX10');
       const xToken = tokens.find((t) => t.category === TokenCategory.PARAM && t.value === 'X');
       expect(xToken).toBeDefined();
-      expect(xToken!.line).toBe(3);
-      expect(xToken!.col).toBe(1);
+      expect(xToken?.line).toBe(3);
+      expect(xToken?.col).toBe(1);
     });
   });
 
@@ -257,7 +256,7 @@ M30
       const tokens = lexer.tokenize('ELSIF');
       const keyword = tokens.find((t) => t.keyword !== null);
       expect(keyword).toBeDefined();
-      expect(keyword!.keyword).toBe(KeywordType.ELSEIF);
+      expect(keyword?.keyword).toBe(KeywordType.ELSEIF);
     });
   });
 
@@ -291,7 +290,7 @@ M30
       const tokens = lexer.tokenize('N10 G01 X5');
       const lineNum = tokens.find((t) => t.category === TokenCategory.LINE_NUMBER);
       expect(lineNum).toBeDefined();
-      expect(lineNum!.value).toBe('N10');
+      expect(lineNum?.value).toBe('N10');
     });
   });
 });

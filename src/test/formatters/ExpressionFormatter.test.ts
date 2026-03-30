@@ -5,8 +5,8 @@ import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { AstFactory } from '../../parser/AstFactory';
 import { GCodeParser } from '../../parser/GCodeParser';
 import { VariableAssignmentNode } from '../../parser/nodes';
+import { TokenCategory } from '../../lexer/types';
 import { LexerToken } from '../../lexer/LexerToken';
-import { TokenCategory } from '../../lexer/TokenCategory';
 
 describe('ExpressionFormatter', () => {
   const parseExpression = (code: string) => {

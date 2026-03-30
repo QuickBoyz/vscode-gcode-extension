@@ -6,7 +6,7 @@
  * classes that are tested in their respective test files.
  */
 import { DialectType, GCodeSymbols } from '../constants';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { FormatterFactory } from '../formatter/FormatterFactory';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { AstTraverser } from '../parser/AstTraverser';

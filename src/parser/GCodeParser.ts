@@ -1,6 +1,5 @@
-import { KeywordType } from '../lexer/KeywordType';
+import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
-import { TokenCategory } from '../lexer/TokenCategory';
 import { AstFactory } from './AstFactory';
 import {
   AstNode,
@@ -19,7 +18,7 @@ import { ParseError, TokenStream } from './TokenStream';
 /**
  * Relational and logical operator keywords used in expression parsing.
  */
-const RELATIONAL_KEYWORDS: readonly KeywordType[] = [
+const RELATIONAL_KEYWORDS: ReadonlySet<KeywordType> = new Set([
   KeywordType.EQ,
   KeywordType.NE,
   KeywordType.LT,
@@ -29,7 +28,7 @@ const RELATIONAL_KEYWORDS: readonly KeywordType[] = [
   KeywordType.AND,
   KeywordType.OR,
   KeywordType.XOR,
-];
+]);
 
 /**
  * Function keywords recognized in expression parsing.
@@ -392,7 +391,7 @@ export class GCodeParser {
   private parseRelational(): ExpressionNode {
     const left = this.parseAdditive();
     const op = this.tokens.peek();
-    if (op?.keyword !== null && op !== undefined && RELATIONAL_KEYWORDS.includes(op.keyword)) {
+    if (op?.keyword !== null && op !== undefined && RELATIONAL_KEYWORDS.has(op.keyword)) {
       this.tokens.next();
       const right = this.parseAdditive();
       return this.factory.binary(left, op, right);

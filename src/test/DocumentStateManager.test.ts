@@ -4,7 +4,7 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 describe('DocumentStateManager', () => {

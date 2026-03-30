@@ -1,8 +1,7 @@
 // Parser/factories/AstFactory.ts
 import { REGEX_PATTERNS } from '../constants';
-import { KeywordType } from '../lexer/KeywordType';
+import { KeywordType } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
-import { rangeFrom } from './helpers';
 import {
   AstNode,
   AxisParameterNode,
@@ -19,6 +18,7 @@ import {
   LiteralExpressionNode,
   MotionCommandNode,
   ProgramNode,
+  Range,
   StatementNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
@@ -39,16 +39,21 @@ export class AstFactory {
 
   variableAssignment(variable: LexerToken, value: ExpressionNode, parent?: AstNode) {
     return new VariableAssignmentNode(
-      rangeFrom(variable, value),
+      this.rangeFrom(variable, value),
       this.getVariableName(variable),
       value,
-      rangeFrom(variable),
+      this.rangeFrom(variable),
       parent
     );
   }
 
   functionCall(func: LexerToken, argument: ExpressionNode) {
-    return new FunctionCallNode(rangeFrom(func, argument), func.value, argument, rangeFrom(func));
+    return new FunctionCallNode(
+      this.rangeFrom(func, argument),
+      func.value,
+      argument,
+      this.rangeFrom(func)
+    );
   }
 
   ifClause(
@@ -60,12 +65,12 @@ export class AstFactory {
     parent?: AstNode
   ) {
     return new IfClauseNode(
-      rangeFrom(keyword, body[body.length - 1]),
+      this.rangeFrom(keyword, body[body.length - 1]),
       keyword.isKeyword(KeywordType.IF) ? IfClauseKind.IF : IfClauseKind.ELSEIF,
       condition,
       body,
-      rangeFrom(keyword),
-      rangeFrom(thenToken),
+      this.rangeFrom(keyword),
+      this.rangeFrom(thenToken),
       label?.value,
       parent
     );
@@ -73,9 +78,9 @@ export class AstFactory {
 
   elseClause(keyword: LexerToken, body: StatementNode[], label?: LexerToken, parent?: AstNode) {
     return new ElseClauseNode(
-      rangeFrom(keyword, body[body.length - 1]),
+      this.rangeFrom(keyword, body[body.length - 1]),
       body,
-      rangeFrom(keyword),
+      this.rangeFrom(keyword),
       label?.value,
       parent
     );
@@ -89,9 +94,9 @@ export class AstFactory {
     elseIfClauses?: IfClauseNode[];
   }) {
     const node = new IfStatementNode(
-      rangeFrom(args.label, args.endLabel),
+      this.rangeFrom(args.label, args.endLabel),
       args.ifClause,
-      rangeFrom(args.endLabel),
+      this.rangeFrom(args.endLabel),
       args.elseClause,
       args.elseIfClauses,
       args.label?.value
@@ -115,12 +120,12 @@ export class AstFactory {
     doToken?: LexerToken;
   }) {
     const node = new WhileStatementNode(
-      rangeFrom(args.whileToken, args.endWhileToken),
+      this.rangeFrom(args.whileToken, args.endWhileToken),
       args.condition,
       args.body,
-      rangeFrom(args.whileToken),
-      rangeFrom(args.endWhileToken),
-      rangeFrom(args.doToken),
+      this.rangeFrom(args.whileToken),
+      this.rangeFrom(args.endWhileToken),
+      this.rangeFrom(args.doToken),
       args.label?.value
     );
     this.setParents(args.body, node);
@@ -128,30 +133,30 @@ export class AstFactory {
   }
 
   axisParam(axis: LexerToken, value: ExpressionNode, parent?: AstNode) {
-    return new AxisParameterNode(rangeFrom(axis), axis.value, value, parent);
+    return new AxisParameterNode(this.rangeFrom(axis), axis.value, value, parent);
   }
 
   binary(left: ExpressionNode, op: LexerToken, right: ExpressionNode) {
     return new BinaryExpressionNode(
-      rangeFrom(left, right),
+      this.rangeFrom(left, right),
       left,
       op.value as BinaryOperatorType,
       right,
-      rangeFrom(op)
+      this.rangeFrom(op)
     );
   }
 
   unary(op: LexerToken, expr: ExpressionNode) {
     return new UnaryExpressionNode(
-      rangeFrom(op, expr),
+      this.rangeFrom(op, expr),
       op.value as UnaryOperatorType,
       expr,
-      rangeFrom(op)
+      this.rangeFrom(op)
     );
   }
 
   literal(token: LexerToken) {
-    return new LiteralExpressionNode(rangeFrom(token), token.value);
+    return new LiteralExpressionNode(this.rangeFrom(token), token.value);
   }
 
   getVariableName(token: LexerToken): string | number {
@@ -173,18 +178,18 @@ export class AstFactory {
   }
 
   variableRef(token: LexerToken) {
-    return new VariableReferenceNode(rangeFrom(token), this.getVariableName(token));
+    return new VariableReferenceNode(this.rangeFrom(token), this.getVariableName(token));
   }
 
   motionCommand(command: LexerToken, params: AxisParameterNode[] = []) {
-    const node = new MotionCommandNode(rangeFrom(command), command.value, params);
+    const node = new MotionCommandNode(this.rangeFrom(command), command.value, params);
     this.setParents(params, node);
     return node;
   }
 
   error(message: string, token?: LexerToken, originalText?: string) {
     const range = token
-      ? rangeFrom(token)
+      ? this.rangeFrom(token)
       : {
           start: { line: 0, character: 0 },
           end: { line: 0, character: 0 },
@@ -194,20 +199,47 @@ export class AstFactory {
   }
 
   subroutineLabel(token: LexerToken) {
-    return new SubroutineLabelNode(rangeFrom(token), token.value);
+    return new SubroutineLabelNode(this.rangeFrom(token), token.value);
   }
 
   lineNumber(token: LexerToken) {
-    return new LineNumberNode(rangeFrom(token), token.value);
+    return new LineNumberNode(this.rangeFrom(token), token.value);
   }
 
   comment(token: LexerToken) {
-    return new CommentNode(rangeFrom(token), token.value);
+    return new CommentNode(this.rangeFrom(token), token.value);
   }
 
   setParents(nodes: AstNode[], parent: AstNode) {
     for (const node of nodes) {
       node.setParent(parent);
     }
+  }
+
+  rangeFrom(start?: LexerToken | AstNode, end?: LexerToken | AstNode): Range {
+    if (!start) {
+      return {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 },
+      };
+    }
+
+    const startPos =
+        start instanceof LexerToken
+          ? {
+              line: start.line - 1,
+              character: start.col - 1,
+            }
+          : start.getRange().start,
+      endSource = end ?? start,
+      endPos =
+        endSource instanceof LexerToken
+          ? {
+              line: endSource.line - 1,
+              character: endSource.col - 1 + endSource.value.length,
+            }
+          : endSource.getRange().end;
+
+    return { start: startPos, end: endPos };
   }
 }

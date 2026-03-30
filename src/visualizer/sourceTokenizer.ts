@@ -12,9 +12,8 @@
  */
 
 import { GCodeLexer } from '../lexer/GCodeLexer';
-import { KeywordType } from '../lexer/KeywordType';
+import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
-import { TokenCategory } from '../lexer/TokenCategory';
 
 /**
  * A lightweight token span for the webview to render syntax-highlighted

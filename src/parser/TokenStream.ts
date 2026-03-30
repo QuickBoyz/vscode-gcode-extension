@@ -1,6 +1,5 @@
-import { KeywordType } from '../lexer/KeywordType';
+import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
-import { TokenCategory } from '../lexer/TokenCategory';
 
 /**
  * Token stream that provides lookahead and matching over a LexerToken array.

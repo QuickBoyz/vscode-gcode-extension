@@ -1,4 +1,4 @@
-import { KeywordType } from './KeywordType';
+import { KeywordType } from './types';
 
 /**
  * Case-insensitive keyword lookup table.
@@ -7,7 +7,7 @@ import { KeywordType } from './KeywordType';
  * Adding a new keyword = one entry here plus one enum value in KeywordType.ts.
  * Zero parser or lexer changes required.
  */
-const KEYWORD_ENTRIES: ReadonlyArray<[string, KeywordType]> = [
+export const KEYWORD_ENTRIES: ReadonlyArray<[string, KeywordType]> = [
   // Control flow
   ['IF', KeywordType.IF],
   ['ELSE', KeywordType.ELSE],
@@ -53,16 +53,3 @@ const KEYWORD_ENTRIES: ReadonlyArray<[string, KeywordType]> = [
   ['EXP', KeywordType.EXP],
   ['EXISTS', KeywordType.EXISTS],
 ];
-
-const KEYWORD_MAP: ReadonlyMap<string, KeywordType> = new Map(KEYWORD_ENTRIES);
-
-/**
- * Look up a keyword by its text. The input is normalized to uppercase
- * so the lookup is effectively case-insensitive.
- *
- * @param text - The raw identifier text from the source
- * @returns The KeywordType if the text is a recognized keyword, null otherwise
- */
-export function lookupKeyword(text: string): KeywordType | null {
-  return KEYWORD_MAP.get(text.toUpperCase()) ?? null;
-}

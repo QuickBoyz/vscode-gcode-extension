@@ -1,6 +1,5 @@
 import { LexerToken } from '../lexer/LexerToken';
-import { TokenCategory } from '../lexer/TokenCategory';
-import { KeywordType } from '../lexer/KeywordType';
+import { KeywordType, TokenCategory } from '../lexer/types';
 
 describe('LexerToken', () => {
   it('should store category and keyword', () => {

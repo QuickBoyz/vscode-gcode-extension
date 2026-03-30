@@ -1,5 +1,5 @@
 import { DialectType } from '../../constants';
-import { DEFAULT_GCODE_CONFIG } from '../../config';
+import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
 import { ProjectionMode } from '../../visualizer/types';
 
 describe('DEFAULT_GCODE_CONFIG', () => {

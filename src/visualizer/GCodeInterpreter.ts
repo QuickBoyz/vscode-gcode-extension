@@ -26,7 +26,7 @@ import {
   WhileStatementNode,
 } from '../parser/nodes';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { InterpreterConfig, MotionHandler } from './types';

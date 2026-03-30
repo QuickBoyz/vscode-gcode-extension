@@ -1,6 +1,5 @@
 import { GCodeScanner } from '../lexer/GCodeScanner';
-import { KeywordType } from '../lexer/KeywordType';
-import { TokenCategory } from '../lexer/TokenCategory';
+import { KeywordType, TokenCategory } from '../lexer/types';
 
 describe('GCodeScanner', () => {
   const scanner = new GCodeScanner();
@@ -286,8 +285,8 @@ describe('GCodeScanner', () => {
       const tokens = scanner.tokenize('G01\nX10');
       const xToken = tokens.find((t) => t.category === TokenCategory.PARAM && t.value === 'X');
       expect(xToken).toBeDefined();
-      expect(xToken!.line).toBe(2);
-      expect(xToken!.col).toBe(1);
+      expect(xToken?.line).toBe(2);
+      expect(xToken?.col).toBe(1);
     });
   });
 
@@ -316,6 +315,44 @@ describe('GCodeScanner', () => {
       const tokens = scanner.tokenize('.');
       expect(tokens).toHaveLength(1);
       expect(tokens[0].category).toBe(TokenCategory.DOT);
+    });
+  });
+
+  describe('lookupKeyword', () => {
+    it('should find control flow keywords case-insensitively', () => {
+      expect(GCodeScanner.lookupKeyword('IF')).toBe(KeywordType.IF);
+      expect(GCodeScanner.lookupKeyword('if')).toBe(KeywordType.IF);
+      expect(GCodeScanner.lookupKeyword('If')).toBe(KeywordType.IF);
+      expect(GCodeScanner.lookupKeyword('WHILE')).toBe(KeywordType.WHILE);
+      expect(GCodeScanner.lookupKeyword('while')).toBe(KeywordType.WHILE);
+    });
+
+    it('should find relational operators', () => {
+      expect(GCodeScanner.lookupKeyword('EQ')).toBe(KeywordType.EQ);
+      expect(GCodeScanner.lookupKeyword('eq')).toBe(KeywordType.EQ);
+      expect(GCodeScanner.lookupKeyword('NE')).toBe(KeywordType.NE);
+      expect(GCodeScanner.lookupKeyword('LT')).toBe(KeywordType.LT);
+      expect(GCodeScanner.lookupKeyword('GT')).toBe(KeywordType.GT);
+      expect(GCodeScanner.lookupKeyword('LE')).toBe(KeywordType.LE);
+      expect(GCodeScanner.lookupKeyword('GE')).toBe(KeywordType.GE);
+    });
+
+    it('should find function keywords', () => {
+      expect(GCodeScanner.lookupKeyword('SIN')).toBe(KeywordType.SIN);
+      expect(GCodeScanner.lookupKeyword('sin')).toBe(KeywordType.SIN);
+      expect(GCodeScanner.lookupKeyword('ABS')).toBe(KeywordType.ABS);
+      expect(GCodeScanner.lookupKeyword('SQRT')).toBe(KeywordType.SQRT);
+    });
+
+    it('should return null for unknown identifiers', () => {
+      expect(GCodeScanner.lookupKeyword('XYZZY')).toBeNull();
+      expect(GCodeScanner.lookupKeyword('G01')).toBeNull();
+      expect(GCodeScanner.lookupKeyword('')).toBeNull();
+    });
+
+    it('should handle ELSIF alias', () => {
+      expect(GCodeScanner.lookupKeyword('ELSIF')).toBe(KeywordType.ELSEIF);
+      expect(GCodeScanner.lookupKeyword('ELSEIF')).toBe(KeywordType.ELSEIF);
     });
   });
 });

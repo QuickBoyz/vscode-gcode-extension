@@ -1,7 +1,6 @@
-import { KeywordType } from './KeywordType';
-import { lookupKeyword } from './KeywordTable';
+import { KEYWORD_ENTRIES } from './constants';
 import { LexerToken } from './LexerToken';
-import { TokenCategory } from './TokenCategory';
+import { KeywordType, TokenCategory } from './types';
 
 /**
  * Null character sentinel used when peeking past end of source.
@@ -191,7 +190,7 @@ export class GCodeScanner {
    * Resolve the keyword for an identifier, including DO/END with trailing digits.
    */
   private resolveKeyword(text: string): KeywordType | null {
-    const keyword = lookupKeyword(text);
+    const keyword = GCodeScanner.lookupKeyword(text);
     if (keyword !== null) {
       return keyword;
     }
@@ -200,7 +199,7 @@ export class GCodeScanner {
     // Strip trailing digits and try again
     const strippedText = text.replace(/\d+$/, '');
     if (strippedText.length > 0 && strippedText.length < text.length) {
-      const strippedKeyword = lookupKeyword(strippedText);
+      const strippedKeyword = GCodeScanner.lookupKeyword(strippedText);
       if (strippedKeyword === KeywordType.DO || strippedKeyword === KeywordType.END) {
         return strippedKeyword;
       }
@@ -423,5 +422,18 @@ export class GCodeScanner {
     this.tokens.push(
       new LexerToken(category, keyword, value, startOffset, startLine, startCol, lineBreaks)
     );
+  }
+
+  static KEYWORD_MAP: ReadonlyMap<string, KeywordType> = new Map(KEYWORD_ENTRIES);
+
+  /**
+   * Look up a keyword by its text. The input is normalized to uppercase
+   * so the lookup is effectively case-insensitive.
+   *
+   * @param text - The raw identifier text from the source
+   * @returns The KeywordType if the text is a recognized keyword, null otherwise
+   */
+  static lookupKeyword(text: string): KeywordType | null {
+    return GCodeScanner.KEYWORD_MAP.get(text.toUpperCase()) ?? null;
   }
 }

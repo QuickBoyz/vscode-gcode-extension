@@ -1,5 +1,5 @@
 import { DEFAULTS, GCodeSymbols } from '../constants';
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { AstTraverser } from '../parser/AstTraverser';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import {
@@ -21,9 +21,8 @@ import {
 } from '../parser/nodes';
 import { IfClauseKind } from '../parser/nodes';
 import { ExpressionFormatter } from './ExpressionFormatter';
-import { IFormatter } from './IFormatter';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
-import { FormatterConfig } from './types';
+import { FormatterConfig, FormatterInterface } from './types';
 
 /**
  * Base formatter implementation with common formatting logic.
@@ -39,7 +38,7 @@ import { FormatterConfig } from './types';
  * - Control flow keyword formatting (IF/WHILE/END/etc.)
  * - Label formatting
  */
-export abstract class BaseFormatter extends BaseAstVisitor<void> implements IFormatter {
+export abstract class BaseFormatter extends BaseAstVisitor<void> implements FormatterInterface {
   protected lines: string[] = [];
   protected currentIndent = 0;
   protected currentFormattedLineNumber: number;

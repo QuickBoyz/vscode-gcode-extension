@@ -1,5 +1,4 @@
-import { KeywordType } from './KeywordType';
-import { TokenCategory } from './TokenCategory';
+import { KeywordType, TokenCategory } from './types';
 
 /**
  * Plain token class emitted by the scanner.

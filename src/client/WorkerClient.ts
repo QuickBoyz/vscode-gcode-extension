@@ -14,7 +14,7 @@
  */
 import { Worker } from 'worker_threads';
 
-import { DEFAULT_GCODE_CONFIG } from '../config';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
