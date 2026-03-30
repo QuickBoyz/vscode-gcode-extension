@@ -15,6 +15,7 @@
 import { Worker } from 'worker_threads';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
+import { DialectType } from '../constants';
 import { VisualizerService } from './VisualizerService';
 import {
   VisualizerResult,
@@ -77,6 +78,7 @@ export class WorkerClient {
    */
   parse(
     text: string,
+    dialect: DialectType = DialectType.LINUXCNC,
     maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations
   ): Promise<VisualizerResult> {
     if (this.disposed) {
@@ -84,7 +86,7 @@ export class WorkerClient {
     }
 
     if (this.synchronousFallback) {
-      return Promise.resolve(this.fallbackService.extractToolPath(text));
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect));
     }
 
     this.generationCounter += 1;
@@ -97,7 +99,7 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      return Promise.resolve(this.fallbackService.extractToolPath(text));
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect));
     }
 
     const request: WorkerRequest = {
@@ -105,6 +107,7 @@ export class WorkerClient {
       id: requestId,
       text,
       maxIterations,
+      dialect,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {

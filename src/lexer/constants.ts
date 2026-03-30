@@ -139,13 +139,14 @@ export function getKeywordEntries(
   dialect: DialectType = DialectType.LINUXCNC
 ): ReadonlyArray<[string, KeywordType]> {
   switch (dialect) {
-    case DialectType.LINUXCNC:
-      return LINUXCNC_KEYWORDS;
     case DialectType.FANUC:
       return FANUC_KEYWORDS;
     case DialectType.HAAS:
       return HAAS_KEYWORDS;
     case DialectType.SIEMENS:
       return SIEMENS_KEYWORDS;
+    case DialectType.LINUXCNC:
+    default:
+      return LINUXCNC_KEYWORDS;
   }
 }
