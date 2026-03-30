@@ -1,0 +1,138 @@
+import { DialectType } from '../constants';
+import { LexerFactory } from '../lexer/LexerFactory';
+import { ParserFactory } from '../parser/ParserFactory';
+import {
+  MotionCommandNode,
+  ProgramNode,
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
+  VariableAssignmentNode,
+} from '../parser/nodes';
+
+describe('LinuxCNC subroutines', () => {
+  function parse(input: string): ProgramNode {
+    const lexer = LexerFactory.create(DialectType.LINUXCNC);
+    const tokens = lexer.tokenize(input);
+    const parser = ParserFactory.create(DialectType.LINUXCNC, tokens, input);
+    return parser.parseProgram();
+  }
+
+  it('parses SUB/ENDSUB with body', () => {
+    const code = `O100 SUB
+G0 X10
+O100 ENDSUB`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const node = program.statements[0];
+    expect(node).toBeInstanceOf(SubroutineDefinitionNode);
+
+    const sub = node as SubroutineDefinitionNode;
+    expect(sub.label).toBe('O100');
+    expect(sub.body.length).toBe(1);
+    expect(sub.body[0]).toBeInstanceOf(MotionCommandNode);
+  });
+
+  it('parses SUB/ENDSUB with empty body', () => {
+    const code = `O100 SUB
+O100 ENDSUB`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect(sub).toBeInstanceOf(SubroutineDefinitionNode);
+    expect(sub.label).toBe('O100');
+    expect(sub.body.length).toBe(0);
+  });
+
+  it('parses SUB/ENDSUB with variable assignment and motion command', () => {
+    const code = `O100 SUB
+#<x> = 5
+G1 X#<x>
+O100 ENDSUB`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect(sub).toBeInstanceOf(SubroutineDefinitionNode);
+    expect(sub.body.length).toBe(2);
+    expect(sub.body[0]).toBeInstanceOf(VariableAssignmentNode);
+    expect(sub.body[1]).toBeInstanceOf(MotionCommandNode);
+  });
+
+  it('parses CALL without arguments', () => {
+    const code = 'O100 CALL';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const node = program.statements[0];
+    expect(node).toBeInstanceOf(SubroutineCallNode);
+
+    const call = node as SubroutineCallNode;
+    expect(call.target).toBe('O100');
+    expect(call.callArguments.length).toBe(0);
+  });
+
+  it('parses CALL with bracket arguments', () => {
+    const code = 'O100 CALL [5] [10]';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('O100');
+    expect(call.callArguments.length).toBe(2);
+  });
+
+  it('parses CALL with complex expression argument', () => {
+    const code = 'O100 CALL [#<x> + 1]';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const call = program.statements[0] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('O100');
+    expect(call.callArguments.length).toBe(1);
+  });
+
+  it('parses RETURN with label', () => {
+    const code = 'O100 RETURN';
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(1);
+    const node = program.statements[0];
+    expect(node).toBeInstanceOf(ReturnStatementNode);
+
+    const ret = node as ReturnStatementNode;
+    expect(ret.label).toBe('O100');
+  });
+
+  it('parses full program with SUB, CALL, RETURN, and other statements', () => {
+    const code = `G0 X0 Y0
+O100 SUB
+  #<x> = 5
+  G1 X#<x> F100
+  O100 RETURN
+O100 ENDSUB
+O100 CALL [10] [20]
+G0 X0 Y0`;
+    const program = parse(code);
+
+    expect(program.statements.length).toBe(4);
+    expect(program.statements[0]).toBeInstanceOf(MotionCommandNode);
+    expect(program.statements[1]).toBeInstanceOf(SubroutineDefinitionNode);
+
+    const sub = program.statements[1] as SubroutineDefinitionNode;
+    expect(sub.body.length).toBe(3);
+    expect(sub.body[0]).toBeInstanceOf(VariableAssignmentNode);
+    expect(sub.body[1]).toBeInstanceOf(MotionCommandNode);
+    expect(sub.body[2]).toBeInstanceOf(ReturnStatementNode);
+
+    expect(program.statements[2]).toBeInstanceOf(SubroutineCallNode);
+    const call = program.statements[2] as SubroutineCallNode;
+    expect(call.callArguments.length).toBe(2);
+
+    expect(program.statements[3]).toBeInstanceOf(MotionCommandNode);
+  });
+});
