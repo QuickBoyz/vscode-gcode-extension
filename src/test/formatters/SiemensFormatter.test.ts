@@ -1,15 +1,17 @@
+import { DialectType } from '../../constants';
 import { SiemensFormatter } from '../../formatter/dialects/SiemensFormatter';
-import { GCodeLexer } from '../../lexer/GCodeLexer';
+import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
+import { ParserFactory } from '../../parser/ParserFactory';
 
 describe('SiemensFormatter', () => {
   let formatter: SiemensFormatter;
 
+  // See FanucFormatter.test.ts for rationale on using LinuxCNC parser.
   function parse(code: string) {
-    const lexer = new GCodeLexer(),
+    const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(code),
-      parser = new LinuxCNCParser(tokens, code);
+      parser = ParserFactory.create(DialectType.LINUXCNC, tokens, code);
     return parser.parseProgram();
   }
 

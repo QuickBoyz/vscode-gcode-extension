@@ -1,15 +1,21 @@
+import { DialectType } from '../../constants';
 import { FanucFormatter } from '../../formatter/dialects/FanucFormatter';
-import { GCodeLexer } from '../../lexer/GCodeLexer';
+import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
-import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
+import { ParserFactory } from '../../parser/ParserFactory';
 
 describe('FanucFormatter', () => {
   let formatter: FanucFormatter;
 
+  // Fanuc formatter tests use LinuxCNC parser because the test fixtures
+  // contain O-block labels (LinuxCNC syntax). The formatter tests verify
+  // output formatting, not parsing — the AST is the same regardless
+  // of which parser produced it. Dialect-specific test fixtures will be
+  // added when dialect-specific parsing differences are tested.
   function parse(code: string) {
-    const lexer = new GCodeLexer(),
+    const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(code),
-      parser = new LinuxCNCParser(tokens, code);
+      parser = ParserFactory.create(DialectType.LINUXCNC, tokens, code);
     return parser.parseProgram();
   }
 
