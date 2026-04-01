@@ -76,6 +76,7 @@ Four supported dialects defined in `DialectType` enum (`src/constants.ts`): `lin
 - Conventional commit messages (`feat:`, `fix:`, `refactor:`, etc.)
 - Prefer classes over functions, enums over union types for fixed sets
 - Named constants for magic numbers/strings
+- **TDD for logic-heavy code** — write failing tests first for parsers, visitors, analyzers, formatters, services; skip TDD for pure boilerplate/wiring
 
 ## Development principles
 

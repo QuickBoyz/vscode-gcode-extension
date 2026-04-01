@@ -173,11 +173,24 @@ All new code must:
 
 AST nodes, visitors, and services must be tested independently.
 
+### 8. Test-Driven Development (TDD)
+
+Use TDD for all logic-heavy code (parsers, visitors, analyzers, formatters, services):
+
+1. **Write a failing test first** — derive test cases from the spec or acceptance criteria
+2. **Implement until the test passes** — write the minimal code to satisfy the test
+3. **Refactor** — clean up while tests stay green
+4. **Repeat** for each unit of work
+
+Skip TDD for pure boilerplate: handler registration in `server.ts`, thin VS Code adapters, factory methods with no branching logic.
+
+Tests should operate at the service layer: feed G-code through the lexer/parser to produce an AST, then assert against the service output. This matches the existing test patterns in `src/test/`.
+
 ---
 
 ## Formatting & Style
 
-### 8. Code Style
+### 9. Code Style
 
 - Small files
 - One primary responsibility per file
