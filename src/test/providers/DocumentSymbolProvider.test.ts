@@ -1,12 +1,18 @@
 import { SymbolKind } from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DialectType } from '../../constants';
+import { DialectType, GCODE_LANGUAGE_ID } from '../../constants';
+import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
 import { ExpressionFormatter } from '../../formatter/ExpressionFormatter';
 import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { ProgramNode } from '../../parser/nodes';
 import { ParserFactory } from '../../parser/ParserFactory';
-import { DocumentSymbolVisitor } from '../../providers/DocumentSymbolProvider';
+import {
+  DocumentSymbolProvider,
+  DocumentSymbolVisitor,
+} from '../../providers/DocumentSymbolProvider';
+import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
 
 function parse(code: string, dialect: DialectType = DialectType.LINUXCNC): ProgramNode {
   const lexer = LexerFactory.create(dialect),
@@ -283,5 +289,90 @@ G0 X0`;
       expect(symbols[0].name).toBe('RET');
       expect(symbols[0].kind).toBe(SymbolKind.Event);
     });
+  });
+});
+
+describe('DocumentSymbolProvider integration', () => {
+  const TEST_SETTINGS: GCodeSettings = {
+    formatter: DEFAULT_GCODE_CONFIG.formatter,
+  };
+
+  let provider: DocumentSymbolProvider, stateManager: DocumentStateManager;
+
+  beforeEach(() => {
+    stateManager = new DocumentStateManager();
+    provider = new DocumentSymbolProvider(stateManager);
+  });
+
+  function createDoc(text: string): TextDocument {
+    return TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text);
+  }
+
+  it('returns symbols for variable definitions via provider', () => {
+    const symbols = provider.provideDocumentSymbols(createDoc('#<x> = 10\n#<y> = 20'), TEST_SETTINGS);
+
+    expect(symbols.length).toBe(2);
+    expect(symbols[0].name).toBe('#<x>');
+    expect(symbols[1].name).toBe('#<y>');
+    expect(symbols[0].kind).toBe(SymbolKind.Variable);
+  });
+
+  it('includes both numeric and named variables', () => {
+    const symbols = provider.provideDocumentSymbols(createDoc('#1 = 10\n#<foo> = 20'), TEST_SETTINGS),
+      names = symbols.map((s) => s.name);
+
+    expect(names).toContain('#1');
+    expect(names).toContain('#<foo>');
+  });
+
+  it('returns symbols in source order', () => {
+    const symbols = provider.provideDocumentSymbols(
+      createDoc('#<z> = 30\n#<a> = 10\n#<b> = 20'),
+      TEST_SETTINGS
+    );
+
+    expect(symbols.length).toBe(3);
+    expect(symbols[0].range.start.line).toBeLessThanOrEqual(symbols[1].range.start.line);
+    expect(symbols[1].range.start.line).toBeLessThanOrEqual(symbols[2].range.start.line);
+  });
+
+  it('returns empty array for document with no symbols', () => {
+    expect(provider.provideDocumentSymbols(createDoc('G0 X0 Y0'), TEST_SETTINGS)).toEqual([]);
+  });
+
+  it('returns only definitions, not references', () => {
+    const symbols = provider.provideDocumentSymbols(
+      createDoc('#<x> = 10\n#<y> = #<x>\n#<z> = #<x>'),
+      TEST_SETTINGS
+    );
+
+    expect(symbols.length).toBe(3);
+    const names = symbols.map((s) => s.name);
+    expect(names).toContain('#<x>');
+    expect(names).toContain('#<y>');
+    expect(names).toContain('#<z>');
+  });
+
+  it('has correct range and selectionRange', () => {
+    const symbols = provider.provideDocumentSymbols(createDoc('#<x> = 10'), TEST_SETTINGS),
+      symbol = symbols[0];
+
+    expect(symbol.range).toBeDefined();
+    expect(symbol.selectionRange).toBeDefined();
+    expect(symbol.selectionRange.start.line).toBeGreaterThanOrEqual(symbol.range.start.line);
+    expect(symbol.selectionRange.end.line).toBeLessThanOrEqual(symbol.range.end.line);
+  });
+
+  it('nests variables inside control flow', () => {
+    const symbols = provider.provideDocumentSymbols(
+      createDoc('#<x> = 10\nO100 WHILE [#<x> LT 20]\n  #<y> = #<x>\nO100 ENDWHILE'),
+      TEST_SETTINGS
+    );
+
+    expect(symbols.length).toBe(2);
+    expect(symbols[0].name).toBe('#<x>');
+    expect(symbols[1].kind).toBe(SymbolKind.Struct);
+    expect(symbols[1].children).toHaveLength(1);
+    expect(symbols[1].children![0].name).toBe('#<y>');
   });
 });
