@@ -89,15 +89,18 @@ describe('DocumentSymbolProvider', () => {
       expect(symbol.selectionRange.end.line).toBeLessThanOrEqual(symbol.range.end.line);
     });
 
-    it('should handle variables in conditional statements', () => {
-      const text = '#<x> = 10\nWHILE [#<x> LT 20] DO\n  #<y> = #<x>\nEND',
+    it('should nest variables inside control flow', () => {
+      const text = '#<x> = 10\nO100 WHILE [#<x> LT 20]\n  #<y> = #<x>\nO100 ENDWHILE',
         document = TextDocument.create('file:///test.nc', GCODE_LANGUAGE_ID, 1, text),
         symbols = provider.provideDocumentSymbols(document, TEST_SETTINGS);
 
+      // Top-level: #<x> and WHILE
       expect(symbols.length).toBe(2);
-      const names = symbols.map((s) => s.name);
-      expect(names).toContain('#<x>');
-      expect(names).toContain('#<y>');
+      expect(symbols[0].name).toBe('#<x>');
+      expect(symbols[1].kind).toBe(SymbolKind.Struct);
+      // #<y> is nested inside WHILE
+      expect(symbols[1].children).toHaveLength(1);
+      expect(symbols[1].children![0].name).toBe('#<y>');
     });
   });
 });
