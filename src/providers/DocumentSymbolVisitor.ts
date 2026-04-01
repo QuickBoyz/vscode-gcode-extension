@@ -17,9 +17,19 @@ import {
   VariableAssignmentNode,
   WhileStatementNode,
 } from '../parser/nodes';
+import { GCodeKeywords } from '../constants';
 import { ExpressionFormatter } from '../formatter/ExpressionFormatter';
+import { KeywordType } from '../lexer/types';
 import { formatVariableName } from './RenameUtils';
 import { Range as AstRange } from '../parser/nodes/Range';
+
+const SymbolDetail = {
+  SUBROUTINE: 'subroutine',
+  CALL: 'call',
+} as const;
+
+const M_CODE_PREFIX = 'M';
+const FANUC_PARAM_PREFIX = 'P';
 
 /**
  * AST visitor that builds a hierarchical DocumentSymbol tree.
@@ -74,7 +84,7 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
   visitSubroutineDefinition(node: SubroutineDefinitionNode): void {
     const symbol: DocumentSymbol = {
       name: node.label,
-      detail: 'subroutine',
+      detail: SymbolDetail.SUBROUTINE,
       kind: SymbolKind.Function,
       range: node.getRange(),
       selectionRange: node.labelTokenRange,
@@ -90,7 +100,7 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
   visitIfStatement(node: IfStatementNode): void {
     const conditionStr = this.expressionFormatter.format(node.ifClause.condition);
     const symbol: DocumentSymbol = {
-      name: `IF [${conditionStr}]`,
+      name: `${GCodeKeywords.IF} [${conditionStr}]`,
       kind: SymbolKind.Struct,
       range: node.getRange(),
       selectionRange: node.ifClause.keywordTokenRange,
@@ -106,7 +116,7 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
   visitWhileStatement(node: WhileStatementNode): void {
     const conditionStr = this.expressionFormatter.format(node.condition);
     const symbol: DocumentSymbol = {
-      name: `WHILE [${conditionStr}]`,
+      name: `${GCodeKeywords.WHILE} [${conditionStr}]`,
       kind: SymbolKind.Struct,
       range: node.getRange(),
       selectionRange: node.whileTokenRange,
@@ -134,20 +144,20 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     const keyword = this.extractText(node.callTokenRange).toUpperCase();
     let name: string;
 
-    if (keyword.startsWith('M')) {
+    if (keyword.startsWith(M_CODE_PREFIX)) {
       // Fanuc/Haas: M98 P{target}
-      name = `${keyword} P${node.target}`;
-    } else if (keyword === 'CALL') {
+      name = `${keyword} ${FANUC_PARAM_PREFIX}${node.target}`;
+    } else if (keyword === KeywordType.CALL) {
       // Siemens: CALL {target}
-      name = `CALL ${node.target}`;
+      name = `${KeywordType.CALL} ${node.target}`;
     } else {
       // LinuxCNC: {target} CALL (keyword is the O-block label)
-      name = `${node.target} CALL`;
+      name = `${node.target} ${KeywordType.CALL}`;
     }
 
     this.currentChildren().push({
       name,
-      detail: 'call',
+      detail: SymbolDetail.CALL,
       kind: SymbolKind.Function,
       range: node.getRange(),
       selectionRange: node.callTokenRange,
