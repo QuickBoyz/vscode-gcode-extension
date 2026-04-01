@@ -218,6 +218,30 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements Form
   protected abstract getDoKeyword(): string;
   protected abstract getEndWhileKeyword(): string;
 
+  /**
+   * Format the opening line of a subroutine definition.
+   * e.g. LinuxCNC: "O100 SUB", Siemens: "PROC MyProc"
+   */
+  protected abstract formatSubroutineDefinitionOpen(node: SubroutineDefinitionNode): string;
+
+  /**
+   * Format the closing line of a subroutine definition.
+   * e.g. LinuxCNC: "O100 ENDSUB", Siemens: "RET"
+   */
+  protected abstract formatSubroutineDefinitionClose(node: SubroutineDefinitionNode): string;
+
+  /**
+   * Format a subroutine call line.
+   * e.g. LinuxCNC: "O100 CALL [5] [10]", Fanuc: "M98 P1000 L3", Siemens: "CALL MyProc"
+   */
+  protected abstract formatSubroutineCallLine(node: SubroutineCallNode): string;
+
+  /**
+   * Format a return statement line.
+   * e.g. LinuxCNC: "O100 RETURN", Fanuc: "M99", Siemens: "RET"
+   */
+  protected abstract formatReturnStatementLine(node: ReturnStatementNode): string;
+
   // --- Visitor methods (common across dialects) ---
 
   visitAxisParameter(node: AxisParameterNode): void {
@@ -313,22 +337,28 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements Form
     this.addLine(`${this.formatLabel(node.label)}${this.getEndWhileKeyword()}`);
   }
 
-  // TODO: --- Subroutine visitors (stubs for PR 3 dialect-specific formatting) ---
+  // --- Subroutine visitors ---
 
-  visitSubroutineDefinition(_node: SubroutineDefinitionNode): void {
-    // TODO: No-op: dialect-specific formatting to be added in PR 3
+  visitSubroutineDefinition(node: SubroutineDefinitionNode): void {
+    this.handleLineGap(node.getRange().start.line);
+    this.addLine(this.formatSubroutineDefinitionOpen(node));
+    this.incrementIndent();
   }
 
-  visitSubroutineDefinitionEnd(_node: SubroutineDefinitionNode): void {
-    // TODO: No-op: dialect-specific formatting to be added in PR 3
+  visitSubroutineDefinitionEnd(node: SubroutineDefinitionNode): void {
+    this.handleLineGap(node.getRange().end.line);
+    this.decrementIndent();
+    this.addLine(this.formatSubroutineDefinitionClose(node));
   }
 
-  visitSubroutineCall(_node: SubroutineCallNode): void {
-    // TODO: No-op: dialect-specific formatting to be added in PR 3
+  visitSubroutineCall(node: SubroutineCallNode): void {
+    this.handleLineGap(node.getRange().start.line);
+    this.addLine(this.formatSubroutineCallLine(node));
   }
 
-  visitReturnStatement(_node: ReturnStatementNode): void {
-    // TODO: No-op: dialect-specific formatting to be added in PR 3
+  visitReturnStatement(node: ReturnStatementNode): void {
+    this.handleLineGap(node.getRange().start.line);
+    this.addLine(this.formatReturnStatementLine(node));
   }
 
   // --- Output ---

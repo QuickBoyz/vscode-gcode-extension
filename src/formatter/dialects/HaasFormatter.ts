@@ -1,4 +1,9 @@
 import { GCodeKeywords, GCodeSymbols } from '../../constants';
+import {
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
+} from '../../parser/nodes';
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
@@ -50,5 +55,25 @@ export class HaasFormatter extends BaseFormatter {
 
   protected getEndWhileKeyword(): string {
     return GCodeKeywords.END;
+  }
+
+  protected formatSubroutineDefinitionOpen(_node: SubroutineDefinitionNode): string {
+    return GCodeSymbols.EMPTY_STRING;
+  }
+
+  protected formatSubroutineDefinitionClose(_node: SubroutineDefinitionNode): string {
+    return GCodeSymbols.EMPTY_STRING;
+  }
+
+  protected formatSubroutineCallLine(node: SubroutineCallNode): string {
+    let line = `M98 P${node.target}`;
+    if (node.repeatCount) {
+      line += ` L${this.expressionFormatter.format(node.repeatCount)}`;
+    }
+    return line;
+  }
+
+  protected formatReturnStatementLine(_node: ReturnStatementNode): string {
+    return 'M99';
   }
 }
