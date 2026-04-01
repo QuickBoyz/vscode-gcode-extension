@@ -149,6 +149,26 @@ RET`,
       expect(formatted).toContain('RET');
     });
 
+    it('formats nested PROC with control flow', () => {
+      // Note: Siemens parser produces incorrect IfStatementNode range (0,0)-(0,0)
+      // inside PROC body, causing an extra blank line before RET. This is a parser
+      // bug, not a formatter bug — the formatter's gap handling is correct.
+      const code = `PROC MyProc
+IF [#1 GT 0]
+G1 X10
+ENDIF
+RET`,
+        program = parseSiemens(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('PROC MyProc');
+      expect(formatted).toContain('  IF [#1 GT 0.0]');
+      expect(formatted).toContain('    G01 X10.0');
+      expect(formatted).toContain('  ENDIF');
+      expect(formatted).toContain('RET');
+    });
+
     it('formats full program with PROC, CALL, and other statements', () => {
       const code = `PROC MyProc
 #1 = 5

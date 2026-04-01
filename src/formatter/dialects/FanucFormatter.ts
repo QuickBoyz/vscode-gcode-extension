@@ -56,6 +56,9 @@ export class FanucFormatter extends BaseFormatter {
     return GCodeKeywords.END;
   }
 
+  // Fanuc does not have structured subroutine definitions (uses M98/M99 only).
+  // These methods satisfy the abstract contract but are never called in practice.
+
   protected formatSubroutineDefinitionOpen(_node: SubroutineDefinitionNode): string {
     return GCodeSymbols.EMPTY_STRING;
   }
