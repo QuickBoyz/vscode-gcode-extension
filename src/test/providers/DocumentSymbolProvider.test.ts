@@ -8,10 +8,8 @@ import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { ProgramNode } from '../../parser/nodes';
 import { ParserFactory } from '../../parser/ParserFactory';
-import {
-  DocumentSymbolProvider,
-  DocumentSymbolVisitor,
-} from '../../providers/DocumentSymbolProvider';
+import { DocumentSymbolProvider } from '../../providers/DocumentSymbolProvider';
+import { DocumentSymbolVisitor } from '../../providers/DocumentSymbolVisitor';
 import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
 
 function parse(code: string, dialect: DialectType = DialectType.LINUXCNC): ProgramNode {

@@ -22,19 +22,6 @@ import { formatVariableName } from './RenameUtils';
 import { Range as AstRange } from '../parser/nodes/Range';
 
 /**
- * Convert parser Range to LSP Range.
- */
-function toLspRange(range: AstRange): {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-} {
-  return {
-    start: { line: range.start.line, character: range.start.character },
-    end: { line: range.end.line, character: range.end.character },
-  };
-}
-
-/**
  * AST visitor that builds a hierarchical DocumentSymbol tree.
  *
  * Uses a parent stack: block nodes (SubroutineDefinition, IF, WHILE) push a
@@ -89,8 +76,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
       name: node.label,
       detail: 'subroutine',
       kind: SymbolKind.Function,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.labelTokenRange),
+      range: node.getRange(),
+      selectionRange: node.labelTokenRange,
     };
     this.currentChildren().push(symbol);
     this.parentStack.push(symbol);
@@ -105,8 +92,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     const symbol: DocumentSymbol = {
       name: `IF [${conditionStr}]`,
       kind: SymbolKind.Struct,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.ifClause.keywordTokenRange),
+      range: node.getRange(),
+      selectionRange: node.ifClause.keywordTokenRange,
     };
     this.currentChildren().push(symbol);
     this.parentStack.push(symbol);
@@ -121,8 +108,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     const symbol: DocumentSymbol = {
       name: `WHILE [${conditionStr}]`,
       kind: SymbolKind.Struct,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.whileTokenRange),
+      range: node.getRange(),
+      selectionRange: node.whileTokenRange,
     };
     this.currentChildren().push(symbol);
     this.parentStack.push(symbol);
@@ -138,8 +125,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     this.currentChildren().push({
       name: formatVariableName(node.name),
       kind: SymbolKind.Variable,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.getRange()),
+      range: node.getRange(),
+      selectionRange: node.getRange(),
     });
   }
 
@@ -162,8 +149,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
       name,
       detail: 'call',
       kind: SymbolKind.Function,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.callTokenRange),
+      range: node.getRange(),
+      selectionRange: node.callTokenRange,
     });
   }
 
@@ -174,8 +161,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     this.currentChildren().push({
       name,
       kind: SymbolKind.Event,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.returnTokenRange),
+      range: node.getRange(),
+      selectionRange: node.returnTokenRange,
     });
   }
 
@@ -183,8 +170,8 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     this.currentChildren().push({
       name: node.label,
       kind: SymbolKind.Key,
-      range: toLspRange(node.getRange()),
-      selectionRange: toLspRange(node.getRange()),
+      range: node.getRange(),
+      selectionRange: node.getRange(),
     });
   }
 }
