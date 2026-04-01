@@ -1,4 +1,9 @@
 import { GCodeSymbols } from '../../constants';
+import {
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
+} from '../../parser/nodes';
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
@@ -52,5 +57,21 @@ export class SiemensFormatter extends BaseFormatter {
   protected getEndWhileKeyword(): string {
     // Siemens uses ENDWHILE instead of END
     return 'ENDWHILE';
+  }
+
+  protected formatSubroutineDefinitionOpen(node: SubroutineDefinitionNode): string {
+    return `PROC ${node.label}`;
+  }
+
+  protected formatSubroutineDefinitionClose(_node: SubroutineDefinitionNode): string {
+    return 'RET';
+  }
+
+  protected formatSubroutineCallLine(node: SubroutineCallNode): string {
+    return `CALL ${node.target}`;
+  }
+
+  protected formatReturnStatementLine(_node: ReturnStatementNode): string {
+    return 'RET';
   }
 }

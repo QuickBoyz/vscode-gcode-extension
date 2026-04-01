@@ -1,4 +1,9 @@
 import { GCodeKeywords, GCodeSymbols } from '../../constants';
+import {
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
+} from '../../parser/nodes';
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
@@ -49,5 +54,28 @@ export class FanucFormatter extends BaseFormatter {
 
   protected getEndWhileKeyword(): string {
     return GCodeKeywords.END;
+  }
+
+  // Fanuc does not have structured subroutine definitions (uses M98/M99 only).
+  // These methods satisfy the abstract contract but are never called in practice.
+
+  protected formatSubroutineDefinitionOpen(_node: SubroutineDefinitionNode): string {
+    return GCodeSymbols.EMPTY_STRING;
+  }
+
+  protected formatSubroutineDefinitionClose(_node: SubroutineDefinitionNode): string {
+    return GCodeSymbols.EMPTY_STRING;
+  }
+
+  protected formatSubroutineCallLine(node: SubroutineCallNode): string {
+    let line = `M98 P${node.target}`;
+    if (node.repeatCount) {
+      line += ` L${this.expressionFormatter.format(node.repeatCount)}`;
+    }
+    return line;
+  }
+
+  protected formatReturnStatementLine(_node: ReturnStatementNode): string {
+    return 'M99';
   }
 }

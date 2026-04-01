@@ -238,6 +238,130 @@ G01 X10 (inline comment)`,
     });
   });
 
+  describe('Subroutine Formatting', () => {
+    it('formats SUB/ENDSUB with body indentation', () => {
+      const code = `O100 SUB
+G0 X10
+O100 ENDSUB`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toBe(
+        `%
+O100 SUB
+  G00 X10.0
+O100 ENDSUB
+%`
+      );
+    });
+
+    it('formats SUB/ENDSUB with empty body', () => {
+      const code = `O100 SUB
+O100 ENDSUB`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 SUB');
+      expect(formatted).toContain('O100 ENDSUB');
+    });
+
+    it('formats CALL without arguments', () => {
+      const code = 'O100 CALL',
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 CALL');
+    });
+
+    it('formats CALL with bracket arguments', () => {
+      const code = 'O100 CALL [5] [10]',
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 CALL [5.0] [10.0]');
+    });
+
+    it('formats RETURN with label', () => {
+      const code = 'O100 RETURN',
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 RETURN');
+    });
+
+    it('formats full program with SUB, RETURN, ENDSUB, and CALL', () => {
+      const code = `G0 X0 Y0
+O100 SUB
+#<x> = 5
+G1 X#<x> F100
+O100 RETURN
+O100 ENDSUB
+O100 CALL [10] [20]
+G0 X0 Y0`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toBe(
+        `%
+G00 X0.0 Y0.0
+O100 SUB
+  #<x> = 5.0
+  G01 X#<x> F100.0
+  O100 RETURN
+O100 ENDSUB
+O100 CALL [10.0] [20.0]
+G00 X0.0 Y0.0
+%`
+      );
+    });
+
+    it('formats nested subroutine with control flow', () => {
+      const code = `O100 SUB
+O200 IF [#<x> GT 0]
+G1 X10
+O200 ENDIF
+O100 ENDSUB`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toBe(
+        `%
+O100 SUB
+  O200 IF [#<x> GT 0.0]
+    G01 X10.0
+  O200 ENDIF
+O100 ENDSUB
+%`
+      );
+    });
+
+    it('O-block scanner accounts for subroutine labels', () => {
+      const code = `O200 SUB
+G0 X10
+O200 ENDSUB
+O100 IF [#<x> GT 0]
+G1 X5
+O100 ENDIF`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      // O-block scanner sees O200 from SUB and O100 from IF
+      // Both labels are preserved from source
+      expect(formatted).toContain('O200 SUB');
+      expect(formatted).toContain('O200 ENDSUB');
+      expect(formatted).toContain('O100 IF');
+      expect(formatted).toContain('O100 ENDIF');
+    });
+  });
+
   describe('Expression Formatting', () => {
     it('handles function calls', () => {
       const code = `#<y> = ABS[-5]`,

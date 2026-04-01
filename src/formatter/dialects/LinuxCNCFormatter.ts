@@ -6,6 +6,9 @@ import {
   IfClauseNode,
   IfStatementNode,
   ProgramNode,
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   WhileStatementNode,
 } from '../../parser/nodes';
 import { IfClauseKind } from '../../parser/nodes';
@@ -127,6 +130,26 @@ export class LinuxCNCFormatter extends BaseFormatter {
     return label;
   }
 
+  protected formatSubroutineDefinitionOpen(node: SubroutineDefinitionNode): string {
+    return `${this.formatLabel(node.label)}SUB`;
+  }
+
+  protected formatSubroutineDefinitionClose(node: SubroutineDefinitionNode): string {
+    return `${this.formatLabel(node.label)}ENDSUB`;
+  }
+
+  protected formatSubroutineCallLine(node: SubroutineCallNode): string {
+    let line = `${this.formatLabel(node.target)}CALL`;
+    for (const arg of node.callArguments) {
+      line += ` [${this.expressionFormatter.format(arg)}]`;
+    }
+    return line;
+  }
+
+  protected formatReturnStatementLine(node: ReturnStatementNode): string {
+    return `${this.formatLabel(node.label)}RETURN`;
+  }
+
   protected getIfKeyword(): string {
     return GCodeKeywords.IF;
   }
@@ -186,6 +209,18 @@ class OBlockScanner extends BaseAstVisitor<void> {
   visitWhileStatement(node: WhileStatementNode): void {
     this.extractOBlockNumber(node.label);
     super.visitWhileStatement(node);
+  }
+
+  visitSubroutineDefinition(node: SubroutineDefinitionNode): void {
+    this.extractOBlockNumber(node.label);
+  }
+
+  visitSubroutineCall(node: SubroutineCallNode): void {
+    this.extractOBlockNumber(node.target);
+  }
+
+  visitReturnStatement(node: ReturnStatementNode): void {
+    this.extractOBlockNumber(node.label);
   }
 
   /**
