@@ -19,7 +19,10 @@ import {
   MotionCommandNode,
   ProgramNode,
   Range,
+  ReturnStatementNode,
   StatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   SubroutineLabelNode,
   UnaryExpressionNode,
   VariableAssignmentNode,
@@ -196,6 +199,47 @@ export class AstFactory {
         };
 
     return new ErrorNode(range, message, originalText);
+  }
+
+  subroutineDefinition(args: {
+    label: LexerToken;
+    subToken: LexerToken;
+    body: StatementNode[];
+    endToken: LexerToken;
+  }): SubroutineDefinitionNode {
+    const node = new SubroutineDefinitionNode(
+      this.rangeFrom(args.label, args.endToken),
+      args.label.value,
+      args.body,
+      this.rangeFrom(args.label),
+      this.rangeFrom(args.endToken)
+    );
+    this.setParents(args.body, node);
+    return node;
+  }
+
+  subroutineCall(args: {
+    callToken: LexerToken;
+    target: string;
+    callArguments: ExpressionNode[];
+    lastToken: LexerToken | AstNode;
+    repeatCount?: ExpressionNode;
+  }): SubroutineCallNode {
+    return new SubroutineCallNode(
+      this.rangeFrom(args.callToken, args.repeatCount ?? args.lastToken),
+      args.target,
+      this.rangeFrom(args.callToken),
+      args.callArguments,
+      args.repeatCount
+    );
+  }
+
+  returnStatement(args: { returnToken: LexerToken; label?: LexerToken }): ReturnStatementNode {
+    return new ReturnStatementNode(
+      this.rangeFrom(args.label ?? args.returnToken, args.returnToken),
+      args.label?.value,
+      this.rangeFrom(args.returnToken)
+    );
   }
 
   subroutineLabel(token: LexerToken) {

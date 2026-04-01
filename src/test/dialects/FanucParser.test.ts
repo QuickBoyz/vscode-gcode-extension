@@ -113,16 +113,15 @@ ENDIF`;
     });
   });
 
-  describe('O-blocks do not produce control flow', () => {
-    it('does not treat O-block as control flow', () => {
+  describe('O-blocks produce subroutine labels', () => {
+    it('produces SubroutineLabelNode for standalone O-number', () => {
       const program = parse('O1234');
       expect(program.statements.length).toBe(1);
-      // Fanuc parser does not handle OSUB tokens — they fall through
-      // to error recovery. The key point is that O-blocks do not
-      // produce WhileStatementNode or IfStatementNode in Fanuc.
+      // Fanuc O-numbers produce SubroutineLabelNode (subroutine markers),
+      // but never control flow nodes.
+      expect(program.statements[0]).toBeInstanceOf(SubroutineLabelNode);
       expect(program.statements[0]).not.toBeInstanceOf(WhileStatementNode);
       expect(program.statements[0]).not.toBeInstanceOf(IfStatementNode);
-      expect(program.statements[0]).not.toBeInstanceOf(SubroutineLabelNode);
     });
   });
 });

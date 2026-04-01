@@ -9,6 +9,9 @@ import {
   IfClauseNode,
   MotionCommandNode,
   ProgramNode,
+  ReturnStatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
   VariableAssignmentNode,
 } from '../parser/nodes';
 import { IfClauseKind } from '../parser/nodes';
@@ -186,5 +189,67 @@ o100 endif
     traverser.traverseProgram(program);
 
     expect(visited).toEqual(['program', 'cmd:G01', 'axis:X', 'axis:Y', 'axis:Z']);
+  });
+
+  it('visits SubroutineDefinitionNode, body statements, then SubroutineDefinitionEnd', () => {
+    const code = `O100 SUB
+G0 X10
+#<x> = 5
+O100 ENDSUB`;
+    const program = parse(code);
+    const visited: string[] = [];
+    const visitor = {
+      visitProgram: () => visited.push('program'),
+      visitSubroutineDefinition: (node: SubroutineDefinitionNode) =>
+        visited.push(`sub:${node.label}`),
+      visitSubroutineDefinitionEnd: (node: SubroutineDefinitionNode) =>
+        visited.push(`endsub:${node.label}`),
+      visitMotionCommand: (node: MotionCommandNode) => visited.push(`cmd:${node.command}`),
+      visitAxisParameter: (node: AxisParameterNode) => visited.push(`axis:${node.axis}`),
+      visitVariableAssignment: (node: VariableAssignmentNode) => visited.push(`var:${node.name}`),
+    } as unknown as AstVisitor<string[]>;
+    const traverser = new AstTraverser(visitor);
+    traverser.traverseProgram(program);
+
+    expect(visited).toEqual(['program', 'sub:O100', 'cmd:G0', 'axis:X', 'var:x', 'endsub:O100']);
+  });
+
+  it('visits SubroutineCallNode and its argument expressions', () => {
+    const code = 'O100 CALL [5] [#<x> + 1]';
+    const program = parse(code);
+    const visited: string[] = [];
+    const visitor = {
+      visitProgram: () => visited.push('program'),
+      visitSubroutineCall: (node: SubroutineCallNode) => visited.push(`call:${node.target}`),
+      visitLiteralExpression: () => visited.push('literal'),
+      visitBinaryExpression: () => visited.push('binary'),
+      visitVariableReference: () => visited.push('varref'),
+    } as unknown as AstVisitor<string[]>;
+    const traverser = new AstTraverser(visitor);
+    traverser.traverseProgram(program);
+
+    expect(visited).toEqual([
+      'program',
+      'call:O100',
+      'literal', // [5]
+      'binary', // [#<x> + 1]
+      'varref', // #<x>
+      'literal', // 1
+    ]);
+  });
+
+  it('visits ReturnStatementNode', () => {
+    const code = 'O100 RETURN';
+    const program = parse(code);
+    const visited: string[] = [];
+    const visitor = {
+      visitProgram: () => visited.push('program'),
+      visitReturnStatement: (node: ReturnStatementNode) =>
+        visited.push(`return:${node.label ?? 'none'}`),
+    } as unknown as AstVisitor<string[]>;
+    const traverser = new AstTraverser(visitor);
+    traverser.traverseProgram(program);
+
+    expect(visited).toEqual(['program', 'return:O100']);
   });
 });
