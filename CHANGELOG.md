@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.1.0] - 2026-04-01
+
+### Added
+- New features and improvements
+
+### Changed
+- Updates and modifications
+
+### Fixed
+- Bug fixes
+
+
 ## [v2.0.0] - 2026-03-29
 
 ### Added
