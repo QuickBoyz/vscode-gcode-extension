@@ -6,9 +6,10 @@
 
 import { describe, expect, it } from '@jest/globals';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CompletionItemKind, MarkupContent } from 'vscode-languageserver/node';
+import { CompletionItemKind, InsertTextFormat, MarkupContent } from 'vscode-languageserver/node';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
+import { DialectType } from '../constants';
 import { CompletionProvider } from '../providers/CompletionProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
@@ -93,7 +94,8 @@ describe('CompletionProvider', () => {
 
       const g01 = completions.find((item) => item.label === 'G01');
       expect(g01).toBeDefined();
-      expect(g01?.detail).toContain('Linear');
+      // detail shows example when available, which contains the command itself
+      expect(g01?.detail).toContain('G01');
       expect((g01?.data as { type: string }).type).toBe('command');
     });
   });
@@ -561,6 +563,248 @@ describe('CompletionProvider', () => {
 
       const hasX = completions.some((item) => item.label === 'X');
       expect(hasX).toBe(true);
+    });
+  });
+
+  describe('Command Snippet Completions', () => {
+    it('should include snippet insertText for commands with parameters', () => {
+      const content = 'G01';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 3 },
+        settings
+      );
+
+      const g01 = completions.find((item) => item.label === 'G01');
+      expect(g01).toBeDefined();
+      expect(g01?.insertTextFormat).toBe(InsertTextFormat.Snippet);
+      // G01 has parameters X, Y, Z, A, B, C, F — limited to first 5
+      expect(g01?.insertText).toBe('G01 X${1} Y${2} Z${3} A${4} B${5}');
+    });
+
+    it('should not include snippet for commands without parameters', () => {
+      const content = 'G17';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 3 },
+        settings
+      );
+
+      const g17 = completions.find((item) => item.label === 'G17');
+      expect(g17).toBeDefined();
+      expect(g17?.insertTextFormat).toBeUndefined();
+      expect(g17?.insertText).toBe('G17');
+    });
+
+    it('should limit snippet parameters to 5', () => {
+      const content = 'G02';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 3 },
+        settings
+      );
+
+      const g02 = completions.find((item) => item.label === 'G02');
+      expect(g02).toBeDefined();
+      // G02 has 8 parameters (X, Y, Z, I, J, K, R, F) — only first 5
+      expect(g02?.insertText).toBe('G02 X${1} Y${2} Z${3} I${4} J${5}');
+    });
+  });
+
+  describe('Command Example in Detail', () => {
+    it('should show example in detail field when available', () => {
+      const content = 'G01';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 3 },
+        settings
+      );
+
+      const g01 = completions.find((item) => item.label === 'G01');
+      expect(g01).toBeDefined();
+      // G01 has example: 'G01 X10.0 Y20.0 F500'
+      expect(g01?.detail).toBe('G01 X10.0 Y20.0 F500');
+    });
+
+    it('should fall back to command name when no example', () => {
+      const content = 'M';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 1 },
+        settings
+      );
+
+      // Find a command that has no example but has a name
+      // All commands have names; some may lack examples depending on database
+      for (const item of completions) {
+        expect(item.detail).toBeDefined();
+      }
+    });
+  });
+
+  describe('Command Group Sorting', () => {
+    it('should sort commands by group using sortText', () => {
+      const content = 'G';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 1 },
+        settings
+      );
+
+      // Motion commands (group '01') should sort before Canned Cycle ('09')
+      const g01 = completions.find((item) => item.label === 'G01');
+      const g81 = completions.find((item) => item.label === 'G81');
+      expect(g01?.sortText).toBeDefined();
+      expect(g81?.sortText).toBeDefined();
+      expect(g01!.sortText! < g81!.sortText!).toBe(true);
+    });
+
+    it('should use group prefix in sortText', () => {
+      const content = 'G0';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 2 },
+        settings
+      );
+
+      const g00 = completions.find((item) => item.label === 'G00');
+      expect(g00?.sortText).toBe('01_G00'); // Motion group = '01'
+
+      const g04 = completions.find((item) => item.label === 'G04');
+      expect(g04?.sortText).toBe('10_G04'); // Dwell group = '10'
+    });
+  });
+
+  describe('Keyword Completions', () => {
+    it('should provide LinuxCNC keyword completions', () => {
+      const content = 'SU';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 2 },
+        settings
+      );
+
+      expect(completions.length).toBeGreaterThan(0);
+      const hasSub = completions.some((item) => item.label === 'SUB');
+      expect(hasSub).toBe(true);
+      expect(completions[0].kind).toBe(CompletionItemKind.Keyword);
+    });
+
+    it('should provide LinuxCNC control flow keywords', () => {
+      const content = 'EN';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 2 },
+        settings
+      );
+
+      const labels = completions.map((item) => item.label);
+      expect(labels).toContain('ENDSUB');
+      expect(labels).toContain('ENDIF');
+      expect(labels).toContain('ENDWHILE');
+    });
+
+    it('should provide Fanuc keyword completions', () => {
+      const content = 'TH';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings: GCodeSettings = {
+        formatter: DEFAULT_GCODE_CONFIG.formatter,
+        dialect: DialectType.FANUC,
+      };
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 2 },
+        settings
+      );
+
+      const hasThen = completions.some((item) => item.label === 'THEN');
+      expect(hasThen).toBe(true);
+
+      // ENDSUB should not be in Fanuc keywords
+      const hasEndsub = completions.some((item) => item.label === 'ENDSUB');
+      expect(hasEndsub).toBe(false);
+    });
+
+    it('should filter keywords by prefix', () => {
+      const content = 'WH';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 2 },
+        settings
+      );
+
+      expect(completions.length).toBe(1);
+      expect(completions[0].label).toBe('WHILE');
+    });
+
+    it('should provide keywords after O-word label', () => {
+      const content = 'O100 SU';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 7 },
+        settings
+      );
+
+      const hasSub = completions.some((item) => item.label === 'SUB');
+      expect(hasSub).toBe(true);
     });
   });
 });

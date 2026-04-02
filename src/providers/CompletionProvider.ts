@@ -22,6 +22,10 @@ import {
   OPERATORS_SORT_PREFIX,
   GCodeSymbols,
   DialectType,
+  GROUP_SORT_ORDER,
+  DEFAULT_GROUP_SORT_PREFIX,
+  MAX_SNIPPET_PARAMETERS,
+  DIALECT_KEYWORDS,
 } from '../constants';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { formatVariableName } from './RenameUtils';
@@ -76,6 +80,8 @@ export class CompletionProvider extends BaseProvider {
         return this.provideFunctionCompletions(contextInfo, settings);
       case CompletionContext.EXPRESSION:
         return this.provideExpressionCompletions(document, settings, contextInfo);
+      case CompletionContext.KEYWORD:
+        return this.provideKeywordCompletions(contextInfo, settings);
       default:
         return [];
     }
@@ -150,12 +156,33 @@ export class CompletionProvider extends BaseProvider {
         continue;
       if (prefix && !this.is(command, prefix)) continue;
 
+      // Build snippet with parameter tab stops if command has parameters
+      let insertText = command;
+      let insertTextFormat: InsertTextFormat | undefined;
+      if (commandInfo.parameters && commandInfo.parameters.length > 0) {
+        const params = commandInfo.parameters
+          .slice(0, MAX_SNIPPET_PARAMETERS)
+          .map((p, i) => `${p}\${${i + 1}}`)
+          .join(' ');
+        insertText = `${command} ${params}`;
+        insertTextFormat = InsertTextFormat.Snippet;
+      }
+
+      // Use example as detail, falling back to command name
+      const detail = commandInfo.example ?? commandInfo.name;
+
+      // Group-based sort order
+      const groupPrefix = GROUP_SORT_ORDER[commandInfo.group ?? ''] ?? DEFAULT_GROUP_SORT_PREFIX;
+      const sortText = `${groupPrefix}_${command}`;
+
       items.push({
         label: command,
         kind: CompletionItemKind.Keyword,
-        detail: commandInfo.name,
+        detail,
         documentation: commandInfo.description,
-        insertText: command,
+        insertText,
+        insertTextFormat,
+        sortText,
         data: {
           type: CompletionItemTypes.COMMAND,
           command,
@@ -332,6 +359,37 @@ export class CompletionProvider extends BaseProvider {
         data: {
           type: CompletionItemTypes.OPERATOR,
           dialect: dialect,
+        },
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * Provide keyword completions for control flow and subroutine keywords
+   */
+  private provideKeywordCompletions(
+    contextInfo: ContextInfo,
+    settings: GCodeSettings
+  ): CompletionItem[] {
+    const items: CompletionItem[] = [];
+    const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
+    const dialect = settings.dialect || DialectType.LINUXCNC;
+    const keywords = DIALECT_KEYWORDS[dialect];
+
+    for (const keyword of keywords) {
+      // Filter by prefix
+      if (prefix && !keyword.startsWith(prefix)) continue;
+
+      items.push({
+        label: keyword,
+        kind: CompletionItemKind.Keyword,
+        detail: 'Keyword',
+        insertText: keyword,
+        data: {
+          type: CompletionItemTypes.KEYWORD,
+          dialect,
         },
       });
     }
