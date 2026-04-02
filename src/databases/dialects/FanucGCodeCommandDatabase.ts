@@ -77,6 +77,18 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G10',
+    {
+      command: 'G10',
+      name: 'Data Setting',
+      description:
+        'Set or modify work offsets and tool offsets from within the program. L2 sets work coordinate offsets, L10/L11 sets tool geometry/wear offsets.',
+      group: 'Coordinate Systems',
+      parameters: ['L', 'P', 'X', 'Y', 'Z', 'A', 'B', 'C', 'R'],
+      example: 'G10 L2 P1 X0 Y0 Z0',
+    },
+  ],
+  [
     'G17',
     {
       command: 'G17',
@@ -104,6 +116,30 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select YZ plane for circular interpolation and tool radius compensation.',
       group: 'Plane Selection',
       example: 'G19',
+    },
+  ],
+  [
+    'G28',
+    {
+      command: 'G28',
+      name: 'Return to Reference Point',
+      description:
+        'Return to machine reference point (home position) through an optional intermediate point. Commonly used before tool changes.',
+      group: 'Motion',
+      parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
+      example: 'G28 G91 Z0',
+    },
+  ],
+  [
+    'G30',
+    {
+      command: 'G30',
+      name: 'Return to 2nd Reference Point',
+      description:
+        'Return to the second reference point (2nd home position) through an optional intermediate point.',
+      group: 'Motion',
+      parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
+      example: 'G30 G91 Z0',
     },
   ],
   [
@@ -279,6 +315,18 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G73',
+    {
+      command: 'G73',
+      name: 'High-Speed Peck Drilling Cycle',
+      description:
+        'Peck drilling cycle with chip breaking. Retracts a small amount between pecks for chip breaking instead of fully retracting.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'Q', 'F'],
+      example: 'G73 X10.0 Y20.0 Z-20.0 R2.0 Q2.0 F100',
+    },
+  ],
+  [
     'G80',
     {
       command: 'G80',
@@ -341,6 +389,17 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       group: 'Canned Cycles',
       parameters: ['X', 'Y', 'Z', 'R', 'F'],
       example: 'G85 X10.0 Y20.0 Z-10.0 R2.0 F100',
+    },
+  ],
+  [
+    'G86',
+    {
+      command: 'G86',
+      name: 'Boring Cycle with Stop',
+      description: 'Boring cycle with spindle stop at bottom before rapid retract.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'F'],
+      example: 'G86 X10.0 Y20.0 Z-10.0 R2.0 F80',
     },
   ],
   [
@@ -494,6 +553,16 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'M07',
+    {
+      command: 'M07',
+      name: 'Mist Coolant On',
+      description: 'Turn on mist coolant.',
+      group: 'Coolant Control',
+      example: 'M07',
+    },
+  ],
+  [
     'M08',
     {
       command: 'M08',
@@ -511,6 +580,16 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Turn off all coolant.',
       group: 'Coolant Control',
       example: 'M09',
+    },
+  ],
+  [
+    'M19',
+    {
+      command: 'M19',
+      name: 'Spindle Orientation',
+      description: 'Orient the spindle to a specific angular position.',
+      group: 'Spindle Control',
+      example: 'M19',
     },
   ],
   [

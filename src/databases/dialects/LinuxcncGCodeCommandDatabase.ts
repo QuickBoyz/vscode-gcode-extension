@@ -69,6 +69,18 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G10',
+    {
+      command: 'G10',
+      name: 'Coordinate System Setting',
+      description:
+        'Set or modify coordinate system data from within the program. L2 sets work offsets, L1 sets tool offsets, L20 sets work offsets relative to current position.',
+      group: 'Coordinate System',
+      parameters: ['L', 'P', 'X', 'Y', 'Z', 'A', 'B', 'C', 'R'],
+      example: 'G10 L2 P1 X0 Y0 Z0',
+    },
+  ],
+  [
     'G17',
     {
       command: 'G17',
@@ -127,6 +139,18 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       group: 'Motion',
       parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
       example: 'G28 Z0.0 (Home Z-axis through Z0)',
+    },
+  ],
+  [
+    'G30',
+    {
+      command: 'G30',
+      name: 'Return to Predefined Position',
+      description:
+        'Return to a predefined machine position (second home position) through an optional intermediate point.',
+      group: 'Motion',
+      parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
+      example: 'G30 Z0.0',
     },
   ],
   [
