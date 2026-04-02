@@ -12,7 +12,7 @@ import { GCodeSettings } from './DocumentStateManager';
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { BaseProvider } from './BaseProvider';
 
-const CATEGORY_TO_SEVERITY: Record<DiagnosticCategory, DiagnosticSeverity> = {
+export const CATEGORY_TO_SEVERITY: Record<DiagnosticCategory, DiagnosticSeverity> = {
   [DiagnosticCategory.Error]: DiagnosticSeverity.Error,
   [DiagnosticCategory.Warning]: DiagnosticSeverity.Warning,
   [DiagnosticCategory.Information]: DiagnosticSeverity.Information,
