@@ -7,6 +7,7 @@ import {
   AxisParameterNode,
   BinaryExpressionNode,
   CommentNode,
+  DiagnosticCategory,
   ElseClauseNode,
   ErrorNode,
   ExpressionNode,
@@ -190,7 +191,7 @@ export class AstFactory {
     return node;
   }
 
-  error(message: string, token?: LexerToken, originalText?: string) {
+  error(message: string, token?: LexerToken, originalText?: string, category?: DiagnosticCategory) {
     const range = token
       ? this.rangeFrom(token)
       : {
@@ -198,7 +199,7 @@ export class AstFactory {
           end: { line: 0, character: 0 },
         };
 
-    return new ErrorNode(range, message, originalText);
+    return new ErrorNode(range, message, originalText, undefined, category);
   }
 
   subroutineDefinition(args: {
