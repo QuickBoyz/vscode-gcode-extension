@@ -1,10 +1,11 @@
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
-import { ErrorNode, ProgramNode } from '../parser/nodes';
+import { DiagnosticCategory, ErrorNode, ProgramNode } from '../parser/nodes';
 import { AstTraverser } from '../parser/AstTraverser';
 
 /**
  * Detects syntax errors in the AST.
- * Traverses the entire AST and returns true if any ErrorNode is found.
+ * Traverses the entire AST and returns true if any Error-category ErrorNode is found.
+ * Non-error categories (Warning, Information, Hint) do not block formatting.
  *
  * Used by formatter to block formatting when syntax errors exist,
  * matching the behavior of VS Code's built-in JavaScript formatter.
@@ -16,15 +17,17 @@ export class ErrorDetectorVisitor extends BaseAstVisitor<void> {
     return;
   }
 
-  visitError(_node: ErrorNode): void {
-    this.foundErrors = true;
+  visitError(node: ErrorNode): void {
+    if (node.category === DiagnosticCategory.Error) {
+      this.foundErrors = true;
+    }
   }
 
   /**
    * Check if the program AST contains any parse errors.
    *
    * @param program - The parsed program AST
-   * @returns true if any ErrorNode exists in the tree, false otherwise
+   * @returns true if any Error-category ErrorNode exists in the tree, false otherwise
    */
   hasErrors(program: ProgramNode): boolean {
     this.foundErrors = false;

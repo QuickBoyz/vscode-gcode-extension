@@ -7,9 +7,17 @@
 import { Diagnostic, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
+import { DiagnosticCategory } from '../parser/nodes';
 import { GCodeSettings } from './DocumentStateManager';
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { BaseProvider } from './BaseProvider';
+
+export const CATEGORY_TO_SEVERITY: Record<DiagnosticCategory, DiagnosticSeverity> = {
+  [DiagnosticCategory.Error]: DiagnosticSeverity.Error,
+  [DiagnosticCategory.Warning]: DiagnosticSeverity.Warning,
+  [DiagnosticCategory.Information]: DiagnosticSeverity.Information,
+  [DiagnosticCategory.Hint]: DiagnosticSeverity.Hint,
+};
 
 /**
  * Diagnostics Provider
@@ -27,7 +35,7 @@ export class DiagnosticsProvider extends BaseProvider {
     for (const errorNode of analysis.errors) {
       diagnostics.push({
         range: errorNode.getRange(),
-        severity: DiagnosticSeverity.Error,
+        severity: CATEGORY_TO_SEVERITY[errorNode.category],
         message: errorNode.message,
         source: GCODE_LANGUAGE_ID,
       });
