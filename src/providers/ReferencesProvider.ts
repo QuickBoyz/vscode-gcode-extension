@@ -37,8 +37,8 @@ export class ReferencesProvider extends BaseProvider {
     settings: GCodeSettings,
     includeDeclaration: boolean
   ): Location[] {
-    const analysis = this.getAnalysis(document, settings),
-      symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
+    const analysis = this.getAnalysis(document, settings);
+    const symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
 
     if (!symbol) {
       return [];

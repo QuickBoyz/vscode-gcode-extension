@@ -35,8 +35,8 @@ export class DefinitionProvider extends BaseProvider {
     position: Position,
     settings: GCodeSettings
   ): Location | null {
-    const analysis = this.getAnalysis(document, settings),
-      symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
+    const analysis = this.getAnalysis(document, settings);
+    const symbol = this.variableAnalysisService.findSymbolAtPosition(analysis, position);
 
     if (!symbol) {
       return null;
@@ -49,8 +49,8 @@ export class DefinitionProvider extends BaseProvider {
     }
 
     // Return the first definition location
-    const firstDefinition = variableSymbol.definitions[0],
-      range = this.variableAnalysisService.getVariableNameRange(firstDefinition);
+    const firstDefinition = variableSymbol.definitions[0];
+    const range = this.variableAnalysisService.getVariableNameRange(firstDefinition);
 
     if (!range) {
       return null;
