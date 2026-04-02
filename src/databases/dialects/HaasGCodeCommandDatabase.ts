@@ -65,18 +65,95 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
-    'G187',
+    'G04',
     {
-      command: 'G187',
-      name: 'Accuracy Control',
+      command: 'G04',
+      name: 'Dwell',
       description:
-        'Haas-specific accuracy control. Adjusts corner rounding and smoothing behavior.',
+        'Pause program execution for a specified time. P value is in seconds on Haas controls.',
       group: 'Motion',
       parameters: ['P'],
-      example: 'G187 P1',
+      example: 'G04 P1.5',
     },
   ],
-  // Standard codes abbreviated for brevity - would include full set in production
+  [
+    'G10',
+    {
+      command: 'G10',
+      name: 'Offset Setting',
+      description:
+        'Set or modify work offsets and tool offsets from within the program. Haas supports L2 (work offset) and L10/L11 (tool offset) modes.',
+      group: 'Coordinate Systems',
+      parameters: ['L', 'P', 'X', 'Y', 'Z', 'A', 'B', 'C', 'R'],
+      example: 'G10 L2 P1 X0 Y0 Z0',
+    },
+  ],
+  [
+    'G12',
+    {
+      command: 'G12',
+      name: 'Circular Pocket Milling CW',
+      description:
+        'Haas-specific: Mill a circular pocket in the clockwise direction. Uses current tool position as center.',
+      group: 'Canned Cycles',
+      parameters: ['I', 'J', 'K', 'Q', 'L', 'F'],
+      example: 'G12 I2.0 J0.1 K0.5 Q5 F20.0',
+    },
+  ],
+  [
+    'G13',
+    {
+      command: 'G13',
+      name: 'Circular Pocket Milling CCW',
+      description:
+        'Haas-specific: Mill a circular pocket in the counter-clockwise direction. Uses current tool position as center.',
+      group: 'Canned Cycles',
+      parameters: ['I', 'J', 'K', 'Q', 'L', 'F'],
+      example: 'G13 I2.0 J0.1 K0.5 Q5 F20.0',
+    },
+  ],
+  [
+    'G17',
+    {
+      command: 'G17',
+      name: 'XY Plane Selection',
+      description: 'Select XY plane for circular interpolation and cutter compensation.',
+      group: 'Plane Selection',
+      example: 'G17',
+    },
+  ],
+  [
+    'G18',
+    {
+      command: 'G18',
+      name: 'XZ Plane Selection',
+      description: 'Select XZ plane for circular interpolation and cutter compensation.',
+      group: 'Plane Selection',
+      example: 'G18',
+    },
+  ],
+  [
+    'G19',
+    {
+      command: 'G19',
+      name: 'YZ Plane Selection',
+      description: 'Select YZ plane for circular interpolation and cutter compensation.',
+      group: 'Plane Selection',
+      example: 'G19',
+    },
+  ],
+  [
+    'G28',
+    {
+      command: 'G28',
+      name: 'Return to Machine Zero',
+      description:
+        'Return to machine home position through an optional intermediate point. Commonly used before tool changes.',
+      group: 'Motion',
+      parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
+      example: 'G28 G91 Z0',
+    },
+  ],
   [
     'G40',
     {
@@ -110,6 +187,27 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G43',
+    {
+      command: 'G43',
+      name: 'Tool Length Offset',
+      description: 'Apply tool length offset in positive direction.',
+      group: 'Compensation',
+      parameters: ['H'],
+      example: 'G43 H01 Z1.0',
+    },
+  ],
+  [
+    'G49',
+    {
+      command: 'G49',
+      name: 'Cancel Tool Length Offset',
+      description: 'Cancel tool length offset compensation.',
+      group: 'Compensation',
+      example: 'G49',
+    },
+  ],
+  [
     'G54',
     {
       command: 'G54',
@@ -117,6 +215,90 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Select work coordinate system 1.',
       group: 'Coordinate Systems',
       example: 'G54',
+    },
+  ],
+  [
+    'G55',
+    {
+      command: 'G55',
+      name: 'Work Coordinate System 2',
+      description: 'Select work coordinate system 2.',
+      group: 'Coordinate Systems',
+      example: 'G55',
+    },
+  ],
+  [
+    'G56',
+    {
+      command: 'G56',
+      name: 'Work Coordinate System 3',
+      description: 'Select work coordinate system 3.',
+      group: 'Coordinate Systems',
+      example: 'G56',
+    },
+  ],
+  [
+    'G57',
+    {
+      command: 'G57',
+      name: 'Work Coordinate System 4',
+      description: 'Select work coordinate system 4.',
+      group: 'Coordinate Systems',
+      example: 'G57',
+    },
+  ],
+  [
+    'G58',
+    {
+      command: 'G58',
+      name: 'Work Coordinate System 5',
+      description: 'Select work coordinate system 5.',
+      group: 'Coordinate Systems',
+      example: 'G58',
+    },
+  ],
+  [
+    'G59',
+    {
+      command: 'G59',
+      name: 'Work Coordinate System 6',
+      description: 'Select work coordinate system 6.',
+      group: 'Coordinate Systems',
+      example: 'G59',
+    },
+  ],
+  [
+    'G73',
+    {
+      command: 'G73',
+      name: 'High-Speed Peck Drilling',
+      description:
+        'Peck drilling cycle with chip breaking. Retracts a small amount between pecks instead of fully retracting.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'Q', 'F'],
+      example: 'G73 X10.0 Y20.0 Z-20.0 R2.0 Q2.0 F100',
+    },
+  ],
+  [
+    'G76',
+    {
+      command: 'G76',
+      name: 'Fine Boring Cycle',
+      description:
+        'Fine boring cycle. Tool shifts away from bore wall before retract to prevent surface damage.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'I', 'J', 'P', 'Q', 'F'],
+      example: 'G76 X10.0 Y20.0 Z-10.0 R2.0 Q0.1 F80',
+    },
+  ],
+  [
+    'G80',
+    {
+      command: 'G80',
+      name: 'Canned Cycle Cancel',
+      description: 'Cancel active canned cycle (drilling, tapping, boring).',
+      group: 'Canned Cycles',
+      example: 'G80',
     },
   ],
   [
@@ -128,6 +310,63 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       group: 'Canned Cycles',
       parameters: ['X', 'Y', 'Z', 'R', 'F'],
       example: 'G81 X10.0 Y20.0 Z-5.0 R2.0 F100',
+    },
+  ],
+  [
+    'G82',
+    {
+      command: 'G82',
+      name: 'Spot Drilling Cycle',
+      description: 'Drilling cycle with dwell at the bottom of the hole.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'P', 'F'],
+      example: 'G82 X10.0 Y20.0 Z-5.0 R2.0 P0.5 F100',
+    },
+  ],
+  [
+    'G83',
+    {
+      command: 'G83',
+      name: 'Peck Drilling Cycle',
+      description:
+        'Deep hole drilling with pecking. Fully retracts to R plane between pecks for chip clearing.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'Q', 'F'],
+      example: 'G83 X10.0 Y20.0 Z-20.0 R2.0 Q2.0 F100',
+    },
+  ],
+  [
+    'G84',
+    {
+      command: 'G84',
+      name: 'Tapping Cycle',
+      description:
+        'Right-hand rigid tapping cycle. Haas controls support rigid tapping by default.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'F'],
+      example: 'G84 X10.0 Y20.0 Z-15.0 R2.0 F50',
+    },
+  ],
+  [
+    'G85',
+    {
+      command: 'G85',
+      name: 'Boring Cycle',
+      description: 'Boring cycle with feed in and feed out.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'F'],
+      example: 'G85 X10.0 Y20.0 Z-10.0 R2.0 F100',
+    },
+  ],
+  [
+    'G86',
+    {
+      command: 'G86',
+      name: 'Boring Cycle with Stop',
+      description: 'Boring cycle with spindle stop at bottom before rapid retract.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'R', 'F'],
+      example: 'G86 X10.0 Y20.0 Z-10.0 R2.0 F80',
     },
   ],
   [
@@ -150,6 +389,94 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       example: 'G91',
     },
   ],
+  [
+    'G92',
+    {
+      command: 'G92',
+      name: 'Work Coordinate System Offset',
+      description:
+        'Set work coordinate system offset. Shifts all work coordinate systems by the specified amount.',
+      group: 'Coordinate Systems',
+      parameters: ['X', 'Y', 'Z', 'A', 'B', 'C'],
+      example: 'G92 X0 Y0 Z0',
+    },
+  ],
+  [
+    'G94',
+    {
+      command: 'G94',
+      name: 'Feed Per Minute',
+      description: 'Feed rate is specified in units (inches or mm) per minute.',
+      group: 'Feed Rate Mode',
+      example: 'G94',
+    },
+  ],
+  [
+    'G95',
+    {
+      command: 'G95',
+      name: 'Feed Per Revolution',
+      description: 'Feed rate is specified in units (inches or mm) per spindle revolution.',
+      group: 'Feed Rate Mode',
+      example: 'G95',
+    },
+  ],
+  [
+    'G98',
+    {
+      command: 'G98',
+      name: 'Canned Cycle Return to Initial Point',
+      description: 'Return to initial Z level after canned cycle operation.',
+      group: 'Canned Cycles',
+      example: 'G98',
+    },
+  ],
+  [
+    'G99',
+    {
+      command: 'G99',
+      name: 'Canned Cycle Return to R Point',
+      description: 'Return to R plane after canned cycle operation.',
+      group: 'Canned Cycles',
+      example: 'G99',
+    },
+  ],
+  [
+    'G103',
+    {
+      command: 'G103',
+      name: 'Block Look-Ahead Limit',
+      description:
+        'Haas-specific: Limit the number of blocks the control looks ahead. Used to control motion buffering behavior.',
+      group: 'Program Control',
+      parameters: ['P'],
+      example: 'G103 P1',
+    },
+  ],
+  [
+    'G150',
+    {
+      command: 'G150',
+      name: 'Pocket Milling',
+      description:
+        'Haas-specific: General-purpose pocket milling cycle. Mills rectangular or irregular pocket shapes.',
+      group: 'Canned Cycles',
+      parameters: ['X', 'Y', 'Z', 'I', 'J', 'K', 'P', 'Q', 'R', 'F'],
+      example: 'G150 P1 X5.0 Y3.0 Z-0.5 I0.1 K1.0 R0.5 F30.0',
+    },
+  ],
+  [
+    'G187',
+    {
+      command: 'G187',
+      name: 'Accuracy Control',
+      description:
+        'Haas-specific: Accuracy control. Adjusts corner rounding and smoothing behavior. P1=rough, P2=medium, P3=finish.',
+      group: 'Motion',
+      parameters: ['P', 'E'],
+      example: 'G187 P3',
+    },
+  ],
 ]);
 
 /**
@@ -167,6 +494,27 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'M01',
+    {
+      command: 'M01',
+      name: 'Optional Stop',
+      description:
+        'Conditional program stop. Only stops if the optional stop switch is enabled on the control.',
+      group: 'Program Control',
+      example: 'M01',
+    },
+  ],
+  [
+    'M02',
+    {
+      command: 'M02',
+      name: 'Program End',
+      description: 'End of program without reset to beginning.',
+      group: 'Program Control',
+      example: 'M02',
+    },
+  ],
+  [
     'M03',
     {
       command: 'M03',
@@ -175,6 +523,17 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       group: 'Spindle Control',
       parameters: ['S'],
       example: 'M03 S1000',
+    },
+  ],
+  [
+    'M04',
+    {
+      command: 'M04',
+      name: 'Spindle On CCW',
+      description: 'Start spindle rotation counter-clockwise.',
+      group: 'Spindle Control',
+      parameters: ['S'],
+      example: 'M04 S1000',
     },
   ],
   [
@@ -188,6 +547,70 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'M06',
+    {
+      command: 'M06',
+      name: 'Tool Change',
+      description:
+        'Perform automatic tool change. Haas uses T with M06 for tool selection and change.',
+      group: 'Tool Control',
+      parameters: ['T'],
+      example: 'T01 M06',
+    },
+  ],
+  [
+    'M08',
+    {
+      command: 'M08',
+      name: 'Coolant On',
+      description: 'Turn on flood coolant.',
+      group: 'Coolant Control',
+      example: 'M08',
+    },
+  ],
+  [
+    'M09',
+    {
+      command: 'M09',
+      name: 'Coolant Off',
+      description: 'Turn off all coolant.',
+      group: 'Coolant Control',
+      example: 'M09',
+    },
+  ],
+  [
+    'M10',
+    {
+      command: 'M10',
+      name: '4th Axis Brake On',
+      description: 'Haas-specific: Engage the 4th axis brake clamp.',
+      group: 'Program Control',
+      example: 'M10',
+    },
+  ],
+  [
+    'M11',
+    {
+      command: 'M11',
+      name: '4th Axis Brake Off',
+      description: 'Haas-specific: Release the 4th axis brake clamp.',
+      group: 'Program Control',
+      example: 'M11',
+    },
+  ],
+  [
+    'M19',
+    {
+      command: 'M19',
+      name: 'Spindle Orientation',
+      description:
+        'Orient the spindle to a specific angular position. Used before tool changes or oriented operations.',
+      group: 'Spindle Control',
+      parameters: ['R'],
+      example: 'M19 R0',
+    },
+  ],
+  [
     'M30',
     {
       command: 'M30',
@@ -195,6 +618,46 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'End of program and reset to beginning.',
       group: 'Program Control',
       example: 'M30',
+    },
+  ],
+  [
+    'M80',
+    {
+      command: 'M80',
+      name: 'Auto Door Open',
+      description: 'Haas-specific: Open the automatic door.',
+      group: 'Program Control',
+      example: 'M80',
+    },
+  ],
+  [
+    'M81',
+    {
+      command: 'M81',
+      name: 'Auto Door Close',
+      description: 'Haas-specific: Close the automatic door.',
+      group: 'Program Control',
+      example: 'M81',
+    },
+  ],
+  [
+    'M88',
+    {
+      command: 'M88',
+      name: 'Through-Spindle Coolant On',
+      description: 'Haas-specific: Turn on through-spindle coolant (TSC). Requires TSC option.',
+      group: 'Coolant Control',
+      example: 'M88',
+    },
+  ],
+  [
+    'M89',
+    {
+      command: 'M89',
+      name: 'Through-Spindle Coolant Off',
+      description: 'Haas-specific: Turn off through-spindle coolant (TSC).',
+      group: 'Coolant Control',
+      example: 'M89',
     },
   ],
   [

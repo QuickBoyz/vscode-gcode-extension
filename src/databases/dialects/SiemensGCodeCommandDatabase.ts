@@ -65,6 +65,49 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G04',
+    {
+      command: 'G04',
+      name: 'Dwell',
+      description:
+        'Pause program execution for a specified time. On Sinumerik, F parameter specifies dwell time in seconds.',
+      group: 'Motion',
+      parameters: ['F'],
+      example: 'G04 F2.5',
+    },
+  ],
+  [
+    'G17',
+    {
+      command: 'G17',
+      name: 'XY Plane Selection',
+      description:
+        'Select XY plane for circular interpolation and tool radius compensation. Default plane on Sinumerik.',
+      group: 'Plane Selection',
+      example: 'G17',
+    },
+  ],
+  [
+    'G18',
+    {
+      command: 'G18',
+      name: 'XZ Plane Selection',
+      description: 'Select XZ plane for circular interpolation and tool radius compensation.',
+      group: 'Plane Selection',
+      example: 'G18',
+    },
+  ],
+  [
+    'G19',
+    {
+      command: 'G19',
+      name: 'YZ Plane Selection',
+      description: 'Select YZ plane for circular interpolation and tool radius compensation.',
+      group: 'Plane Selection',
+      example: 'G19',
+    },
+  ],
+  [
     'G40',
     {
       command: 'G40',
@@ -95,13 +138,69 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G43',
+    {
+      command: 'G43',
+      name: 'Tool Length Offset',
+      description:
+        'Apply tool length offset. On Sinumerik, tool length compensation is typically handled via D numbers in the tool call.',
+      group: 'Compensation',
+      parameters: ['H'],
+      example: 'G43 H01',
+    },
+  ],
+  [
     'G54',
     {
       command: 'G54',
       name: 'Work Offset 1',
-      description: 'Select work offset/coordinate system 1.',
+      description:
+        'Select work offset/coordinate system 1. On Sinumerik, settable work offsets are also available via FRAMES.',
       group: 'Coordinate Systems',
       example: 'G54',
+    },
+  ],
+  [
+    'G55',
+    {
+      command: 'G55',
+      name: 'Work Offset 2',
+      description: 'Select work offset/coordinate system 2.',
+      group: 'Coordinate Systems',
+      example: 'G55',
+    },
+  ],
+  [
+    'G56',
+    {
+      command: 'G56',
+      name: 'Work Offset 3',
+      description: 'Select work offset/coordinate system 3.',
+      group: 'Coordinate Systems',
+      example: 'G56',
+    },
+  ],
+  [
+    'G57',
+    {
+      command: 'G57',
+      name: 'Work Offset 4',
+      description:
+        'Select work offset/coordinate system 4. Sinumerik supports G54-G57 as standard settable work offsets.',
+      group: 'Coordinate Systems',
+      example: 'G57',
+    },
+  ],
+  [
+    'G64',
+    {
+      command: 'G64',
+      name: 'Continuous-Path Mode',
+      description:
+        'Sinumerik-specific: Enable continuous-path mode for smooth motion between blocks. Corners are rounded to maintain feed rate. ADIS/ADISPOS controls the rounding tolerance.',
+      group: 'Motion',
+      parameters: ['ADIS', 'ADISPOS'],
+      example: 'G64 ADIS=0.5',
     },
   ],
   [
@@ -122,6 +221,27 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Program in incremental coordinates (relative to current position).',
       group: 'Distance Mode',
       example: 'G91',
+    },
+  ],
+  [
+    'G94',
+    {
+      command: 'G94',
+      name: 'Feed Per Minute',
+      description: 'Feed rate is specified in mm/min or inches/min.',
+      group: 'Feed Rate Mode',
+      example: 'G94',
+    },
+  ],
+  [
+    'G95',
+    {
+      command: 'G95',
+      name: 'Feed Per Revolution',
+      description:
+        'Feed rate is specified in mm/rev or inches/rev. Commonly used for turning operations.',
+      group: 'Feed Rate Mode',
+      example: 'G95',
     },
   ],
   [
@@ -231,17 +351,28 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     {
       command: 'M06',
       name: 'Tool Change',
-      description: 'Perform automatic tool change.',
+      description:
+        'Perform automatic tool change. On Sinumerik, tool changes are typically performed with T and M6 commands.',
       group: 'Tool Control',
       parameters: ['T'],
       example: 'M06 T01',
     },
   ],
   [
+    'M07',
+    {
+      command: 'M07',
+      name: 'Mist Coolant On',
+      description: 'Turn on mist coolant.',
+      group: 'Coolant Control',
+      example: 'M07',
+    },
+  ],
+  [
     'M08',
     {
       command: 'M08',
-      name: 'Coolant On',
+      name: 'Flood Coolant On',
       description: 'Turn on flood coolant.',
       group: 'Coolant Control',
       example: 'M08',
@@ -265,6 +396,17 @@ export const MCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
       description: 'Siemens-specific: Return from subprogram.',
       group: 'Program Control',
       example: 'M17',
+    },
+  ],
+  [
+    'M19',
+    {
+      command: 'M19',
+      name: 'Spindle Orientation',
+      description:
+        'Orient the spindle to a specific angular position. On Sinumerik, SPOS is also available for spindle positioning.',
+      group: 'Spindle Control',
+      example: 'M19',
     },
   ],
   [
