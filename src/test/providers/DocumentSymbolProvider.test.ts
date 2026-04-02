@@ -11,6 +11,7 @@ import { ParserFactory } from '../../parser/ParserFactory';
 import { DocumentSymbolProvider } from '../../providers/DocumentSymbolProvider';
 import { DocumentSymbolVisitor } from '../../providers/DocumentSymbolVisitor';
 import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
+import { DocumentSymbol } from 'vscode';
 
 function parse(code: string, dialect: DialectType = DialectType.LINUXCNC): ProgramNode {
   const lexer = LexerFactory.create(dialect),
@@ -64,8 +65,8 @@ describe('DocumentSymbolProvider', () => {
       expect(symbols).toHaveLength(1);
       const sub = symbols[0];
       expect(sub.children).toHaveLength(1); // only #<x> assignment, not motion
-      expect(sub.children![0].name).toBe('#<x>');
-      expect(sub.children![0].kind).toBe(SymbolKind.Variable);
+      expect(sub.children?.[0].name).toBe('#<x>');
+      expect(sub.children?.[0].kind).toBe(SymbolKind.Variable);
     });
 
     it('creates Function symbol for CALL', () => {
@@ -116,7 +117,7 @@ describe('DocumentSymbolProvider', () => {
 
       expect(symbols).toHaveLength(1);
       expect(symbols[0].children).toHaveLength(1);
-      expect(symbols[0].children![0].name).toBe('#<y>');
+      expect(symbols[0].children?.[0].name).toBe('#<y>');
     });
   });
 
@@ -135,11 +136,11 @@ O100 ENDSUB`;
       expect(sub.kind).toBe(SymbolKind.Function);
       expect(sub.children).toHaveLength(1);
 
-      const ifSym = sub.children![0];
+      const ifSym = sub.children?.[0] as DocumentSymbol;
       expect(ifSym.name).toBe('IF [#<x> GT 0]');
       expect(ifSym.kind).toBe(SymbolKind.Struct);
       expect(ifSym.children).toHaveLength(1);
-      expect(ifSym.children![0].name).toBe('#<y>');
+      expect(ifSym.children?.[0].name).toBe('#<y>');
     });
 
     it('nests WHILE inside SUB with sibling variable', () => {
@@ -154,9 +155,9 @@ O100 ENDSUB`;
       expect(symbols).toHaveLength(1);
       const sub = symbols[0];
       expect(sub.children).toHaveLength(2); // #<i> and WHILE
-      expect(sub.children![0].name).toBe('#<i>');
-      expect(sub.children![1].name).toBe('WHILE [#<i> LT 5]');
-      expect(sub.children![1].children).toHaveLength(1); // #<i> reassignment
+      expect(sub.children?.[0].name).toBe('#<i>');
+      expect(sub.children?.[1].name).toBe('WHILE [#<i> LT 5]');
+      expect(sub.children?.[1].children).toHaveLength(1); // #<i> reassignment
     });
 
     it('handles 3-level nesting: SUB > WHILE > IF', () => {
@@ -170,11 +171,11 @@ O100 ENDSUB`;
       const symbols = getSymbols(code);
 
       expect(symbols).toHaveLength(1);
-      const whileSym = symbols[0].children![0];
+      const whileSym = symbols[0].children?.[0] as DocumentSymbol;
       expect(whileSym.kind).toBe(SymbolKind.Struct);
-      const ifSym = whileSym.children![0];
+      const ifSym = whileSym.children?.[0];
       expect(ifSym.kind).toBe(SymbolKind.Struct);
-      expect(ifSym.children![0].name).toBe('#<y>');
+      expect(ifSym.children?.[0].name).toBe('#<y>');
     });
   });
 
@@ -198,9 +199,9 @@ G0 X0`;
       expect(symbols[0].kind).toBe(SymbolKind.Function);
       // SUB children: #<x> and RETURN
       expect(symbols[0].children).toHaveLength(2);
-      expect(symbols[0].children![0].name).toBe('#<x>');
-      expect(symbols[0].children![1].name).toBe('O100 RETURN');
-      expect(symbols[0].children![1].kind).toBe(SymbolKind.Event);
+      expect(symbols[0].children?.[0].name).toBe('#<x>');
+      expect(symbols[0].children?.[1].name).toBe('O100 RETURN');
+      expect(symbols[0].children?.[1].kind).toBe(SymbolKind.Event);
 
       expect(symbols[1].name).toBe('O100 CALL');
       expect(symbols[1].kind).toBe(SymbolKind.Function);
@@ -307,7 +308,10 @@ describe('DocumentSymbolProvider integration', () => {
   }
 
   it('returns symbols for variable definitions via provider', () => {
-    const symbols = provider.provideDocumentSymbols(createDoc('#<x> = 10\n#<y> = 20'), TEST_SETTINGS);
+    const symbols = provider.provideDocumentSymbols(
+      createDoc('#<x> = 10\n#<y> = 20'),
+      TEST_SETTINGS
+    );
 
     expect(symbols.length).toBe(2);
     expect(symbols[0].name).toBe('#<x>');
@@ -316,7 +320,10 @@ describe('DocumentSymbolProvider integration', () => {
   });
 
   it('includes both numeric and named variables', () => {
-    const symbols = provider.provideDocumentSymbols(createDoc('#1 = 10\n#<foo> = 20'), TEST_SETTINGS),
+    const symbols = provider.provideDocumentSymbols(
+        createDoc('#1 = 10\n#<foo> = 20'),
+        TEST_SETTINGS
+      ),
       names = symbols.map((s) => s.name);
 
     expect(names).toContain('#1');
@@ -371,6 +378,6 @@ describe('DocumentSymbolProvider integration', () => {
     expect(symbols[0].name).toBe('#<x>');
     expect(symbols[1].kind).toBe(SymbolKind.Struct);
     expect(symbols[1].children).toHaveLength(1);
-    expect(symbols[1].children![0].name).toBe('#<y>');
+    expect(symbols[1].children?.[0].name).toBe('#<y>');
   });
 });
