@@ -147,7 +147,7 @@ export class DocumentSymbolVisitor extends BaseAstVisitor<void> {
     if (keyword.startsWith(M_CODE_PREFIX)) {
       // Fanuc/Haas: M98 P{target}
       name = `${keyword} ${FANUC_PARAM_PREFIX}${node.target}`;
-    } else if (keyword === KeywordType.CALL) {
+    } else if (keyword === (KeywordType.CALL as string)) {
       // Siemens: CALL {target}
       name = `${KeywordType.CALL} ${node.target}`;
     } else {
