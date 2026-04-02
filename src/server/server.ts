@@ -6,12 +6,14 @@ import {
   TextDocuments,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
+import { DefinitionProvider } from '../providers/DefinitionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
 import { FormatterService } from '../providers/FormatterService';
+import { ReferencesProvider } from '../providers/ReferencesProvider';
 import { RenameProvider } from '../providers/RenameProvider';
 import {
   SEMANTIC_TOKENS_LEGEND,
@@ -45,6 +47,8 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
       renameProvider: {
         prepareProvider: true,
       },
+      definitionProvider: true,
+      referencesProvider: true,
       documentHighlightProvider: true,
       documentSymbolProvider: {
         label: 'G-code Variables',
@@ -98,6 +102,8 @@ const formatterService = new FormatterService(),
   documentFormatter = new DocumentFormattingProvider(formatterService),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
+  definitionProvider = new DefinitionProvider(documentStateManager),
+  referencesProvider = new ReferencesProvider(documentStateManager),
   renameProvider = new RenameProvider(documentStateManager),
   documentHighlightProvider = new DocumentHighlightProvider(documentStateManager),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
@@ -166,6 +172,33 @@ connection.onDocumentHighlight(async (params) => {
 
   const settings = await getDocumentSettings(params.textDocument.uri);
   return documentHighlightProvider.provideDocumentHighlights(document, params.position, settings);
+});
+
+// Register definition provider
+connection.onDefinition(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return null;
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return definitionProvider.provideDefinition(document, params.position, settings);
+});
+
+// Register references provider
+connection.onReferences(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return referencesProvider.provideReferences(
+    document,
+    params.position,
+    settings,
+    params.context.includeDeclaration
+  );
 });
 
 // Register document symbol provider
