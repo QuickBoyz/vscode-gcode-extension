@@ -232,8 +232,15 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     // Tool change
     if (normalized === TOOL_CHANGE_COMMAND) this.state.toolChanged = true;
 
-    // Program end
-    if (this.dataProvider.isProgramEndCommand(normalized)) this.state.programEnded = true;
+    // Program end — M02/M30 resets machine state per ISO 6983
+    if (this.dataProvider.isProgramEndCommand(normalized)) {
+      this.state.programEnded = true;
+      this.state.spindleState = SpindleState.OFF;
+      this.state.coolantState = CoolantState.OFF;
+      this.state.feedRateSet = false;
+      this.state.motionMode = null;
+      this.state.toolChanged = false;
+    }
   }
 
   private checkCommandKnown(normalized: string, node: MotionCommandNode): void {
