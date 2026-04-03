@@ -1,5 +1,11 @@
 import { KeywordType, TokenCategory } from '../../lexer/types';
-import { AxisParameterNode, ExpressionNode, LiteralExpressionNode, StatementNode } from '../nodes';
+import {
+  AxisParameterNode,
+  DiagnosticCategory,
+  ExpressionNode,
+  LiteralExpressionNode,
+  StatementNode,
+} from '../nodes';
 import { ParseError } from '../TokenStream';
 import { BaseParser } from '../BaseParser';
 
@@ -96,7 +102,13 @@ export class FanucParser extends BaseParser {
     // Extract P parameter for target
     const pParam = params.find((p) => p.axis.toUpperCase() === 'P');
     if (!pParam) {
-      return this.factory.error('M98 requires P parameter for subroutine number', m98Token);
+      return this.factory.error(
+        'M98 requires P parameter for subroutine number',
+        m98Token,
+        undefined,
+        undefined,
+        DiagnosticCategory.Warning
+      );
     }
 
     const target =

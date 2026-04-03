@@ -44,13 +44,17 @@ export class DiagnosticsProvider extends BaseProvider {
     // Semantic diagnostics (variable, command, modal state checks)
     if (analysis.semanticDiagnostics) {
       for (const semantic of analysis.semanticDiagnostics) {
-        diagnostics.push({
+        const diag: Diagnostic = {
           range: semantic.range,
           severity: CATEGORY_TO_SEVERITY[semantic.category],
           message: semantic.message,
           source: GCODE_LANGUAGE_ID,
           code: semantic.code,
-        });
+        };
+        if (semantic.tags) {
+          diag.tags = [...semantic.tags];
+        }
+        diagnostics.push(diag);
       }
     }
 

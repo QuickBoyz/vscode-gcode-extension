@@ -22,6 +22,17 @@ export enum SemanticDiagnosticCode {
 }
 
 /**
+ * Tags that can be attached to a semantic diagnostic.
+ * Mirrors LSP DiagnosticTag values without importing vscode-languageserver.
+ */
+export enum SemanticDiagnosticTag {
+  /** Indicates unused or unnecessary code (faded text in VS Code). */
+  Unnecessary = 1,
+  /** Indicates deprecated code (strikethrough in VS Code). */
+  Deprecated = 2,
+}
+
+/**
  * A diagnostic produced by semantic analysis.
  */
 export interface SemanticDiagnostic {
@@ -29,4 +40,5 @@ export interface SemanticDiagnostic {
   readonly message: string;
   readonly category: DiagnosticCategory;
   readonly code: SemanticDiagnosticCode;
+  readonly tags?: readonly SemanticDiagnosticTag[];
 }
