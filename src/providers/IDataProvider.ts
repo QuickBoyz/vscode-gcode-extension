@@ -55,4 +55,34 @@ export interface IDataProvider {
    * @returns Array of all operator information
    */
   getAllOperators(): OperatorInfo[];
+
+  // -- Command classification (semantic analysis) --
+
+  /**
+   * Whether the command requires a feed rate (F) to be active.
+   * Standard: G01, G02, G03. Dialects may add additional commands.
+   * @param command Normalized command string (e.g., 'G01')
+   */
+  isFeedRequiringCommand(command: string): boolean;
+
+  /**
+   * Whether the command ends the program (makes subsequent code unreachable).
+   * Standard: M02, M30. Dialects may add additional commands.
+   * @param command Normalized command string (e.g., 'M30')
+   */
+  isProgramEndCommand(command: string): boolean;
+
+  /**
+   * Whether the command is a Group 1 modal motion command.
+   * Standard: G00, G01, G02, G03. Dialects may add additional commands.
+   * @param command Normalized command string (e.g., 'G00')
+   */
+  isMotionCommand(command: string): boolean;
+
+  /**
+   * Whether the command is a rapid positioning move (no feed rate needed).
+   * Standard: G00. Dialects may add additional commands.
+   * @param command Normalized command string (e.g., 'G00')
+   */
+  isRapidCommand(command: string): boolean;
 }

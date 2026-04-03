@@ -10,6 +10,12 @@ import { FunctionInfo } from '../databases/FunctionDatabase';
 import { GCodeCommandInfo } from '../databases/types';
 import { OperatorInfo } from '../databases/OperatorDatabase';
 import { normalizeCommand as sharedNormalizeCommand } from '../utils/GCodeNormalizer';
+import {
+  FEED_REQUIRING_COMMANDS,
+  MODAL_MOTION_COMMANDS,
+  PROGRAM_END_COMMANDS,
+  RAPID_COMMANDS,
+} from '../constants/GCodeCommands';
 
 export abstract class BaseDataProvider implements IDataProvider {
   /**
@@ -40,4 +46,23 @@ export abstract class BaseDataProvider implements IDataProvider {
   abstract getAllCommands(): GCodeCommandInfo[];
   abstract getAllFunctions(): FunctionInfo[];
   abstract getAllOperators(): OperatorInfo[];
+
+  // -- Command classification with ISO 6983 defaults --
+  // Dialect subclasses can override these to add dialect-specific commands.
+
+  isFeedRequiringCommand(command: string): boolean {
+    return FEED_REQUIRING_COMMANDS.has(command);
+  }
+
+  isProgramEndCommand(command: string): boolean {
+    return PROGRAM_END_COMMANDS.has(command);
+  }
+
+  isMotionCommand(command: string): boolean {
+    return MODAL_MOTION_COMMANDS.has(command);
+  }
+
+  isRapidCommand(command: string): boolean {
+    return RAPID_COMMANDS.has(command);
+  }
 }

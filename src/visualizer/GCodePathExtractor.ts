@@ -20,6 +20,15 @@
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import {
+  RAPID_COMMANDS,
+  FEED_COMMANDS,
+  ARC_CW_COMMANDS,
+  ARC_CCW_COMMANDS,
+  ABSOLUTE_COMMANDS,
+  INCREMENTAL_COMMANDS,
+  HOME_RETURN_COMMANDS,
+} from '../constants/GCodeCommands';
 import { ARC_PLANE_CONFIGS, ArcPlane, ArcPlaneConfig } from './ArcPlane';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
@@ -48,39 +57,12 @@ const POSITION_EPSILON = 1e-6;
  */
 type MutablePathPoint = { -readonly [K in keyof PathPoint]: PathPoint[K] };
 
-/**
- * Motion command Sets use only the normalized (padded) form because all
- * incoming command strings are passed through {@link normalizeCommand} first,
- * which converts "G0" → "G00", "G1" → "G01", etc.
- */
-
-/** Commands that switch to rapid mode. */
-const RAPID_COMMANDS = new Set(['G00']);
-
-/** Commands that switch to feed mode. */
-const FEED_COMMANDS = new Set(['G01']);
-
-/** Commands that switch to clockwise arc mode. */
-const ARC_CW_COMMANDS = new Set(['G02']);
-
-/** Commands that switch to counter-clockwise arc mode. */
-const ARC_CCW_COMMANDS = new Set(['G03']);
-
 /** Maps arc plane selection commands to their corresponding plane. */
 const ARC_PLANE_COMMANDS = new Map<string, ArcPlane>([
   ['G17', ArcPlane.XY],
   ['G18', ArcPlane.XZ],
   ['G19', ArcPlane.YZ],
 ]);
-
-/** Commands that return to machine home position. */
-const HOME_RETURN_COMMANDS = new Set(['G28']);
-
-/** Commands that set absolute positioning mode. */
-const ABSOLUTE_COMMANDS = new Set(['G90']);
-
-/** Commands that set incremental positioning mode. */
-const INCREMENTAL_COMMANDS = new Set(['G91']);
 
 /** Machine home position (origin). */
 const MACHINE_HOME_POSITION: PathPoint = { x: 0, y: 0, z: 0 };
