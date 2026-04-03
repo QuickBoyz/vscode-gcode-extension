@@ -14,8 +14,10 @@ import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentSta
 import { DiagnosticsProvider } from '../../providers/DiagnosticsProvider';
 import { CodeActionProvider } from '../../providers/CodeActionProvider';
 
+const TEST_URI = 'test://test.nc';
+
 function createDocument(content: string): TextDocument {
-  return TextDocument.create('test://test.nc', 'gcode', 1, content);
+  return TextDocument.create(TEST_URI, 'gcode', 1, content);
 }
 
 function createSettings(dialect?: DialectType): GCodeSettings {
@@ -61,7 +63,7 @@ describe('CodeActionProvider', () => {
       expect(endifAction).toBeDefined();
       expect(endifAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
       const edits = endifAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits.length).toBe(1);
@@ -79,7 +81,7 @@ describe('CodeActionProvider', () => {
       expect(endwhileAction).toBeDefined();
       expect(endwhileAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
       const edits = endwhileAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('ENDWHILE');
@@ -94,7 +96,22 @@ describe('CodeActionProvider', () => {
       expect(endAction).toBeDefined();
       expect(endAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
+      const edits = endAction!.edit!.changes![uri];
+      expect(edits).toBeDefined();
+      expect(edits[0].newText).toContain('END');
+    });
+
+    it('should offer "Insert END" for Haas dialect', () => {
+      const code = 'WHILE [#1 LT 10] DO\nG0 X10';
+      const { diagnostics, actions } = getCodeActions(code, DialectType.HAAS);
+
+      expect(diagnostics.length).toBeGreaterThan(0);
+      const endAction = actions.find((a) => a.title === 'Insert END');
+      expect(endAction).toBeDefined();
+      expect(endAction!.kind).toBe(CodeActionKind.QuickFix);
+
+      const uri = TEST_URI;
       const edits = endAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('END');
@@ -121,7 +138,7 @@ describe('CodeActionProvider', () => {
       expect(retAction).toBeDefined();
       expect(retAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
       const edits = retAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('RET');
@@ -138,7 +155,7 @@ describe('CodeActionProvider', () => {
       expect(pAction).toBeDefined();
       expect(pAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
       const edits = pAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('P');
@@ -163,7 +180,7 @@ describe('CodeActionProvider', () => {
       const endifAction = actions.find((a) => a.title === 'Insert ENDIF');
       expect(endifAction).toBeDefined();
 
-      const uri = 'test://test.nc';
+      const uri = TEST_URI;
       const edits = endifAction!.edit!.changes![uri];
       expect(edits).toBeDefined();
       expect(edits[0].range.start.line).toBe(edits[0].range.end.line);

@@ -67,13 +67,6 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
 ];
 
-/**
- * Code Action Provider
- *
- * Provides quick-fix code actions for common G-code parse errors.
- * Matches diagnostic messages against known error patterns and
- * generates TextEdits to fix them.
- */
 export class CodeActionProvider extends BaseProvider {
   /**
    * Provide code actions for the given diagnostics.
@@ -152,10 +145,21 @@ export class CodeActionProvider extends BaseProvider {
     document: TextDocument,
     line: number
   ): { line: number; character: number } {
-    const text = document.getText();
-    const lines = text.split('\n');
-    const lineIndex = Math.min(line, lines.length - 1);
-    const lineLength = lines[lineIndex]?.length ?? 0;
+    const lineCount = document.lineCount;
+    const lineIndex = Math.min(line, lineCount - 1);
+    const lineStart = document.offsetAt({ line: lineIndex, character: 0 });
+    const nextLineStart =
+      lineIndex < lineCount - 1
+        ? document.offsetAt({ line: lineIndex + 1, character: 0 })
+        : document.getText().length;
+    // Subtract newline character(s) to get the actual line length
+    let lineEnd = nextLineStart;
+    if (lineIndex < lineCount - 1) {
+      const text = document.getText();
+      if (lineEnd > lineStart && text[lineEnd - 1] === '\n') lineEnd--;
+      if (lineEnd > lineStart && text[lineEnd - 1] === '\r') lineEnd--;
+    }
+    const lineLength = lineEnd - lineStart;
 
     return { line: lineIndex, character: lineLength };
   }
