@@ -7,6 +7,7 @@
 import {
   CodeAction,
   CodeActionKind,
+  CodeActionParams,
   Diagnostic,
   Range,
   TextEdit,
@@ -187,7 +188,8 @@ export class CodeActionProvider {
     document: TextDocument,
     _range: Range,
     diagnostics: readonly Diagnostic[],
-    settings: GCodeSettings
+    settings: GCodeSettings,
+    context?: CodeActionParams['context']
   ): CodeAction[] {
     const actions: CodeAction[] = [];
     const dialect = settings.dialect ?? DialectType.LINUXCNC;
@@ -199,7 +201,48 @@ export class CodeActionProvider {
       }
     }
 
+    // If the client requests source.fixAll, produce a combined action
+    const requestedKinds = context?.only;
+    if (requestedKinds?.includes(CodeActionKind.SourceFixAll)) {
+      const fixAll = this.buildFixAllAction(document, actions);
+      if (fixAll) {
+        actions.push(fixAll);
+      }
+    }
+
     return actions;
+  }
+
+  /**
+   * Build a single "Fix all auto-fixable problems" action from all preferred quick fixes.
+   */
+  private buildFixAllAction(
+    document: TextDocument,
+    quickFixes: readonly CodeAction[]
+  ): CodeAction | null {
+    const preferred = quickFixes.filter((a) => a.isPreferred);
+    if (preferred.length === 0) return null;
+
+    const allEdits: TextEdit[] = [];
+    for (const action of preferred) {
+      const edits = action.edit?.changes?.[document.uri];
+      if (edits) {
+        allEdits.push(...edits);
+      }
+    }
+
+    if (allEdits.length === 0) return null;
+
+    return {
+      title: 'Fix all auto-fixable problems',
+      kind: CodeActionKind.SourceFixAll,
+      isPreferred: true,
+      edit: {
+        changes: {
+          [document.uri]: allEdits,
+        },
+      },
+    };
   }
 
   /**

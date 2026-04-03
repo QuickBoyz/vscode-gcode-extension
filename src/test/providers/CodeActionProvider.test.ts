@@ -5,7 +5,7 @@
  * appropriate quick-fix code actions with correct TextEdits.
  */
 import { describe, expect, it } from '@jest/globals';
-import { CodeActionKind, Diagnostic } from 'vscode-languageserver/node';
+import { CodeActionKind, CodeActionParams, Diagnostic } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
@@ -47,6 +47,29 @@ function getCodeActions(
     { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
     diagnostics,
     settings
+  );
+
+  return { diagnostics, actions };
+}
+
+function getCodeActionsWithContext(
+  content: string,
+  context: CodeActionParams['context'],
+  dialect?: DialectType
+): { diagnostics: Diagnostic[]; actions: ReturnType<CodeActionProvider['provideCodeActions']> } {
+  const stateManager = new DocumentStateManager();
+  const diagProvider = new DiagnosticsProvider(stateManager);
+  const codeActionProvider = new CodeActionProvider();
+  const document = createDocument(content);
+  const settings = createSettings(dialect);
+
+  const diagnostics = diagProvider.provideDiagnostics(document, settings);
+  const actions = codeActionProvider.provideCodeActions(
+    document,
+    { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+    diagnostics,
+    settings,
+    context
   );
 
   return { diagnostics, actions };
@@ -287,6 +310,81 @@ describe('CodeActionProvider', () => {
         expect(action.diagnostics!.length).toBe(1);
         expect(diagnostics).toContainEqual(action.diagnostics![0]);
       }
+    });
+  });
+
+  describe('Fix all (source.fixAll)', () => {
+    const fixAllContext: CodeActionParams['context'] = {
+      diagnostics: [],
+      only: [CodeActionKind.SourceFixAll],
+    };
+
+    it('should produce a combined "Fix all" action when requested', () => {
+      const code = 'IF [#1 EQ 1] THEN\nG01 X10';
+      const { actions } = getCodeActionsWithContext(code, fixAllContext);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeDefined();
+      expect(fixAll!.kind).toBe(CodeActionKind.SourceFixAll);
+      expect(fixAll!.isPreferred).toBe(true);
+
+      const edits = fixAll!.edit!.changes![TEST_URI];
+      expect(edits).toBeDefined();
+      expect(edits.length).toBeGreaterThanOrEqual(1);
+
+      const editTexts = edits.map((e) => e.newText);
+      expect(editTexts).toContainEqual(expect.stringContaining('ENDIF'));
+    });
+
+    it('should combine edits from multiple preferred fixes', () => {
+      const code = 'N10 G01 X10\nN10 G00 X20';
+      const { actions } = getCodeActionsWithContext(code, fixAllContext);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeDefined();
+
+      const edits = fixAll!.edit!.changes![TEST_URI];
+      expect(edits.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should exclude non-preferred fixes from fix-all', () => {
+      const code = '#<unused> = 42\nG01 X10';
+      const { actions } = getCodeActionsWithContext(code, fixAllContext);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeDefined();
+
+      const edits = fixAll!.edit!.changes![TEST_URI];
+      // Should include F100 (preferred) but not the unused variable removal (not preferred)
+      const editTexts = edits.map((e) => e.newText);
+      expect(editTexts).toContainEqual(expect.stringContaining('F100'));
+      // Unused variable removal uses empty string replacement — should not be present
+      const hasRemoval = edits.some((e) => e.newText === '' && e.range.start.line === 0);
+      expect(hasRemoval).toBe(false);
+    });
+
+    it('should not produce fix-all when no preferred fixes exist', () => {
+      const code = '#<unused> = 42\nG0 X10';
+      const { actions } = getCodeActionsWithContext(code, fixAllContext);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeUndefined();
+    });
+
+    it('should not produce fix-all when context does not request it', () => {
+      const code = 'IF [#1 EQ 1] THEN\nG01 X10';
+      const { actions } = getCodeActions(code);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeUndefined();
+    });
+
+    it('should not produce fix-all when there are no diagnostics', () => {
+      const code = 'G0 X10 Y20';
+      const { actions } = getCodeActionsWithContext(code, fixAllContext);
+
+      const fixAll = actions.find((a) => a.title === 'Fix all auto-fixable problems');
+      expect(fixAll).toBeUndefined();
     });
   });
 });

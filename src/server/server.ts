@@ -61,7 +61,7 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
       foldingRangeProvider: true,
       // Enable quick-fix code actions
       codeActionProvider: {
-        codeActionKinds: [CodeActionKind.QuickFix],
+        codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],
       },
       // Enable diagnostics for syntax errors
       diagnosticProvider: {
@@ -258,7 +258,8 @@ connection.onCodeAction(async (params) => {
     document,
     params.range,
     params.context.diagnostics,
-    settings
+    settings,
+    params.context
   );
 });
 
