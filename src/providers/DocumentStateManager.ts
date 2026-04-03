@@ -97,15 +97,19 @@ export class DocumentStateManager {
     // always have the latest full text when we parse).
     // If we already have a pending change, fall back to full re-parse
     // since merging multiple incremental changes is complex.
+    const state = this.documentStates.get(uri);
+
     if (this.pendingChanges.has(uri)) {
       // Multiple changes before a parse → discard pending, force full re-parse
       this.pendingChanges.delete(uri);
+      if (state) {
+        state.needsReparse = true;
+      }
     } else {
       this.pendingChanges.set(uri, change);
     }
 
     // Clear cached analysis (always needed on change)
-    const state = this.documentStates.get(uri);
     if (state) {
       state.analysis = undefined;
     }

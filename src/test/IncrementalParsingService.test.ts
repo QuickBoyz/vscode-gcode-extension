@@ -188,6 +188,25 @@ describe('IncrementalParsingService', () => {
       expect(result.success).toBe(false);
     });
 
+    it('should fall back when one block keyword is replaced with another', () => {
+      // Replacing IF with WHILE is a structural change even though
+      // both regions contain block keywords
+      const oldText = 'IF [#1 LT 10]\n#1 = 5\nENDIF';
+      const newText = 'WHILE [#1 LT 10]\n#1 = 5\nENDIF';
+      const oldAst = parse(oldText);
+
+      const change = makeChange(0, 0, 0);
+      const result = service.tryIncrementalParse(
+        oldAst,
+        newText,
+        oldText,
+        change,
+        DialectType.LINUXCNC
+      );
+
+      expect(result.success).toBe(false);
+    });
+
     it('should allow incremental parse when editing inside a block body', () => {
       // Editing the body of a WHILE — both old and new have WHILE keyword,
       // so block structure hasn't changed

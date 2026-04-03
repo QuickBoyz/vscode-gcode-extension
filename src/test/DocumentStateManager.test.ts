@@ -5,6 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
+import { ContentChange } from '../parser/IncrementalParsingService';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 describe('DocumentStateManager', () => {
@@ -114,6 +115,31 @@ describe('DocumentStateManager', () => {
 
       expect(state).toBeDefined();
       expect(state?.ast.statements.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('applyContentChange', () => {
+    it('should force full re-parse when multiple changes arrive before a parse', () => {
+      const uri = 'file:///test.nc',
+        text = '#<x> = 10\nG0 X0',
+        change: ContentChange = {
+          startLine: 0,
+          startCharacter: 0,
+          endLine: 0,
+          endCharacter: 5,
+          lineDelta: 0,
+        };
+
+      // Parse initially
+      const state1 = manager.getOrParseDocument(uri, text, defaultSettings);
+
+      // Apply two changes before next parse — should force full re-parse
+      manager.applyContentChange(uri, change);
+      manager.applyContentChange(uri, change);
+
+      // Next parse should produce a new state (not return stale cache)
+      const state2 = manager.getOrParseDocument(uri, text, defaultSettings);
+      expect(state2.version).toBe(state1.version + 1);
     });
   });
 

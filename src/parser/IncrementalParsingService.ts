@@ -7,17 +7,43 @@
  * Strategy: line-level invalidation with statement splicing.
  *
  * 1. Map the edit's line range to the affected top-level statement indices.
- * 2. Expand the region to block boundaries (IF/WHILE) if needed.
- * 3. Re-tokenize + re-parse only the affected text region.
- * 4. Splice new statements into the old AST.
- * 5. Shift positions of all subsequent (unaffected) statements.
- * 6. Fall back to full re-parse when block structure changes.
+ * 2. Re-tokenize + re-parse only the affected text region.
+ * 3. Splice new statements into the old AST.
+ * 4. Shift positions of all subsequent (unaffected) statements via visitor.
+ * 5. Fall back to full re-parse when block structure changes.
  */
 import { DialectType } from '../constants';
 import { BLOCK_STRUCTURE_KEYWORDS } from '../lexer/constants';
 import { LexerFactory } from '../lexer/LexerFactory';
-import { BlockStatementNode, ProgramNode, Range, StatementNode } from '../parser/nodes';
-import { ParserFactory } from '../parser/ParserFactory';
+import { AstTraverser } from './AstTraverser';
+import { BaseAstVisitor } from './BaseAstVisitor';
+import {
+  AstNode,
+  AxisParameterNode,
+  BinaryExpressionNode,
+  CommentNode,
+  ElseClauseNode,
+  ErrorNode,
+  ExpressionNode,
+  FunctionCallNode,
+  IfClauseNode,
+  IfStatementNode,
+  LineNumberNode,
+  LiteralExpressionNode,
+  MotionCommandNode,
+  ProgramNode,
+  Range,
+  ReturnStatementNode,
+  StatementNode,
+  SubroutineCallNode,
+  SubroutineDefinitionNode,
+  SubroutineLabelNode,
+  UnaryExpressionNode,
+  VariableAssignmentNode,
+  VariableReferenceNode,
+  WhileStatementNode,
+} from './nodes';
+import { ParserFactory } from './ParserFactory';
 
 /**
  * Describes a single content change event from the LSP.
@@ -52,6 +78,122 @@ export interface IncrementalParseResult {
  */
 const BLOCK_KEYWORD_PATTERN = new RegExp(`\\b(${[...BLOCK_STRUCTURE_KEYWORDS].join('|')})\\b`, 'i');
 
+/**
+ * Visitor that shifts the range of every visited node by a line delta.
+ * Used after incremental parsing to fix positions of statements that
+ * follow the edited region.
+ */
+class PositionShiftVisitor extends BaseAstVisitor<void> {
+  constructor(private lineDelta: number) {
+    super();
+  }
+
+  protected defaultValue(): void {
+    return;
+  }
+
+  private shiftNode(node: AstNode): void {
+    const range = node.getRange();
+    node.setRange(
+      Range.create(
+        range.start.line + this.lineDelta,
+        range.start.character,
+        range.end.line + this.lineDelta,
+        range.end.character
+      )
+    );
+  }
+
+  visitProgram(_node: ProgramNode): void {
+    // ProgramNode does not extend AstNode and has no range to shift.
+    // Its child statements are visited individually by the traverser.
+  }
+
+  visitVariableAssignment(node: VariableAssignmentNode): void {
+    this.shiftNode(node);
+  }
+
+  visitFunctionCall(node: FunctionCallNode): void {
+    this.shiftNode(node);
+  }
+
+  visitWhileStatement(node: WhileStatementNode): void {
+    this.shiftNode(node);
+  }
+
+  visitIfStatement(node: IfStatementNode): void {
+    this.shiftNode(node);
+  }
+
+  visitIfClause(node: IfClauseNode): void {
+    this.shiftNode(node);
+  }
+
+  visitElseClause(node: ElseClauseNode): void {
+    this.shiftNode(node);
+  }
+
+  visitExpression(node: ExpressionNode): void {
+    this.shiftNode(node);
+  }
+
+  visitVariableReference(node: VariableReferenceNode): void {
+    this.shiftNode(node);
+  }
+
+  visitBinaryExpression(node: BinaryExpressionNode): void {
+    this.shiftNode(node);
+  }
+
+  visitUnaryExpression(node: UnaryExpressionNode): void {
+    this.shiftNode(node);
+  }
+
+  visitLiteralExpression(node: LiteralExpressionNode): void {
+    this.shiftNode(node);
+  }
+
+  visitAxisParameter(node: AxisParameterNode): void {
+    this.shiftNode(node);
+  }
+
+  visitMotionCommand(node: MotionCommandNode): void {
+    this.shiftNode(node);
+  }
+
+  visitComment(node: CommentNode): void {
+    this.shiftNode(node);
+  }
+
+  visitError(node: ErrorNode): void {
+    this.shiftNode(node);
+  }
+
+  visitLineNumber(node: LineNumberNode): void {
+    this.shiftNode(node);
+  }
+
+  visitSubroutineLabel(node: SubroutineLabelNode): void {
+    this.shiftNode(node);
+  }
+
+  visitSubroutineDefinition(node: SubroutineDefinitionNode): void {
+    this.shiftNode(node);
+  }
+
+  visitSubroutineCall(node: SubroutineCallNode): void {
+    this.shiftNode(node);
+  }
+
+  visitReturnStatement(node: ReturnStatementNode): void {
+    this.shiftNode(node);
+  }
+
+  visitStatement(node: StatementNode): void {
+    this.shiftNode(node);
+  }
+}
+
 export class IncrementalParsingService {
   /**
    * Attempt to incrementally re-parse the document after a content change.
@@ -84,25 +226,11 @@ export class IncrementalParsingService {
     }
 
     // Find the range of top-level statements affected by the edit
-    const affected = this.findAffectedStatementRange(statements, change);
-    if (!affected) {
-      return { success: false };
-    }
-
-    const { firstIndex, lastIndex } = affected;
-
-    // Expand to block boundaries — if any affected statement is a block,
-    // ensure we re-parse the entire block
-    const expanded = this.expandToBlockBoundaries(statements, firstIndex, lastIndex);
+    const { firstIndex, lastIndex } = this.findAffectedStatementRange(statements, change);
 
     // Determine the text region to re-parse
-    const regionStart = this.getRegionStartLine(statements, expanded.firstIndex);
-    const regionEnd = this.getRegionEndLine(
-      statements,
-      expanded.lastIndex,
-      change.lineDelta,
-      newText
-    );
+    const regionStart = statements[firstIndex].getRange().start.line;
+    const regionEnd = this.getRegionEndLine(statements, lastIndex, change.lineDelta, newText);
 
     // Extract the region text from the new document
     const lines = newText.split(/\n/);
@@ -124,13 +252,15 @@ export class IncrementalParsingService {
     const newStatements = regionAst.statements;
 
     // Splice: replace old statements with new ones
-    const before = statements.slice(0, expanded.firstIndex);
-    const after = statements.slice(expanded.lastIndex + 1);
+    const before = statements.slice(0, firstIndex);
+    const after = statements.slice(lastIndex + 1);
 
-    // Shift positions of statements after the edit region
+    // Shift positions of all nodes in statements after the edit region
     if (change.lineDelta !== 0) {
+      const shiftVisitor = new PositionShiftVisitor(change.lineDelta);
       for (const stmt of after) {
-        this.shiftNodePositions(stmt, change.lineDelta);
+        const traverser = new AstTraverser(shiftVisitor);
+        traverser.traverseProgram(new ProgramNode([stmt], false, false));
       }
     }
 
@@ -143,6 +273,9 @@ export class IncrementalParsingService {
 
   /**
    * Check if the edit introduces or removes block-structure keywords.
+   *
+   * Falls back to full re-parse if block keywords differ between the old
+   * and new edit regions, since the block nesting may have changed.
    */
   private hasBlockStructureChange(
     oldText: string,
@@ -158,11 +291,29 @@ export class IncrementalParsingService {
     const newEndLine = change.endLine + change.lineDelta;
     const newRegion = newLines.slice(change.startLine, newEndLine + 1).join('\n');
 
-    const oldHasBlock = BLOCK_KEYWORD_PATTERN.test(oldRegion);
-    const newHasBlock = BLOCK_KEYWORD_PATTERN.test(newRegion);
+    // Extract all block keywords from each region and compare
+    const oldKeywords = this.extractBlockKeywords(oldRegion);
+    const newKeywords = this.extractBlockKeywords(newRegion);
 
-    // If block keywords appeared or disappeared, structure may have changed
-    return oldHasBlock !== newHasBlock;
+    // If the set of block keywords changed at all, structure may have changed
+    if (oldKeywords.length !== newKeywords.length) return true;
+    for (let i = 0; i < oldKeywords.length; i++) {
+      if (oldKeywords[i] !== newKeywords[i]) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Extract all block-structure keywords from a text region, in order.
+   */
+  private extractBlockKeywords(text: string): string[] {
+    const keywords: string[] = [];
+    const globalPattern = new RegExp(BLOCK_KEYWORD_PATTERN.source, 'gi');
+    let match: RegExpExecArray | null;
+    while ((match = globalPattern.exec(text)) !== null) {
+      keywords.push(match[1].toUpperCase());
+    }
+    return keywords;
   }
 
   /**
@@ -172,7 +323,7 @@ export class IncrementalParsingService {
   private findAffectedStatementRange(
     statements: readonly StatementNode[],
     change: ContentChange
-  ): { firstIndex: number; lastIndex: number } | null {
+  ): { firstIndex: number; lastIndex: number } {
     const editStart = change.startLine;
     const editEnd = change.endLine;
 
@@ -215,45 +366,6 @@ export class IncrementalParsingService {
   }
 
   /**
-   * If any of the affected statements is a block statement, expand
-   * the range to include the entire block.
-   */
-  private expandToBlockBoundaries(
-    statements: readonly StatementNode[],
-    firstIndex: number,
-    lastIndex: number
-  ): { firstIndex: number; lastIndex: number } {
-    let expanded = false;
-    const newFirst = firstIndex;
-    const newLast = lastIndex;
-
-    // Check if any affected statement is inside a larger block
-    // (top-level statements that are block statements stay as-is,
-    //  but we need to re-parse the whole block)
-    for (let i = newFirst; i <= newLast; i++) {
-      if (statements[i] instanceof BlockStatementNode) {
-        expanded = true;
-      }
-    }
-
-    // If we have blocks, also include adjacent statements that
-    // might be part of the same logical group
-    if (expanded) {
-      // Ensure the re-parse region covers the full block range
-      // (already guaranteed since blocks are top-level statements)
-    }
-
-    return { firstIndex: newFirst, lastIndex: newLast };
-  }
-
-  /**
-   * Get the 0-based start line for the re-parse region.
-   */
-  private getRegionStartLine(statements: readonly StatementNode[], firstIndex: number): number {
-    return statements[firstIndex].getRange().start.line;
-  }
-
-  /**
    * Get the 0-based end line for the re-parse region.
    * Accounts for line delta when the edit changed line count.
    */
@@ -266,7 +378,7 @@ export class IncrementalParsingService {
     const originalEnd = statements[lastIndex].getRange().end.line;
     const adjustedEnd = originalEnd + lineDelta;
     const totalLines = newText.split(/\n/).length - 1;
-    return Math.min(adjustedEnd, totalLines);
+    return Math.max(0, Math.min(adjustedEnd, totalLines));
   }
 
   /**
@@ -282,37 +394,5 @@ export class IncrementalParsingService {
       offset = i + 1;
     }
     return currentLine < line ? text.length : offset;
-  }
-
-  /**
-   * Recursively shift all position data in a statement by a line delta.
-   */
-  private shiftNodePositions(node: StatementNode, lineDelta: number): void {
-    this.shiftRange(node, lineDelta);
-
-    // Recurse into block statement bodies
-    if (node instanceof BlockStatementNode) {
-      for (const child of node.body) {
-        this.shiftNodePositions(child, lineDelta);
-      }
-    }
-  }
-
-  /**
-   * Shift a node's range by a line delta.
-   */
-  private shiftRange(
-    node: { getRange(): Range; setRange(range: Range): void },
-    lineDelta: number
-  ): void {
-    const range = node.getRange();
-    node.setRange(
-      Range.create(
-        range.start.line + lineDelta,
-        range.start.character,
-        range.end.line + lineDelta,
-        range.end.character
-      )
-    );
   }
 }
