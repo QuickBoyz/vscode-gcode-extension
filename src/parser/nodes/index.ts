@@ -9,7 +9,7 @@ export {
   IfStatementNode,
   WhileStatementNode,
 } from './conditionals';
-export { DiagnosticCategory, ErrorNode } from './ErrorNode';
+export { DiagnosticCategory, ErrorNode, ParserDiagnosticCode } from './ErrorNode';
 export {
   BinaryExpressionNode,
   ExpressionNode,

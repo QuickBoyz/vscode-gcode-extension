@@ -1,4 +1,5 @@
 import {
+  CodeActionKind,
   createConnection,
   DidChangeTextDocumentNotification,
   InitializeParams,
@@ -23,6 +24,7 @@ import {
 } from '../providers/SemanticTokensProvider';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { HoverProvider } from '../providers/HoverProvider';
+import { CodeActionProvider } from '../providers/CodeActionProvider';
 import { CompletionProvider } from '../providers/CompletionProvider';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 import { GCodeConfig } from '../config/types';
@@ -57,6 +59,10 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
       },
       hoverProvider: true,
       foldingRangeProvider: true,
+      // Enable quick-fix code actions
+      codeActionProvider: {
+        codeActionKinds: [CodeActionKind.QuickFix, CodeActionKind.SourceFixAll],
+      },
       // Enable diagnostics for syntax errors
       diagnosticProvider: {
         interFileDependencies: false,
@@ -111,6 +117,7 @@ const formatterService = new FormatterService(),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
   hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager),
+  codeActionProvider = new CodeActionProvider(),
   completionProvider = new CompletionProvider(documentStateManager);
 
 connection.onDocumentFormatting(async (params) => {
@@ -239,6 +246,21 @@ connection.onCompletion(async (params) => {
 // Register completion resolve handler (for lazy-loading documentation)
 connection.onCompletionResolve((item) => {
   return completionProvider.resolveCompletionItem(item);
+});
+
+// Register code action provider
+connection.onCodeAction(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) return [];
+
+  const settings = await getDocumentSettings(params.textDocument.uri);
+  return codeActionProvider.provideCodeActions(
+    document,
+    params.range,
+    params.context.diagnostics,
+    settings,
+    params.context
+  );
 });
 
 // Register folding range provider

@@ -1,6 +1,6 @@
 import { KeywordType, TokenCategory } from '../../lexer/types';
 import { LexerToken } from '../../lexer/LexerToken';
-import { ExpressionNode, StatementNode } from '../nodes';
+import { ExpressionNode, ParserDiagnosticCode, StatementNode } from '../nodes';
 import { ParseError } from '../TokenStream';
 import { BaseParser } from '../BaseParser';
 
@@ -54,7 +54,11 @@ export class LinuxCNCParser extends BaseParser {
         return this.parseLineNumber();
 
       default:
-        throw new ParseError(`Unexpected token ${token.category}`, token);
+        throw new ParseError(
+          `Unexpected token ${token.category}`,
+          token,
+          ParserDiagnosticCode.UNEXPECTED_TOKEN
+        );
     }
   }
 
@@ -103,13 +107,17 @@ export class LinuxCNCParser extends BaseParser {
 
     // Consume the matching OSUB label
     if (!this.tokens.matchCategory(TokenCategory.OSUB)) {
-      throw new ParseError('Expected matching label before ENDSUB', subToken);
+      throw new ParseError(
+        'Expected matching label before ENDSUB',
+        subToken,
+        ParserDiagnosticCode.EXPECTED_MATCHING_LABEL_ENDSUB
+      );
     }
     this.tokens.expectCategory(TokenCategory.OSUB);
 
     // Consume the ENDSUB keyword
     if (!this.tokens.matchKeyword(KeywordType.ENDSUB)) {
-      throw new ParseError('Expected ENDSUB', subToken);
+      throw new ParseError('Expected ENDSUB', subToken, ParserDiagnosticCode.EXPECTED_ENDSUB);
     }
     const endToken = this.tokens.expectKeyword(KeywordType.ENDSUB);
 

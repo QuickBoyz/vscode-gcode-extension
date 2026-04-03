@@ -10,6 +10,7 @@ import {
   DiagnosticCategory,
   ElseClauseNode,
   ErrorNode,
+  ParserDiagnosticCode,
   ExpressionNode,
   FunctionCallNode,
   IfClauseKind,
@@ -196,7 +197,8 @@ export class AstFactory {
     token?: LexerToken,
     originalText?: string,
     parent: AstNode | undefined = undefined,
-    category: DiagnosticCategory = DiagnosticCategory.Error
+    category: DiagnosticCategory = DiagnosticCategory.Error,
+    code?: ParserDiagnosticCode
   ) {
     const range = token
       ? this.rangeFrom(token)
@@ -205,7 +207,7 @@ export class AstFactory {
           end: { line: 0, character: 0 },
         };
 
-    return new ErrorNode(range, message, originalText, parent, category);
+    return new ErrorNode(range, message, originalText, parent, category, code);
   }
 
   subroutineDefinition(args: {

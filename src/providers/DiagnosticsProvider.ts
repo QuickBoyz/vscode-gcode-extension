@@ -33,12 +33,16 @@ export class DiagnosticsProvider extends BaseProvider {
       diagnostics: Diagnostic[] = [];
 
     for (const errorNode of analysis.errors) {
-      diagnostics.push({
+      const diag: Diagnostic = {
         range: errorNode.getRange(),
         severity: CATEGORY_TO_SEVERITY[errorNode.category],
         message: errorNode.message,
         source: GCODE_LANGUAGE_ID,
-      });
+      };
+      if (errorNode.code) {
+        diag.code = errorNode.code;
+      }
+      diagnostics.push(diag);
     }
 
     // Semantic diagnostics (variable, command, modal state checks)
