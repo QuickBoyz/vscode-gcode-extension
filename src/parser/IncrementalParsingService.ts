@@ -14,6 +14,7 @@
  * 6. Fall back to full re-parse when block structure changes.
  */
 import { DialectType } from '../constants';
+import { BLOCK_STRUCTURE_KEYWORDS } from '../lexer/constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { BlockStatementNode, ProgramNode, Range, StatementNode } from '../parser/nodes';
 import { ParserFactory } from '../parser/ParserFactory';
@@ -44,27 +45,6 @@ export interface IncrementalParseResult {
   /** New AST if successful */
   readonly ast?: ProgramNode;
 }
-
-/**
- * Keywords that define block structure. If an edit adds or removes any of
- * these, the block nesting may have changed and we must fall back to a
- * full re-parse.
- */
-const BLOCK_STRUCTURE_KEYWORDS = new Set([
-  'IF',
-  'ELSE',
-  'ELSEIF',
-  'ENDIF',
-  'THEN',
-  'WHILE',
-  'ENDWHILE',
-  'DO',
-  'END',
-  'SUB',
-  'ENDSUB',
-  'PROC',
-  'RET',
-]);
 
 /**
  * Regex that matches any block-structure keyword as a whole word (case-insensitive).

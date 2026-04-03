@@ -118,6 +118,22 @@ export const SIEMENS_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
 ];
 
 /**
+ * Keywords that define block structure (control flow + subroutines).
+ *
+ * Used by IncrementalParsingService to detect structural changes that
+ * require a full re-parse. Combines the shared control flow keywords
+ * with all dialect-specific subroutine keywords.
+ */
+export const BLOCK_STRUCTURE_KEYWORDS: ReadonlySet<string> = new Set([
+  ...CONTROL_FLOW_ENTRIES.map(([keyword]) => keyword),
+  // Subroutine keywords from all dialects
+  'SUB',
+  'ENDSUB',
+  'PROC',
+  'RET',
+]);
+
+/**
  * Returns the keyword entries for the given dialect.
  *
  * Each dialect has its own set of recognized keywords. The scanner uses
