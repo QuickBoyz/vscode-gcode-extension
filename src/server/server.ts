@@ -101,9 +101,9 @@ function toGCodeSettings(config: GCodeConfig): GCodeSettings {
 }
 
 const formatterService = new FormatterService(),
-  documentFormatter = new DocumentFormattingProvider(formatterService),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
+  documentFormatter = new DocumentFormattingProvider(formatterService, documentStateManager),
   definitionProvider = new DefinitionProvider(documentStateManager),
   referencesProvider = new ReferencesProvider(documentStateManager),
   renameProvider = new RenameProvider(documentStateManager),
