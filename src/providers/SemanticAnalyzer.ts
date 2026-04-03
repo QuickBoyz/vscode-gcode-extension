@@ -33,9 +33,6 @@ import {
 } from '../parser/nodes';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import {
-  FEED_REQUIRING_COMMANDS,
-  PROGRAM_END_COMMANDS,
-  RAPID_COMMANDS,
   SPINDLE_CW_COMMAND,
   SPINDLE_CCW_COMMAND,
   SPINDLE_OFF_COMMAND,
@@ -161,7 +158,7 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     // standalone axis parameters also need a feed rate
     if (
       this.state.motionMode !== null &&
-      FEED_REQUIRING_COMMANDS.has(this.state.motionMode) &&
+      this.dataProvider.isFeedRequiringCommand(this.state.motionMode) &&
       !this.state.feedRateSet
     ) {
       this.diagnostics.push({
@@ -208,7 +205,7 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
 
   private updateModalState(normalized: string): void {
     // Motion mode
-    if (RAPID_COMMANDS.has(normalized) || FEED_REQUIRING_COMMANDS.has(normalized)) {
+    if (this.dataProvider.isMotionCommand(normalized)) {
       this.state.motionMode = normalized;
     }
 
@@ -236,7 +233,7 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     if (normalized === TOOL_CHANGE_COMMAND) this.state.toolChanged = true;
 
     // Program end
-    if (PROGRAM_END_COMMANDS.has(normalized)) this.state.programEnded = true;
+    if (this.dataProvider.isProgramEndCommand(normalized)) this.state.programEnded = true;
   }
 
   private checkCommandKnown(normalized: string, node: MotionCommandNode): void {
@@ -255,7 +252,7 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
   }
 
   private checkFeedRate(normalized: string, node: MotionCommandNode): void {
-    if (FEED_REQUIRING_COMMANDS.has(normalized) && !this.state.feedRateSet) {
+    if (this.dataProvider.isFeedRequiringCommand(normalized) && !this.state.feedRateSet) {
       this.diagnostics.push({
         range: node.getRange(),
         message: `Feed rate (F) not set before ${normalized} move`,

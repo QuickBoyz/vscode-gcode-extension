@@ -204,4 +204,50 @@ describe('SemanticAnalyzer', () => {
       expect(diags.length).toBe(2);
     });
   });
+
+  describe('IDataProvider command classification', () => {
+    it('should use dataProvider.isFeedRequiringCommand for feed rate checks', () => {
+      // Verify that the default LinuxCNC provider classifies G01/G02/G03 as feed-requiring
+      expect(dataProvider.isFeedRequiringCommand('G01')).toBe(true);
+      expect(dataProvider.isFeedRequiringCommand('G02')).toBe(true);
+      expect(dataProvider.isFeedRequiringCommand('G03')).toBe(true);
+      expect(dataProvider.isFeedRequiringCommand('G00')).toBe(false);
+    });
+
+    it('should use dataProvider.isProgramEndCommand for unreachable code', () => {
+      expect(dataProvider.isProgramEndCommand('M02')).toBe(true);
+      expect(dataProvider.isProgramEndCommand('M30')).toBe(true);
+      expect(dataProvider.isProgramEndCommand('M03')).toBe(false);
+    });
+
+    it('should use dataProvider.isMotionCommand for modal tracking', () => {
+      expect(dataProvider.isMotionCommand('G00')).toBe(true);
+      expect(dataProvider.isMotionCommand('G01')).toBe(true);
+      expect(dataProvider.isMotionCommand('G02')).toBe(true);
+      expect(dataProvider.isMotionCommand('G03')).toBe(true);
+      expect(dataProvider.isMotionCommand('M03')).toBe(false);
+    });
+
+    it('should use dataProvider.isRapidCommand', () => {
+      expect(dataProvider.isRapidCommand('G00')).toBe(true);
+      expect(dataProvider.isRapidCommand('G01')).toBe(false);
+    });
+
+    it('should respect dialect classification for all four dialects', () => {
+      const dialects = [
+        DialectType.LINUXCNC,
+        DialectType.FANUC,
+        DialectType.HAAS,
+        DialectType.SIEMENS,
+      ];
+      for (const dialect of dialects) {
+        const provider = DataProviderFactory.create(dialect);
+        // Standard ISO 6983 commands should be recognized by all dialects
+        expect(provider.isFeedRequiringCommand('G01')).toBe(true);
+        expect(provider.isProgramEndCommand('M30')).toBe(true);
+        expect(provider.isMotionCommand('G00')).toBe(true);
+        expect(provider.isRapidCommand('G00')).toBe(true);
+      }
+    });
+  });
 });
