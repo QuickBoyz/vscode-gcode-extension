@@ -4,6 +4,7 @@ import {
   DiagnosticCategory,
   ExpressionNode,
   LiteralExpressionNode,
+  ParserDiagnosticCode,
   StatementNode,
 } from '../nodes';
 import { ParseError } from '../TokenStream';
@@ -76,7 +77,11 @@ export class FanucParser extends BaseParser {
         return this.parseLineNumber();
 
       default:
-        throw new ParseError(`Unexpected token ${token.category}`, token);
+        throw new ParseError(
+          `Unexpected token ${token.category}`,
+          token,
+          ParserDiagnosticCode.UNEXPECTED_TOKEN
+        );
     }
   }
 
@@ -107,7 +112,8 @@ export class FanucParser extends BaseParser {
         m98Token,
         undefined,
         undefined,
-        DiagnosticCategory.Warning
+        DiagnosticCategory.Warning,
+        ParserDiagnosticCode.M98_MISSING_P
       );
     }
 

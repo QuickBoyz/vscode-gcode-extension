@@ -37,7 +37,7 @@ function getCodeActions(
 ): { diagnostics: Diagnostic[]; actions: ReturnType<CodeActionProvider['provideCodeActions']> } {
   const stateManager = new DocumentStateManager();
   const diagProvider = new DiagnosticsProvider(stateManager);
-  const codeActionProvider = new CodeActionProvider(stateManager);
+  const codeActionProvider = new CodeActionProvider();
   const document = createDocument(content);
   const settings = createSettings(dialect);
 

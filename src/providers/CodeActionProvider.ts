@@ -2,21 +2,25 @@
  * Code Action Provider
  *
  * Provides quick-fix code actions for common G-code errors.
- * Matches diagnostics to automated fixes based on error message patterns.
+ * Matches diagnostics by structured code (preferred) or message pattern (fallback).
  */
 import {
   CodeAction,
   CodeActionKind,
   Diagnostic,
-  Position,
   Range,
   TextEdit,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
-import { BaseProvider } from './BaseProvider';
+import { ParserDiagnosticCode } from '../parser/nodes';
+import { SemanticDiagnosticCode } from './SemanticDiagnostic';
 import { GCodeSettings } from './DocumentStateManager';
+import { getFullLineRange, getLineEndPosition, getLineText } from './textDocumentUtils';
+
+/** Union of all diagnostic codes the provider can match on. */
+type DiagnosticCode = ParserDiagnosticCode | SemanticDiagnosticCode;
 
 /**
  * Result from a quick-fix descriptor resolution.
@@ -24,77 +28,33 @@ import { GCodeSettings } from './DocumentStateManager';
 interface QuickFixResult {
   readonly title: string;
   readonly edits: TextEdit[];
+  /** Whether this fix is safe to auto-apply. Default true. */
+  readonly isPreferred?: boolean;
+}
+
+/**
+ * Context passed to each descriptor's resolve function.
+ */
+interface QuickFixContext {
+  readonly dialect: DialectType;
+  readonly message: string;
+  readonly document: TextDocument;
+  readonly diagnostic: Diagnostic;
 }
 
 /**
  * Descriptor for a quick-fix pattern.
  *
- * Each entry maps an error-message substring to a function that
- * produces the fix title and TextEdits.
+ * Each entry maps a diagnostic code (or message pattern fallback)
+ * to a function that produces the fix title and TextEdits.
  */
 interface QuickFixDescriptor {
-  /** Substring to match against diagnostic.message */
-  readonly pattern: string;
+  /** Structured diagnostic code to match against. Preferred over pattern matching. */
+  readonly code?: DiagnosticCode;
+  /** Substring to match against diagnostic.message. Used when code is not available. */
+  readonly pattern?: string;
   /** Produce the fix title and edits, or null to skip. */
-  readonly resolve: (
-    dialect: DialectType,
-    message: string,
-    document: TextDocument,
-    diagnostic: Diagnostic
-  ) => QuickFixResult | null;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Get the position at the end of a given line. */
-function getLineEndPosition(document: TextDocument, line: number): Position {
-  const lineCount = document.lineCount;
-  const lineIndex = Math.min(line, lineCount - 1);
-  const lineStart = document.offsetAt({ line: lineIndex, character: 0 });
-  const nextLineStart =
-    lineIndex < lineCount - 1
-      ? document.offsetAt({ line: lineIndex + 1, character: 0 })
-      : document.getText().length;
-  let lineEnd = nextLineStart;
-  if (lineIndex < lineCount - 1) {
-    const text = document.getText();
-    if (lineEnd > lineStart && text[lineEnd - 1] === '\n') lineEnd--;
-    if (lineEnd > lineStart && text[lineEnd - 1] === '\r') lineEnd--;
-  }
-  return { line: lineIndex, character: lineEnd - lineStart };
-}
-
-/** Get the text content of a given line (excluding newline). */
-function getLineText(document: TextDocument, line: number): string {
-  const start: Position = { line, character: 0 };
-  const end = getLineEndPosition(document, line);
-  return document.getText({ start, end });
-}
-
-/**
- * Get a range that covers an entire line including its trailing newline.
- * Deleting this range removes the line completely.
- */
-function getFullLineRange(document: TextDocument, line: number): Range {
-  const lineCount = document.lineCount;
-  const lineIndex = Math.min(line, lineCount - 1);
-
-  if (lineIndex < lineCount - 1) {
-    // Not the last line: from start of this line to start of next line
-    return {
-      start: { line: lineIndex, character: 0 },
-      end: { line: lineIndex + 1, character: 0 },
-    };
-  }
-  // Last line: from end of previous line (newline) to end of this line
-  const lineEnd = getLineEndPosition(document, lineIndex);
-  if (lineIndex > 0) {
-    const prevEnd = getLineEndPosition(document, lineIndex - 1);
-    return { start: prevEnd, end: lineEnd };
-  }
-  return { start: { line: 0, character: 0 }, end: lineEnd };
+  readonly resolve: (context: QuickFixContext) => QuickFixResult | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,22 +62,17 @@ function getFullLineRange(document: TextDocument, line: number): Range {
 // ---------------------------------------------------------------------------
 
 const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
-  // -- Parser error fixes --
+  // -- Parser error fixes (matched by code) --
   {
-    pattern: 'Expected ENDIF',
-    resolve: (_dialect, message, document, diagnostic) =>
-      message === 'Expected ENDIF'
-        ? {
-            title: 'Insert ENDIF',
-            edits: [
-              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF'),
-            ],
-          }
-        : null,
+    code: ParserDiagnosticCode.EXPECTED_ENDIF,
+    resolve: ({ document, diagnostic }) => ({
+      title: 'Insert ENDIF',
+      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF')],
+    }),
   },
   {
-    pattern: 'Expected END or ENDWHILE',
-    resolve: (dialect, _message, document, diagnostic) => {
+    code: ParserDiagnosticCode.EXPECTED_END_OR_ENDWHILE,
+    resolve: ({ dialect, document, diagnostic }) => {
       const keyword =
         dialect === DialectType.FANUC || dialect === DialectType.HAAS ? 'END' : 'ENDWHILE';
       return {
@@ -129,8 +84,8 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
     },
   },
   {
-    pattern: 'Expected matching label before ENDSUB',
-    resolve: (_dialect, _message, document, diagnostic) => {
+    code: ParserDiagnosticCode.EXPECTED_MATCHING_LABEL_ENDSUB,
+    resolve: ({ document, diagnostic }) => {
       const lineText = getLineText(document, diagnostic.range.start.line);
       const match = lineText.match(/^(O\d+)\s/i);
       if (!match) return null;
@@ -143,43 +98,38 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
     },
   },
   {
-    pattern: 'Expected ENDSUB',
-    resolve: (_dialect, message, document, diagnostic) =>
-      message === 'Expected ENDSUB'
-        ? {
-            title: 'Insert ENDSUB',
-            edits: [
-              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB'),
-            ],
-          }
-        : null,
+    code: ParserDiagnosticCode.EXPECTED_ENDSUB,
+    resolve: ({ document, diagnostic }) => ({
+      title: 'Insert ENDSUB',
+      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB')],
+    }),
   },
   {
-    pattern: 'Expected RET or RETURN to terminate PROC',
-    resolve: (_dialect, _message, document, diagnostic) => ({
+    code: ParserDiagnosticCode.EXPECTED_RET,
+    resolve: ({ document, diagnostic }) => ({
       title: 'Insert RET',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nRET')],
     }),
   },
   {
-    pattern: 'M98 requires P parameter',
-    resolve: (_dialect, _message, document, diagnostic) => ({
+    code: ParserDiagnosticCode.M98_MISSING_P,
+    resolve: ({ document, diagnostic }) => ({
       title: 'Add P parameter',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), ' P')],
     }),
   },
 
-  // -- Semantic diagnostic fixes --
+  // -- Semantic diagnostic fixes (matched by code) --
   {
-    pattern: 'Feed rate (F) not set',
-    resolve: (_dialect, _message, document, diagnostic) => ({
+    code: SemanticDiagnosticCode.MISSING_FEED_RATE,
+    resolve: ({ document, diagnostic }) => ({
       title: 'Insert F100',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), ' F100')],
     }),
   },
   {
-    pattern: 'Duplicate line number',
-    resolve: (_dialect, _message, document, diagnostic) => {
+    code: SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER,
+    resolve: ({ document, diagnostic }) => {
       const lineText = getLineText(document, diagnostic.range.start.line);
       let endChar = diagnostic.range.end.character;
       // Extend past trailing whitespace after the line number
@@ -201,15 +151,16 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
     },
   },
   {
-    pattern: 'is assigned but never used',
-    resolve: (_dialect, _message, document, diagnostic) => ({
+    code: SemanticDiagnosticCode.UNUSED_VARIABLE,
+    resolve: ({ document, diagnostic }) => ({
       title: 'Remove unused assignment',
       edits: [TextEdit.replace(getFullLineRange(document, diagnostic.range.start.line), '')],
+      isPreferred: false,
     }),
   },
 ];
 
-export class CodeActionProvider extends BaseProvider {
+export class CodeActionProvider {
   /**
    * Provide code actions for the given diagnostics.
    */
@@ -233,34 +184,54 @@ export class CodeActionProvider extends BaseProvider {
   }
 
   /**
-   * Attempt to match a diagnostic to a known quick-fix pattern.
+   * Attempt to match a diagnostic to a known quick-fix.
+   * Matches by diagnostic code first, falls back to message pattern.
    */
   private getFixForDiagnostic(
     document: TextDocument,
     diagnostic: Diagnostic,
     dialect: DialectType
   ): CodeAction | null {
-    const message = diagnostic.message;
+    const context: QuickFixContext = {
+      dialect,
+      message: diagnostic.message,
+      document,
+      diagnostic,
+    };
 
     for (const descriptor of QUICK_FIX_DESCRIPTORS) {
-      if (message.includes(descriptor.pattern)) {
-        const result = descriptor.resolve(dialect, message, document, diagnostic);
-        if (result) {
-          return {
-            title: result.title,
-            kind: CodeActionKind.QuickFix,
-            isPreferred: true,
-            diagnostics: [diagnostic],
-            edit: {
-              changes: {
-                [document.uri]: result.edits,
-              },
+      if (!this.matchesDescriptor(descriptor, diagnostic)) continue;
+
+      const result = descriptor.resolve(context);
+      if (result) {
+        return {
+          title: result.title,
+          kind: CodeActionKind.QuickFix,
+          isPreferred: result.isPreferred ?? true,
+          diagnostics: [diagnostic],
+          edit: {
+            changes: {
+              [document.uri]: result.edits,
             },
-          };
-        }
+          },
+        };
       }
     }
 
     return null;
+  }
+
+  /**
+   * Check whether a descriptor matches the given diagnostic.
+   * Prefers code-based matching; falls back to message substring.
+   */
+  private matchesDescriptor(descriptor: QuickFixDescriptor, diagnostic: Diagnostic): boolean {
+    if (descriptor.code !== undefined && diagnostic.code !== undefined) {
+      return descriptor.code === diagnostic.code;
+    }
+    if (descriptor.pattern !== undefined) {
+      return diagnostic.message.includes(descriptor.pattern);
+    }
+    return false;
   }
 }

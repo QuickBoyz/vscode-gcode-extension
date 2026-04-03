@@ -1,5 +1,5 @@
 import { KeywordType, TokenCategory } from '../../lexer/types';
-import { StatementNode } from '../nodes';
+import { ParserDiagnosticCode, StatementNode } from '../nodes';
 import { ParseError } from '../TokenStream';
 import { BaseParser } from '../BaseParser';
 
@@ -57,7 +57,11 @@ export class SiemensParser extends BaseParser {
         return this.parseLineNumber();
 
       default:
-        throw new ParseError(`Unexpected token ${token.category}`, token);
+        throw new ParseError(
+          `Unexpected token ${token.category}`,
+          token,
+          ParserDiagnosticCode.UNEXPECTED_TOKEN
+        );
     }
   }
 
@@ -81,7 +85,11 @@ export class SiemensParser extends BaseParser {
 
     // Consume the terminating RET or RETURN
     if (!this.tokens.matchKeyword(KeywordType.RET, KeywordType.RETURN)) {
-      throw new ParseError('Expected RET or RETURN to terminate PROC', procToken);
+      throw new ParseError(
+        'Expected RET or RETURN to terminate PROC',
+        procToken,
+        ParserDiagnosticCode.EXPECTED_RET
+      );
     }
     const retToken = this.tokens.expectKeyword(KeywordType.RET, KeywordType.RETURN);
 

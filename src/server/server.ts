@@ -117,7 +117,7 @@ const formatterService = new FormatterService(),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
   hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager),
-  codeActionProvider = new CodeActionProvider(documentStateManager),
+  codeActionProvider = new CodeActionProvider(),
   completionProvider = new CompletionProvider(documentStateManager);
 
 connection.onDocumentFormatting(async (params) => {
