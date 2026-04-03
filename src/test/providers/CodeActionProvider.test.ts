@@ -63,8 +63,7 @@ describe('CodeActionProvider', () => {
       expect(endifAction).toBeDefined();
       expect(endifAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = endifAction!.edit!.changes![uri];
+      const edits = endifAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits.length).toBe(1);
       expect(edits[0].newText).toContain('ENDIF');
@@ -81,8 +80,7 @@ describe('CodeActionProvider', () => {
       expect(endwhileAction).toBeDefined();
       expect(endwhileAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = endwhileAction!.edit!.changes![uri];
+      const edits = endwhileAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('ENDWHILE');
     });
@@ -96,8 +94,7 @@ describe('CodeActionProvider', () => {
       expect(endAction).toBeDefined();
       expect(endAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = endAction!.edit!.changes![uri];
+      const edits = endAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('END');
     });
@@ -111,8 +108,7 @@ describe('CodeActionProvider', () => {
       expect(endAction).toBeDefined();
       expect(endAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = endAction!.edit!.changes![uri];
+      const edits = endAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('END');
     });
@@ -126,6 +122,20 @@ describe('CodeActionProvider', () => {
       const endsubAction = actions.find((a) => a.title === 'Insert ENDSUB');
       expect(endsubAction).toBeUndefined();
     });
+
+    it('should offer "Insert O<label> ENDSUB" for missing label before ENDSUB', () => {
+      const code = 'O100 SUB\nG0 X10';
+      const { diagnostics, actions } = getCodeActions(code, DialectType.LINUXCNC);
+
+      expect(diagnostics.length).toBeGreaterThan(0);
+      const endsubAction = actions.find((a) => a.title === 'Insert O100 ENDSUB');
+      expect(endsubAction).toBeDefined();
+      expect(endsubAction!.kind).toBe(CodeActionKind.QuickFix);
+
+      const edits = endsubAction!.edit!.changes![TEST_URI];
+      expect(edits).toBeDefined();
+      expect(edits[0].newText).toContain('O100 ENDSUB');
+    });
   });
 
   describe('Missing RET', () => {
@@ -138,8 +148,7 @@ describe('CodeActionProvider', () => {
       expect(retAction).toBeDefined();
       expect(retAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = retAction!.edit!.changes![uri];
+      const edits = retAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('RET');
     });
@@ -155,10 +164,82 @@ describe('CodeActionProvider', () => {
       expect(pAction).toBeDefined();
       expect(pAction!.kind).toBe(CodeActionKind.QuickFix);
 
-      const uri = TEST_URI;
-      const edits = pAction!.edit!.changes![uri];
+      const edits = pAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].newText).toContain('P');
+    });
+  });
+
+  describe('Missing feed rate', () => {
+    it('should offer "Insert F100" for G01 without feed rate', () => {
+      const code = 'G01 X10';
+      const { actions } = getCodeActions(code);
+
+      const feedAction = actions.find((a) => a.title === 'Insert F100');
+      expect(feedAction).toBeDefined();
+      expect(feedAction!.kind).toBe(CodeActionKind.QuickFix);
+
+      const edits = feedAction!.edit!.changes![TEST_URI];
+      expect(edits).toBeDefined();
+      expect(edits[0].newText).toBe(' F100');
+    });
+
+    it('should not offer feed rate fix when F is already set', () => {
+      const code = 'G01 X10 F200';
+      const { actions } = getCodeActions(code);
+
+      const feedAction = actions.find((a) => a.title === 'Insert F100');
+      expect(feedAction).toBeUndefined();
+    });
+  });
+
+  describe('Duplicate line number', () => {
+    it('should offer "Remove duplicate line number" for duplicate N-codes', () => {
+      const code = 'N10 G00 X10\nN10 G00 X20';
+      const { actions } = getCodeActions(code);
+
+      const dupAction = actions.find((a) => a.title === 'Remove duplicate line number');
+      expect(dupAction).toBeDefined();
+      expect(dupAction!.kind).toBe(CodeActionKind.QuickFix);
+
+      const edits = dupAction!.edit!.changes![TEST_URI];
+      expect(edits).toBeDefined();
+      // Should replace the N10 + trailing space with empty string
+      expect(edits[0].newText).toBe('');
+      expect(edits[0].range.start.line).toBe(1);
+    });
+
+    it('should not offer fix when line numbers are unique', () => {
+      const code = 'N10 G00 X10\nN20 G00 X20';
+      const { actions } = getCodeActions(code);
+
+      const dupAction = actions.find((a) => a.title === 'Remove duplicate line number');
+      expect(dupAction).toBeUndefined();
+    });
+  });
+
+  describe('Unused variable', () => {
+    it('should offer "Remove unused assignment" for assigned but unused variable', () => {
+      const code = '#<unused> = 42\nG0 X10';
+      const { actions } = getCodeActions(code);
+
+      const unusedAction = actions.find((a) => a.title === 'Remove unused assignment');
+      expect(unusedAction).toBeDefined();
+      expect(unusedAction!.kind).toBe(CodeActionKind.QuickFix);
+
+      const edits = unusedAction!.edit!.changes![TEST_URI];
+      expect(edits).toBeDefined();
+      // Should remove the entire line
+      expect(edits[0].newText).toBe('');
+      expect(edits[0].range.start.line).toBe(0);
+    });
+
+    it('should not offer fix when variable is used', () => {
+      const code = '#<myvar> = 42\nG0 X[#<myvar>]';
+      const { actions } = getCodeActions(code);
+
+      const unusedAction = actions.find((a) => a.title === 'Remove unused assignment');
+      expect(unusedAction).toBeUndefined();
     });
   });
 
@@ -180,8 +261,7 @@ describe('CodeActionProvider', () => {
       const endifAction = actions.find((a) => a.title === 'Insert ENDIF');
       expect(endifAction).toBeDefined();
 
-      const uri = TEST_URI;
-      const edits = endifAction!.edit!.changes![uri];
+      const edits = endifAction!.edit!.changes![TEST_URI];
       expect(edits).toBeDefined();
       expect(edits[0].range.start.line).toBe(edits[0].range.end.line);
       expect(edits[0].newText).toMatch(/^\n/);
