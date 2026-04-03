@@ -7,6 +7,8 @@ import {
   RelationalOperatorType,
   UnaryOperatorType,
 } from './parser/nodes/expressions';
+import { KeywordType } from './lexer/types';
+import { getKeywordEntries } from './lexer/constants';
 
 export const GCODE_LANGUAGE_ID = 'gcode';
 
@@ -239,33 +241,35 @@ export const GROUP_SORT_ORDER: Readonly<Record<string, string>> = {
 export const DEFAULT_GROUP_SORT_PREFIX = '99';
 
 /**
- * Dialect-specific keyword sets for subroutine/control flow completions.
- * Each dialect defines its own set of keywords available for completion.
+ * KeywordType values that represent control flow and subroutine keywords
+ * (as opposed to relational operators and functions).
+ * Used to derive dialect-specific keyword completions from the lexer tables.
  */
-export const DIALECT_KEYWORDS: Readonly<Record<DialectType, readonly string[]>> = {
-  [DialectType.LINUXCNC]: [
-    'SUB',
-    'ENDSUB',
-    'CALL',
-    'RETURN',
-    'IF',
-    'ENDIF',
-    'ELSE',
-    'ELSEIF',
-    'WHILE',
-    'ENDWHILE',
-  ],
-  [DialectType.FANUC]: ['IF', 'THEN', 'ELSE', 'ENDIF', 'WHILE', 'DO', 'END'],
-  [DialectType.HAAS]: ['IF', 'THEN', 'ELSE', 'ENDIF', 'WHILE', 'DO', 'END'],
-  [DialectType.SIEMENS]: [
-    'PROC',
-    'RET',
-    'CALL',
-    'IF',
-    'ENDIF',
-    'ELSE',
-    'ELSEIF',
-    'WHILE',
-    'ENDWHILE',
-  ],
-};
+export const CONTROL_FLOW_KEYWORD_TYPES: ReadonlySet<KeywordType> = new Set([
+  KeywordType.IF,
+  KeywordType.ELSE,
+  KeywordType.ELSEIF,
+  KeywordType.ENDIF,
+  KeywordType.THEN,
+  KeywordType.WHILE,
+  KeywordType.ENDWHILE,
+  KeywordType.DO,
+  KeywordType.END,
+  KeywordType.SUB,
+  KeywordType.ENDSUB,
+  KeywordType.CALL,
+  KeywordType.RETURN,
+  KeywordType.GOTO,
+  KeywordType.PROC,
+  KeywordType.RET,
+]);
+
+/**
+ * Get control flow and subroutine keywords for a dialect.
+ * Derived from the lexer's authoritative keyword tables — single source of truth.
+ */
+export function getDialectKeywords(dialect: DialectType): readonly string[] {
+  return getKeywordEntries(dialect)
+    .filter(([, type]) => CONTROL_FLOW_KEYWORD_TYPES.has(type))
+    .map(([name]) => name);
+}

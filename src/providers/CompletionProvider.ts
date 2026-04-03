@@ -25,7 +25,7 @@ import {
   GROUP_SORT_ORDER,
   DEFAULT_GROUP_SORT_PREFIX,
   MAX_SNIPPET_PARAMETERS,
-  DIALECT_KEYWORDS,
+  getDialectKeywords,
 } from '../constants';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { formatVariableName } from './RenameUtils';
@@ -376,7 +376,7 @@ export class CompletionProvider extends BaseProvider {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
     const dialect = settings.dialect || DialectType.LINUXCNC;
-    const keywords = DIALECT_KEYWORDS[dialect];
+    const keywords = getDialectKeywords(dialect);
 
     for (const keyword of keywords) {
       // Filter by prefix
