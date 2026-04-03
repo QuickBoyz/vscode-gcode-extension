@@ -16,6 +16,7 @@ import { DiagnosticCategory } from '../../parser/nodes';
 import { GCodeLexer } from '../../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../../parser/dialects/LinuxCNCParser';
 import { AstAnalysisService } from '../../providers/AstAnalysisService';
+import { SemanticDiagnosticTag } from '../../providers/SemanticDiagnostic';
 
 function createDocument(content: string): TextDocument {
   return TextDocument.create('test://test.nc', 'gcode', 1, content);
@@ -97,7 +98,7 @@ describe('DiagnosticsProvider', () => {
 
       const hints = diagnostics.filter((d) => d.severity === DiagnosticSeverity.Hint);
       expect(hints.length).toBeGreaterThan(0);
-      expect(hints[0].tags).toContain(1); // DiagnosticTag.Unnecessary = 1
+      expect(hints[0].tags).toContain(SemanticDiagnosticTag.Unnecessary);
     });
   });
 });

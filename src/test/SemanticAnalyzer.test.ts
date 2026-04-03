@@ -75,8 +75,26 @@ describe('SemanticAnalyzer', () => {
     });
 
     it('should not report system variables (numeric >= 1000) as undefined', () => {
-      const diags = getDiagnosticsByCode('#<x> = #5410', SemanticDiagnosticCode.UNDEFINED_VARIABLE);
-      // #5410 is a system variable — should not be flagged
+      // #5410 is a system variable — should not be flagged.
+      // #<x> is assigned and then used, so no unused warning either.
+      const diags = getDiagnosticsByCode(
+        '#<x> = #5410\nG01 X[#<x>] F100',
+        SemanticDiagnosticCode.UNDEFINED_VARIABLE
+      );
+      expect(diags.length).toBe(0);
+    });
+
+    it('should report #999 as undefined (below system variable threshold)', () => {
+      const diags = getDiagnosticsByCode(
+        'G01 X[#999] F100',
+        SemanticDiagnosticCode.UNDEFINED_VARIABLE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].message).toContain('#999');
+    });
+
+    it('should not report #1000 as undefined (at system variable threshold)', () => {
+      const diags = getDiagnosticsByCode('#<x> = #1000', SemanticDiagnosticCode.UNDEFINED_VARIABLE);
       expect(diags.length).toBe(0);
     });
 

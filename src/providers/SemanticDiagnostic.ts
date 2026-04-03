@@ -22,9 +22,6 @@ export enum SemanticDiagnosticCode {
 }
 
 /**
- * A diagnostic produced by semantic analysis.
- */
-/**
  * Tags that can be attached to a semantic diagnostic.
  * Mirrors LSP DiagnosticTag values without importing vscode-languageserver.
  */

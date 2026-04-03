@@ -50,6 +50,10 @@ export class SemanticAnalyzer {
    * Numeric variables at or above this threshold are controller system
    * variables (tool offsets, work coordinates, etc.) and should not be
    * flagged as "undefined".
+   *
+   * Note: this is a heuristic — actual system variable ranges differ
+   * per dialect (e.g. Fanuc #1000+, LinuxCNC #5000+). Will be replaced
+   * by user-configurable variable definitions (see issue #68).
    */
   private static readonly SYSTEM_VARIABLE_THRESHOLD = 1000;
 
