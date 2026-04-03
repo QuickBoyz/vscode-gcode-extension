@@ -265,6 +265,16 @@ export class DocumentStateManager {
   }
 
   /**
+   * Remove all cached state for a document (e.g. when it is closed).
+   */
+  removeDocument(uri: string): void {
+    this.documentStates.delete(uri);
+    this.documentVersions.delete(uri);
+    this.pendingChanges.delete(uri);
+    this.previousText.delete(uri);
+  }
+
+  /**
    * Invalidate all cached states
    */
   invalidateAll(): void {

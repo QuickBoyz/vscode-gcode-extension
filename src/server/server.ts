@@ -321,6 +321,17 @@ documents.onDidOpen(async (event) => {
     });
 });
 
+// Clean up caches and timers when a document is closed
+documents.onDidClose((event) => {
+  const uri = event.document.uri;
+  const timer = diagnosticsTimers.get(uri);
+  if (timer) {
+    clearTimeout(timer);
+    diagnosticsTimers.delete(uri);
+  }
+  documentStateManager.removeDocument(uri);
+});
+
 // Register pull-based diagnostics handler (for newer VS Code versions)
 connection.languages.diagnostics.on(async (params) => {
   const document = documents.get(params.textDocument.uri);

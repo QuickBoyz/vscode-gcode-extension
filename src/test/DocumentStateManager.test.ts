@@ -165,6 +165,33 @@ describe('DocumentStateManager', () => {
     });
   });
 
+  describe('removeDocument', () => {
+    it('should fully remove all cached state for a document', () => {
+      const text = '#<x> = 10',
+        uri = 'file:///test.nc';
+
+      manager.getOrParseDocument(uri, text, defaultSettings);
+      expect(manager.getDocumentState(uri)).toBeDefined();
+
+      manager.removeDocument(uri);
+      expect(manager.getDocumentState(uri)).toBeUndefined();
+    });
+
+    it('should not affect other documents', () => {
+      const text = '#<x> = 10',
+        uri1 = 'file:///test1.nc',
+        uri2 = 'file:///test2.nc';
+
+      manager.getOrParseDocument(uri1, text, defaultSettings);
+      manager.getOrParseDocument(uri2, text, defaultSettings);
+
+      manager.removeDocument(uri1);
+
+      expect(manager.getDocumentState(uri1)).toBeUndefined();
+      expect(manager.getDocumentState(uri2)).toBeDefined();
+    });
+  });
+
   describe('getOrParseDocumentFromTextDocument', () => {
     it('should parse document from TextDocument', () => {
       const uri = 'file:///test.nc',
