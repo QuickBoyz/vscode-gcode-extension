@@ -1,4 +1,5 @@
 import { ErrorNode, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
+import { SemanticDiagnostic } from './SemanticDiagnostic';
 
 /**
  * Symbol information for a variable
@@ -26,6 +27,9 @@ export interface AnalysisResults {
     data: number[];
     resultId?: string;
   };
+
+  /** Diagnostics from semantic analysis (variable, command, modal state checks) */
+  semanticDiagnostics?: readonly SemanticDiagnostic[];
 }
 
 /**

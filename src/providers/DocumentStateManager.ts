@@ -14,6 +14,7 @@ import { ProgramNode } from '../parser/nodes';
 import { ParserFactory } from '../parser/ParserFactory';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
+import { SemanticAnalyzer } from './SemanticAnalyzer';
 import { IDataProvider } from './IDataProvider';
 import { DataProviderFactory } from './DataProviderFactory';
 import { FormatterConfig } from '../formatter/types';
@@ -51,9 +52,11 @@ export class DocumentStateManager {
   private dataProviderCache = new Map<string, IDataProvider>();
   private readonly lexerCache = new Map<DialectType, GCodeLexer>();
   private readonly analysisService: AstAnalysisService;
+  private readonly semanticAnalyzer: SemanticAnalyzer;
 
   constructor() {
     this.analysisService = new AstAnalysisService();
+    this.semanticAnalyzer = new SemanticAnalyzer();
   }
 
   private getLexer(dialect: DialectType): GCodeLexer {
@@ -145,6 +148,16 @@ export class DocumentStateManager {
 
     // Compute and cache analysis
     state.analysis = this.analysisService.analyze(state.ast, options);
+
+    // Run semantic analysis (modal state, command validation, variable checks)
+    const dialect = settings.dialect ?? DialectType.LINUXCNC;
+    const dataProvider = this.getDataProvider(dialect);
+    state.analysis.semanticDiagnostics = this.semanticAnalyzer.analyze(
+      state.ast,
+      state.analysis,
+      dataProvider
+    );
+
     return state.analysis;
   }
 

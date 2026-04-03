@@ -1,0 +1,207 @@
+import { describe, it, expect, beforeEach } from '@jest/globals';
+import { GCodeLexer } from '../lexer/GCodeLexer';
+import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
+import { ProgramNode, DiagnosticCategory } from '../parser/nodes';
+import { AstAnalysisService } from '../providers/AstAnalysisService';
+import { SemanticAnalyzer } from '../providers/SemanticAnalyzer';
+import { SemanticDiagnosticCode } from '../providers/SemanticDiagnostic';
+import { DataProviderFactory } from '../providers/DataProviderFactory';
+import { DialectType } from '../constants';
+import { IDataProvider } from '../providers/IDataProvider';
+
+function parseCode(code: string): ProgramNode {
+  const lexer = new GCodeLexer();
+  const tokens = lexer.tokenize(code);
+  const parser = new LinuxCNCParser(tokens, code);
+  return parser.parseProgram();
+}
+
+describe('SemanticAnalyzer', () => {
+  let analyzer: SemanticAnalyzer;
+  let analysisService: AstAnalysisService;
+  let dataProvider: IDataProvider;
+
+  beforeEach(() => {
+    analyzer = new SemanticAnalyzer();
+    analysisService = new AstAnalysisService();
+    dataProvider = DataProviderFactory.create(DialectType.LINUXCNC);
+  });
+
+  function getDiagnostics(code: string) {
+    const ast = parseCode(code);
+    const analysis = analysisService.analyze(ast);
+    return analyzer.analyze(ast, analysis, dataProvider);
+  }
+
+  function getDiagnosticsByCode(code: string, diagnosticCode: SemanticDiagnosticCode) {
+    return getDiagnostics(code).filter((d) => d.code === diagnosticCode);
+  }
+
+  describe('Variable diagnostics', () => {
+    it('should report undefined variable (referenced but never assigned)', () => {
+      const diags = getDiagnosticsByCode(
+        'G01 X[#<myvar>] F100',
+        SemanticDiagnosticCode.UNDEFINED_VARIABLE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Hint);
+      expect(diags[0].message).toContain('#<myvar>');
+    });
+
+    it('should report unused variable (assigned but never referenced)', () => {
+      const diags = getDiagnosticsByCode('#<unused> = 42', SemanticDiagnosticCode.UNUSED_VARIABLE);
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Hint);
+      expect(diags[0].message).toContain('#<unused>');
+    });
+
+    it('should not report variable that is both assigned and referenced', () => {
+      const diags = getDiagnostics('#<x> = 10\nG01 X[#<x>] F100');
+      const varDiags = diags.filter(
+        (d) =>
+          d.code === SemanticDiagnosticCode.UNDEFINED_VARIABLE ||
+          d.code === SemanticDiagnosticCode.UNUSED_VARIABLE
+      );
+      expect(varDiags.length).toBe(0);
+    });
+
+    it('should report numeric undefined variable', () => {
+      const diags = getDiagnosticsByCode(
+        'G01 X[#100] F100',
+        SemanticDiagnosticCode.UNDEFINED_VARIABLE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].message).toContain('#100');
+    });
+  });
+
+  describe('Unknown command diagnostics', () => {
+    it('should not report known commands like G00, G01, M03', () => {
+      const diags = getDiagnosticsByCode(
+        'G00 X10\nG01 X20 F100\nM03 S1000',
+        SemanticDiagnosticCode.UNKNOWN_COMMAND
+      );
+      expect(diags.length).toBe(0);
+    });
+
+    it('should report unknown G-code', () => {
+      const diags = getDiagnosticsByCode('G999', SemanticDiagnosticCode.UNKNOWN_COMMAND);
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Warning);
+      expect(diags[0].message).toContain('G999');
+    });
+
+    it('should report unknown M-code', () => {
+      const diags = getDiagnosticsByCode('M999', SemanticDiagnosticCode.UNKNOWN_COMMAND);
+      expect(diags.length).toBe(1);
+      expect(diags[0].message).toContain('M999');
+    });
+  });
+
+  describe('Missing feed rate diagnostics', () => {
+    it('should report missing feed rate for G01 without prior F', () => {
+      const diags = getDiagnosticsByCode('G01 X10', SemanticDiagnosticCode.MISSING_FEED_RATE);
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Warning);
+      expect(diags[0].message).toContain('G01');
+    });
+
+    it('should not report missing feed rate when F is set inline with G01', () => {
+      const diags = getDiagnosticsByCode('G01 X10 F100', SemanticDiagnosticCode.MISSING_FEED_RATE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should not report missing feed rate when F is set on a prior line', () => {
+      const diags = getDiagnosticsByCode(
+        'G01 X5 F200\nG01 X10',
+        SemanticDiagnosticCode.MISSING_FEED_RATE
+      );
+      expect(diags.length).toBe(0);
+    });
+
+    it('should report missing feed rate for G02/G03 without F', () => {
+      const diags = getDiagnosticsByCode(
+        'G02 X10 Y10 I5 J0',
+        SemanticDiagnosticCode.MISSING_FEED_RATE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].message).toContain('G02');
+    });
+
+    it('should not report missing feed rate for G00 (rapid)', () => {
+      const diags = getDiagnosticsByCode('G00 X10', SemanticDiagnosticCode.MISSING_FEED_RATE);
+      expect(diags.length).toBe(0);
+    });
+  });
+
+  describe('Unreachable code diagnostics', () => {
+    it('should report unreachable code after M30', () => {
+      const diags = getDiagnosticsByCode(
+        'G00 X10\nM30\nG01 X20 F100',
+        SemanticDiagnosticCode.UNREACHABLE_CODE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Warning);
+    });
+
+    it('should report unreachable code after M02', () => {
+      const diags = getDiagnosticsByCode(
+        'G00 X10\nM02\nG00 X0',
+        SemanticDiagnosticCode.UNREACHABLE_CODE
+      );
+      expect(diags.length).toBe(1);
+    });
+
+    it('should not report unreachable code when nothing follows M30', () => {
+      const diags = getDiagnosticsByCode('G00 X10\nM30', SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should report multiple unreachable statements', () => {
+      const diags = getDiagnosticsByCode(
+        'M30\nG00 X10\nG01 X20 F100',
+        SemanticDiagnosticCode.UNREACHABLE_CODE
+      );
+      expect(diags.length).toBe(2);
+    });
+  });
+
+  describe('Duplicate line number diagnostics', () => {
+    it('should report duplicate line numbers', () => {
+      const diags = getDiagnosticsByCode(
+        'N10 G00 X10\nN10 G00 X20',
+        SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].category).toBe(DiagnosticCategory.Warning);
+      expect(diags[0].message).toContain('N10');
+    });
+
+    it('should not report unique line numbers', () => {
+      const diags = getDiagnosticsByCode(
+        'N10 G00 X10\nN20 G00 X20',
+        SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER
+      );
+      expect(diags.length).toBe(0);
+    });
+  });
+
+  describe('Modal state tracking', () => {
+    it('should track F parameter set on a prior line with standalone axis params', () => {
+      // F100 sets feed rate, then standalone X10 should not warn
+      const diags = getDiagnosticsByCode(
+        'G01 X5 F100\nX10',
+        SemanticDiagnosticCode.MISSING_FEED_RATE
+      );
+      expect(diags.length).toBe(0);
+    });
+
+    it('should track motion mode across lines', () => {
+      // G01 sets modal motion mode, subsequent standalone axis params inherit it
+      // Without F, the G01 should warn but the standalone X10 should also warn
+      const diags = getDiagnosticsByCode('G01 X5\nX10', SemanticDiagnosticCode.MISSING_FEED_RATE);
+      // G01 X5 warns (no F), X10 also warns (modal G01 still active, no F)
+      expect(diags.length).toBe(2);
+    });
+  });
+});
