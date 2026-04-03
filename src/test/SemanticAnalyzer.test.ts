@@ -4,7 +4,7 @@ import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { ProgramNode, DiagnosticCategory } from '../parser/nodes';
 import { AstAnalysisService } from '../providers/AstAnalysisService';
 import { SemanticAnalyzer } from '../providers/SemanticAnalyzer';
-import { SemanticDiagnosticCode } from '../providers/SemanticDiagnostic';
+import { SemanticDiagnosticCode, SemanticDiagnosticTag } from '../providers/SemanticDiagnostic';
 import { DataProviderFactory } from '../providers/DataProviderFactory';
 import { DialectType } from '../constants';
 import { IDataProvider } from '../providers/IDataProvider';
@@ -72,6 +72,27 @@ describe('SemanticAnalyzer', () => {
       );
       expect(diags.length).toBe(1);
       expect(diags[0].message).toContain('#100');
+    });
+
+    it('should not report system variables (numeric >= 1000) as undefined', () => {
+      const diags = getDiagnosticsByCode('#<x> = #5410', SemanticDiagnosticCode.UNDEFINED_VARIABLE);
+      // #5410 is a system variable — should not be flagged
+      expect(diags.length).toBe(0);
+    });
+
+    it('should tag unused variables with Unnecessary', () => {
+      const diags = getDiagnosticsByCode('#<unused> = 42', SemanticDiagnosticCode.UNUSED_VARIABLE);
+      expect(diags.length).toBe(1);
+      expect(diags[0].tags).toContain(SemanticDiagnosticTag.Unnecessary);
+    });
+
+    it('should not tag undefined variables with Unnecessary', () => {
+      const diags = getDiagnosticsByCode(
+        'G01 X[#<myvar>] F100',
+        SemanticDiagnosticCode.UNDEFINED_VARIABLE
+      );
+      expect(diags.length).toBe(1);
+      expect(diags[0].tags).toBeUndefined();
     });
   });
 

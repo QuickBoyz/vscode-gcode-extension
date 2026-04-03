@@ -9,6 +9,7 @@ import { DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
+import { DialectType } from '../../constants';
 import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
 import { CATEGORY_TO_SEVERITY, DiagnosticsProvider } from '../../providers/DiagnosticsProvider';
 import { DiagnosticCategory } from '../../parser/nodes';
@@ -64,6 +65,39 @@ describe('DiagnosticsProvider', () => {
       for (const errorNode of results.errors) {
         expect(errorNode.category).toBe(DiagnosticCategory.Error);
       }
+    });
+  });
+
+  describe('M98 severity downgrade', () => {
+    it('should produce Warning severity for M98 without P parameter', () => {
+      const stateManager = new DocumentStateManager();
+      const provider = new DiagnosticsProvider(stateManager);
+      const document = createDocument('M98');
+      const settings: GCodeSettings = {
+        formatter: DEFAULT_GCODE_CONFIG.formatter,
+        dialect: DialectType.FANUC,
+      };
+
+      const diagnostics = provider.provideDiagnostics(document, settings);
+
+      const m98Diag = diagnostics.find((d) => d.message.includes('M98'));
+      expect(m98Diag).toBeDefined();
+      expect(m98Diag!.severity).toBe(DiagnosticSeverity.Warning);
+    });
+  });
+
+  describe('Unnecessary tag', () => {
+    it('should include Unnecessary tag on unused variable diagnostics', () => {
+      const stateManager = new DocumentStateManager();
+      const provider = new DiagnosticsProvider(stateManager);
+      const document = createDocument('#<unused> = 42');
+      const settings = createSettings();
+
+      const diagnostics = provider.provideDiagnostics(document, settings);
+
+      const hints = diagnostics.filter((d) => d.severity === DiagnosticSeverity.Hint);
+      expect(hints.length).toBeGreaterThan(0);
+      expect(hints[0].tags).toContain(1); // DiagnosticTag.Unnecessary = 1
     });
   });
 });
