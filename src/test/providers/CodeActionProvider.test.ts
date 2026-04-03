@@ -234,6 +234,15 @@ describe('CodeActionProvider', () => {
       expect(edits[0].range.start.line).toBe(0);
     });
 
+    it('should not mark "Remove unused assignment" as preferred', () => {
+      const code = '#<unused> = 42\nG0 X10';
+      const { actions } = getCodeActions(code);
+
+      const unusedAction = actions.find((a) => a.title === 'Remove unused assignment');
+      expect(unusedAction).toBeDefined();
+      expect(unusedAction!.isPreferred).toBe(false);
+    });
+
     it('should not offer fix when variable is used', () => {
       const code = '#<myvar> = 42\nG0 X[#<myvar>]';
       const { actions } = getCodeActions(code);

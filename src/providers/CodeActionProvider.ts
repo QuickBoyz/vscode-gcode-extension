@@ -62,16 +62,23 @@ interface QuickFixDescriptor {
 // ---------------------------------------------------------------------------
 
 const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
-  // -- Parser error fixes (matched by code) --
+  // -- Parser error fixes (matched by code, with pattern fallback) --
   {
     code: ParserDiagnosticCode.EXPECTED_ENDIF,
-    resolve: ({ document, diagnostic }) => ({
-      title: 'Insert ENDIF',
-      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF')],
-    }),
+    pattern: 'Expected ENDIF',
+    resolve: ({ document, diagnostic, message }) =>
+      message === 'Expected ENDIF'
+        ? {
+            title: 'Insert ENDIF',
+            edits: [
+              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF'),
+            ],
+          }
+        : null,
   },
   {
     code: ParserDiagnosticCode.EXPECTED_END_OR_ENDWHILE,
+    pattern: 'Expected END or ENDWHILE',
     resolve: ({ dialect, document, diagnostic }) => {
       const keyword =
         dialect === DialectType.FANUC || dialect === DialectType.HAAS ? 'END' : 'ENDWHILE';
@@ -85,9 +92,10 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
   {
     code: ParserDiagnosticCode.EXPECTED_MATCHING_LABEL_ENDSUB,
+    pattern: 'Expected matching label before ENDSUB',
     resolve: ({ document, diagnostic }) => {
       const lineText = getLineText(document, diagnostic.range.start.line);
-      const match = lineText.match(/^(O\d+)\s/i);
+      const match = lineText.match(/^(O(?:\d+|<[^>]+>))\s/i);
       if (!match) return null;
       const label = match[1];
       const lastLine = document.lineCount - 1;
@@ -99,13 +107,20 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
   {
     code: ParserDiagnosticCode.EXPECTED_ENDSUB,
-    resolve: ({ document, diagnostic }) => ({
-      title: 'Insert ENDSUB',
-      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB')],
-    }),
+    pattern: 'Expected ENDSUB',
+    resolve: ({ document, diagnostic, message }) =>
+      message === 'Expected ENDSUB'
+        ? {
+            title: 'Insert ENDSUB',
+            edits: [
+              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB'),
+            ],
+          }
+        : null,
   },
   {
     code: ParserDiagnosticCode.EXPECTED_RET,
+    pattern: 'Expected RET or RETURN to terminate PROC',
     resolve: ({ document, diagnostic }) => ({
       title: 'Insert RET',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nRET')],
@@ -113,15 +128,17 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
   {
     code: ParserDiagnosticCode.M98_MISSING_P,
+    pattern: 'M98 requires P parameter',
     resolve: ({ document, diagnostic }) => ({
       title: 'Add P parameter',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), ' P')],
     }),
   },
 
-  // -- Semantic diagnostic fixes (matched by code) --
+  // -- Semantic diagnostic fixes (matched by code, with pattern fallback) --
   {
     code: SemanticDiagnosticCode.MISSING_FEED_RATE,
+    pattern: 'Feed rate (F) not set',
     resolve: ({ document, diagnostic }) => ({
       title: 'Insert F100',
       edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), ' F100')],
@@ -129,6 +146,7 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
   {
     code: SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER,
+    pattern: 'Duplicate line number',
     resolve: ({ document, diagnostic }) => {
       const lineText = getLineText(document, diagnostic.range.start.line);
       let endChar = diagnostic.range.end.character;
@@ -152,6 +170,7 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   },
   {
     code: SemanticDiagnosticCode.UNUSED_VARIABLE,
+    pattern: 'is assigned but never used',
     resolve: ({ document, diagnostic }) => ({
       title: 'Remove unused assignment',
       edits: [TextEdit.replace(getFullLineRange(document, diagnostic.range.start.line), '')],
@@ -226,9 +245,11 @@ export class CodeActionProvider {
    * Prefers code-based matching; falls back to message substring.
    */
   private matchesDescriptor(descriptor: QuickFixDescriptor, diagnostic: Diagnostic): boolean {
+    // Prefer code-based matching when both sides have a code
     if (descriptor.code !== undefined && diagnostic.code !== undefined) {
       return descriptor.code === diagnostic.code;
     }
+    // Fall back to message substring matching
     if (descriptor.pattern !== undefined) {
       return diagnostic.message.includes(descriptor.pattern);
     }

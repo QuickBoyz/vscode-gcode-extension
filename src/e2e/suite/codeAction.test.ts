@@ -114,9 +114,4 @@ suite('Code Action E2E Tests', () => {
       'codeaction-noerrors.nc'
     );
   });
-
-  suiteTeardown(async () => {
-    await TestUtils.resetConfiguration();
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-  });
 });

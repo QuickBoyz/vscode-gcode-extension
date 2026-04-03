@@ -12,18 +12,24 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 export function getLineEndPosition(document: TextDocument, line: number): Position {
   const lineCount = document.lineCount;
   const lineIndex = Math.min(line, lineCount - 1);
-  const lineStart = document.offsetAt({ line: lineIndex, character: 0 });
-  const nextLineStart =
-    lineIndex < lineCount - 1
-      ? document.offsetAt({ line: lineIndex + 1, character: 0 })
-      : document.getText().length;
-  let lineEnd = nextLineStart;
+
   if (lineIndex < lineCount - 1) {
-    const text = document.getText();
-    if (lineEnd > lineStart && text[lineEnd - 1] === '\n') lineEnd--;
-    if (lineEnd > lineStart && text[lineEnd - 1] === '\r') lineEnd--;
+    // Fetch only the line + newline to find where the content ends
+    const lineRange: Range = {
+      start: { line: lineIndex, character: 0 },
+      end: { line: lineIndex + 1, character: 0 },
+    };
+    const lineWithNewline = document.getText(lineRange);
+    let length = lineWithNewline.length;
+    if (length > 0 && lineWithNewline[length - 1] === '\n') length--;
+    if (length > 0 && lineWithNewline[length - 1] === '\r') length--;
+    return { line: lineIndex, character: length };
   }
-  return { line: lineIndex, character: lineEnd - lineStart };
+
+  // Last line: from line start to document end
+  const lineStart = document.offsetAt({ line: lineIndex, character: 0 });
+  const docLength = document.getText().length;
+  return { line: lineIndex, character: docLength - lineStart };
 }
 
 /** Get the text content of a given line (excluding newline). */
