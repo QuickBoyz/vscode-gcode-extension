@@ -32,9 +32,27 @@ import {
   Range,
 } from '../parser/nodes';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
-import { GCodeSymbols } from '../constants';
+import {
+  FEED_REQUIRING_COMMANDS,
+  PROGRAM_END_COMMANDS,
+  RAPID_COMMANDS,
+  SPINDLE_CW_COMMAND,
+  SPINDLE_CCW_COMMAND,
+  SPINDLE_OFF_COMMAND,
+  COOLANT_MIST_COMMAND,
+  COOLANT_FLOOD_COMMAND,
+  COOLANT_OFF_COMMAND,
+  ABSOLUTE_COMMANDS,
+  INCREMENTAL_COMMANDS,
+  PLANE_XY_COMMAND,
+  PLANE_XZ_COMMAND,
+  PLANE_YZ_COMMAND,
+  TOOL_CHANGE_COMMAND,
+  FEED_RATE_AXIS,
+} from '../constants/GCodeCommands';
 import { AnalysisResults, VariableSymbol } from './AnalysisResults';
 import { IDataProvider } from './IDataProvider';
+import { formatVariableName } from './RenameUtils';
 import { SemanticDiagnostic, SemanticDiagnosticCode } from './SemanticDiagnostic';
 
 // -- Modal state enums --
@@ -62,41 +80,12 @@ enum PlaneSelection {
   YZ = 'YZ',
 }
 
-// -- Command classification constants --
-
-const FEED_REQUIRING_COMMANDS = new Set(['G01', 'G02', 'G03']);
-const PROGRAM_END_COMMANDS = new Set(['M02', 'M30']);
-const RAPID_COMMAND = 'G00';
-
-const SPINDLE_CW_COMMAND = 'M03';
-const SPINDLE_CCW_COMMAND = 'M04';
-const SPINDLE_OFF_COMMAND = 'M05';
-
-const COOLANT_MIST_COMMAND = 'M07';
-const COOLANT_FLOOD_COMMAND = 'M08';
-const COOLANT_OFF_COMMAND = 'M09';
-
-const DISTANCE_ABSOLUTE_COMMAND = 'G90';
-const DISTANCE_INCREMENTAL_COMMAND = 'G91';
-
-const PLANE_XY_COMMAND = 'G17';
-const PLANE_XZ_COMMAND = 'G18';
-const PLANE_YZ_COMMAND = 'G19';
-
-const TOOL_CHANGE_COMMAND = 'M06';
-
-const FEED_RATE_AXIS = 'F';
-const SPINDLE_SPEED_AXIS = 'S';
-const TOOL_NUMBER_AXIS = 'T';
-
 /**
  * Mutable machine state tracked during AST traversal.
  */
 class MachineState {
   motionMode: string | null = null;
   feedRateSet = false;
-  spindleSpeed: boolean = false;
-  toolNumber: boolean = false;
   spindleState: SpindleState = SpindleState.OFF;
   coolantState: CoolantState = CoolantState.OFF;
   distanceMode: DistanceMode = DistanceMode.ABSOLUTE;
@@ -212,23 +201,14 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
   }
 
   private updateStateFromParameter(param: AxisParameterNode): void {
-    const axis = param.axis.toUpperCase();
-    switch (axis) {
-      case FEED_RATE_AXIS:
-        this.state.feedRateSet = true;
-        break;
-      case SPINDLE_SPEED_AXIS:
-        this.state.spindleSpeed = true;
-        break;
-      case TOOL_NUMBER_AXIS:
-        this.state.toolNumber = true;
-        break;
+    if (param.axis.toUpperCase() === FEED_RATE_AXIS) {
+      this.state.feedRateSet = true;
     }
   }
 
   private updateModalState(normalized: string): void {
     // Motion mode
-    if (normalized === RAPID_COMMAND || FEED_REQUIRING_COMMANDS.has(normalized)) {
+    if (RAPID_COMMANDS.has(normalized) || FEED_REQUIRING_COMMANDS.has(normalized)) {
       this.state.motionMode = normalized;
     }
 
@@ -243,8 +223,8 @@ class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     else if (normalized === COOLANT_OFF_COMMAND) this.state.coolantState = CoolantState.OFF;
 
     // Distance mode
-    if (normalized === DISTANCE_ABSOLUTE_COMMAND) this.state.distanceMode = DistanceMode.ABSOLUTE;
-    else if (normalized === DISTANCE_INCREMENTAL_COMMAND)
+    if (ABSOLUTE_COMMANDS.has(normalized)) this.state.distanceMode = DistanceMode.ABSOLUTE;
+    else if (INCREMENTAL_COMMANDS.has(normalized))
       this.state.distanceMode = DistanceMode.INCREMENTAL;
 
     // Plane selection
@@ -347,14 +327,4 @@ export class SemanticAnalyzer {
       }
     }
   }
-}
-
-/**
- * Format a variable name for display in diagnostic messages.
- */
-function formatVariableName(name: string | number): string {
-  if (typeof name === 'number') {
-    return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
-  }
-  return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
 }

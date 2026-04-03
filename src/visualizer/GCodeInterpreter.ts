@@ -28,15 +28,9 @@ import {
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import { MODAL_MOTION_COMMANDS } from '../constants/GCodeCommands';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { InterpreterConfig, MotionHandler } from './types';
-
-/**
- * G-code Group 1 modal motion commands.
- * When one of these is issued, it becomes the active motion mode for
- * subsequent standalone axis parameters (e.g. "X10 Y20" without a G-code).
- */
-const MODAL_MOTION_COMMANDS = new Set(['G00', 'G01', 'G02', 'G03']);
 
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();
