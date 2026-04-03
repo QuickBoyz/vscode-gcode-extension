@@ -16,34 +16,9 @@ import { DialectType } from '../constants';
 import { BLOCK_STRUCTURE_KEYWORDS } from '../lexer/constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { AstTraverser } from './AstTraverser';
-import { BaseAstVisitor } from './BaseAstVisitor';
-import {
-  AstNode,
-  AxisParameterNode,
-  BinaryExpressionNode,
-  CommentNode,
-  ElseClauseNode,
-  ErrorNode,
-  ExpressionNode,
-  FunctionCallNode,
-  IfClauseNode,
-  IfStatementNode,
-  LineNumberNode,
-  LiteralExpressionNode,
-  MotionCommandNode,
-  ProgramNode,
-  Range,
-  ReturnStatementNode,
-  StatementNode,
-  SubroutineCallNode,
-  SubroutineDefinitionNode,
-  SubroutineLabelNode,
-  UnaryExpressionNode,
-  VariableAssignmentNode,
-  VariableReferenceNode,
-  WhileStatementNode,
-} from './nodes';
+import { ProgramNode, StatementNode } from './nodes';
 import { ParserFactory } from './ParserFactory';
+import { PositionShiftVisitor } from './PositionShiftVisitor';
 
 /**
  * Describes a single content change event from the LSP.
@@ -77,122 +52,6 @@ export interface IncrementalParseResult {
  * Used for fast detection of structural changes in the edited text.
  */
 const BLOCK_KEYWORD_PATTERN = new RegExp(`\\b(${[...BLOCK_STRUCTURE_KEYWORDS].join('|')})\\b`, 'i');
-
-/**
- * Visitor that shifts the range of every visited node by a line delta.
- * Used after incremental parsing to fix positions of statements that
- * follow the edited region.
- */
-class PositionShiftVisitor extends BaseAstVisitor<void> {
-  constructor(private lineDelta: number) {
-    super();
-  }
-
-  protected defaultValue(): void {
-    return;
-  }
-
-  private shiftNode(node: AstNode): void {
-    const range = node.getRange();
-    node.setRange(
-      Range.create(
-        range.start.line + this.lineDelta,
-        range.start.character,
-        range.end.line + this.lineDelta,
-        range.end.character
-      )
-    );
-  }
-
-  visitProgram(_node: ProgramNode): void {
-    // ProgramNode does not extend AstNode and has no range to shift.
-    // Its child statements are visited individually by the traverser.
-  }
-
-  visitVariableAssignment(node: VariableAssignmentNode): void {
-    this.shiftNode(node);
-  }
-
-  visitFunctionCall(node: FunctionCallNode): void {
-    this.shiftNode(node);
-  }
-
-  visitWhileStatement(node: WhileStatementNode): void {
-    this.shiftNode(node);
-  }
-
-  visitIfStatement(node: IfStatementNode): void {
-    this.shiftNode(node);
-  }
-
-  visitIfClause(node: IfClauseNode): void {
-    this.shiftNode(node);
-  }
-
-  visitElseClause(node: ElseClauseNode): void {
-    this.shiftNode(node);
-  }
-
-  visitExpression(node: ExpressionNode): void {
-    this.shiftNode(node);
-  }
-
-  visitVariableReference(node: VariableReferenceNode): void {
-    this.shiftNode(node);
-  }
-
-  visitBinaryExpression(node: BinaryExpressionNode): void {
-    this.shiftNode(node);
-  }
-
-  visitUnaryExpression(node: UnaryExpressionNode): void {
-    this.shiftNode(node);
-  }
-
-  visitLiteralExpression(node: LiteralExpressionNode): void {
-    this.shiftNode(node);
-  }
-
-  visitAxisParameter(node: AxisParameterNode): void {
-    this.shiftNode(node);
-  }
-
-  visitMotionCommand(node: MotionCommandNode): void {
-    this.shiftNode(node);
-  }
-
-  visitComment(node: CommentNode): void {
-    this.shiftNode(node);
-  }
-
-  visitError(node: ErrorNode): void {
-    this.shiftNode(node);
-  }
-
-  visitLineNumber(node: LineNumberNode): void {
-    this.shiftNode(node);
-  }
-
-  visitSubroutineLabel(node: SubroutineLabelNode): void {
-    this.shiftNode(node);
-  }
-
-  visitSubroutineDefinition(node: SubroutineDefinitionNode): void {
-    this.shiftNode(node);
-  }
-
-  visitSubroutineCall(node: SubroutineCallNode): void {
-    this.shiftNode(node);
-  }
-
-  visitReturnStatement(node: ReturnStatementNode): void {
-    this.shiftNode(node);
-  }
-
-  visitStatement(node: StatementNode): void {
-    this.shiftNode(node);
-  }
-}
 
 export class IncrementalParsingService {
   /**
