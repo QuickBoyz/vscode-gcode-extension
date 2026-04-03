@@ -268,10 +268,14 @@ Understanding the codebase:
 
 - `src/client/extension.ts`: Extension entry point
 - `src/server/server.ts`: LSP server implementation
-- `src/parser/GCodeParser.ts`: Main parser logic
-- `src/formatter/GCodeFormatter.ts`: Main formatter logic
-- `src/providers/SemanticTokensProvider.ts`: Semantic token highlighting
-- `src/providers/DocumentFormattingProvider.ts`: Document formatting
+- `src/lexer/GCodeScanner.ts`: Hand-written character scanner
+- `src/parser/BaseParser.ts`: Abstract parser base with shared logic
+- `src/parser/ParserFactory.ts`: Dialect-specific parser selection
+- `src/formatter/BaseFormatter.ts`: Abstract formatter base (visitor-based)
+- `src/providers/CompletionProvider.ts`: Dialect-aware IntelliSense
+- `src/providers/DefinitionProvider.ts`: Go to Definition for variables
+- `src/providers/DiagnosticsProvider.ts`: Error and warning reporting
+- `src/client/GCodeVisualizerPanel.ts`: 3D visualizer webview panel
 
 ## Common Tasks
 
@@ -295,7 +299,7 @@ Understanding the codebase:
 ### Improving Parser
 
 1. Understand the AST structure in `src/parser/nodes/`
-2. Modify `src/parser/GCodeParser.ts` or `src/parser/AstFactory.ts`
+2. Modify the relevant dialect parser in `src/parser/dialects/` or shared logic in `src/parser/BaseParser.ts`
 3. Add test cases in `src/test/GCodeParser.test.ts`
 4. Ensure all existing tests pass (unit and e2e)
 

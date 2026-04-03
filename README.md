@@ -4,21 +4,31 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
 
 ## Features
 
-- **Syntax Highlighting**: Full syntax highlighting for G-Code files with support for 50+ file extensions
-- **Document Formatting**: Intelligent formatting with customizable options
-- **Robust Error Handling**: Parser gracefully handles unsupported syntax
-  - Preserves original code when encountering parse errors
-  - Inserts error comments with diagnostic information
-  - Continues parsing after errors for maximum code preservation
+- **3D Tool-Path Visualizer**: Interactive 3D view of cutting paths with orbit, pan, and zoom
+  - Segment hover, selection, and info panel (feed rate, spindle speed, tool number)
+  - Click-to-navigate from 3D segments to source G-code lines
+  - Arc plane support (G17/G18/G19) and G28 home position
+  - Reference grid, configurable colors and line widths
+  - Off-thread parsing with loading indicator for large files
+  - Live-update on document change
+- **Syntax Highlighting**: Semantic token-based highlighting for G-Code files with 50+ file extensions
+- **Document Formatting**: Intelligent formatting with customizable options and dialect-specific syntax
+- **Completions**: Dialect-aware IntelliSense for G/M commands, parameters, variables, functions, and operators
+- **Go to Definition / Find References**: Navigate to variable assignments and find all usages
 - **Hover Information**: Intelligent tooltips showing:
   - Variable values and declarations
   - G/M command descriptions with parameters and examples
   - Operator and function documentation
   - Axis parameter meanings
-- **Symbol Navigation**: Document outline showing all variables
+- **Symbol Navigation**: Hierarchical document outline — symbols grouped by subroutine with IF/WHILE blocks as children
+- **Code Folding**: Fold IF/WHILE/subroutine blocks
 - **Variable Renaming**: Rename variables across entire document
-- **Syntax Highlighting**: Semantic token-based highlighting
 - **Document Highlights**: Highlight all occurrences of a variable
+- **Diagnostics**: Syntax error reporting with severity levels (Error, Warning, Information, Hint)
+- **Subroutine Support**: Parsing and formatting of subroutines across all four dialects
+- **Robust Error Handling**: Parser gracefully handles unsupported syntax
+  - Preserves original code when encountering parse errors
+  - Continues parsing after errors for maximum code preservation
 - **Custom Theme**: Dedicated G-Code color theme for optimal readability
 - **Language Server**: LSP-based architecture for fast and reliable language features
 - **Format on Save**: Automatic formatting support
@@ -162,25 +172,31 @@ This extension contributes the following settings:
 
 ## Architecture
 
-This extension uses a Language Server Protocol (LSP) architecture:
+This extension uses a Language Server Protocol (LSP) architecture with a strict layered pipeline:
 
 ```
-┌─────────────────┐
-│  VS Code Client │
-│  (extension.ts) │
-└────────┬────────┘
-         │ IPC
-         │
-┌────────▼────────┐
-│ Language Server │
-│   (server.ts)   │
-└────────┬────────┘
+┌─────────────────┐   ┌──────────────────────┐
+│  VS Code Client │   │  3D Visualizer Panel  │
+│  (extension.ts) │   │  (webview + extractor)│
+└────────┬────────┘   └──────────┬───────────┘
+         │ IPC                   │
+         │                       │
+┌────────▼────────┐              │
+│ Language Server  │              │
+│   (server.ts)   │              │
+└────────┬────────┘              │
+         │                       │
+┌────────▼───────────────────────▼──┐
+│          Providers / Services     │
+│  (completions, hover, diagnostics,│
+│   formatting, symbols, folding)   │
+└────────┬──────────────────────────┘
          │
     ┌────┴────┬──────────┬────────────┐
     │         │          │            │
 ┌───▼───┐ ┌──▼───┐ ┌────▼────┐ ┌─────▼─────┐
-│ Lexer │ │Parser│ │Formatter│ │   Types   │
-└───────┘ └──────┘ └──────────┘ └───────────┘
+│ Lexer │ │Parser│ │Formatter│ │ Databases │
+└───────┘ └──────┘ └─────────┘ └───────────┘
 ```
 
 ### Project Structure
@@ -189,42 +205,53 @@ This extension uses a Language Server Protocol (LSP) architecture:
 src/
 ├── client/          # VS Code extension client
 │   ├── extension.ts # Extension entry point
-│   └── index.ts
+│   ├── CommandProvider.ts
+│   ├── GCodeVisualizerPanel.ts
+│   └── VisualizerService.ts
 ├── server/          # Language Server implementation
-│   ├── server.ts    # LSP server setup
-│   └── index.ts
-├── lexer/           # G-Code lexer (tokenizer)
-│   └── GCodeLexer.ts
-├── parser/          # G-Code parser (AST generation)
-│   ├── GCodeParser.ts
+│   └── server.ts    # LSP server setup
+├── lexer/           # Hand-written character scanner
+│   ├── GCodeScanner.ts
+│   ├── GCodeLexer.ts
+│   └── LexerFactory.ts
+├── parser/          # Multi-dialect parser (AST generation)
+│   ├── BaseParser.ts
+│   ├── ParserFactory.ts
 │   ├── AstFactory.ts
 │   ├── AstTraverser.ts
 │   ├── AstVisitor.ts
-│   └── nodes/       # AST node definitions
+│   ├── BaseAstVisitor.ts
+│   ├── nodes/       # AST node definitions
+│   └── dialects/    # LinuxCNC, Fanuc, Haas, Siemens parsers
 ├── formatter/       # Code formatter
 │   ├── BaseFormatter.ts
 │   ├── FormatterFactory.ts
 │   ├── ExpressionFormatter.ts
 │   └── dialects/    # Dialect-specific formatters
-│       ├── LinuxCNCFormatter.ts
-│       ├── FanucFormatter.ts
-│       ├── HaasFormatter.ts
-│       └── SiemensFormatter.ts
-├── databases/       # G-Code command databases
-│   ├── GCodeCommandDatabase.ts
+├── databases/       # G/M-code command reference data
 │   └── dialects/    # Dialect-specific databases
-├── providers/       # Language feature providers
+├── visualizer/      # 3D tool-path extraction (VS Code-free)
+│   ├── GCodePathExtractor.ts
+│   ├── GCodeInterpreter.ts
+│   └── GCodeExpressionEvaluator.ts
+├── webview/         # 3D visualizer webview (HTML/CSS/JS)
+├── providers/       # LSP service layer
+│   ├── CompletionProvider.ts
+│   ├── DefinitionProvider.ts
+│   ├── ReferencesProvider.ts
+│   ├── DiagnosticsProvider.ts
 │   ├── DocumentFormattingProvider.ts
 │   ├── DocumentSymbolProvider.ts
 │   ├── DocumentHighlightProvider.ts
+│   ├── FoldingRangeProvider.ts
 │   ├── HoverProvider.ts
 │   ├── RenameProvider.ts
 │   ├── SemanticTokensProvider.ts
 │   ├── DataProviderFactory.ts
-│   └── dialects/    # Dialect-specific providers
+│   └── dialects/    # Dialect-specific data providers
 ├── test/            # Unit tests (Jest)
-│   └── fixtures/    # Test fixtures
-└── e2e/             # E2E tests (VS Code)
+│   └── fixtures/    # Test fixtures (.nc files)
+└── e2e/             # E2E tests (VS Code Extension Host)
     ├── suite/       # Test suites
     └── fixtures/    # Test fixtures
 ```
@@ -330,12 +357,25 @@ None at this time. Please report issues on [GitHub Issues](https://github.com/Qu
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
-### Version 0.3.0
+### Version 2.1.0
 
-- LSP-based architecture
-- Document and range formatting
-- Comprehensive G-Code parser
-- Customizable formatting options
+- Hand-written lexer redesign for better performance and dialect handling
+- Multi-dialect parser architecture with per-dialect subclasses
+- Subroutine parsing and formatting across all four dialects
+- Hierarchical document outline
+
+### Version 2.0.0
+
+- 3D G-code tool-path visualizer with interactive navigation
+- Code folding for control structures
+- Error detection to block formatting on syntax errors
+- Modal G-code support for standalone axis parameters
+
+### Version 1.1.0
+
+- Configurable dialect support (LinuxCNC, Fanuc, Haas, Siemens)
+- LSP architecture with formatting, hover, symbols, rename, and semantic tokens
+- Robust error handling and recovery
 
 ## License
 
@@ -344,7 +384,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 - Built with [VS Code Language Server Protocol](https://microsoft.github.io/language-server-protocol/)
-- Uses [moo](https://github.com/no-context/moo) for lexing
 
 ---
 
