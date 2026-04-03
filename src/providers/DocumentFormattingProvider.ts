@@ -1,27 +1,30 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 
 import { FormatterService } from './FormatterService';
+import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { DialectType } from '../constants';
-import { Range } from '../parser/nodes';
+import { ProgramNode, Range } from '../parser/nodes';
 import { FormatterConfig } from '../formatter/types';
 
 /**
  * Document Formatting Provider
  *
  * Handles both full document and range formatting requests.
- * Consolidates formatting functionality into a single provider.
+ * When a DocumentStateManager is available, reuses the cached AST
+ * parsed with the user's selected dialect to avoid redundant parsing.
  */
 export class DocumentFormattingProvider {
-  constructor(private formatter: FormatterService) {}
+  constructor(
+    private formatter: FormatterService,
+    private stateManager?: DocumentStateManager
+  ) {}
 
   /**
-   * Format entire document or a specific range
+   * Format entire document or a specific range.
    *
-   * @param document - Text document to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @param range - Optional range to format (if omitted, formats entire document)
-   * @returns Array of text edits
+   * If a DocumentStateManager is available and the document has a cached AST,
+   * reuses it instead of re-parsing. Falls back to parsing from scratch
+   * when no cached AST is available.
    */
   provide(
     document: TextDocument,
@@ -29,16 +32,12 @@ export class DocumentFormattingProvider {
     dialect?: DialectType,
     range?: Range
   ): TextEdit[] {
-    return this.formatter.formatAsTextEdits(document, range ?? null, settings, dialect);
+    const program = this.getCachedProgram(document, settings, dialect);
+    return this.formatter.formatAsTextEdits(document, range ?? null, settings, dialect, program);
   }
 
   /**
    * Format entire document
-   *
-   * @param document - Text document to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @returns Array of text edits
    */
   provideDocument(
     document: TextDocument,
@@ -50,12 +49,6 @@ export class DocumentFormattingProvider {
 
   /**
    * Format specific range within document
-   *
-   * @param document - Text document to format
-   * @param range - Range to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @returns Array of text edits
    */
   provideRange(
     document: TextDocument,
@@ -64,5 +57,21 @@ export class DocumentFormattingProvider {
     dialect?: DialectType
   ): TextEdit[] {
     return this.provide(document, settings, dialect, range);
+  }
+
+  /**
+   * Try to get the cached AST from DocumentStateManager.
+   * Returns undefined if no state manager or no cached state.
+   */
+  private getCachedProgram(
+    document: TextDocument,
+    settings: FormatterConfig,
+    dialect?: DialectType
+  ): ProgramNode | undefined {
+    if (!this.stateManager) return undefined;
+
+    const gcodeSettings: GCodeSettings = { formatter: settings, dialect };
+    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, gcodeSettings);
+    return state.ast;
   }
 }

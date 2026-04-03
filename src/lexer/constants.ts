@@ -37,13 +37,13 @@ const FUNCTION_ENTRIES: ReadonlyArray<[string, KeywordType]> = [
 ];
 
 /**
- * LinuxCNC keyword entries.
+ * Core control flow keywords shared across all dialects.
  *
- * LinuxCNC supports the full keyword set including O-block subroutine
- * keywords (SUB, ENDSUB), named labels, and the EXISTS function.
+ * All dialects support IF/WHILE blocks via BaseParser, so the lexer
+ * must recognise these keywords regardless of dialect. Dialect-specific
+ * subroutine keywords (SUB/ENDSUB, PROC/RET, M98/M99) are added below.
  */
-export const LINUXCNC_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
-  // Control flow
+const CONTROL_FLOW_ENTRIES: ReadonlyArray<[string, KeywordType]> = [
   ['IF', KeywordType.IF],
   ['ELSE', KeywordType.ELSE],
   ['ELSEIF', KeywordType.ELSEIF],
@@ -54,11 +54,22 @@ export const LINUXCNC_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
   ['ENDWHILE', KeywordType.ENDWHILE],
   ['DO', KeywordType.DO],
   ['END', KeywordType.END],
+  ['GOTO', KeywordType.GOTO],
+];
+
+/**
+ * LinuxCNC keyword entries.
+ *
+ * LinuxCNC supports the full keyword set including O-block subroutine
+ * keywords (SUB, ENDSUB), named labels, and the EXISTS function.
+ */
+export const LINUXCNC_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
+  ...CONTROL_FLOW_ENTRIES,
+  // O-block subroutine keywords
   ['SUB', KeywordType.SUB],
   ['ENDSUB', KeywordType.ENDSUB],
   ['CALL', KeywordType.CALL],
   ['RETURN', KeywordType.RETURN],
-  ['GOTO', KeywordType.GOTO],
   // Relational operators
   ...RELATIONAL_OPERATOR_ENTRIES,
   // Functions (including EXISTS for LinuxCNC)
@@ -69,20 +80,11 @@ export const LINUXCNC_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
 /**
  * Fanuc keyword entries.
  *
- * Fanuc supports basic control flow (IF/WHILE/GOTO) but does not
- * use O-block subroutine keywords (SUB, ENDSUB). Subroutines are
- * separate programs called via M98/M99.
+ * Fanuc does not use O-block subroutine keywords (SUB, ENDSUB).
+ * Subroutines are separate programs called via M98/M99.
  */
 export const FANUC_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
-  // Control flow (no SUB, ENDSUB, ELSEIF, ENDWHILE)
-  ['IF', KeywordType.IF],
-  ['THEN', KeywordType.THEN],
-  ['ELSE', KeywordType.ELSE],
-  ['ENDIF', KeywordType.ENDIF],
-  ['WHILE', KeywordType.WHILE],
-  ['END', KeywordType.END],
-  ['DO', KeywordType.DO],
-  ['GOTO', KeywordType.GOTO],
+  ...CONTROL_FLOW_ENTRIES,
   // Relational operators
   ...RELATIONAL_OPERATOR_ENTRIES,
   // Functions (no EXISTS)
@@ -99,31 +101,37 @@ export const HAAS_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [...FANUC_KEY
 /**
  * Siemens keyword entries.
  *
- * Siemens supports PROC/RET for subroutines, CALL for invocation,
- * ELSEIF/ENDWHILE for control flow, but does not use O-block keywords
- * (SUB, ENDSUB).
+ * Siemens supports PROC/RET for subroutines, CALL for invocation.
+ * Does not use O-block keywords (SUB, ENDSUB).
  */
 export const SIEMENS_KEYWORDS: ReadonlyArray<[string, KeywordType]> = [
-  // Control flow
-  ['IF', KeywordType.IF],
-  ['ELSE', KeywordType.ELSE],
-  ['ELSEIF', KeywordType.ELSEIF],
-  ['ENDIF', KeywordType.ENDIF],
-  ['THEN', KeywordType.THEN],
-  ['WHILE', KeywordType.WHILE],
-  ['ENDWHILE', KeywordType.ENDWHILE],
-  ['DO', KeywordType.DO],
+  ...CONTROL_FLOW_ENTRIES,
   // Subroutine keywords
   ['PROC', KeywordType.PROC],
   ['RET', KeywordType.RET],
   ['CALL', KeywordType.CALL],
   ['RETURN', KeywordType.RETURN],
-  ['GOTO', KeywordType.GOTO],
   // Relational operators
   ...RELATIONAL_OPERATOR_ENTRIES,
   // Functions (no EXISTS)
   ...FUNCTION_ENTRIES,
 ];
+
+/**
+ * Keywords that define block structure (control flow + subroutines).
+ *
+ * Used by IncrementalParsingService to detect structural changes that
+ * require a full re-parse. Combines the shared control flow keywords
+ * with all dialect-specific subroutine keywords.
+ */
+export const BLOCK_STRUCTURE_KEYWORDS: ReadonlySet<string> = new Set([
+  ...CONTROL_FLOW_ENTRIES.map(([keyword]) => keyword),
+  // Subroutine keywords from all dialects
+  'SUB',
+  'ENDSUB',
+  'PROC',
+  'RET',
+]);
 
 /**
  * Returns the keyword entries for the given dialect.

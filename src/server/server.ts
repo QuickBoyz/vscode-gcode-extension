@@ -1,5 +1,6 @@
 import {
   createConnection,
+  DidChangeTextDocumentNotification,
   InitializeParams,
   InitializeResult,
   ProposedFeatures,
@@ -13,6 +14,7 @@ import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvide
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { DocumentSymbolProvider } from '../providers/DocumentSymbolProvider';
 import { FormatterService } from '../providers/FormatterService';
+import { ContentChange } from '../parser/IncrementalParsingService';
 import { ReferencesProvider } from '../providers/ReferencesProvider';
 import { RenameProvider } from '../providers/RenameProvider';
 import {
@@ -99,9 +101,9 @@ function toGCodeSettings(config: GCodeConfig): GCodeSettings {
 }
 
 const formatterService = new FormatterService(),
-  documentFormatter = new DocumentFormattingProvider(formatterService),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
+  documentFormatter = new DocumentFormattingProvider(formatterService, documentStateManager),
   definitionProvider = new DefinitionProvider(documentStateManager),
   referencesProvider = new ReferencesProvider(documentStateManager),
   renameProvider = new RenameProvider(documentStateManager),
@@ -250,23 +252,57 @@ connection.onFoldingRanges(async (params) => {
   return new FoldingRangeProvider().provideFoldingRanges(document, documentStateManager, settings);
 });
 
-// Publish diagnostics on document change
-documents.onDidChangeContent(async (change) => {
-  documentStateManager.invalidateDocument(change.document.uri);
+// -- Incremental change capture --
+// Intercept raw textDocument/didChange to extract content changes
+// for incremental parsing before TextDocuments applies them.
+const DIAGNOSTICS_DEBOUNCE_MS = 200;
+const diagnosticsTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  // Publish diagnostics for syntax errors
-  const settings = await getDocumentSettings(change.document.uri),
-    diagnostics = diagnosticsProvider.provideDiagnostics(change.document, settings);
-  connection
-    .sendDiagnostics({
-      uri: change.document.uri,
-      diagnostics,
-    })
-    .catch((error: Error) => {
-      connection.console.error(
-        `Failed to send diagnostics for ${change.document.uri}: ${error.message}`
-      );
-    });
+connection.onNotification(DidChangeTextDocumentNotification.type, (params) => {
+  const uri = params.textDocument.uri;
+  for (const change of params.contentChanges) {
+    if ('range' in change) {
+      const range = change.range;
+      const oldEndLine = range.end.line;
+      const newLineCount = change.text.split('\n').length - 1;
+      const oldLineCount = oldEndLine - range.start.line;
+      const lineDelta = newLineCount - oldLineCount;
+
+      const contentChange: ContentChange = {
+        startLine: range.start.line,
+        startCharacter: range.start.character,
+        endLine: range.end.line,
+        endCharacter: range.end.character,
+        lineDelta,
+      };
+      documentStateManager.applyContentChange(uri, contentChange);
+    } else {
+      // Full-document replacement — force full re-parse
+      documentStateManager.invalidateDocument(uri);
+    }
+  }
+});
+
+// Publish diagnostics on document change (debounced)
+documents.onDidChangeContent((change) => {
+  const uri = change.document.uri;
+
+  // Clear any pending debounce timer
+  const existing = diagnosticsTimers.get(uri);
+  if (existing) clearTimeout(existing);
+
+  diagnosticsTimers.set(
+    uri,
+    setTimeout(() => {
+      diagnosticsTimers.delete(uri);
+      void getDocumentSettings(uri).then((settings) => {
+        const diagnostics = diagnosticsProvider.provideDiagnostics(change.document, settings);
+        connection.sendDiagnostics({ uri, diagnostics }).catch((error: Error) => {
+          connection.console.error(`Failed to send diagnostics for ${uri}: ${error.message}`);
+        });
+      });
+    }, DIAGNOSTICS_DEBOUNCE_MS)
+  );
 });
 
 // Also publish diagnostics when document is opened
@@ -283,6 +319,17 @@ documents.onDidOpen(async (event) => {
         `Failed to send diagnostics for ${event.document.uri}: ${error.message}`
       );
     });
+});
+
+// Clean up caches and timers when a document is closed
+documents.onDidClose((event) => {
+  const uri = event.document.uri;
+  const timer = diagnosticsTimers.get(uri);
+  if (timer) {
+    clearTimeout(timer);
+    diagnosticsTimers.delete(uri);
+  }
+  documentStateManager.removeDocument(uri);
 });
 
 // Register pull-based diagnostics handler (for newer VS Code versions)

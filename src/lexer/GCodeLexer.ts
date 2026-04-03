@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { GCodeScanner } from './GCodeScanner';
+import { GCodeScanner, TokenizeOptions } from './GCodeScanner';
 import { LexerToken } from './LexerToken';
 
 /**
@@ -19,8 +19,11 @@ export class GCodeLexer {
   /**
    * Tokenize G-code input into LexerToken array.
    * All tokens are included, including whitespace.
+   *
+   * @param input   - Raw G-code text (or a region of it)
+   * @param options - Optional position offsets for incremental tokenization
    */
-  tokenize(input: string): LexerToken[] {
-    return this.scanner.tokenize(input);
+  tokenize(input: string, options?: TokenizeOptions): LexerToken[] {
+    return this.scanner.tokenize(input, options);
   }
 }

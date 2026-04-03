@@ -5,6 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
+import { ContentChange } from '../parser/IncrementalParsingService';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 
 describe('DocumentStateManager', () => {
@@ -117,16 +118,45 @@ describe('DocumentStateManager', () => {
     });
   });
 
+  describe('applyContentChange', () => {
+    it('should force full re-parse when multiple changes arrive before a parse', () => {
+      const uri = 'file:///test.nc',
+        text = '#<x> = 10\nG0 X0',
+        change: ContentChange = {
+          startLine: 0,
+          startCharacter: 0,
+          endLine: 0,
+          endCharacter: 5,
+          lineDelta: 0,
+        };
+
+      // Parse initially
+      const state1 = manager.getOrParseDocument(uri, text, defaultSettings);
+
+      // Apply two changes before next parse — should force full re-parse
+      manager.applyContentChange(uri, change);
+      manager.applyContentChange(uri, change);
+
+      // Next parse should produce a new state (not return stale cache)
+      const state2 = manager.getOrParseDocument(uri, text, defaultSettings);
+      expect(state2.version).toBe(state1.version + 1);
+    });
+  });
+
   describe('invalidateDocument', () => {
-    it('should remove document from cache', () => {
+    it('should clear cached analysis but preserve AST for incremental parsing', () => {
       const text = '#<x> = 10',
         uri = 'file:///test.nc';
 
-      manager.getOrParseDocument(uri, text, defaultSettings);
-      expect(manager.getDocumentState(uri)).toBeDefined();
+      const state = manager.getOrParseDocument(uri, text, defaultSettings);
+      manager.getAnalysis(uri, text, defaultSettings);
+      expect(state.analysis).toBeDefined();
 
       manager.invalidateDocument(uri);
-      expect(manager.getDocumentState(uri)).toBeUndefined();
+      // State is preserved (needed for incremental parsing baseline)
+      expect(manager.getDocumentState(uri)).toBeDefined();
+      // But analysis is cleared
+      expect(manager.getDocumentState(uri)?.analysis).toBeUndefined();
     });
 
     it('should not affect other documents', () => {
@@ -139,7 +169,8 @@ describe('DocumentStateManager', () => {
 
       manager.invalidateDocument(uri1);
 
-      expect(manager.getDocumentState(uri1)).toBeUndefined();
+      // Both states preserved, but invalidated one has cleared analysis
+      expect(manager.getDocumentState(uri1)).toBeDefined();
       expect(manager.getDocumentState(uri2)).toBeDefined();
     });
   });
@@ -157,6 +188,33 @@ describe('DocumentStateManager', () => {
 
       expect(manager.getDocumentState(uri1)).toBeUndefined();
       expect(manager.getDocumentState(uri2)).toBeUndefined();
+    });
+  });
+
+  describe('removeDocument', () => {
+    it('should fully remove all cached state for a document', () => {
+      const text = '#<x> = 10',
+        uri = 'file:///test.nc';
+
+      manager.getOrParseDocument(uri, text, defaultSettings);
+      expect(manager.getDocumentState(uri)).toBeDefined();
+
+      manager.removeDocument(uri);
+      expect(manager.getDocumentState(uri)).toBeUndefined();
+    });
+
+    it('should not affect other documents', () => {
+      const text = '#<x> = 10',
+        uri1 = 'file:///test1.nc',
+        uri2 = 'file:///test2.nc';
+
+      manager.getOrParseDocument(uri1, text, defaultSettings);
+      manager.getOrParseDocument(uri2, text, defaultSettings);
+
+      manager.removeDocument(uri1);
+
+      expect(manager.getDocumentState(uri1)).toBeUndefined();
+      expect(manager.getDocumentState(uri2)).toBeDefined();
     });
   });
 

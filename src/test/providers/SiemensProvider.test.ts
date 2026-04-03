@@ -77,7 +77,10 @@ describe('SiemensProvider', () => {
       expect(edits[0].newText).toContain('ELSEIF [#<x> EQ 2.0]');
     });
 
-    it('formats labels with colon suffix (Siemens style)', () => {
+    it('returns input unchanged for O-word labels (not valid Siemens syntax)', () => {
+      // O-word labels are a LinuxCNC concept; Siemens uses PROC/RET.
+      // The Siemens parser rejects O100, so the formatter returns the
+      // original text unchanged (syntax errors block formatting).
       const input = 'O100 #<x> = 5';
       const document = TextDocument.create('test.nc', 'gcode', 1, input);
 
@@ -88,7 +91,7 @@ describe('SiemensProvider', () => {
       );
 
       expect(edits).toHaveLength(1);
-      expect(edits[0].newText).toContain('O100:');
+      expect(edits[0].newText).toBe(input);
     });
 
     it('formats full document range', () => {
