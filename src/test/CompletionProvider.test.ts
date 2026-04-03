@@ -806,5 +806,22 @@ describe('CompletionProvider', () => {
       const hasSub = completions.some((item) => item.label === 'SUB');
       expect(hasSub).toBe(true);
     });
+
+    it('should provide keywords after named O-word label', () => {
+      const content = 'O<myFunc> SU';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 12 },
+        settings
+      );
+
+      const hasSub = completions.some((item) => item.label === 'SUB');
+      expect(hasSub).toBe(true);
+    });
   });
 });

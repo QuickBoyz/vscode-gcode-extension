@@ -15,8 +15,10 @@ import {
 import { OPERATOR_INFO, OperatorInfo } from '../../databases/OperatorDatabase';
 import { BaseDataProvider } from '../BaseDataProvider';
 import { GCodeCommandInfo } from '../../databases/types';
+import { DialectType } from '../../constants';
 
 export class SiemensDataProvider extends BaseDataProvider {
+  protected readonly dialect = DialectType.SIEMENS;
   getAxisParameterInfo(axis: string): AxisParameterInfo | undefined {
     return AXIS_PARAMETER_INFO.get(this.normalizeIdentifier(axis));
   }

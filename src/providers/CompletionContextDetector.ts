@@ -274,9 +274,9 @@ export class CompletionContextDetector {
     textBeforeCursor: string,
     upperText: string
   ): ContextInfo | null {
-    // Match: optional O-word label followed by alphabetic text (2+ chars)
+    // Match: optional O-word label (numeric or named) followed by alphabetic text (2+ chars)
     // Must NOT start with G or M (those are commands, not keywords)
-    const keywordMatch = /^(?:[Oo]\d+\s+)?([A-Za-z]{2,})$/.exec(upperText);
+    const keywordMatch = /^(?:[Oo](?:\d+|<\w+>)\s+)?([A-Za-z]{2,})$/.exec(upperText);
     if (keywordMatch) {
       const prefix = keywordMatch[1].toUpperCase();
       // Exclude G/M command prefixes

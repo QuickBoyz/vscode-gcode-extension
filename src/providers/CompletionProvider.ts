@@ -22,11 +22,9 @@ import {
   OPERATORS_SORT_PREFIX,
   GCodeSymbols,
   DialectType,
-  GROUP_SORT_ORDER,
-  DEFAULT_GROUP_SORT_PREFIX,
   MAX_SNIPPET_PARAMETERS,
-  getDialectKeywords,
 } from '../constants';
+import { GROUP_SORT_ORDER, DEFAULT_GROUP_SORT_PREFIX } from '../databases/types';
 import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
 import { formatVariableName } from './RenameUtils';
 import { DocumentationBuilder } from './DocumentationBuilder';
@@ -172,7 +170,9 @@ export class CompletionProvider extends BaseProvider {
       const detail = commandInfo.example ?? commandInfo.name;
 
       // Group-based sort order
-      const groupPrefix = GROUP_SORT_ORDER[commandInfo.group ?? ''] ?? DEFAULT_GROUP_SORT_PREFIX;
+      const groupPrefix = commandInfo.group
+        ? (GROUP_SORT_ORDER[commandInfo.group] ?? DEFAULT_GROUP_SORT_PREFIX)
+        : DEFAULT_GROUP_SORT_PREFIX;
       const sortText = `${groupPrefix}_${command}`;
 
       items.push({
@@ -376,7 +376,8 @@ export class CompletionProvider extends BaseProvider {
     const items: CompletionItem[] = [];
     const prefix = (contextInfo.prefix ?? GCodeSymbols.EMPTY_STRING).toUpperCase();
     const dialect = settings.dialect || DialectType.LINUXCNC;
-    const keywords = getDialectKeywords(dialect);
+    const dataProvider = this.getDataProvider(settings.dialect);
+    const keywords = dataProvider.getAllKeywords();
 
     for (const keyword of keywords) {
       // Filter by prefix

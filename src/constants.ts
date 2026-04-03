@@ -7,8 +7,6 @@ import {
   RelationalOperatorType,
   UnaryOperatorType,
 } from './parser/nodes/expressions';
-import { KeywordType } from './lexer/types';
-import { getKeywordEntries } from './lexer/constants';
 
 export const GCODE_LANGUAGE_ID = 'gcode';
 
@@ -209,67 +207,3 @@ export const OPERATORS_SORT_PREFIX = 'z_';
  * Prevents overwhelming snippets for commands with many parameters.
  */
 export const MAX_SNIPPET_PARAMETERS = 5;
-
-/**
- * Sort order for G-code command groups in completion lists.
- * Lower numbers appear first. Groups not listed default to '99'.
- */
-export const GROUP_SORT_ORDER: Readonly<Record<string, string>> = {
-  Motion: '01',
-  Compensation: '02',
-  'Cutter Compensation': '02',
-  'Coordinate Systems': '03',
-  'Coordinate System': '03',
-  'Plane Selection': '04',
-  Units: '05',
-  'Distance Mode': '06',
-  'Feed Rate Mode': '07',
-  'Tool Length Offset': '08',
-  'Canned Cycle': '09',
-  'Canned Cycles': '09',
-  Dwell: '10',
-  'Program Control': '11',
-  'Spindle Control': '12',
-  'Tool Control': '13',
-  'Coolant Control': '14',
-  'Machine Control': '15',
-};
-
-/**
- * Default group sort order prefix for unlisted groups
- */
-export const DEFAULT_GROUP_SORT_PREFIX = '99';
-
-/**
- * KeywordType values that represent control flow and subroutine keywords
- * (as opposed to relational operators and functions).
- * Used to derive dialect-specific keyword completions from the lexer tables.
- */
-export const CONTROL_FLOW_KEYWORD_TYPES: ReadonlySet<KeywordType> = new Set([
-  KeywordType.IF,
-  KeywordType.ELSE,
-  KeywordType.ELSEIF,
-  KeywordType.ENDIF,
-  KeywordType.THEN,
-  KeywordType.WHILE,
-  KeywordType.ENDWHILE,
-  KeywordType.DO,
-  KeywordType.END,
-  KeywordType.SUB,
-  KeywordType.ENDSUB,
-  KeywordType.CALL,
-  KeywordType.RETURN,
-  KeywordType.GOTO,
-  KeywordType.PROC,
-  KeywordType.RET,
-]);
-
-/**
- * Get control flow and subroutine keywords for a dialect.
- * Derived from the lexer's authoritative keyword tables — single source of truth.
- */
-export function getDialectKeywords(dialect: DialectType): readonly string[] {
-  return getKeywordEntries(dialect)
-    .filter(([, type]) => CONTROL_FLOW_KEYWORD_TYPES.has(type))
-    .map(([name]) => name);
-}
