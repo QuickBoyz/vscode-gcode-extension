@@ -4,27 +4,28 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { FormatterFactory } from '../formatter/FormatterFactory';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { AstTraverser } from '../parser/AstTraverser';
-import { ParserFactory } from '../parser/ParserFactory';
 import { Range } from '../parser/nodes';
+import { ParserFactory } from '../parser/ParserFactory';
 import { DialectType } from '../constants';
 import { ErrorDetectorVisitor } from './ErrorDetectorVisitor';
 import { FormatterConfig } from '../formatter/types';
 
 export class FormatterService {
+  /**
+   * Format a document from raw text.
+   *
+   * Always parses with LinuxCNC dialect (superset of all keywords).
+   * The dialect parameter only affects formatter output, not parsing.
+   */
   formatDocument(text: string, settings: FormatterConfig, dialect?: DialectType): string {
-    // Always parse with LinuxCNC dialect (superset of all keywords).
-    // The dialect parameter only affects formatter output, not parsing.
-    // Dialect-aware parsing is handled at the DocumentStateManager level.
     const lexer = LexerFactory.create(DialectType.LINUXCNC),
       tokens = lexer.tokenize(text),
       parser = ParserFactory.create(DialectType.LINUXCNC, tokens, text),
       program = parser.parseProgram();
 
     // Check for syntax errors and block formatting if any exist
-    // This matches VS Code's built-in JavaScript formatter behavior
     const errorDetector = new ErrorDetectorVisitor();
     if (errorDetector.hasErrors(program)) {
-      // Return original text unchanged when errors exist
       return text;
     }
 
@@ -42,7 +43,8 @@ export class FormatterService {
     settings: FormatterConfig,
     dialect?: DialectType
   ): TextEdit[] {
-    const formatted = this.formatDocument(document.getText(), settings, dialect);
+    const text = document.getText();
+    const formatted = this.formatDocument(text, settings, dialect);
 
     return [
       TextEdit.replace(
@@ -50,8 +52,8 @@ export class FormatterService {
           Range.create(
             0,
             0,
-            document.positionAt(document.getText().length).line,
-            document.positionAt(document.getText().length).character
+            document.positionAt(text.length).line,
+            document.positionAt(text.length).character
           ),
         formatted
       ),

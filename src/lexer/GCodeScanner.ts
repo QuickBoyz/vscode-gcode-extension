@@ -20,11 +20,25 @@ const NULL_CHAR = '\0';
  * - Single uppercase letter not followed by another letter -> PARAM
  * - Case-insensitive keyword matching via KeywordTable
  */
+/**
+ * Options for partial/offset tokenization.
+ * All values are 1-based, matching the lexer's internal convention.
+ */
+export interface TokenizeOptions {
+  /** 1-based starting line number (default: 1) */
+  readonly startLine?: number;
+  /** 1-based starting column number (default: 1) */
+  readonly startCol?: number;
+  /** Byte offset base added to all emitted token offsets (default: 0) */
+  readonly startOffset?: number;
+}
+
 export class GCodeScanner {
   private source: string = '';
   private position: number = 0;
   private line: number = 1;
   private col: number = 1;
+  private offsetBase: number = 0;
   private tokens: LexerToken[] = [];
   private readonly keywordMap: ReadonlyMap<string, KeywordType>;
 
@@ -34,14 +48,22 @@ export class GCodeScanner {
 
   /**
    * Tokenize the given source text.
-   * @param source - Raw G-code source text
+   *
+   * When `options` is provided, the emitted tokens will have line/col/offset
+   * values adjusted as if the source were a region starting at the given
+   * position within a larger document. This enables incremental tokenization
+   * of edited regions without re-tokenizing the entire file.
+   *
+   * @param source  - Raw G-code source text (or a region of it)
+   * @param options - Optional position offsets for incremental tokenization
    * @returns Array of LexerToken
    */
-  tokenize(source: string): LexerToken[] {
+  tokenize(source: string, options?: TokenizeOptions): LexerToken[] {
     this.source = source;
     this.position = 0;
-    this.line = 1;
-    this.col = 1;
+    this.line = options?.startLine ?? 1;
+    this.col = options?.startCol ?? 1;
+    this.offsetBase = options?.startOffset ?? 0;
     this.tokens = [];
 
     while (this.position < this.source.length) {
@@ -433,7 +455,15 @@ export class GCodeScanner {
     lineBreaks: number = 0
   ): void {
     this.tokens.push(
-      new LexerToken(category, keyword, value, startOffset, startLine, startCol, lineBreaks)
+      new LexerToken(
+        category,
+        keyword,
+        value,
+        this.offsetBase + startOffset,
+        startLine,
+        startCol,
+        lineBreaks
+      )
     );
   }
 

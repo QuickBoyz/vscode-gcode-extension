@@ -3,6 +3,12 @@
  *
  * Caches parsed ASTs, lexer, parser, and analysis results per document URI
  * to avoid redundant parsing and analysis.
+ *
+ * Supports incremental parsing: when a content change is recorded via
+ * {@link applyContentChange}, the next call to {@link getOrParseDocument}
+ * will attempt to re-parse only the affected region and splice the result
+ * into the existing AST. Falls back to full re-parse when incremental
+ * parsing is not possible (e.g., block structure changes).
  */
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -10,6 +16,7 @@ import { DialectType } from '../constants';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { BaseParser } from '../parser/BaseParser';
+import { ContentChange, IncrementalParsingService } from '../parser/IncrementalParsingService';
 import { ProgramNode } from '../parser/nodes';
 import { ParserFactory } from '../parser/ParserFactory';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
@@ -38,6 +45,8 @@ export interface DocumentState {
   version: number;
   lastModified: number;
   analysis?: AnalysisResults;
+  /** When true, the next getOrParseDocument call will force a full re-parse. */
+  needsReparse?: boolean;
 }
 
 /**
@@ -53,6 +62,13 @@ export class DocumentStateManager {
   private readonly lexerCache = new Map<DialectType, GCodeLexer>();
   private readonly analysisService: AstAnalysisService;
   private readonly semanticAnalyzer: SemanticAnalyzer;
+  private readonly incrementalParser = new IncrementalParsingService();
+
+  /** Pending content changes per document URI, consumed on next parse. */
+  private pendingChanges = new Map<string, ContentChange>();
+
+  /** Previous document text per URI, needed for incremental diffing. */
+  private previousText = new Map<string, string>();
 
   constructor() {
     this.analysisService = new AstAnalysisService();
@@ -68,30 +84,104 @@ export class DocumentStateManager {
   }
 
   /**
-   * Get or parse a document, returning cached state if available
+   * Record a content change for a document. On the next call to
+   * {@link getOrParseDocument}, the manager will attempt incremental
+   * parsing instead of a full re-parse.
+   *
+   * @param uri    - Document URI
+   * @param change - Description of what changed
+   */
+  applyContentChange(uri: string, change: ContentChange): void {
+    // Only keep the latest change — multiple rapid changes collapse
+    // to a single pending change (the debounced handler ensures we
+    // always have the latest full text when we parse).
+    // If we already have a pending change, fall back to full re-parse
+    // since merging multiple incremental changes is complex.
+    if (this.pendingChanges.has(uri)) {
+      // Multiple changes before a parse → discard pending, force full re-parse
+      this.pendingChanges.delete(uri);
+    } else {
+      this.pendingChanges.set(uri, change);
+    }
+
+    // Clear cached analysis (always needed on change)
+    const state = this.documentStates.get(uri);
+    if (state) {
+      state.analysis = undefined;
+    }
+  }
+
+  /**
+   * Get or parse a document, returning cached state if available.
+   *
+   * If a content change was recorded via {@link applyContentChange},
+   * attempts incremental parsing first and falls back to full re-parse
+   * if that fails.
    */
   getOrParseDocument(uri: string, text: string, settings: GCodeSettings): DocumentState {
     const existingState = this.documentStates.get(uri),
       currentVersion = Date.now();
 
-    // Check if we can reuse cached state
-    if (existingState && existingState.settings === settings) {
-      // Update last modified timestamp
+    // Check if we can reuse cached state (no pending change, same settings, not invalidated)
+    if (
+      existingState &&
+      existingState.settings === settings &&
+      !existingState.needsReparse &&
+      !this.pendingChanges.has(uri)
+    ) {
       existingState.lastModified = currentVersion;
       return existingState;
     }
 
-    // Parse the document
+    // Try incremental parsing if we have a pending change and an existing AST
+    const pendingChange = this.pendingChanges.get(uri);
+    this.pendingChanges.delete(uri);
+
+    if (pendingChange && existingState && existingState.settings === settings) {
+      const oldText = this.previousText.get(uri);
+      if (oldText !== undefined) {
+        const dialect = settings.dialect ?? DialectType.LINUXCNC;
+        const result = this.incrementalParser.tryIncrementalParse(
+          existingState.ast,
+          text,
+          oldText,
+          pendingChange,
+          dialect
+        );
+
+        if (result.success && result.ast) {
+          // Incremental parse succeeded — update state in place
+          existingState.ast = result.ast;
+          existingState.lastModified = currentVersion;
+          existingState.version = (this.documentVersions.get(uri) ?? 0) + 1;
+          this.documentVersions.set(uri, existingState.version);
+          this.previousText.set(uri, text);
+          return existingState;
+        }
+      }
+    }
+
+    // Full re-parse (fallback or first parse)
+    return this.fullParse(uri, text, settings, currentVersion);
+  }
+
+  /**
+   * Perform a full tokenize + parse of the document.
+   */
+  private fullParse(
+    uri: string,
+    text: string,
+    settings: GCodeSettings,
+    currentVersion: number
+  ): DocumentState {
     const dialect = settings.dialect ?? DialectType.LINUXCNC,
       lexer = this.getLexer(dialect),
       tokens = lexer.tokenize(text),
       parser = ParserFactory.create(dialect, tokens, text),
       ast = parser.parseProgram(),
-      // Get or increment version (persists across invalidations)
       currentDocVersion = (this.documentVersions.get(uri) ?? 0) + 1;
     this.documentVersions.set(uri, currentDocVersion);
 
-    // Create new state
     const state: DocumentState = {
       ast,
       lexer,
@@ -102,6 +192,7 @@ export class DocumentStateManager {
     };
 
     this.documentStates.set(uri, state);
+    this.previousText.set(uri, text);
     return state;
   }
 
@@ -113,17 +204,18 @@ export class DocumentStateManager {
   }
 
   /**
-   * Invalidate cached state for a document
+   * Invalidate cached state for a document.
+   *
+   * Clears analysis but preserves the AST so incremental parsing
+   * can use it as a baseline. The AST is only replaced on the next
+   * call to {@link getOrParseDocument}.
    */
   invalidateDocument(uri: string): void {
     const state = this.documentStates.get(uri);
     if (state) {
-      // Clear cached analysis when document changes
       state.analysis = undefined;
+      state.needsReparse = true;
     }
-    this.documentStates.delete(uri);
-    // Note: We keep version tracking even after invalidation
-    // So that subsequent parses continue versioning
   }
 
   /**
@@ -177,8 +269,8 @@ export class DocumentStateManager {
    */
   invalidateAll(): void {
     this.documentStates.clear();
-    // Note: We keep version tracking even after invalidation
-    // So that subsequent parses continue versioning
+    this.pendingChanges.clear();
+    this.previousText.clear();
   }
 
   /**
@@ -187,8 +279,8 @@ export class DocumentStateManager {
   clearAll(): void {
     this.documentStates.clear();
     this.dataProviderCache.clear();
-    // Note: We keep version tracking even after invalidation
-    // So that subsequent parses continue versioning
+    this.pendingChanges.clear();
+    this.previousText.clear();
   }
 
   /**

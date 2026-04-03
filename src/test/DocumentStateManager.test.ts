@@ -118,15 +118,19 @@ describe('DocumentStateManager', () => {
   });
 
   describe('invalidateDocument', () => {
-    it('should remove document from cache', () => {
+    it('should clear cached analysis but preserve AST for incremental parsing', () => {
       const text = '#<x> = 10',
         uri = 'file:///test.nc';
 
-      manager.getOrParseDocument(uri, text, defaultSettings);
-      expect(manager.getDocumentState(uri)).toBeDefined();
+      const state = manager.getOrParseDocument(uri, text, defaultSettings);
+      manager.getAnalysis(uri, text, defaultSettings);
+      expect(state.analysis).toBeDefined();
 
       manager.invalidateDocument(uri);
-      expect(manager.getDocumentState(uri)).toBeUndefined();
+      // State is preserved (needed for incremental parsing baseline)
+      expect(manager.getDocumentState(uri)).toBeDefined();
+      // But analysis is cleared
+      expect(manager.getDocumentState(uri)?.analysis).toBeUndefined();
     });
 
     it('should not affect other documents', () => {
@@ -139,7 +143,8 @@ describe('DocumentStateManager', () => {
 
       manager.invalidateDocument(uri1);
 
-      expect(manager.getDocumentState(uri1)).toBeUndefined();
+      // Both states preserved, but invalidated one has cleared analysis
+      expect(manager.getDocumentState(uri1)).toBeDefined();
       expect(manager.getDocumentState(uri2)).toBeDefined();
     });
   });

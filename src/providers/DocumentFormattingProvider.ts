@@ -9,19 +9,20 @@ import { FormatterConfig } from '../formatter/types';
  * Document Formatting Provider
  *
  * Handles both full document and range formatting requests.
- * Consolidates formatting functionality into a single provider.
+ *
+ * Note: The formatter deliberately parses with LinuxCNC dialect (superset of
+ * all keywords) regardless of the document's configured dialect. Only the
+ * formatter output is dialect-specific. This means we cannot reuse the
+ * dialect-specific cached AST from DocumentStateManager here.
  */
 export class DocumentFormattingProvider {
   constructor(private formatter: FormatterService) {}
 
   /**
-   * Format entire document or a specific range
+   * Format entire document or a specific range.
    *
-   * @param document - Text document to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @param range - Optional range to format (if omitted, formats entire document)
-   * @returns Array of text edits
+   * Uses FormatterService.formatDocument which always parses with
+   * LinuxCNC (superset), then formats with the specified dialect.
    */
   provide(
     document: TextDocument,
@@ -34,11 +35,6 @@ export class DocumentFormattingProvider {
 
   /**
    * Format entire document
-   *
-   * @param document - Text document to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @returns Array of text edits
    */
   provideDocument(
     document: TextDocument,
@@ -50,12 +46,6 @@ export class DocumentFormattingProvider {
 
   /**
    * Format specific range within document
-   *
-   * @param document - Text document to format
-   * @param range - Range to format
-   * @param settings - Formatter settings
-   * @param dialect - Optional dialect type
-   * @returns Array of text edits
    */
   provideRange(
     document: TextDocument,
