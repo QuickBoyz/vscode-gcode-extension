@@ -15,6 +15,7 @@ import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LexerToken } from '../lexer/LexerToken';
 import { BaseParser } from '../parser/BaseParser';
 import { IDataProvider } from '../providers/IDataProvider';
+import { DialectValidator } from '../utils/DialectValidator';
 
 /**
  * Factory functions that each dialect registration must supply.
@@ -46,6 +47,13 @@ export class DialectRegistry {
   }
 
   /**
+   * Clear all registered dialects. Intended for test isolation only.
+   */
+  static reset(): void {
+    DialectRegistry.registry.clear();
+  }
+
+  /**
    * Create a parser for the given dialect.
    *
    * @param dialect - Target dialect
@@ -58,7 +66,8 @@ export class DialectRegistry {
     tokens: readonly LexerToken[],
     inputText?: string
   ): BaseParser {
-    return DialectRegistry.getFactories(dialect).createParser(tokens, inputText);
+    const normalized = DialectValidator.normalize(dialect);
+    return DialectRegistry.getFactories(normalized).createParser(tokens, inputText);
   }
 
   /**
@@ -72,7 +81,8 @@ export class DialectRegistry {
     dialect: DialectType,
     settings?: Partial<FormatterConfig>
   ): FormatterInterface {
-    return DialectRegistry.getFactories(dialect).createFormatter(settings);
+    const normalized = DialectValidator.normalize(dialect);
+    return DialectRegistry.getFactories(normalized).createFormatter(settings);
   }
 
   /**
@@ -82,7 +92,8 @@ export class DialectRegistry {
    * @returns A dialect-specific data provider instance
    */
   static createDataProvider(dialect: DialectType): IDataProvider {
-    return DialectRegistry.getFactories(dialect).createDataProvider();
+    const normalized = DialectValidator.normalize(dialect);
+    return DialectRegistry.getFactories(normalized).createDataProvider();
   }
 
   /**
@@ -95,7 +106,8 @@ export class DialectRegistry {
    * @returns A configured GCodeLexer instance
    */
   static createLexer(dialect: DialectType): GCodeLexer {
-    return new GCodeLexer(dialect);
+    const normalized = DialectValidator.normalize(dialect);
+    return new GCodeLexer(normalized);
   }
 
   /**
