@@ -5,14 +5,21 @@
  */
 
 import { AstNode, AxisParameterNode } from '../../parser/nodes';
+import { ExpressionFormatter } from '../../formatter/ExpressionFormatter';
+import { DocumentationBuilder } from '../DocumentationBuilder';
 import { IDataProvider } from '../IDataProvider';
-import { BaseHoverStrategy } from './BaseHoverStrategy';
+import { HoverStrategy } from './HoverStrategy';
 
 /**
  * Hover strategy for axis parameters (X, Y, Z, etc.).
  * Looks up parameter documentation and shows the current value.
  */
-export class ParameterHoverStrategy extends BaseHoverStrategy {
+export class ParameterHoverStrategy implements HoverStrategy {
+  constructor(
+    private readonly documentationBuilder: DocumentationBuilder,
+    private readonly expressionFormatter: ExpressionFormatter
+  ) {}
+
   generateHover(node: AstNode, dataProvider: IDataProvider): string | null {
     const paramNode = node as AxisParameterNode;
     const axisInfo = dataProvider.getAxisParameterInfo(paramNode.axis);

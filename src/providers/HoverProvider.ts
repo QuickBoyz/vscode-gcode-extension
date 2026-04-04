@@ -26,7 +26,9 @@ import {
   VariableReferenceNode,
 } from '../parser/nodes';
 import { Range } from '../parser/nodes/Range';
+import { ExpressionFormatter } from '../formatter/ExpressionFormatter';
 import { AnalysisResults } from './AnalysisResults';
+import { DocumentationBuilder } from './DocumentationBuilder';
 import { DocumentState, GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
 import {
@@ -62,12 +64,18 @@ export class HoverProvider extends BaseProvider {
   constructor(...args: ConstructorParameters<typeof BaseProvider>) {
     super(...args);
 
-    const commandStrategy = new CommandHoverStrategy();
-    const variableStrategy = new VariableHoverStrategy();
-    const binaryExpressionStrategy = new BinaryExpressionHoverStrategy();
-    const unaryExpressionStrategy = new UnaryExpressionHoverStrategy();
-    const functionStrategy = new FunctionHoverStrategy();
-    const parameterStrategy = new ParameterHoverStrategy();
+    const documentationBuilder = new DocumentationBuilder();
+    const expressionFormatter = new ExpressionFormatter({
+      prettyPrintNumbers: false,
+      fallbackString: '(expression)',
+    });
+
+    const commandStrategy = new CommandHoverStrategy(documentationBuilder);
+    const variableStrategy = new VariableHoverStrategy(expressionFormatter);
+    const binaryExpressionStrategy = new BinaryExpressionHoverStrategy(documentationBuilder);
+    const unaryExpressionStrategy = new UnaryExpressionHoverStrategy(documentationBuilder);
+    const functionStrategy = new FunctionHoverStrategy(documentationBuilder);
+    const parameterStrategy = new ParameterHoverStrategy(documentationBuilder, expressionFormatter);
 
     this.strategies = new Map<AstNodeConstructor, HoverStrategy>([
       [MotionCommandNode, commandStrategy],

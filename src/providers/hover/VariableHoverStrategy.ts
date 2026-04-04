@@ -6,17 +6,20 @@
 
 import { AstNode, VariableAssignmentNode, VariableReferenceNode } from '../../parser/nodes';
 import { Range } from '../../parser/nodes/Range';
+import { ExpressionFormatter } from '../../formatter/ExpressionFormatter';
 import { MarkdownBuilder } from '../MarkdownBuilder';
 import { AnalysisResults } from '../AnalysisResults';
 import { IDataProvider } from '../IDataProvider';
 import { formatVariableName } from '../RenameUtils';
-import { BaseHoverStrategy } from './BaseHoverStrategy';
+import { HoverStrategy } from './HoverStrategy';
 
 /**
  * Hover strategy for variable declarations and references.
  * Shows variable name, value, declaration location, and reference count.
  */
-export class VariableHoverStrategy extends BaseHoverStrategy {
+export class VariableHoverStrategy implements HoverStrategy {
+  constructor(private readonly expressionFormatter: ExpressionFormatter) {}
+
   generateHover(
     node: AstNode,
     _dataProvider: IDataProvider,
