@@ -5,17 +5,14 @@
  */
 
 import { AstNode, UnaryExpressionNode } from '../../parser/nodes';
-import { DocumentationBuilder } from '../DocumentationBuilder';
 import { IDataProvider } from '../IDataProvider';
-import { HoverStrategy } from './HoverStrategy';
+import { BaseHoverStrategy } from './BaseHoverStrategy';
 
 /**
  * Hover strategy for unary expression operators.
  * Looks up operator documentation from the dialect-specific data provider.
  */
-export class UnaryExpressionHoverStrategy implements HoverStrategy {
-  private readonly documentationBuilder = new DocumentationBuilder();
-
+export class UnaryExpressionHoverStrategy extends BaseHoverStrategy {
   generateHover(node: AstNode, dataProvider: IDataProvider): string | null {
     const unaryNode = node as UnaryExpressionNode;
     const operatorInfo = dataProvider.getOperatorInfo(unaryNode.operator);
