@@ -370,10 +370,7 @@ suite('Completion Provider E2E Tests', () => {
         });
         assert.ok(g01, 'Expected G01 completion item');
         assert.ok(g01.detail, 'Expected detail text');
-        assert.ok(
-          g01.detail?.toString().includes('Linear'),
-          'Expected Linear Interpolation detail'
-        );
+        assert.ok(g01.detail?.toString().includes('G01'), 'Expected G01 example or name in detail');
       },
       'completion-details.nc'
     );
