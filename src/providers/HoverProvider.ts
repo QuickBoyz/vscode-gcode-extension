@@ -26,14 +26,16 @@ import {
   VariableReferenceNode,
 } from '../parser/nodes';
 import { Range } from '../parser/nodes/Range';
+import { AnalysisResults } from './AnalysisResults';
 import { DocumentState, GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
 import {
   HoverStrategy,
+  BinaryExpressionHoverStrategy,
   CommandHoverStrategy,
-  ExpressionHoverStrategy,
   FunctionHoverStrategy,
   ParameterHoverStrategy,
+  UnaryExpressionHoverStrategy,
   VariableHoverStrategy,
 } from './hover';
 
@@ -62,7 +64,8 @@ export class HoverProvider extends BaseProvider {
 
     const commandStrategy = new CommandHoverStrategy();
     const variableStrategy = new VariableHoverStrategy();
-    const expressionStrategy = new ExpressionHoverStrategy();
+    const binaryExpressionStrategy = new BinaryExpressionHoverStrategy();
+    const unaryExpressionStrategy = new UnaryExpressionHoverStrategy();
     const functionStrategy = new FunctionHoverStrategy();
     const parameterStrategy = new ParameterHoverStrategy();
 
@@ -70,8 +73,8 @@ export class HoverProvider extends BaseProvider {
       [MotionCommandNode, commandStrategy],
       [VariableAssignmentNode, variableStrategy],
       [VariableReferenceNode, variableStrategy],
-      [BinaryExpressionNode, expressionStrategy],
-      [UnaryExpressionNode, expressionStrategy],
+      [BinaryExpressionNode, binaryExpressionStrategy],
+      [UnaryExpressionNode, unaryExpressionStrategy],
       [FunctionCallNode, functionStrategy],
       [AxisParameterNode, parameterStrategy],
     ]);
@@ -115,12 +118,16 @@ export class HoverProvider extends BaseProvider {
 
     const dataProvider = this.getDataProvider(state.settings.dialect);
 
-    // Ensure analysis is available for strategies that need it (e.g., variable references)
-    if (!state.analysis) {
-      state.analysis = this.documentStateManager['analysisService'].analyze(state.ast);
+    // Only compute analysis for strategies that need it (variable nodes)
+    let analysis: AnalysisResults | undefined;
+    if (node instanceof VariableAssignmentNode || node instanceof VariableReferenceNode) {
+      if (!state.analysis) {
+        state.analysis = this.documentStateManager['analysisService'].analyze(state.ast);
+      }
+      analysis = state.analysis;
     }
 
-    return strategy.generateHover(node, dataProvider, state.analysis);
+    return strategy.generateHover(node, dataProvider, analysis);
   }
 
   /**
