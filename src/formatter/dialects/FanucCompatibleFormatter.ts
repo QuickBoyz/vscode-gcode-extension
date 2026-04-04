@@ -19,7 +19,7 @@ import { BaseFormatter } from '../BaseFormatter';
  */
 export abstract class FanucCompatibleFormatter extends BaseFormatter {
   protected formatLabel(label?: string): string {
-    return label ? `${label?.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
+    return label ? `${label.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
   }
 
   protected getIfKeyword(): string {
