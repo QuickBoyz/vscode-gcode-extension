@@ -16,39 +16,10 @@ import { DialectType } from '../../constants';
 
 export class FanucDataProvider extends BaseDataProvider {
   protected readonly dialect = DialectType.FANUC;
-  getAxisParameterInfo(axis: string): AxisParameterInfo | undefined {
-    return AXIS_PARAMETER_INFO.get(this.normalizeIdentifier(axis));
-  }
-
-  getFunctionInfo(command: string): FunctionInfo | undefined {
-    return FUNCTION_INFO.get(this.normalizeIdentifier(command));
-  }
-
-  getOperatorInfo(command: string): OperatorInfo | undefined {
-    return OPERATOR_INFO.get(this.normalizeIdentifier(command));
-  }
-
-  getCommandInfo(command: string): GCodeCommandInfo | undefined {
-    const normalizedCommand = this.normalizeCommand(command);
-
-    if (normalizedCommand.startsWith('G')) {
-      return GCODE_COMMANDS.get(normalizedCommand);
-    } else if (normalizedCommand.startsWith('M')) {
-      return MCODE_COMMANDS.get(normalizedCommand);
-    }
-
-    return undefined;
-  }
-
-  getAllCommands(): GCodeCommandInfo[] {
-    return [...GCODE_COMMANDS.values(), ...MCODE_COMMANDS.values()];
-  }
-
-  getAllFunctions(): FunctionInfo[] {
-    return [...FUNCTION_INFO.values()];
-  }
-
-  getAllOperators(): OperatorInfo[] {
-    return [...OPERATOR_INFO.values()];
-  }
+  protected readonly gcodeCommands: ReadonlyMap<string, GCodeCommandInfo> = GCODE_COMMANDS;
+  protected readonly mcodeCommands: ReadonlyMap<string, GCodeCommandInfo> = MCODE_COMMANDS;
+  protected readonly functionDatabase: ReadonlyMap<string, FunctionInfo> = FUNCTION_INFO;
+  protected readonly operatorDatabase: ReadonlyMap<string, OperatorInfo> = OPERATOR_INFO;
+  protected readonly axisParameterDatabase: ReadonlyMap<string, AxisParameterInfo> =
+    AXIS_PARAMETER_INFO;
 }

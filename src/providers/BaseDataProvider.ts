@@ -63,15 +63,51 @@ export abstract class BaseDataProvider implements IDataProvider {
     KeywordType.RET,
   ]);
 
-  // Abstract methods to be implemented by concrete dialect-specific providers
+  // Abstract database maps — each dialect provides its own database constants
 
-  abstract getAxisParameterInfo(axis: string): AxisParameterInfo | undefined;
-  abstract getFunctionInfo(command: string): FunctionInfo | undefined;
-  abstract getOperatorInfo(command: string): OperatorInfo | undefined;
-  abstract getCommandInfo(command: string): GCodeCommandInfo | undefined;
-  abstract getAllCommands(): GCodeCommandInfo[];
-  abstract getAllFunctions(): FunctionInfo[];
-  abstract getAllOperators(): OperatorInfo[];
+  protected abstract readonly gcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  protected abstract readonly mcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  protected abstract readonly functionDatabase: ReadonlyMap<string, FunctionInfo>;
+  protected abstract readonly operatorDatabase: ReadonlyMap<string, OperatorInfo>;
+  protected abstract readonly axisParameterDatabase: ReadonlyMap<string, AxisParameterInfo>;
+
+  // Common implementations using abstract database maps
+
+  getAxisParameterInfo(axis: string): AxisParameterInfo | undefined {
+    return this.axisParameterDatabase.get(this.normalizeIdentifier(axis));
+  }
+
+  getFunctionInfo(command: string): FunctionInfo | undefined {
+    return this.functionDatabase.get(this.normalizeIdentifier(command));
+  }
+
+  getOperatorInfo(command: string): OperatorInfo | undefined {
+    return this.operatorDatabase.get(this.normalizeIdentifier(command));
+  }
+
+  getCommandInfo(command: string): GCodeCommandInfo | undefined {
+    const normalizedCommand = this.normalizeCommand(command);
+
+    if (normalizedCommand.startsWith('G')) {
+      return this.gcodeCommands.get(normalizedCommand);
+    } else if (normalizedCommand.startsWith('M')) {
+      return this.mcodeCommands.get(normalizedCommand);
+    }
+
+    return undefined;
+  }
+
+  getAllCommands(): GCodeCommandInfo[] {
+    return [...this.gcodeCommands.values(), ...this.mcodeCommands.values()];
+  }
+
+  getAllFunctions(): FunctionInfo[] {
+    return [...this.functionDatabase.values()];
+  }
+
+  getAllOperators(): OperatorInfo[] {
+    return [...this.operatorDatabase.values()];
+  }
 
   /**
    * The dialect type for this provider, used to look up keywords.
