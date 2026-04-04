@@ -1,14 +1,14 @@
 import { DialectType } from '../constants';
+import { DialectRegistry } from '../dialects';
 import { GCodeLexer } from './GCodeLexer';
 
 /**
  * Factory for creating dialect-aware lexer instances.
  *
- * Encapsulates lexer construction so callers do not need to know
- * about the dialect → keyword table wiring.
+ * Delegates to the centralized DialectRegistry.
  */
 export class LexerFactory {
   static create(dialect: DialectType = DialectType.LINUXCNC): GCodeLexer {
-    return new GCodeLexer(dialect);
+    return DialectRegistry.createLexer(dialect);
   }
 }

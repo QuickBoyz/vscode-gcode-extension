@@ -1,16 +1,12 @@
 import { DialectType } from '../constants';
-import { LinuxCNCFormatter } from './dialects/LinuxCNCFormatter';
-import { FanucFormatter } from './dialects/FanucFormatter';
-import { HaasFormatter } from './dialects/HaasFormatter';
-import { SiemensFormatter } from './dialects/SiemensFormatter';
+import { DialectRegistry } from '../dialects';
 import { DialectValidator } from '../utils/DialectValidator';
 import { FormatterConfig, FormatterInterface } from './types';
 
 /**
  * Factory for creating dialect-specific formatters.
  *
- * Uses the Strategy pattern to instantiate the appropriate formatter
- * based on the selected dialect configuration.
+ * Delegates to the centralized DialectRegistry.
  */
 export class FormatterFactory {
   /**
@@ -22,25 +18,7 @@ export class FormatterFactory {
    */
   static create(dialect: DialectType, settings?: Partial<FormatterConfig>): FormatterInterface {
     const normalizedDialect = DialectValidator.normalize(dialect);
-
-    switch (normalizedDialect) {
-      case DialectType.LINUXCNC:
-        return new LinuxCNCFormatter(settings);
-
-      case DialectType.FANUC:
-        return new FanucFormatter(settings);
-
-      case DialectType.HAAS:
-        return new HaasFormatter(settings);
-
-      case DialectType.SIEMENS:
-        return new SiemensFormatter(settings);
-
-      default:
-        throw new Error(
-          `Unrecognized dialect: "${dialect}". Supported dialects: ${Object.values(DialectType).join(', ')}`
-        );
-    }
+    return DialectRegistry.createFormatter(normalizedDialect, settings);
   }
 
   /**
@@ -49,6 +27,6 @@ export class FormatterFactory {
    * @returns LinuxCNC formatter instance
    */
   static createDefault(settings?: Partial<FormatterConfig>): FormatterInterface {
-    return new LinuxCNCFormatter(settings);
+    return DialectRegistry.createFormatter(DialectType.LINUXCNC, settings);
   }
 }
