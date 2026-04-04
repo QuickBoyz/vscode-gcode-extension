@@ -20,6 +20,7 @@ export enum CompletionContext {
   VARIABLE, // Variable reference (#<name> or #123)
   FUNCTION, // Function call (SIN, COS, etc.)
   EXPRESSION, // Inside expression brackets
+  KEYWORD, // Control flow / subroutine keyword
   UNKNOWN, // Unknown context
 }
 
@@ -111,6 +112,12 @@ export class CompletionContextDetector {
     );
     if (paramOnlyContext) {
       return paramOnlyContext;
+    }
+
+    // Check for keyword context (at start of line or after a label, typing alphabetic text)
+    const keywordContext = this.checkKeywordContext(lineText, textBeforeCursor, upperText);
+    if (keywordContext) {
+      return keywordContext;
     }
 
     return {
@@ -251,6 +258,36 @@ export class CompletionContextDetector {
         usedParameters: new Set(),
         prefix: CompletionUtils.matchRegex(textBeforeCursor, /[A-Z][\d.]*$/),
       };
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for keyword context (at start of line or after a label, typing alphabetic-only text)
+   *
+   * Matches when the text before cursor is purely alphabetic (2+ chars, not G/M prefix)
+   * and sits at the start of a line or after an O-word label.
+   */
+  private checkKeywordContext(
+    lineText: string,
+    textBeforeCursor: string,
+    upperText: string
+  ): ContextInfo | null {
+    // Match: optional O-word label (numeric or named) followed by alphabetic text (2+ chars)
+    // Must NOT start with G or M (those are commands, not keywords)
+    const keywordMatch = /^(?:[Oo](?:\d+|<\w+>)\s+)?([A-Za-z]{2,})$/.exec(upperText);
+    if (keywordMatch) {
+      const prefix = keywordMatch[1].toUpperCase();
+      // Exclude G/M command prefixes
+      if (!prefix.startsWith('G') && !prefix.startsWith('M')) {
+        return {
+          type: CompletionContext.KEYWORD,
+          lineText,
+          textBeforeCursor,
+          prefix,
+        };
+      }
     }
 
     return null;

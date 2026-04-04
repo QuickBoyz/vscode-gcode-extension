@@ -371,8 +371,8 @@ suite('Completion Provider E2E Tests', () => {
         assert.ok(g01, 'Expected G01 completion item');
         assert.ok(g01.detail, 'Expected detail text');
         assert.ok(
-          g01.detail?.toString().includes('Linear'),
-          'Expected Linear Interpolation detail'
+          g01.detail?.toString().includes('G01'),
+          'Expected G01 parameter signature in detail'
         );
       },
       'completion-details.nc'

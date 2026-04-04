@@ -194,9 +194,16 @@ export enum CompletionItemTypes {
   PARAMETER = 'parameter',
   OPERATOR = 'operator',
   VARIABLE = 'variable',
+  KEYWORD = 'keyword',
 }
 
 /**
  * Sort prefix constants for completion items
  */
 export const OPERATORS_SORT_PREFIX = 'z_';
+
+/**
+ * Maximum number of parameters to include in a command snippet tab-stop sequence.
+ * Prevents overwhelming snippets for commands with many parameters.
+ */
+export const MAX_SNIPPET_PARAMETERS = 5;

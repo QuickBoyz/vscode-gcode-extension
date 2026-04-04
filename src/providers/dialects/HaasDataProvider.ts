@@ -12,8 +12,10 @@ import { GCODE_COMMANDS, MCODE_COMMANDS } from '../../databases/dialects/HaasGCo
 import { OPERATOR_INFO, OperatorInfo } from '../../databases/OperatorDatabase';
 import { BaseDataProvider } from '../BaseDataProvider';
 import { GCodeCommandInfo } from '../../databases/types';
+import { DialectType } from '../../constants';
 
 export class HaasDataProvider extends BaseDataProvider {
+  protected readonly dialect = DialectType.HAAS;
   getAxisParameterInfo(axis: string): AxisParameterInfo | undefined {
     return AXIS_PARAMETER_INFO.get(this.normalizeIdentifier(axis));
   }

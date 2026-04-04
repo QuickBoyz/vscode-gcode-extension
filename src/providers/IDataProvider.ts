@@ -56,6 +56,13 @@ export interface IDataProvider {
    */
   getAllOperators(): OperatorInfo[];
 
+  /**
+   * Get control flow and subroutine keywords for this dialect.
+   * Derived from the lexer's authoritative keyword tables.
+   * @returns Array of keyword strings (e.g., 'IF', 'WHILE', 'SUB')
+   */
+  getAllKeywords(): readonly string[];
+
   // -- Command classification (semantic analysis) --
 
   /**
