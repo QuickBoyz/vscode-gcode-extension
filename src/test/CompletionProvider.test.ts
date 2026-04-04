@@ -94,7 +94,7 @@ describe('CompletionProvider', () => {
 
       const g01 = completions.find((item) => item.label === 'G01');
       expect(g01).toBeDefined();
-      // detail shows example when available, which contains the command itself
+      // detail shows parameter signature for commands with parameters
       expect(g01?.detail).toContain('G01');
       expect((g01?.data as { type: string }).type).toBe('command');
     });
@@ -626,8 +626,8 @@ describe('CompletionProvider', () => {
     });
   });
 
-  describe('Command Example in Detail', () => {
-    it('should show example in detail field when available', () => {
+  describe('Command Signature in Detail', () => {
+    it('should show parameter signature in detail for commands with parameters', () => {
       const content = 'G01';
       const document = createDocument(content);
       const stateManager = new DocumentStateManager();
@@ -642,11 +642,29 @@ describe('CompletionProvider', () => {
 
       const g01 = completions.find((item) => item.label === 'G01');
       expect(g01).toBeDefined();
-      // G01 has example: 'G01 X10.0 Y20.0 F500'
-      expect(g01?.detail).toBe('G01 X10.0 Y20.0 F500');
+      // G01 has parameters X, Y, Z, A, B, C, F — detail shows signature
+      expect(g01?.detail).toBe('G01 X Y Z A B C F');
     });
 
-    it('should fall back to command name when no example', () => {
+    it('should fall back to command name when no parameters', () => {
+      const content = 'G17';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 3 },
+        settings
+      );
+
+      const g17 = completions.find((item) => item.label === 'G17');
+      expect(g17).toBeDefined();
+      expect(g17?.detail).toBe('XY Plane Selection');
+    });
+
+    it('should always have a detail field', () => {
       const content = 'M';
       const document = createDocument(content);
       const stateManager = new DocumentStateManager();
@@ -659,8 +677,6 @@ describe('CompletionProvider', () => {
         settings
       );
 
-      // Find a command that has no example but has a name
-      // All commands have names; some may lack examples depending on database
       for (const item of completions) {
         expect(item.detail).toBeDefined();
       }

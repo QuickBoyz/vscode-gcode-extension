@@ -59,7 +59,11 @@ export class CommandCompletionStrategy implements CompletionStrategy {
         insertTextFormat = InsertTextFormat.Snippet;
       }
 
-      const detail = commandInfo.example ?? commandInfo.name;
+      // detail = parameter signature (like a type signature in TS), fallback to name
+      const detail =
+        commandInfo.parameters && commandInfo.parameters.length > 0
+          ? `${command} ${commandInfo.parameters.join(' ')}`
+          : commandInfo.name;
       const groupPrefix = commandInfo.group
         ? (GROUP_SORT_ORDER[commandInfo.group] ?? DEFAULT_GROUP_SORT_PREFIX)
         : DEFAULT_GROUP_SORT_PREFIX;
