@@ -1,6 +1,19 @@
 import { KeywordType, TokenCategory } from './types';
 
 /**
+ * Optional metadata for tokens that carry category-specific information.
+ * Only tokens that need these fields pay for them — most tokens pass no options.
+ */
+export interface TokenOptions {
+  /** Number of line breaks within the token (e.g., multi-line comments). Default: 0 */
+  readonly lineBreaks?: number;
+  /** Numeric suffix for DO/END keywords (e.g., DO2 → 2). Only set for DO/END. */
+  readonly keywordSuffix?: number;
+  /** Whether the token's closing delimiter was never found (e.g., unclosed comment or variable). Default: false */
+  readonly unterminated?: boolean;
+}
+
+/**
  * Plain token class emitted by the scanner.
  *
  * This class has NO parser dependencies, NO Range object, and NO inheritance
@@ -29,9 +42,7 @@ export class LexerToken {
     offset: number,
     line: number,
     col: number,
-    lineBreaks: number = 0,
-    keywordSuffix?: number,
-    unterminated: boolean = false
+    options?: TokenOptions
   ) {
     this.category = category;
     this.keyword = keyword;
@@ -39,9 +50,9 @@ export class LexerToken {
     this.offset = offset;
     this.line = line;
     this.col = col;
-    this.lineBreaks = lineBreaks;
-    this.keywordSuffix = keywordSuffix;
-    this.unterminated = unterminated;
+    this.lineBreaks = options?.lineBreaks ?? 0;
+    this.keywordSuffix = options?.keywordSuffix;
+    this.unterminated = options?.unterminated ?? false;
   }
 
   /**

@@ -1,6 +1,6 @@
 import { DialectType } from '../constants';
 import { getKeywordEntries, SINGLE_CHAR_TOKEN_MAP } from './constants';
-import { LexerToken } from './LexerToken';
+import { LexerToken, TokenOptions } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
 /**
@@ -183,8 +183,7 @@ export class GCodeScanner {
         startOffset,
         startLine,
         startCol,
-        0,
-        resolved.suffix
+        resolved.suffix !== undefined ? { keywordSuffix: resolved.suffix } : undefined
       );
       return;
     }
@@ -288,9 +287,7 @@ export class GCodeScanner {
         startOffset,
         startLine,
         startCol,
-        0,
-        undefined,
-        unterminated
+        unterminated ? { unterminated } : undefined
       );
       return;
     }
@@ -356,9 +353,7 @@ export class GCodeScanner {
       startOffset,
       startLine,
       startCol,
-      lineBreaks,
-      undefined,
-      unterminated
+      lineBreaks > 0 || unterminated ? { lineBreaks, unterminated } : undefined
     );
   }
 
@@ -394,7 +389,7 @@ export class GCodeScanner {
     }
 
     const value = this.source.slice(startOffset, this.position);
-    this.emit(TokenCategory.NL, null, value, startOffset, startLine, startCol, 1);
+    this.emit(TokenCategory.NL, null, value, startOffset, startLine, startCol, { lineBreaks: 1 });
 
     this.line++;
     this.col = 1;
@@ -475,9 +470,7 @@ export class GCodeScanner {
     startOffset: number,
     startLine: number,
     startCol: number,
-    lineBreaks: number = 0,
-    keywordSuffix?: number,
-    unterminated: boolean = false
+    options?: TokenOptions
   ): void {
     this.tokens.push(
       new LexerToken(
@@ -487,9 +480,7 @@ export class GCodeScanner {
         this.offsetBase + startOffset,
         startLine,
         startCol,
-        lineBreaks,
-        keywordSuffix,
-        unterminated
+        options
       )
     );
   }
