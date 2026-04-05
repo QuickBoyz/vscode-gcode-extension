@@ -7,22 +7,17 @@ import {
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
- * Haas-specific formatter.
+ * Formatter for Fanuc-compatible dialects (Fanuc, Haas).
  *
- * Haas control flow typically uses:
- * - M97 for local subprogram calls
- * - M98/M99 for external subprogram calls
- * - M95-M99 for conditional jumps and labels
- *
- * Haas does not have structured IF/WHILE like LinuxCNC.
- * For compatibility with LinuxCNC-parsed AST, this formatter uses:
- * - IF [condition] THEN ... ELSE ... ENDIF
+ * Both Fanuc and Haas share identical control flow keyword formatting:
+ * - IF [condition] THEN ... ELSE ... ENDIF (macro-style)
  * - WHILE [condition] DO ... END
  * - N-number labels
+ * - M98/M99 for subprogram calls and returns
  */
-export class HaasFormatter extends BaseFormatter {
+export class FanucCompatibleFormatter extends BaseFormatter {
   protected formatLabel(label?: string): string {
-    return label ? `${label?.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
+    return label ? `${label.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
   }
 
   protected getIfKeyword(): string {
@@ -57,9 +52,6 @@ export class HaasFormatter extends BaseFormatter {
     return GCodeKeywords.END;
   }
 
-  // Haas does not have structured subroutine definitions (uses M98/M99 only).
-  // These methods satisfy the abstract contract but are never called in practice.
-
   protected formatSubroutineDefinitionOpen(_node: SubroutineDefinitionNode): string {
     return GCodeSymbols.EMPTY_STRING;
   }
@@ -69,7 +61,7 @@ export class HaasFormatter extends BaseFormatter {
   }
 
   protected formatSubroutineCallLine(node: SubroutineCallNode): string {
-    let line = `M98 P${node.target}`;
+    let line = `${GCodeKeywords.M98} P${node.target}`;
     if (node.repeatCount) {
       line += ` L${this.expressionFormatter.format(node.repeatCount)}`;
     }
@@ -77,6 +69,6 @@ export class HaasFormatter extends BaseFormatter {
   }
 
   protected formatReturnStatementLine(_node: ReturnStatementNode): string {
-    return 'M99';
+    return GCodeKeywords.M99;
   }
 }

@@ -83,6 +83,7 @@ export enum GCodeSymbols {
 export enum GCodeKeywords {
   GOTO = 'GOTO',
   WHILE = 'WHILE',
+  ENDWHILE = 'ENDWHILE',
   IF = 'IF',
   THEN = 'THEN',
   ELSE = 'ELSE',
@@ -90,6 +91,13 @@ export enum GCodeKeywords {
   ENDIF = 'ENDIF',
   END = 'END',
   DO = 'DO',
+  PROC = 'PROC',
+  CALL = 'CALL',
+  RET = 'RET',
+  /** Fanuc/Haas subroutine call */
+  M98 = 'M98',
+  /** Fanuc/Haas subroutine return */
+  M99 = 'M99',
 }
 
 /**
