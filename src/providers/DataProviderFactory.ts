@@ -1,17 +1,12 @@
 /**
  * Factory for creating dialect-specific data providers.
  *
- * Uses the Strategy pattern to instantiate the appropriate DataProvider
- * implementation based on the selected dialect. This enables extensibility
- * for future dialect additions without modifying existing provider code.
+ * Delegates to the centralized DialectRegistry.
  */
 
 import { DialectType } from '../constants';
+import { DialectRegistry } from '../dialects';
 import { IDataProvider } from './IDataProvider';
-import { LinuxCNCDataProvider } from './dialects/LinuxCNCDataProvider';
-import { FanucDataProvider } from './dialects/FanucDataProvider';
-import { HaasDataProvider } from './dialects/HaasDataProvider';
-import { SiemensDataProvider } from './dialects/SiemensDataProvider';
 import { DialectValidator } from '../utils/DialectValidator';
 
 export class DataProviderFactory {
@@ -23,28 +18,8 @@ export class DataProviderFactory {
    * @throws Error if the dialect is not recognized
    */
   static create(dialect: DialectType): IDataProvider {
-    // Normalize dialect string to lowercase for case-insensitive matching
     const normalizedDialect = DialectValidator.normalize(dialect);
-
-    switch (normalizedDialect) {
-      case DialectType.LINUXCNC:
-        return new LinuxCNCDataProvider();
-
-      case DialectType.FANUC:
-        return new FanucDataProvider();
-
-      case DialectType.HAAS:
-        return new HaasDataProvider();
-
-      case DialectType.SIEMENS:
-        return new SiemensDataProvider();
-
-      default:
-        throw new Error(
-          `Unrecognized G-code dialect: "${dialect}". ` +
-            `Supported dialects: ${Object.values(DialectType).join(', ')}`
-        );
-    }
+    return DialectRegistry.createDataProvider(normalizedDialect);
   }
 
   /**
@@ -53,6 +28,6 @@ export class DataProviderFactory {
    * @returns An instance of the default data provider
    */
   static createDefault(): IDataProvider {
-    return DataProviderFactory.create(DialectType.LINUXCNC);
+    return DialectRegistry.createDataProvider(DialectType.LINUXCNC);
   }
 }
