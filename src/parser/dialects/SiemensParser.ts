@@ -49,9 +49,11 @@ export class SiemensParser extends BaseParser {
         return this.parseAxisParam();
 
       case TokenCategory.NL:
-      case TokenCategory.PERCENT:
         this.tokens.next();
         return null;
+
+      case TokenCategory.PERCENT:
+        return this.factory.programDelimiter(this.tokens.next()!);
 
       case TokenCategory.LINE_NUMBER:
         return this.parseLineNumber();

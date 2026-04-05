@@ -13,6 +13,7 @@ import {
   LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
+  ProgramDelimiterNode,
   ProgramNode,
   ReturnStatementNode,
   StatementNode,
@@ -140,6 +141,10 @@ export abstract class BaseAstVisitor<T> implements AstVisitor<T> {
   }
 
   visitReturnStatement(_node: ReturnStatementNode): T {
+    return this.defaultValue();
+  }
+
+  visitProgramDelimiter(_node: ProgramDelimiterNode): T {
     return this.defaultValue();
   }
 }

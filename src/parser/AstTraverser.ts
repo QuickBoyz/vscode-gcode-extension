@@ -13,6 +13,7 @@ import {
   LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
+  ProgramDelimiterNode,
   ProgramNode,
   ReturnStatementNode,
   StatementNode,
@@ -77,6 +78,9 @@ export class AstTraverser<T = void> {
         break;
       case node instanceof ReturnStatementNode:
         this.visitor.visitReturnStatement(node);
+        break;
+      case node instanceof ProgramDelimiterNode:
+        this.visitor.visitProgramDelimiter(node);
         break;
       default:
         if (this.visitor.visitStatement) this.visitor.visitStatement(node);

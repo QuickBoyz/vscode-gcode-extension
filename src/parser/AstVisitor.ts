@@ -12,6 +12,7 @@ import {
   LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
+  ProgramDelimiterNode,
   ProgramNode,
   ReturnStatementNode,
   StatementNode,
@@ -51,4 +52,5 @@ export abstract class AstVisitor<T> {
   abstract visitSubroutineDefinitionEnd(node: SubroutineDefinitionNode): T;
   abstract visitSubroutineCall(node: SubroutineCallNode): T;
   abstract visitReturnStatement(node: ReturnStatementNode): T;
+  abstract visitProgramDelimiter(node: ProgramDelimiterNode): T;
 }
