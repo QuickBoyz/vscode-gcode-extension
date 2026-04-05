@@ -535,4 +535,48 @@ describe('GCodeScanner', () => {
       expect(tokens[0].value).toBe('(test ; inner)');
     });
   });
+
+  describe('keyword suffix extraction', () => {
+    it('should extract suffix from DO2', () => {
+      const tokens = scanner.tokenize('DO2');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].value).toBe('DO2');
+      expect(tokens[0].keywordSuffix).toBe(2);
+    });
+
+    it('should extract suffix from END5', () => {
+      const tokens = scanner.tokenize('END5');
+      expect(tokens[0].keyword).toBe(KeywordType.END);
+      expect(tokens[0].value).toBe('END5');
+      expect(tokens[0].keywordSuffix).toBe(5);
+    });
+
+    it('should have undefined suffix for plain DO', () => {
+      const tokens = scanner.tokenize('DO');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].keywordSuffix).toBeUndefined();
+    });
+
+    it('should have undefined suffix for plain END', () => {
+      const tokens = scanner.tokenize('END');
+      expect(tokens[0].keyword).toBe(KeywordType.END);
+      expect(tokens[0].keywordSuffix).toBeUndefined();
+    });
+
+    it('should extract suffix 0 from DO0', () => {
+      const tokens = scanner.tokenize('DO0');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].keywordSuffix).toBe(0);
+    });
+
+    it('should have undefined suffix for regular keywords like IF and WHILE', () => {
+      const ifTokens = scanner.tokenize('IF');
+      expect(ifTokens[0].keyword).toBe(KeywordType.IF);
+      expect(ifTokens[0].keywordSuffix).toBeUndefined();
+
+      const whileTokens = scanner.tokenize('WHILE');
+      expect(whileTokens[0].keyword).toBe(KeywordType.WHILE);
+      expect(whileTokens[0].keywordSuffix).toBeUndefined();
+    });
+  });
 });

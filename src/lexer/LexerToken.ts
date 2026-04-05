@@ -19,6 +19,7 @@ export class LexerToken {
   readonly line: number; // 1-based
   readonly col: number; // 1-based
   readonly lineBreaks: number;
+  readonly keywordSuffix: number | undefined;
 
   constructor(
     category: TokenCategory,
@@ -27,7 +28,8 @@ export class LexerToken {
     offset: number,
     line: number,
     col: number,
-    lineBreaks: number = 0
+    lineBreaks: number = 0,
+    keywordSuffix?: number
   ) {
     this.category = category;
     this.keyword = keyword;
@@ -36,6 +38,7 @@ export class LexerToken {
     this.line = line;
     this.col = col;
     this.lineBreaks = lineBreaks;
+    this.keywordSuffix = keywordSuffix;
   }
 
   /**
