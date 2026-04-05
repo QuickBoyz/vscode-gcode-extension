@@ -326,17 +326,35 @@ export class GCodeScanner {
     const startOffset = this.position;
     const startLine = this.line;
     const startCol = this.col;
+    let lineBreaks = 0;
 
     this.advance(); // consume '('
     while (this.position < this.source.length && this.peek() !== ')') {
-      this.advance();
+      const character = this.peek();
+      if (character === '\n') {
+        lineBreaks++;
+        this.advance();
+        this.line++;
+        this.col = 1;
+      } else if (character === '\r') {
+        this.advance();
+        // \r\n counts as one line break
+        if (this.peek() === '\n') {
+          this.advance();
+        }
+        lineBreaks++;
+        this.line++;
+        this.col = 1;
+      } else {
+        this.advance();
+      }
     }
     if (this.position < this.source.length) {
       this.advance(); // consume ')'
     }
 
     const value = this.source.slice(startOffset, this.position);
-    this.emit(TokenCategory.PAREN_COMMENT, null, value, startOffset, startLine, startCol);
+    this.emit(TokenCategory.PAREN_COMMENT, null, value, startOffset, startLine, startCol, lineBreaks);
   }
 
   /**

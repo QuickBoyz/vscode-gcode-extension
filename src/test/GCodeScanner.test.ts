@@ -1,3 +1,4 @@
+import { DialectType } from '../constants';
 import { GCodeScanner } from '../lexer/GCodeScanner';
 import { KeywordType, TokenCategory } from '../lexer/types';
 
@@ -353,6 +354,185 @@ describe('GCodeScanner', () => {
     it('should handle ELSIF alias', () => {
       expect(GCodeScanner.lookupKeyword('ELSIF')).toBe(KeywordType.ELSEIF);
       expect(GCodeScanner.lookupKeyword('ELSEIF')).toBe(KeywordType.ELSEIF);
+    });
+  });
+
+  describe('paren comment with embedded newlines', () => {
+    it('should track line numbers correctly after multi-line paren comment', () => {
+      const tokens = scanner.tokenize('(multi\nline) G01');
+      const parenComment = tokens.find((t) => t.category === TokenCategory.PAREN_COMMENT);
+      expect(parenComment).toBeDefined();
+      expect(parenComment?.value).toBe('(multi\nline)');
+      expect(parenComment?.lineBreaks).toBe(1);
+
+      const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
+      expect(gcode).toBeDefined();
+      expect(gcode?.line).toBe(2);
+    });
+
+    it('should handle CRLF inside paren comment', () => {
+      const tokens = scanner.tokenize('(multi\r\nline) G01');
+      const parenComment = tokens.find((t) => t.category === TokenCategory.PAREN_COMMENT);
+      expect(parenComment).toBeDefined();
+      expect(parenComment?.lineBreaks).toBe(1);
+
+      const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
+      expect(gcode).toBeDefined();
+      expect(gcode?.line).toBe(2);
+    });
+
+    it('should handle multiple newlines inside paren comment', () => {
+      const tokens = scanner.tokenize('(line1\nline2\nline3) G01');
+      const parenComment = tokens.find((t) => t.category === TokenCategory.PAREN_COMMENT);
+      expect(parenComment?.lineBreaks).toBe(2);
+
+      const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
+      expect(gcode?.line).toBe(3);
+    });
+  });
+
+  describe('nested parentheses in comments', () => {
+    it('should stop at first closing paren (standard G-code behavior)', () => {
+      const tokens = scanner.tokenize('(hello (world) there)');
+      // Standard G-code: parens are not nested, first ) closes the comment
+      expect(tokens[0].category).toBe(TokenCategory.PAREN_COMMENT);
+      expect(tokens[0].value).toBe('(hello (world)');
+    });
+  });
+
+  describe('dialect-specific keyword handling', () => {
+    it('should recognize EXISTS only in LinuxCNC dialect', () => {
+      const linuxScanner = new GCodeScanner(DialectType.LINUXCNC);
+      const fanucScanner = new GCodeScanner(DialectType.FANUC);
+
+      const linuxTokens = linuxScanner.tokenize('EXISTS');
+      expect(linuxTokens[0].keyword).toBe(KeywordType.EXISTS);
+
+      const fanucTokens = fanucScanner.tokenize('EXISTS');
+      expect(fanucTokens[0].keyword).toBeNull();
+    });
+
+    it('should recognize SUB/ENDSUB only in LinuxCNC dialect', () => {
+      const linuxScanner = new GCodeScanner(DialectType.LINUXCNC);
+      const siemensScanner = new GCodeScanner(DialectType.SIEMENS);
+
+      const linuxTokens = linuxScanner.tokenize('SUB');
+      expect(linuxTokens[0].keyword).toBe(KeywordType.SUB);
+
+      const siemensTokens = siemensScanner.tokenize('SUB');
+      expect(siemensTokens[0].keyword).toBeNull();
+    });
+
+    it('should recognize PROC/RET only in Siemens dialect', () => {
+      const siemensScanner = new GCodeScanner(DialectType.SIEMENS);
+      const linuxScanner = new GCodeScanner(DialectType.LINUXCNC);
+
+      const siemensTokens = siemensScanner.tokenize('PROC');
+      expect(siemensTokens[0].keyword).toBe(KeywordType.PROC);
+
+      const linuxTokens = linuxScanner.tokenize('PROC');
+      expect(linuxTokens[0].keyword).toBeNull();
+    });
+
+    it('should tokenize O-block as OSUB regardless of dialect', () => {
+      // O-blocks are tokenized at the lexer level for all dialects;
+      // the parser decides whether to use them
+      const siemensScanner = new GCodeScanner(DialectType.SIEMENS);
+      const tokens = siemensScanner.tokenize('O100');
+      expect(tokens[0].category).toBe(TokenCategory.OSUB);
+    });
+  });
+
+  describe('ambiguous single-letter tokens', () => {
+    it('should tokenize bare O as PARAM (not OSUB)', () => {
+      const tokens = scanner.tokenize('O');
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+    });
+
+    it('should tokenize bare G as PARAM (not GCODE)', () => {
+      const tokens = scanner.tokenize('G');
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+    });
+
+    it('should tokenize bare M as PARAM (not MCODE)', () => {
+      const tokens = scanner.tokenize('M');
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+    });
+
+    it('should tokenize bare N as PARAM (not LINE_NUMBER)', () => {
+      const tokens = scanner.tokenize('N');
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+    });
+  });
+
+  describe('number parsing edge cases', () => {
+    it('should tokenize trailing dot as separate DOT token', () => {
+      const tokens = scanner.tokenize('123.');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.NUMBER);
+      expect(tokens[0].value).toBe('123');
+      expect(tokens[1].category).toBe(TokenCategory.DOT);
+    });
+
+    it('should handle double dot correctly', () => {
+      const tokens = scanner.tokenize('..5');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.DOT);
+      expect(tokens[1].category).toBe(TokenCategory.NUMBER);
+      expect(tokens[1].value).toBe('.5');
+    });
+
+    it('should not allow M-code decimal (M03.1 is M03 + .1)', () => {
+      const tokens = scanner.tokenize('M03.1');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.MCODE);
+      expect(tokens[0].value).toBe('M03');
+      expect(tokens[1].category).toBe(TokenCategory.NUMBER);
+      expect(tokens[1].value).toBe('.1');
+    });
+
+    it('should handle G-code with decimal (G51.2)', () => {
+      const tokens = scanner.tokenize('G51.2');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.GCODE);
+      expect(tokens[0].value).toBe('G51.2');
+    });
+
+    it('should handle G-code trailing dot without digit', () => {
+      const tokens = scanner.tokenize('G01.');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.GCODE);
+      expect(tokens[0].value).toBe('G01');
+      expect(tokens[1].category).toBe(TokenCategory.DOT);
+    });
+  });
+
+  describe('keyword vs identifier disambiguation', () => {
+    it('should not match IF prefix as keyword in longer identifier', () => {
+      const tokens = scanner.tokenize('IFFY');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
+      expect(tokens[0].keyword).toBeNull();
+    });
+
+    it('should strip trailing digits only for DO and END keywords', () => {
+      const tokens1 = scanner.tokenize('ENDIF5');
+      expect(tokens1[0].keyword).toBeNull(); // ENDIF5 is not stripped
+
+      const tokens2 = scanner.tokenize('DO0');
+      expect(tokens2[0].keyword).toBe(KeywordType.DO);
+
+      const tokens3 = scanner.tokenize('END5');
+      expect(tokens3[0].keyword).toBe(KeywordType.END);
+    });
+  });
+
+  describe('semicolon inside paren comment', () => {
+    it('should treat semicolon as part of paren comment', () => {
+      const tokens = scanner.tokenize('(test ; inner)');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.PAREN_COMMENT);
+      expect(tokens[0].value).toBe('(test ; inner)');
     });
   });
 });
