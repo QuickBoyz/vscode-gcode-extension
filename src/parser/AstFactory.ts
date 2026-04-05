@@ -19,6 +19,7 @@ import {
   LineNumberNode,
   LiteralExpressionNode,
   MotionCommandNode,
+  ProgramDelimiterNode,
   ProgramNode,
   Range,
   ReturnStatementNode,
@@ -261,6 +262,10 @@ export class AstFactory {
 
   comment(token: LexerToken) {
     return new CommentNode(this.rangeFrom(token), token.value);
+  }
+
+  programDelimiter(token: LexerToken) {
+    return new ProgramDelimiterNode(this.rangeFrom(token));
   }
 
   setParents(nodes: AstNode[], parent: AstNode) {

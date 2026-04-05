@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
+import { FanucParser } from '../parser/dialects/FanucParser';
 import { ProgramNode, DiagnosticCategory } from '../parser/nodes';
 import { AstAnalysisService } from '../providers/AstAnalysisService';
 import { SemanticAnalyzer } from '../providers/SemanticAnalyzer';
@@ -253,6 +254,108 @@ describe('SemanticAnalyzer', () => {
       const diags = getDiagnosticsByCode('G01 X5\nX10', SemanticDiagnosticCode.MISSING_FEED_RATE);
       // G01 X5 warns (no F), X10 also warns (modal G01 still active, no F)
       expect(diags.length).toBe(2);
+    });
+  });
+
+  describe('Multi-program file support', () => {
+    it('should not report unreachable code after % delimiter in multi-program file', () => {
+      const code = [
+        '%',
+        'G00 X0 Y0',
+        'G01 X10 F100',
+        'M30',
+        '%',
+        'G00 X5 Y5',
+        'G01 X15 F200',
+        'M30',
+        '%',
+      ].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should not report unreachable code after O-word in multi-program file', () => {
+      const code = [
+        '%',
+        'O1000',
+        'G00 X0 Y0',
+        'G01 X10 F100',
+        'M30',
+        'O2000',
+        'G00 X5 Y5',
+        'G01 X15 F200',
+        'M30',
+        '%',
+      ].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should reset feed rate state for each program section', () => {
+      const code = ['%', 'G01 X10 F100', 'M30', '%', 'G01 X20', 'M30', '%'].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.MISSING_FEED_RATE);
+      // Second program section should warn about missing feed rate
+      expect(diags.length).toBe(1);
+    });
+
+    it('should still detect unreachable code within a single program section', () => {
+      const code = ['%', 'G00 X0 Y0', 'M30', 'G01 X10 F100', 'M30', '%'].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.UNREACHABLE_CODE);
+      // G01 X10 F100 and M30 after the first M30 are unreachable (no % or O-word between)
+      expect(diags.length).toBe(2);
+    });
+
+    it('should allow duplicate line numbers across program sections', () => {
+      const code = ['%', 'N10 G00 X0 Y0', 'M30', '%', 'N10 G00 X5 Y5', 'M30', '%'].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should still detect duplicate line numbers within a single program section', () => {
+      const code = ['%', 'N10 G00 X0 Y0', 'N10 G01 X10 F100', 'M30', '%'].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER);
+      expect(diags.length).toBe(1);
+    });
+
+    it('should handle three program sections separated by % delimiters', () => {
+      const code = ['%', 'G00 X0', 'M30', '%', 'G00 X10', 'M30', '%', 'G00 X20', 'M30', '%'].join(
+        '\n'
+      );
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should work with Fanuc dialect multi-program files', () => {
+      const code = [
+        '%',
+        'O1000',
+        'G00 X0 Y0',
+        'G01 X10 F100',
+        'M30',
+        '%',
+        'O2000',
+        'G00 X5 Y5',
+        'G01 X15 F200',
+        'M30',
+        '%',
+      ].join('\n');
+
+      const lexer = new GCodeLexer();
+      const tokens = lexer.tokenize(code);
+      const parser = new FanucParser(tokens, code);
+      const ast = parser.parseProgram();
+      const fanucProvider = DataProviderFactory.create(DialectType.FANUC);
+      const analysis = analysisService.analyze(ast);
+      const diags = analyzer
+        .analyze(ast, analysis, fanucProvider)
+        .filter((d) => d.code === SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(0);
+    });
+
+    it('should still detect unreachable code in single-program file', () => {
+      const code = ['G00 X0 Y0', 'M30', 'G01 X10 F100'].join('\n');
+      const diags = getDiagnosticsByCode(code, SemanticDiagnosticCode.UNREACHABLE_CODE);
+      expect(diags.length).toBe(1);
     });
   });
 

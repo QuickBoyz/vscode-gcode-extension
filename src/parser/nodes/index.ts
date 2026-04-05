@@ -20,6 +20,7 @@ export { FunctionCallNode } from './FunctionCallNode';
 export { LineNumberNode } from './LineNumberNode';
 export { MotionCommandNode } from './MotionCommandNode';
 export { Position } from './Position';
+export { ProgramDelimiterNode } from './ProgramDelimiterNode';
 export { ProgramNode } from './ProgramNode';
 export { Range } from './Range';
 export { ReturnStatementNode } from './ReturnStatementNode';

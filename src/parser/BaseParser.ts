@@ -10,6 +10,7 @@ import {
   IfStatementNode,
   MotionCommandNode,
   ParserDiagnosticCode,
+  ProgramDelimiterNode,
   ProgramNode,
   StatementNode,
   WhileStatementNode,
@@ -92,8 +93,13 @@ export abstract class BaseParser {
       if (stmt) statements.push(stmt);
     }
 
-    if (this.tokens.matchCategory(TokenCategory.PERCENT)) {
-      this.tokens.next();
+    // The trailing % is consumed inside the loop as a ProgramDelimiterNode.
+    // Detect it from the AST: if the last statement is a delimiter, pop it.
+    if (
+      statements.length > 0 &&
+      statements[statements.length - 1] instanceof ProgramDelimiterNode
+    ) {
+      statements.pop();
       hasEndDelimiter = true;
     }
 
@@ -101,6 +107,11 @@ export abstract class BaseParser {
   }
 
   protected parseStatementSafe(): StatementNode | null {
+    // Handle program delimiter before dialect-specific parsing
+    if (this.tokens.matchCategory(TokenCategory.PERCENT)) {
+      return this.factory.programDelimiter(this.tokens.next()!);
+    }
+
     const startToken = this.tokens.peek();
     try {
       return this.parseStatement();

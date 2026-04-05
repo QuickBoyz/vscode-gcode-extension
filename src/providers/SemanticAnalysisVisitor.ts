@@ -24,7 +24,9 @@ import {
   DiagnosticCategory,
   LineNumberNode,
   MotionCommandNode,
+  ProgramDelimiterNode,
   Range,
+  SubroutineLabelNode,
 } from '../parser/nodes';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import {
@@ -186,8 +188,31 @@ export class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     }
   }
 
+  visitProgramDelimiter(_node: ProgramDelimiterNode): void {
+    this.resetForNewProgram();
+  }
+
+  visitSubroutineLabel(_node: SubroutineLabelNode): void {
+    // An O-word after program end signals a new program section
+    if (this.state.programEnded) {
+      this.resetForNewProgram();
+    }
+  }
+
   getDiagnostics(): readonly SemanticDiagnostic[] {
     return this.diagnostics;
+  }
+
+  private resetForNewProgram(): void {
+    this.state.programEnded = false;
+    this.state.motionMode = null;
+    this.state.feedRateSet = false;
+    this.state.spindleState = SpindleState.OFF;
+    this.state.coolantState = CoolantState.OFF;
+    this.state.distanceMode = DistanceMode.ABSOLUTE;
+    this.state.planeSelection = PlaneSelection.XY;
+    this.state.toolChanged = false;
+    this.lineNumbers.clear();
   }
 
   private updateStateFromParameter(param: AxisParameterNode): void {

@@ -8,6 +8,7 @@ import {
   IfStatementNode,
   MotionCommandNode,
   ParserDiagnosticCode,
+  ProgramDelimiterNode,
   ProgramNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -50,7 +51,8 @@ o100 while [#<i> LT 10] DO
 o100 endwhile
     %`,
       program = parse(code);
-    expect(program.statements.length).toBe(1);
+    expect(program.statements.length).toBe(1); // WhileStatement (trailing % sets hasEndDelimiter)
+    expect(program.hasEndDelimiter).toBe(true);
 
     const loop = program.statements[0];
     expect(loop).toBeInstanceOf(WhileStatementNode);
@@ -295,7 +297,8 @@ G02 X[#<xpos> - #<tool_radius>] Y#<ypos> Z#<depth> F#<feed>
 %
     `,
       program = parse(code);
-    expect(program.statements.length).toBe(1);
+    expect(program.statements.length).toBe(1); // MotionCommand (trailing % sets hasEndDelimiter)
+    expect(program.hasEndDelimiter).toBe(true);
     const cmd = program.statements[0] as MotionCommandNode;
 
     expect(cmd.getParameters().length).toBe(4);
@@ -326,13 +329,14 @@ M30
     `,
       program = parse(code);
 
-    expect(program.statements.length).toBe(5);
-    expect(program.statements[0]).toBeInstanceOf(CommentNode);
-    expect(program.statements[1]).toBeInstanceOf(VariableAssignmentNode);
+    expect(program.statements.length).toBe(6); // ProgramDelimiter + 4 statements + M30
+    expect(program.statements[0]).toBeInstanceOf(ProgramDelimiterNode);
+    expect(program.statements[1]).toBeInstanceOf(CommentNode);
     expect(program.statements[2]).toBeInstanceOf(VariableAssignmentNode);
-    expect(program.statements[3]).toBeInstanceOf(WhileStatementNode);
+    expect(program.statements[3]).toBeInstanceOf(VariableAssignmentNode);
+    expect(program.statements[4]).toBeInstanceOf(WhileStatementNode);
 
-    const outer = program.statements[3] as WhileStatementNode;
+    const outer = program.statements[4] as WhileStatementNode;
     expect(outer.body[0]).toBeInstanceOf(VariableAssignmentNode);
     expect(outer.body[1]).toBeInstanceOf(WhileStatementNode);
     expect(outer.body[2]).toBeInstanceOf(VariableAssignmentNode);
@@ -341,7 +345,7 @@ M30
     expect(inner.body[0]).toBeInstanceOf(VariableAssignmentNode);
     expect(inner.body[1]).toBeInstanceOf(MotionCommandNode);
 
-    expect(program.statements[4]).toBeInstanceOf(MotionCommandNode); // M30
+    expect(program.statements[5]).toBeInstanceOf(MotionCommandNode); // M30
   });
 
   describe('numeric variable parsing', () => {
