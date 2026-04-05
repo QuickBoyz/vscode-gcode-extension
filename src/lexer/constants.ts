@@ -175,3 +175,47 @@ export function getKeywordEntries(
       return LINUXCNC_KEYWORDS;
   }
 }
+
+/**
+ * Valid single-letter parameter characters shared across all dialects.
+ * These are letters that can appear as axis words or parameter prefixes.
+ */
+const COMMON_PARAM_LETTERS: ReadonlySet<string> = new Set([
+  'X',
+  'Y',
+  'Z', // Linear axes
+  'A',
+  'B',
+  'C', // Rotary axes
+  'I',
+  'J',
+  'K', // Arc center offsets
+  'F', // Feed rate
+  'S', // Spindle speed
+  'T', // Tool number
+  'H',
+  'D', // Tool offsets
+  'P',
+  'L',
+  'R',
+  'Q', // Cycle/subroutine parameters
+]);
+
+const LINUXCNC_PARAM_LETTERS: ReadonlySet<string> = new Set([
+  ...COMMON_PARAM_LETTERS,
+  'U',
+  'V',
+  'W', // Extra linear axes (LinuxCNC 9-axis)
+]);
+
+/**
+ * Returns the set of valid single-letter parameter characters for the given dialect.
+ */
+export function getValidParamLetters(dialect: DialectType): ReadonlySet<string> {
+  switch (dialect) {
+    case DialectType.LINUXCNC:
+      return LINUXCNC_PARAM_LETTERS;
+    default:
+      return COMMON_PARAM_LETTERS;
+  }
+}

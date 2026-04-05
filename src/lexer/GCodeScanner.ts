@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { getKeywordEntries, SINGLE_CHAR_TOKEN_MAP } from './constants';
+import { getKeywordEntries, getValidParamLetters, SINGLE_CHAR_TOKEN_MAP } from './constants';
 import { LexerToken, TokenOptions } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
@@ -41,10 +41,12 @@ export class GCodeScanner {
   private offsetBase: number = 0;
   private tokens: LexerToken[] = [];
   private readonly keywordMap: ReadonlyMap<string, KeywordType>;
+  private readonly validParamLetters: ReadonlySet<string>;
   private readonly scanHandlers: ReadonlyMap<string, () => void>;
 
   constructor(dialect: DialectType = DialectType.LINUXCNC) {
     this.keywordMap = new Map(getKeywordEntries(dialect));
+    this.validParamLetters = getValidParamLetters(dialect);
     this.scanHandlers = new Map<string, () => void>([
       ['\r', () => this.scanNewline()],
       ['\n', () => this.scanNewline()],
@@ -192,7 +194,10 @@ export class GCodeScanner {
     // (e.g., X, Y, Z, F, S followed by number or whitespace).
     // Underscore is not a valid G-code parameter letter.
     if (upperFirstChar >= 'A' && upperFirstChar <= 'Z' && firstChar !== '_') {
-      this.emit(TokenCategory.PARAM, null, firstChar, startOffset, startLine, startCol);
+      const category = this.validParamLetters.has(upperFirstChar)
+        ? TokenCategory.PARAM
+        : TokenCategory.IDENTIFIER;
+      this.emit(category, null, firstChar, startOffset, startLine, startCol);
       return;
     }
 

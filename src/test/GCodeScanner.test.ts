@@ -444,24 +444,24 @@ describe('GCodeScanner', () => {
   });
 
   describe('ambiguous single-letter tokens', () => {
-    it('should tokenize bare O as PARAM (not OSUB)', () => {
+    it('should tokenize bare O as IDENTIFIER (not OSUB)', () => {
       const tokens = scanner.tokenize('O');
-      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
     });
 
-    it('should tokenize bare G as PARAM (not GCODE)', () => {
+    it('should tokenize bare G as IDENTIFIER (not GCODE)', () => {
       const tokens = scanner.tokenize('G');
-      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
     });
 
-    it('should tokenize bare M as PARAM (not MCODE)', () => {
+    it('should tokenize bare M as IDENTIFIER (not MCODE)', () => {
       const tokens = scanner.tokenize('M');
-      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
     });
 
-    it('should tokenize bare N as PARAM (not LINE_NUMBER)', () => {
+    it('should tokenize bare N as IDENTIFIER (not LINE_NUMBER)', () => {
       const tokens = scanner.tokenize('N');
-      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
     });
   });
 
@@ -935,6 +935,54 @@ describe('GCodeScanner', () => {
       for (const token of tokens) {
         expect(token.unterminated).toBe(false);
       }
+    });
+  });
+
+  describe('dialect-aware parameter validation', () => {
+    it('should emit common axis letters as PARAM in all dialects', () => {
+      const dialects = [
+        DialectType.LINUXCNC,
+        DialectType.FANUC,
+        DialectType.HAAS,
+        DialectType.SIEMENS,
+      ];
+      for (const dialect of dialects) {
+        const dialectScanner = new GCodeScanner(dialect);
+        for (const letter of ['X', 'Y', 'Z', 'A', 'B', 'C', 'F', 'S', 'T']) {
+          const tokens = dialectScanner.tokenize(`${letter}10`);
+          expect(tokens[0].category).toBe(TokenCategory.PARAM);
+        }
+      }
+    });
+
+    it('should emit U, V, W as PARAM in LinuxCNC only', () => {
+      const linuxScanner = new GCodeScanner(DialectType.LINUXCNC);
+      const fanucScanner = new GCodeScanner(DialectType.FANUC);
+
+      for (const letter of ['U', 'V', 'W']) {
+        const linuxTokens = linuxScanner.tokenize(`${letter}10`);
+        expect(linuxTokens[0].category).toBe(TokenCategory.PARAM);
+
+        const fanucTokens = fanucScanner.tokenize(`${letter}10`);
+        expect(fanucTokens[0].category).toBe(TokenCategory.IDENTIFIER);
+      }
+    });
+
+    it('should emit invalid letter E as IDENTIFIER', () => {
+      const tokens = scanner.tokenize('E');
+      expect(tokens[0].category).toBe(TokenCategory.IDENTIFIER);
+    });
+
+    it('should emit H, D, P, L, R, Q as PARAM (tool/cycle parameters)', () => {
+      for (const letter of ['H', 'D', 'P', 'L', 'R', 'Q']) {
+        const tokens = scanner.tokenize(`${letter}5`);
+        expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      }
+    });
+
+    it('should handle lowercase parameter letters', () => {
+      const tokens = scanner.tokenize('x10');
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
     });
   });
 });
