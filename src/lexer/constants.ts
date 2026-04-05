@@ -2,16 +2,20 @@ import { DialectType } from '../constants';
 import { KeywordType, TokenCategory } from './types';
 
 /**
- * Single-character operator tokens.
- * Maps characters to their token categories for table-driven dispatch.
+ * Single-character tokens that map directly to a token category.
+ * Used for table-driven dispatch in the scanner — any character here
+ * is emitted via emitSingleChar() with no special scanning logic.
  */
-export const OPERATOR_TOKEN_MAP: ReadonlyMap<string, TokenCategory> = new Map([
+export const SINGLE_CHAR_TOKEN_MAP: ReadonlyMap<string, TokenCategory> = new Map([
   ['+', TokenCategory.PLUS],
   ['-', TokenCategory.MINUS],
   ['*', TokenCategory.STAR],
   ['/', TokenCategory.SLASH],
   ['=', TokenCategory.EQUALS],
   [',', TokenCategory.COMMA],
+  ['[', TokenCategory.LBRACKET],
+  [']', TokenCategory.RBRACKET],
+  ['%', TokenCategory.PERCENT],
 ]);
 
 /**

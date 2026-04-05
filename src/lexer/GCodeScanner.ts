@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { getKeywordEntries, OPERATOR_TOKEN_MAP } from './constants';
+import { getKeywordEntries, SINGLE_CHAR_TOKEN_MAP } from './constants';
 import { LexerToken } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
@@ -94,15 +94,6 @@ export class GCodeScanner {
       case '#':
         this.scanVariable();
         return;
-      case '[':
-        this.emitSingleChar(TokenCategory.LBRACKET);
-        return;
-      case ']':
-        this.emitSingleChar(TokenCategory.RBRACKET);
-        return;
-      case '%':
-        this.emitSingleChar(TokenCategory.PERCENT);
-        return;
       case '.':
         if (this.isDigit(this.peek(1))) {
           this.scanNumber();
@@ -114,10 +105,10 @@ export class GCodeScanner {
         break;
     }
 
-    // Table-driven operator dispatch
-    const operatorCategory = OPERATOR_TOKEN_MAP.get(character);
-    if (operatorCategory) {
-      this.emitSingleChar(operatorCategory);
+    // Table-driven single-character token dispatch
+    const tokenCategory = SINGLE_CHAR_TOKEN_MAP.get(character);
+    if (tokenCategory) {
+      this.emitSingleChar(tokenCategory);
       return;
     }
 
