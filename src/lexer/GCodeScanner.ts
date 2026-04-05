@@ -330,19 +330,9 @@ export class GCodeScanner {
 
     this.advance(); // consume '('
     while (this.position < this.source.length && this.peek() !== ')') {
-      const character = this.peek();
-      if (character === '\n') {
+      if (this.peek() === '\n') {
         lineBreaks++;
         this.advance();
-        this.line++;
-        this.col = 1;
-      } else if (character === '\r') {
-        this.advance();
-        // \r\n counts as one line break
-        if (this.peek() === '\n') {
-          this.advance();
-        }
-        lineBreaks++;
         this.line++;
         this.col = 1;
       } else {
