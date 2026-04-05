@@ -66,10 +66,7 @@ export class ErrorSuggestionDatabase {
    * @param dialect - Optional dialect for dialect-specific suggestions
    * @returns A suggestion if one matches, or undefined
    */
-  findByCode(
-    code: DiagnosticCode,
-    dialect?: DialectType
-  ): ErrorSuggestion | undefined {
+  findByCode(code: DiagnosticCode, dialect?: DialectType): ErrorSuggestion | undefined {
     // Check dialect-specific suggestions first (most specific)
     if (dialect) {
       const dialectMap = this.dialectSuggestions.get(dialect);
@@ -201,6 +198,18 @@ function buildCodeSuggestions(): Map<DiagnosticCode, ErrorSuggestion> {
     suggestion: 'Use a unique line number, or remove duplicate line numbering.',
   });
 
+  map.set(ParserDiagnosticCode.UNTERMINATED_COMMENT, {
+    enhancedMessage: 'Parenthetical comment is missing its closing parenthesis',
+    suggestion: 'Add a closing ) to terminate the comment.',
+    example: '(This is a complete comment)',
+  });
+
+  map.set(ParserDiagnosticCode.UNTERMINATED_VARIABLE, {
+    enhancedMessage: 'Named variable is missing its closing angle bracket',
+    suggestion: 'Add a closing > to terminate the variable name.',
+    example: '#<my_variable>',
+  });
+
   return map;
 }
 
@@ -327,8 +336,7 @@ function buildPatternRules(): PatternRule[] {
       pattern: /Unexpected EOF while parsing comment/i,
       suggestion: {
         enhancedMessage: 'Unclosed parenthetical comment',
-        suggestion:
-          'A comment opened with ( is missing its closing ). Add a closing parenthesis.',
+        suggestion: 'A comment opened with ( is missing its closing ). Add a closing parenthesis.',
         example: '(This is a comment)',
       },
     },

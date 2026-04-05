@@ -82,6 +82,20 @@ describe('ErrorSuggestionDatabase', () => {
       expect(suggestion!.example).toBeTruthy();
     });
 
+    it('should return a suggestion for UNTERMINATED_COMMENT', () => {
+      const suggestion = database.findByCode(ParserDiagnosticCode.UNTERMINATED_COMMENT);
+      expect(suggestion).toBeDefined();
+      expect(suggestion!.enhancedMessage).toContain('comment');
+      expect(suggestion!.example).toBeTruthy();
+    });
+
+    it('should return a suggestion for UNTERMINATED_VARIABLE', () => {
+      const suggestion = database.findByCode(ParserDiagnosticCode.UNTERMINATED_VARIABLE);
+      expect(suggestion).toBeDefined();
+      expect(suggestion!.enhancedMessage).toContain('variable');
+      expect(suggestion!.example).toBeTruthy();
+    });
+
     it('should return suggestions for semantic diagnostic codes', () => {
       const undefinedVar = database.findByCode(SemanticDiagnosticCode.UNDEFINED_VARIABLE);
       expect(undefinedVar).toBeDefined();
