@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { getKeywordEntries } from './constants';
+import { getKeywordEntries, SINGLE_CHAR_TOKEN_MAP } from './constants';
 import { LexerToken } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
@@ -41,9 +41,19 @@ export class GCodeScanner {
   private offsetBase: number = 0;
   private tokens: LexerToken[] = [];
   private readonly keywordMap: ReadonlyMap<string, KeywordType>;
+  private readonly scanHandlers: ReadonlyMap<string, () => void>;
 
   constructor(dialect: DialectType = DialectType.LINUXCNC) {
     this.keywordMap = new Map(getKeywordEntries(dialect));
+    this.scanHandlers = new Map<string, () => void>([
+      ['\r', () => this.scanNewline()],
+      ['\n', () => this.scanNewline()],
+      [' ', () => this.scanWhitespace()],
+      ['\t', () => this.scanWhitespace()],
+      [';', () => this.scanSemicolonComment()],
+      ['(', () => this.scanParenComment()],
+      ['#', () => this.scanVariable()],
+    ]);
   }
 
   /**
@@ -76,60 +86,28 @@ export class GCodeScanner {
   private scanToken(): void {
     const character = this.peek();
 
-    switch (character) {
-      case '\r':
-      case '\n':
-        this.scanNewline();
-        return;
-      case ' ':
-      case '\t':
-        this.scanWhitespace();
-        return;
-      case ';':
-        this.scanSemicolonComment();
-        return;
-      case '(':
-        this.scanParenComment();
-        return;
-      case '#':
-        this.scanVariable();
-        return;
-      case '[':
-        this.emitSingleChar(TokenCategory.LBRACKET);
-        return;
-      case ']':
-        this.emitSingleChar(TokenCategory.RBRACKET);
-        return;
-      case '+':
-        this.emitSingleChar(TokenCategory.PLUS);
-        return;
-      case '-':
-        this.emitSingleChar(TokenCategory.MINUS);
-        return;
-      case '*':
-        this.emitSingleChar(TokenCategory.STAR);
-        return;
-      case '/':
-        this.emitSingleChar(TokenCategory.SLASH);
-        return;
-      case '=':
-        this.emitSingleChar(TokenCategory.EQUALS);
-        return;
-      case ',':
-        this.emitSingleChar(TokenCategory.COMMA);
-        return;
-      case '%':
-        this.emitSingleChar(TokenCategory.PERCENT);
-        return;
-      case '.':
-        if (this.isDigit(this.peek(1))) {
-          this.scanNumber();
-        } else {
-          this.emitSingleChar(TokenCategory.DOT);
-        }
-        return;
-      default:
-        break;
+    // Table-driven dispatch for characters with dedicated scan methods
+    const handler = this.scanHandlers.get(character);
+    if (handler) {
+      handler();
+      return;
+    }
+
+    // Table-driven single-character token dispatch
+    const tokenCategory = SINGLE_CHAR_TOKEN_MAP.get(character);
+    if (tokenCategory) {
+      this.emitSingleChar(tokenCategory);
+      return;
+    }
+
+    // Dot: conditional — leading decimal (.5) vs standalone dot
+    if (character === '.') {
+      if (this.isDigit(this.peek(1))) {
+        this.scanNumber();
+      } else {
+        this.emitSingleChar(TokenCategory.DOT);
+      }
+      return;
     }
 
     if (this.isDigit(character)) {
