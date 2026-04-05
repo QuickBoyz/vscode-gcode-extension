@@ -268,14 +268,30 @@ export class GCodeScanner {
     if (this.peek() === '<') {
       // Named variable: #<name>
       this.advance(); // consume '<'
-      while (this.position < this.source.length && this.peek() !== '>') {
+      while (
+        this.position < this.source.length &&
+        this.peek() !== '>' &&
+        this.peek() !== '\n' &&
+        this.peek() !== '\r'
+      ) {
         this.advance();
       }
-      if (this.position < this.source.length) {
-        this.advance(); // consume '>'
+      const unterminated = this.peek() !== '>';
+      if (!unterminated) {
+        this.advance(); // consume '>' only if found
       }
       const value = this.source.slice(startOffset, this.position);
-      this.emit(TokenCategory.VARIABLE, null, value, startOffset, startLine, startCol);
+      this.emit(
+        TokenCategory.VARIABLE,
+        null,
+        value,
+        startOffset,
+        startLine,
+        startCol,
+        0,
+        undefined,
+        unterminated
+      );
       return;
     }
 
@@ -327,8 +343,9 @@ export class GCodeScanner {
         this.advance();
       }
     }
-    if (this.position < this.source.length) {
-      this.advance(); // consume ')'
+    const unterminated = this.position >= this.source.length;
+    if (!unterminated) {
+      this.advance(); // consume ')' only if found
     }
 
     const value = this.source.slice(startOffset, this.position);
@@ -339,7 +356,9 @@ export class GCodeScanner {
       startOffset,
       startLine,
       startCol,
-      lineBreaks
+      lineBreaks,
+      undefined,
+      unterminated
     );
   }
 
@@ -457,7 +476,8 @@ export class GCodeScanner {
     startLine: number,
     startCol: number,
     lineBreaks: number = 0,
-    keywordSuffix?: number
+    keywordSuffix?: number,
+    unterminated: boolean = false
   ): void {
     this.tokens.push(
       new LexerToken(
@@ -468,7 +488,8 @@ export class GCodeScanner {
         startLine,
         startCol,
         lineBreaks,
-        keywordSuffix
+        keywordSuffix,
+        unterminated
       )
     );
   }
