@@ -95,7 +95,10 @@ export abstract class BaseParser {
 
     // The trailing % is consumed inside the loop as a ProgramDelimiterNode.
     // Detect it from the AST: if the last statement is a delimiter, pop it.
-    if (statements.length > 0 && statements[statements.length - 1] instanceof ProgramDelimiterNode) {
+    if (
+      statements.length > 0 &&
+      statements[statements.length - 1] instanceof ProgramDelimiterNode
+    ) {
       statements.pop();
       hasEndDelimiter = true;
     }
