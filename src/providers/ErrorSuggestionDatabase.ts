@@ -227,8 +227,7 @@ function buildDialectSuggestions(): Map<DialectType, Map<DiagnosticCode, ErrorSu
       code: ParserDiagnosticCode.EXPECTED_ENDIF,
       suggestion: {
         enhancedMessage: 'IF statement is missing its closing ENDIF',
-        suggestion:
-          'In LinuxCNC, IF blocks require an O-label and ENDIF. Use O-word sub-style IF/ENDIF.',
+        suggestion: 'IF blocks require an O-label and ENDIF. Use O-word sub-style IF/ENDIF.',
         example: 'O100 IF [#1 GT 0]\n  G0 X10\nO100 ENDIF',
       },
     },
@@ -237,8 +236,7 @@ function buildDialectSuggestions(): Map<DialectType, Map<DiagnosticCode, ErrorSu
       code: ParserDiagnosticCode.EXPECTED_END_OR_ENDWHILE,
       suggestion: {
         enhancedMessage: 'WHILE loop is missing its closing END',
-        suggestion:
-          'In LinuxCNC, WHILE loops require an O-label and END. Use O-word sub-style WHILE/END.',
+        suggestion: 'WHILE loops require an O-label and END. Use O-word sub-style WHILE/END.',
         example: 'O200 WHILE [#1 LT 10]\n  #1 = [#1 + 1]\nO200 END',
       },
     },
@@ -248,7 +246,7 @@ function buildDialectSuggestions(): Map<DialectType, Map<DiagnosticCode, ErrorSu
       code: ParserDiagnosticCode.EXPECTED_RET,
       suggestion: {
         enhancedMessage: 'PROC block is missing its closing RET statement',
-        suggestion: 'In Siemens/Sinumerik, every PROC must end with a RET statement.',
+        suggestion: 'Every PROC must end with a RET statement.',
         example: 'PROC MYPROC\n  G0 X10\nRET',
       },
     },
@@ -259,7 +257,7 @@ function buildDialectSuggestions(): Map<DialectType, Map<DiagnosticCode, ErrorSu
       suggestion: {
         enhancedMessage: 'M98 subroutine call requires a P parameter',
         suggestion:
-          'In Fanuc, M98 must include P followed by the program number. Optionally add L for repeat count.',
+          'M98 must include P followed by the program number. Optionally add L for repeat count.',
         example: 'M98 P1000 L3',
       },
     },
@@ -269,7 +267,7 @@ function buildDialectSuggestions(): Map<DialectType, Map<DiagnosticCode, ErrorSu
       suggestion: {
         enhancedMessage: 'M98 subroutine call requires a P parameter',
         suggestion:
-          'In Haas, M98 must include P followed by the program number. Optionally add L for repeat count.',
+          'M98 must include P followed by the program number. Optionally add L for repeat count.',
         example: 'M98 P1000 L3',
       },
     },

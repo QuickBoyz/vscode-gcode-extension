@@ -123,7 +123,7 @@ describe('ErrorSuggestionDatabase', () => {
         DialectType.LINUXCNC
       );
       expect(suggestion).toBeDefined();
-      expect(suggestion!.suggestion).toContain('LinuxCNC');
+      expect(suggestion!.suggestion).toContain('O-label');
       expect(suggestion!.example).toContain('O100');
     });
 
@@ -133,7 +133,7 @@ describe('ErrorSuggestionDatabase', () => {
         DialectType.LINUXCNC
       );
       expect(suggestion).toBeDefined();
-      expect(suggestion!.suggestion).toContain('LinuxCNC');
+      expect(suggestion!.suggestion).toContain('O-label');
     });
 
     it('should return Siemens-specific EXPECTED_RET suggestion', () => {
@@ -142,19 +142,19 @@ describe('ErrorSuggestionDatabase', () => {
         DialectType.SIEMENS
       );
       expect(suggestion).toBeDefined();
-      expect(suggestion!.suggestion).toContain('Siemens');
+      expect(suggestion!.suggestion).toContain('PROC');
     });
 
     it('should return Fanuc-specific M98 suggestion', () => {
       const suggestion = database.findByCode(ParserDiagnosticCode.M98_MISSING_P, DialectType.FANUC);
       expect(suggestion).toBeDefined();
-      expect(suggestion!.suggestion).toContain('Fanuc');
+      expect(suggestion!.suggestion).toContain('M98');
     });
 
     it('should return Haas-specific M98 suggestion', () => {
       const suggestion = database.findByCode(ParserDiagnosticCode.M98_MISSING_P, DialectType.HAAS);
       expect(suggestion).toBeDefined();
-      expect(suggestion!.suggestion).toContain('Haas');
+      expect(suggestion!.suggestion).toContain('M98');
     });
 
     it('should fall back to generic suggestion for non-overridden dialect', () => {
@@ -163,8 +163,8 @@ describe('ErrorSuggestionDatabase', () => {
         DialectType.FANUC
       );
       expect(suggestion).toBeDefined();
-      // Should be the generic suggestion (no "LinuxCNC" mention)
-      expect(suggestion!.suggestion).not.toContain('LinuxCNC');
+      // Should be the generic suggestion (no O-label mention)
+      expect(suggestion!.suggestion).not.toContain('O-label');
     });
   });
 
@@ -239,7 +239,7 @@ describe('ErrorSuggestionService', () => {
         DialectType.LINUXCNC
       );
       expect(result).toBeDefined();
-      expect(result!.suggestion).toContain('LinuxCNC');
+      expect(result!.suggestion).toContain('O-label');
     });
 
     it('should fall back to pattern matching when no code provided', () => {
@@ -337,6 +337,6 @@ describe('DiagnosticsProvider integration with ErrorSuggestionService', () => {
     const m98Diag = diagnostics.find((d) => d.message.includes('M98'));
     expect(m98Diag).toBeDefined();
     expect(m98Diag!.message).toContain('Suggestion:');
-    expect(m98Diag!.message).toContain('Fanuc');
+    expect(m98Diag!.message).toContain('program number');
   });
 });
