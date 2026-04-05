@@ -1,5 +1,5 @@
 import { DialectType } from '../constants';
-import { getKeywordEntries } from './constants';
+import { getKeywordEntries, OPERATOR_TOKEN_MAP } from './constants';
 import { LexerToken } from './LexerToken';
 import { KeywordType, TokenCategory } from './types';
 
@@ -100,24 +100,6 @@ export class GCodeScanner {
       case ']':
         this.emitSingleChar(TokenCategory.RBRACKET);
         return;
-      case '+':
-        this.emitSingleChar(TokenCategory.PLUS);
-        return;
-      case '-':
-        this.emitSingleChar(TokenCategory.MINUS);
-        return;
-      case '*':
-        this.emitSingleChar(TokenCategory.STAR);
-        return;
-      case '/':
-        this.emitSingleChar(TokenCategory.SLASH);
-        return;
-      case '=':
-        this.emitSingleChar(TokenCategory.EQUALS);
-        return;
-      case ',':
-        this.emitSingleChar(TokenCategory.COMMA);
-        return;
       case '%':
         this.emitSingleChar(TokenCategory.PERCENT);
         return;
@@ -130,6 +112,13 @@ export class GCodeScanner {
         return;
       default:
         break;
+    }
+
+    // Table-driven operator dispatch
+    const operatorCategory = OPERATOR_TOKEN_MAP.get(character);
+    if (operatorCategory) {
+      this.emitSingleChar(operatorCategory);
+      return;
     }
 
     if (this.isDigit(character)) {
@@ -197,8 +186,17 @@ export class GCodeScanner {
     if (this.isAlpha(nextChar)) {
       this.readIdentifierTail();
       const value = this.source.slice(startOffset, this.position);
-      const keyword = this.resolveKeyword(value);
-      this.emit(TokenCategory.IDENTIFIER, keyword, value, startOffset, startLine, startCol);
+      const resolved = this.resolveKeyword(value);
+      this.emit(
+        TokenCategory.IDENTIFIER,
+        resolved.keyword,
+        value,
+        startOffset,
+        startLine,
+        startCol,
+        0,
+        resolved.suffix
+      );
       return;
     }
 
@@ -217,10 +215,10 @@ export class GCodeScanner {
   /**
    * Resolve the keyword for an identifier, including DO/END with trailing digits.
    */
-  private resolveKeyword(text: string): KeywordType | null {
+  private resolveKeyword(text: string): { keyword: KeywordType | null; suffix?: number } {
     const keyword = this.lookupKeywordInMap(text);
     if (keyword !== null) {
-      return keyword;
+      return { keyword };
     }
 
     // Special case: DO0, DO5, END0, END5 etc.
@@ -229,11 +227,12 @@ export class GCodeScanner {
     if (strippedText.length > 0 && strippedText.length < text.length) {
       const strippedKeyword = this.lookupKeywordInMap(strippedText);
       if (strippedKeyword === KeywordType.DO || strippedKeyword === KeywordType.END) {
-        return strippedKeyword;
+        const suffixStr = text.slice(strippedText.length);
+        return { keyword: strippedKeyword, suffix: parseInt(suffixStr, 10) };
       }
     }
 
-    return null;
+    return { keyword: null };
   }
 
   /**
@@ -468,7 +467,8 @@ export class GCodeScanner {
     startOffset: number,
     startLine: number,
     startCol: number,
-    lineBreaks: number = 0
+    lineBreaks: number = 0,
+    keywordSuffix?: number
   ): void {
     this.tokens.push(
       new LexerToken(
@@ -478,7 +478,8 @@ export class GCodeScanner {
         this.offsetBase + startOffset,
         startLine,
         startCol,
-        lineBreaks
+        lineBreaks,
+        keywordSuffix
       )
     );
   }

@@ -1,5 +1,18 @@
 import { DialectType } from '../constants';
-import { KeywordType } from './types';
+import { KeywordType, TokenCategory } from './types';
+
+/**
+ * Single-character operator tokens.
+ * Maps characters to their token categories for table-driven dispatch.
+ */
+export const OPERATOR_TOKEN_MAP: ReadonlyMap<string, TokenCategory> = new Map([
+  ['+', TokenCategory.PLUS],
+  ['-', TokenCategory.MINUS],
+  ['*', TokenCategory.STAR],
+  ['/', TokenCategory.SLASH],
+  ['=', TokenCategory.EQUALS],
+  [',', TokenCategory.COMMA],
+]);
 
 /**
  * Relational and logical operator keywords shared across all dialects.
