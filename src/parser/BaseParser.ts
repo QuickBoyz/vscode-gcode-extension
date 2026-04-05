@@ -17,6 +17,13 @@ import {
 import { ParseError, TokenStream } from './TokenStream';
 
 /**
+ * Error message for unterminated named variables (missing closing >).
+ * Shared between parseVariableAssignment (statement context) and
+ * parsePrimary (expression context).
+ */
+const UNTERMINATED_VARIABLE_MESSAGE = 'Unterminated named variable — missing closing >';
+
+/**
  * Relational and logical operator keywords used in expression parsing.
  */
 const RELATIONAL_KEYWORDS: ReadonlySet<KeywordType> = new Set([
@@ -348,7 +355,7 @@ export abstract class BaseParser {
     if (variable.unterminated) {
       this.recoverToNextLine();
       return this.factory.error(
-        'Unterminated named variable — missing closing >',
+        UNTERMINATED_VARIABLE_MESSAGE,
         variable,
         variable.value,
         undefined,
@@ -489,7 +496,7 @@ export abstract class BaseParser {
           );
         if (varToken.unterminated) {
           throw new ParseError(
-            'Unterminated named variable — missing closing >',
+            UNTERMINATED_VARIABLE_MESSAGE,
             varToken,
             ParserDiagnosticCode.UNTERMINATED_VARIABLE
           );
