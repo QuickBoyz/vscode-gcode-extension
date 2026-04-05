@@ -10,7 +10,6 @@ import {
   IfStatementNode,
   MotionCommandNode,
   ParserDiagnosticCode,
-  ProgramDelimiterNode,
   ProgramNode,
   StatementNode,
   WhileStatementNode,
@@ -93,12 +92,9 @@ export abstract class BaseParser {
       if (stmt) statements.push(stmt);
     }
 
-    // The trailing % is consumed inside the loop as a ProgramDelimiterNode.
-    // Detect it from the AST: if the last statement is a delimiter, pop it.
-    if (
-      statements.length > 0 &&
-      statements[statements.length - 1] instanceof ProgramDelimiterNode
-    ) {
+    // A trailing % is an end delimiter, not an interior program boundary.
+    // Uses polymorphic isProgramDelimiter() instead of instanceof.
+    if (statements.length > 0 && statements[statements.length - 1].isProgramDelimiter()) {
       statements.pop();
       hasEndDelimiter = true;
     }

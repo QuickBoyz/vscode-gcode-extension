@@ -8,6 +8,10 @@ export class ProgramDelimiterNode extends StatementNode {
     super(range, parent);
   }
 
+  override isProgramDelimiter(): boolean {
+    return true;
+  }
+
   accept<T>(visitor: AstVisitor<T>): T {
     return visitor.visitProgramDelimiter(this);
   }
