@@ -11,6 +11,7 @@ import { DiagnosticCategory } from '../parser/nodes';
 import { GCodeSettings } from './DocumentStateManager';
 import { GCODE_LANGUAGE_ID } from '../constants';
 import { BaseProvider } from './BaseProvider';
+import { ErrorSuggestionService } from './ErrorSuggestionService';
 
 export const CATEGORY_TO_SEVERITY: Record<DiagnosticCategory, DiagnosticSeverity> = {
   [DiagnosticCategory.Error]: DiagnosticSeverity.Error,
@@ -25,6 +26,8 @@ export const CATEGORY_TO_SEVERITY: Record<DiagnosticCategory, DiagnosticSeverity
  * Provides syntax error diagnostics for G-code documents.
  */
 export class DiagnosticsProvider extends BaseProvider {
+  private readonly suggestionService = new ErrorSuggestionService();
+
   /**
    * Provide diagnostics (syntax errors) for a document
    */
@@ -33,10 +36,15 @@ export class DiagnosticsProvider extends BaseProvider {
       diagnostics: Diagnostic[] = [];
 
     for (const errorNode of analysis.errors) {
+      const enhancedMessage = this.suggestionService.enhanceMessage(
+        errorNode.message,
+        errorNode.code,
+        settings.dialect
+      );
       const diag: Diagnostic = {
         range: errorNode.getRange(),
         severity: CATEGORY_TO_SEVERITY[errorNode.category],
-        message: errorNode.message,
+        message: enhancedMessage,
         source: GCODE_LANGUAGE_ID,
       };
       if (errorNode.code) {
@@ -48,10 +56,15 @@ export class DiagnosticsProvider extends BaseProvider {
     // Semantic diagnostics (variable, command, modal state checks)
     if (analysis.semanticDiagnostics) {
       for (const semantic of analysis.semanticDiagnostics) {
+        const enhancedMessage = this.suggestionService.enhanceMessage(
+          semantic.message,
+          semantic.code,
+          settings.dialect
+        );
         const diag: Diagnostic = {
           range: semantic.range,
           severity: CATEGORY_TO_SEVERITY[semantic.category],
-          message: semantic.message,
+          message: enhancedMessage,
           source: GCODE_LANGUAGE_ID,
           code: semantic.code,
         };

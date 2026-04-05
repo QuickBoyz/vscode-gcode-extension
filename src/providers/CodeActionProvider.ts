@@ -67,15 +67,10 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   {
     code: ParserDiagnosticCode.EXPECTED_ENDIF,
     pattern: 'Expected ENDIF',
-    resolve: ({ document, diagnostic, message }) =>
-      message === 'Expected ENDIF'
-        ? {
-            title: 'Insert ENDIF',
-            edits: [
-              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF'),
-            ],
-          }
-        : null,
+    resolve: ({ document, diagnostic }) => ({
+      title: 'Insert ENDIF',
+      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDIF')],
+    }),
   },
   {
     code: ParserDiagnosticCode.EXPECTED_END_OR_ENDWHILE,
@@ -109,15 +104,10 @@ const QUICK_FIX_DESCRIPTORS: readonly QuickFixDescriptor[] = [
   {
     code: ParserDiagnosticCode.EXPECTED_ENDSUB,
     pattern: 'Expected ENDSUB',
-    resolve: ({ document, diagnostic, message }) =>
-      message === 'Expected ENDSUB'
-        ? {
-            title: 'Insert ENDSUB',
-            edits: [
-              TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB'),
-            ],
-          }
-        : null,
+    resolve: ({ document, diagnostic }) => ({
+      title: 'Insert ENDSUB',
+      edits: [TextEdit.insert(getLineEndPosition(document, diagnostic.range.end.line), '\nENDSUB')],
+    }),
   },
   {
     code: ParserDiagnosticCode.EXPECTED_RET,
