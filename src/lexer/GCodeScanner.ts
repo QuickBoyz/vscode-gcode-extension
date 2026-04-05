@@ -344,7 +344,15 @@ export class GCodeScanner {
     }
 
     const value = this.source.slice(startOffset, this.position);
-    this.emit(TokenCategory.PAREN_COMMENT, null, value, startOffset, startLine, startCol, lineBreaks);
+    this.emit(
+      TokenCategory.PAREN_COMMENT,
+      null,
+      value,
+      startOffset,
+      startLine,
+      startCol,
+      lineBreaks
+    );
   }
 
   /**
