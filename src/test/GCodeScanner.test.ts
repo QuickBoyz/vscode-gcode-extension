@@ -595,6 +595,7 @@ describe('GCodeScanner', () => {
       expect(whileTokens[0].keywordSuffix).toBeUndefined();
     });
   });
+
   describe('computed variable patterns', () => {
     it('should tokenize #[#8 + 7.] as hash, bracket, variable, plus, number, dot, bracket', () => {
       const tokens = scanner.tokenize('#[#8 + 7.]');
@@ -860,6 +861,80 @@ describe('GCodeScanner', () => {
       expect(tokens[0].value).toBe('F');
       expect(tokens[2].value).toBe('#123');
       expect(tokens[4].value).toBe('2');
+    });
+  });
+
+  describe('unterminated token detection', () => {
+    it('should mark unclosed paren comment at EOF as unterminated', () => {
+      const tokens = scanner.tokenize('(unclosed comment');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.PAREN_COMMENT);
+      expect(tokens[0].unterminated).toBe(true);
+      expect(tokens[0].value).toBe('(unclosed comment');
+    });
+
+    it('should mark unclosed paren comment spanning multiple lines as unterminated', () => {
+      const tokens = scanner.tokenize('(unclosed comment\nG01 X10');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.PAREN_COMMENT);
+      expect(tokens[0].unterminated).toBe(true);
+      expect(tokens[0].value).toBe('(unclosed comment\nG01 X10');
+    });
+
+    it('should mark closed paren comment as not unterminated', () => {
+      const tokens = scanner.tokenize('(closed comment) G01');
+      const comment = tokens.find((t) => t.category === TokenCategory.PAREN_COMMENT);
+      expect(comment).toBeDefined();
+      expect(comment?.unterminated).toBe(false);
+      const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
+      expect(gcode).toBeDefined();
+      expect(gcode?.value).toBe('G01');
+    });
+
+    it('should mark unclosed named variable at EOF as unterminated', () => {
+      const tokens = scanner.tokenize('#<unclosed_var');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[0].unterminated).toBe(true);
+      expect(tokens[0].value).toBe('#<unclosed_var');
+    });
+
+    it('should mark unclosed named variable followed by space as unterminated', () => {
+      const tokens = scanner.tokenize('#<unclosed Y10');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[0].unterminated).toBe(true);
+    });
+
+    it('should mark closed named variable as not unterminated', () => {
+      const tokens = scanner.tokenize('#<closed_var> X10');
+      const variable = tokens.find((t) => t.category === TokenCategory.VARIABLE);
+      expect(variable).toBeDefined();
+      expect(variable?.unterminated).toBe(false);
+      expect(variable?.value).toBe('#<closed_var>');
+      const param = tokens.find((t) => t.category === TokenCategory.PARAM);
+      expect(param).toBeDefined();
+      expect(param?.value).toBe('X');
+    });
+
+    it('should stop unclosed named variable at newline and mark as unterminated', () => {
+      const tokens = scanner.tokenize('#<var_at_eol\nG01');
+      const variable = tokens.find((t) => t.category === TokenCategory.VARIABLE);
+      expect(variable).toBeDefined();
+      expect(variable?.unterminated).toBe(true);
+      expect(variable?.value).toBe('#<var_at_eol');
+      const nl = tokens.find((t) => t.category === TokenCategory.NL);
+      expect(nl).toBeDefined();
+      const gcode = tokens.find((t) => t.category === TokenCategory.GCODE);
+      expect(gcode).toBeDefined();
+      expect(gcode?.value).toBe('G01');
+    });
+
+    it('should default unterminated to false for regular tokens', () => {
+      const tokens = scanner.tokenize('G01 X10');
+      for (const token of tokens) {
+        expect(token.unterminated).toBe(false);
+      }
     });
   });
 });
