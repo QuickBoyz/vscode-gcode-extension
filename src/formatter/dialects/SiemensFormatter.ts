@@ -21,7 +21,7 @@ import { BaseFormatter } from '../BaseFormatter';
 export class SiemensFormatter extends BaseFormatter {
   protected formatLabel(label?: string): string {
     // Siemens uses labels with colon: LABEL1:
-    return label ? `${label?.toUpperCase()}: ` : GCodeSymbols.EMPTY_STRING;
+    return label ? `${label.toUpperCase()}: ` : GCodeSymbols.EMPTY_STRING;
   }
 
   protected getIfKeyword(): string {

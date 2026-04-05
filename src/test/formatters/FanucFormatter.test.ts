@@ -1,11 +1,11 @@
 import { DialectType } from '../../constants';
-import { FanucFormatter } from '../../formatter/dialects/FanucFormatter';
+import { FanucCompatibleFormatter } from '../../formatter/dialects/FanucCompatibleFormatter';
 import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { ParserFactory } from '../../parser/ParserFactory';
 
-describe('FanucFormatter', () => {
-  let formatter: FanucFormatter;
+describe('FanucCompatibleFormatter', () => {
+  let formatter: FanucCompatibleFormatter;
 
   // Fanuc formatter tests use LinuxCNC parser because the test fixtures
   // contain O-block labels (LinuxCNC syntax). The formatter tests verify
@@ -20,7 +20,7 @@ describe('FanucFormatter', () => {
   }
 
   beforeEach(() => {
-    formatter = new FanucFormatter();
+    formatter = new FanucCompatibleFormatter();
   });
 
   describe('Control Flow Syntax', () => {
@@ -176,7 +176,7 @@ G0 X#<x> Y20`,
     it('adds line numbers when enabled', () => {
       const code = `G1 X10 Y20`,
         program = parse(code),
-        localFormatter = new FanucFormatter({ addLineNumbers: true }),
+        localFormatter = new FanucCompatibleFormatter({ addLineNumbers: true }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 
@@ -200,7 +200,7 @@ N10 G01 X10.0 Y20.0
 G01 X10
 O100 ENDIF`,
         program = parse(code),
-        localFormatter = new FanucFormatter({ indent: true, indentSize: 2 }),
+        localFormatter = new FanucCompatibleFormatter({ indent: true, indentSize: 2 }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 
@@ -213,7 +213,7 @@ O100 ENDIF`,
 
 G1 X10`,
         program = parse(code),
-        localFormatter = new FanucFormatter({ compactOutput: true }),
+        localFormatter = new FanucCompatibleFormatter({ compactOutput: true }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 

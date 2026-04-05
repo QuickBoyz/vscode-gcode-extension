@@ -1,11 +1,11 @@
 import { DialectType } from '../../constants';
-import { HaasFormatter } from '../../formatter/dialects/HaasFormatter';
+import { FanucCompatibleFormatter } from '../../formatter/dialects/FanucCompatibleFormatter';
 import { LexerFactory } from '../../lexer/LexerFactory';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { ParserFactory } from '../../parser/ParserFactory';
 
-describe('HaasFormatter', () => {
-  let formatter: HaasFormatter;
+describe('FanucCompatibleFormatter', () => {
+  let formatter: FanucCompatibleFormatter;
 
   // See FanucFormatter.test.ts for rationale on using LinuxCNC parser.
   function parse(code: string) {
@@ -16,7 +16,7 @@ describe('HaasFormatter', () => {
   }
 
   beforeEach(() => {
-    formatter = new HaasFormatter();
+    formatter = new FanucCompatibleFormatter();
   });
 
   describe('Control Flow Syntax', () => {
@@ -158,7 +158,7 @@ G0 X#<x> Y20`,
     it('adds line numbers when enabled', () => {
       const code = `G1 X10 Y20`,
         program = parse(code),
-        localFormatter = new HaasFormatter({ addLineNumbers: true }),
+        localFormatter = new FanucCompatibleFormatter({ addLineNumbers: true }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 
@@ -182,7 +182,7 @@ N10 G01 X10.0 Y20.0
 G01 X10
 O100 ENDIF`,
         program = parse(code),
-        localFormatter = new HaasFormatter({ indent: true, indentSize: 2 }),
+        localFormatter = new FanucCompatibleFormatter({ indent: true, indentSize: 2 }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 
@@ -195,7 +195,7 @@ O100 ENDIF`,
 
 G1 X10`,
         program = parse(code),
-        localFormatter = new HaasFormatter({ compactOutput: true }),
+        localFormatter = new FanucCompatibleFormatter({ compactOutput: true }),
         traverser = new AstTraverser(localFormatter),
         formatted = localFormatter.formatGCode(program, traverser);
 

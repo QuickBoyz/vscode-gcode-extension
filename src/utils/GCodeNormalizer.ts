@@ -2,7 +2,7 @@
  * Shared G-code command normalization utilities.
  *
  * Centralizes command string normalization so that the provider layer
- * ({@link BaseDataProvider}) and the visualizer layer
+ * ({@link DataProvider}) and the visualizer layer
  * ({@link GCodePathExtractor}) use identical rules without a cross-layer
  * dependency.
  */

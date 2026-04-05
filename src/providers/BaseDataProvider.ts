@@ -1,7 +1,10 @@
 /**
- * Abstract base class providing common functionality for dialect-specific data providers.
+ * Data provider for dialect-specific G-code information.
  * Implements the IDataProvider interface and provides shared normalization logic
  * for command names (uppercase conversion, G/M code padding).
+ *
+ * Configured via constructor injection — each dialect passes its own
+ * database maps (command, function, operator, axis parameter tables).
  */
 
 import { IDataProvider } from './IDataProvider';
@@ -20,7 +23,19 @@ import { KeywordType } from '../lexer/types';
 import { getKeywordEntries } from '../lexer/constants';
 import { DialectType } from '../constants';
 
-export abstract class BaseDataProvider implements IDataProvider {
+/**
+ * Configuration for constructing a DataProvider.
+ */
+export interface DataProviderConfig {
+  readonly dialect: DialectType;
+  readonly gcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  readonly mcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  readonly functionDatabase: ReadonlyMap<string, FunctionInfo>;
+  readonly operatorDatabase: ReadonlyMap<string, OperatorInfo>;
+  readonly axisParameterDatabase: ReadonlyMap<string, AxisParameterInfo>;
+}
+
+export class DataProvider implements IDataProvider {
   /**
    * Normalize a command by converting to uppercase and padding G/M codes.
    * Examples: 'g1' -> 'G01', 'm3' -> 'M03', 'g10.1' -> 'G10.1'
@@ -63,15 +78,21 @@ export abstract class BaseDataProvider implements IDataProvider {
     KeywordType.RET,
   ]);
 
-  // Abstract database maps — each dialect provides its own database constants
+  private readonly dialect: DialectType;
+  private readonly gcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  private readonly mcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
+  private readonly functionDatabase: ReadonlyMap<string, FunctionInfo>;
+  private readonly operatorDatabase: ReadonlyMap<string, OperatorInfo>;
+  private readonly axisParameterDatabase: ReadonlyMap<string, AxisParameterInfo>;
 
-  protected abstract readonly gcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
-  protected abstract readonly mcodeCommands: ReadonlyMap<string, GCodeCommandInfo>;
-  protected abstract readonly functionDatabase: ReadonlyMap<string, FunctionInfo>;
-  protected abstract readonly operatorDatabase: ReadonlyMap<string, OperatorInfo>;
-  protected abstract readonly axisParameterDatabase: ReadonlyMap<string, AxisParameterInfo>;
-
-  // Common implementations using abstract database maps
+  constructor(config: DataProviderConfig) {
+    this.dialect = config.dialect;
+    this.gcodeCommands = config.gcodeCommands;
+    this.mcodeCommands = config.mcodeCommands;
+    this.functionDatabase = config.functionDatabase;
+    this.operatorDatabase = config.operatorDatabase;
+    this.axisParameterDatabase = config.axisParameterDatabase;
+  }
 
   getAxisParameterInfo(axis: string): AxisParameterInfo | undefined {
     return this.axisParameterDatabase.get(this.normalizeIdentifier(axis));
@@ -110,23 +131,16 @@ export abstract class BaseDataProvider implements IDataProvider {
   }
 
   /**
-   * The dialect type for this provider, used to look up keywords.
-   * Subclasses must implement this.
-   */
-  protected abstract readonly dialect: DialectType;
-
-  /**
    * Get control flow and subroutine keywords for this dialect.
    * Derived from the lexer's authoritative keyword tables — single source of truth.
    */
   getAllKeywords(): readonly string[] {
     return getKeywordEntries(this.dialect)
-      .filter(([, type]) => BaseDataProvider.CONTROL_FLOW_KEYWORD_TYPES.has(type))
+      .filter(([, type]) => DataProvider.CONTROL_FLOW_KEYWORD_TYPES.has(type))
       .map(([name]) => name);
   }
 
   // -- Command classification with ISO 6983 defaults --
-  // Dialect subclasses can override these to add dialect-specific commands.
 
   isFeedRequiringCommand(command: string): boolean {
     return FEED_REQUIRING_COMMANDS.has(command);

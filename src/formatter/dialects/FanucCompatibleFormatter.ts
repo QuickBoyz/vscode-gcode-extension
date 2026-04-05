@@ -7,17 +7,15 @@ import {
 import { BaseFormatter } from '../BaseFormatter';
 
 /**
- * Intermediate abstract formatter for Fanuc-compatible dialects (Fanuc, Haas).
+ * Formatter for Fanuc-compatible dialects (Fanuc, Haas).
  *
  * Both Fanuc and Haas share identical control flow keyword formatting:
  * - IF [condition] THEN ... ELSE ... ENDIF (macro-style)
  * - WHILE [condition] DO ... END
  * - N-number labels
  * - M98/M99 for subprogram calls and returns
- *
- * Dialect-specific subclasses can override any method if needed.
  */
-export abstract class FanucCompatibleFormatter extends BaseFormatter {
+export class FanucCompatibleFormatter extends BaseFormatter {
   protected formatLabel(label?: string): string {
     return label ? `${label.toUpperCase()} ` : GCodeSymbols.EMPTY_STRING;
   }
