@@ -61,7 +61,7 @@ export class FanucCompatibleFormatter extends BaseFormatter {
   }
 
   protected formatSubroutineCallLine(node: SubroutineCallNode): string {
-    let line = `M98 P${node.target}`;
+    let line = `${GCodeKeywords.M98} P${node.target}`;
     if (node.repeatCount) {
       line += ` L${this.expressionFormatter.format(node.repeatCount)}`;
     }
@@ -69,6 +69,6 @@ export class FanucCompatibleFormatter extends BaseFormatter {
   }
 
   protected formatReturnStatementLine(_node: ReturnStatementNode): string {
-    return 'M99';
+    return GCodeKeywords.M99;
   }
 }

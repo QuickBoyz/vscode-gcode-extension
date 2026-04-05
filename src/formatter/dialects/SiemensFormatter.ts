@@ -1,4 +1,4 @@
-import { GCodeSymbols } from '../../constants';
+import { GCodeKeywords, GCodeSymbols } from '../../constants';
 import {
   ReturnStatementNode,
   SubroutineCallNode,
@@ -25,19 +25,19 @@ export class SiemensFormatter extends BaseFormatter {
   }
 
   protected getIfKeyword(): string {
-    return 'IF';
+    return GCodeKeywords.IF;
   }
 
   protected getElseIfKeyword(): string {
-    return 'ELSEIF';
+    return GCodeKeywords.ELSEIF;
   }
 
   protected getElseKeyword(): string {
-    return 'ELSE';
+    return GCodeKeywords.ELSE;
   }
 
   protected getEndIfKeyword(): string {
-    return 'ENDIF';
+    return GCodeKeywords.ENDIF;
   }
 
   protected getThenKeyword(): string {
@@ -46,7 +46,7 @@ export class SiemensFormatter extends BaseFormatter {
   }
 
   protected getWhileKeyword(): string {
-    return 'WHILE';
+    return GCodeKeywords.WHILE;
   }
 
   protected getDoKeyword(): string {
@@ -55,23 +55,22 @@ export class SiemensFormatter extends BaseFormatter {
   }
 
   protected getEndWhileKeyword(): string {
-    // Siemens uses ENDWHILE instead of END
-    return 'ENDWHILE';
+    return GCodeKeywords.ENDWHILE;
   }
 
   protected formatSubroutineDefinitionOpen(node: SubroutineDefinitionNode): string {
-    return `PROC ${node.label}`;
+    return `${GCodeKeywords.PROC} ${node.label}`;
   }
 
   protected formatSubroutineDefinitionClose(_node: SubroutineDefinitionNode): string {
-    return 'RET';
+    return GCodeKeywords.RET;
   }
 
   protected formatSubroutineCallLine(node: SubroutineCallNode): string {
-    return `CALL ${node.target}`;
+    return `${GCodeKeywords.CALL} ${node.target}`;
   }
 
   protected formatReturnStatementLine(_node: ReturnStatementNode): string {
-    return 'RET';
+    return GCodeKeywords.RET;
   }
 }
