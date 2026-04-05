@@ -535,4 +535,316 @@ describe('GCodeScanner', () => {
       expect(tokens[0].value).toBe('(test ; inner)');
     });
   });
+
+  describe('computed variable patterns', () => {
+    it('should tokenize #[#8 + 7.] as hash, bracket, variable, plus, number, dot, bracket', () => {
+      const tokens = scanner.tokenize('#[#8 + 7.]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.HASH,
+        TokenCategory.LBRACKET,
+        TokenCategory.VARIABLE,
+        TokenCategory.WS,
+        TokenCategory.PLUS,
+        TokenCategory.WS,
+        TokenCategory.NUMBER,
+        TokenCategory.DOT,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[2].value).toBe('#8');
+      expect(tokens[6].value).toBe('7');
+    });
+
+    it('should tokenize # [1] with space between hash and bracket', () => {
+      const tokens = scanner.tokenize('# [1]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.HASH,
+        TokenCategory.WS,
+        TokenCategory.LBRACKET,
+        TokenCategory.NUMBER,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[3].value).toBe('1');
+    });
+
+    it('should tokenize ##5 as hash followed by variable', () => {
+      const tokens = scanner.tokenize('##5');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.HASH);
+      expect(tokens[1].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[1].value).toBe('#5');
+    });
+  });
+
+  describe('parameter adjacency to brackets', () => {
+    it('should tokenize P[5] without space as PARAM, LBRACKET, NUMBER, RBRACKET', () => {
+      const tokens = scanner.tokenize('P[5]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.PARAM,
+        TokenCategory.LBRACKET,
+        TokenCategory.NUMBER,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[0].value).toBe('P');
+    });
+
+    it('should tokenize P [5] with space as PARAM, WS, LBRACKET, NUMBER, RBRACKET', () => {
+      const tokens = scanner.tokenize('P [5]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.PARAM,
+        TokenCategory.WS,
+        TokenCategory.LBRACKET,
+        TokenCategory.NUMBER,
+        TokenCategory.RBRACKET,
+      ]);
+    });
+
+    it('should tokenize X-1 as PARAM, MINUS, NUMBER', () => {
+      const tokens = scanner.tokenize('X-1');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([TokenCategory.PARAM, TokenCategory.MINUS, TokenCategory.NUMBER]);
+      expect(tokens[0].value).toBe('X');
+      expect(tokens[2].value).toBe('1');
+    });
+
+    it('should tokenize X -1 as PARAM, WS, MINUS, NUMBER', () => {
+      const tokens = scanner.tokenize('X -1');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.PARAM,
+        TokenCategory.WS,
+        TokenCategory.MINUS,
+        TokenCategory.NUMBER,
+      ]);
+    });
+  });
+
+  describe('expression keyword boundaries', () => {
+    it('should tokenize #898EQ#996 without spaces as VARIABLE, IDENTIFIER(EQ), VARIABLE', () => {
+      const tokens = scanner.tokenize('#898EQ#996');
+      expect(tokens).toHaveLength(3);
+      expect(tokens[0].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[0].value).toBe('#898');
+      expect(tokens[1].category).toBe(TokenCategory.IDENTIFIER);
+      expect(tokens[1].keyword).toBe(KeywordType.EQ);
+      expect(tokens[2].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[2].value).toBe('#996');
+    });
+
+    it('should tokenize IF[1] without space before bracket', () => {
+      const tokens = scanner.tokenize('IF[1]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.IDENTIFIER,
+        TokenCategory.LBRACKET,
+        TokenCategory.NUMBER,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[0].keyword).toBe(KeywordType.IF);
+    });
+  });
+
+  describe('M-code edge cases', () => {
+    it('should tokenize M99.1 as MCODE(M99) and NUMBER(.1)', () => {
+      const tokens = scanner.tokenize('M99.1');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.MCODE);
+      expect(tokens[0].value).toBe('M99');
+      expect(tokens[1].category).toBe(TokenCategory.NUMBER);
+      expect(tokens[1].value).toBe('.1');
+    });
+
+    it('should tokenize both M06 and M6 as MCODE', () => {
+      const tokensM06 = scanner.tokenize('M06');
+      expect(tokensM06).toHaveLength(1);
+      expect(tokensM06[0].category).toBe(TokenCategory.MCODE);
+      expect(tokensM06[0].value).toBe('M06');
+
+      const tokensM6 = scanner.tokenize('M6');
+      expect(tokensM6).toHaveLength(1);
+      expect(tokensM6[0].category).toBe(TokenCategory.MCODE);
+      expect(tokensM6[0].value).toBe('M6');
+    });
+
+    it('should preserve leading zeros in M003', () => {
+      const tokens = scanner.tokenize('M003');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.MCODE);
+      expect(tokens[0].value).toBe('M003');
+    });
+  });
+
+  describe('whitespace handling', () => {
+    it('should emit WS token containing a tab character', () => {
+      const tokens = scanner.tokenize('G01\tX10');
+      expect(tokens).toHaveLength(4);
+      expect(tokens[1].category).toBe(TokenCategory.WS);
+      expect(tokens[1].value).toBe('\t');
+    });
+
+    it('should emit a single WS token for multiple spaces', () => {
+      const tokens = scanner.tokenize('G01   X10');
+      expect(tokens).toHaveLength(4);
+      expect(tokens[1].category).toBe(TokenCategory.WS);
+      expect(tokens[1].value).toBe('   ');
+    });
+
+    it('should emit a single WS token for mixed tabs and spaces', () => {
+      const tokens = scanner.tokenize('G01 \t X10');
+      expect(tokens).toHaveLength(4);
+      expect(tokens[1].category).toBe(TokenCategory.WS);
+      expect(tokens[1].value).toBe(' \t ');
+    });
+  });
+
+  describe('empty and minimal input', () => {
+    it('should return empty array for empty string', () => {
+      const tokens = scanner.tokenize('');
+      expect(tokens).toHaveLength(0);
+    });
+
+    it('should return a single NL token for a newline', () => {
+      const tokens = scanner.tokenize('\n');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.NL);
+    });
+
+    it('should return a single WS token for a space', () => {
+      const tokens = scanner.tokenize(' ');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.WS);
+    });
+
+    it('should return a single PERCENT token for %', () => {
+      const tokens = scanner.tokenize('%');
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].category).toBe(TokenCategory.PERCENT);
+    });
+  });
+
+  describe('keyword suffix extraction', () => {
+    it('should extract suffix from DO2', () => {
+      const tokens = scanner.tokenize('DO2');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].value).toBe('DO2');
+      expect(tokens[0].keywordSuffix).toBe(2);
+    });
+
+    it('should extract suffix from END5', () => {
+      const tokens = scanner.tokenize('END5');
+      expect(tokens[0].keyword).toBe(KeywordType.END);
+      expect(tokens[0].value).toBe('END5');
+      expect(tokens[0].keywordSuffix).toBe(5);
+    });
+
+    it('should have undefined suffix for plain DO', () => {
+      const tokens = scanner.tokenize('DO');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].keywordSuffix).toBeUndefined();
+    });
+
+    it('should have undefined suffix for plain END', () => {
+      const tokens = scanner.tokenize('END');
+      expect(tokens[0].keyword).toBe(KeywordType.END);
+      expect(tokens[0].keywordSuffix).toBeUndefined();
+    });
+
+    it('should extract suffix 0 from DO0', () => {
+      const tokens = scanner.tokenize('DO0');
+      expect(tokens[0].keyword).toBe(KeywordType.DO);
+      expect(tokens[0].keywordSuffix).toBe(0);
+    });
+
+    it('should have undefined suffix for regular keywords like IF and WHILE', () => {
+      const ifTokens = scanner.tokenize('IF');
+      expect(ifTokens[0].keyword).toBe(KeywordType.IF);
+      expect(ifTokens[0].keywordSuffix).toBeUndefined();
+
+      const whileTokens = scanner.tokenize('WHILE');
+      expect(whileTokens[0].keyword).toBe(KeywordType.WHILE);
+      expect(whileTokens[0].keywordSuffix).toBeUndefined();
+    });
+  });
+
+  describe('real-world patterns from fixtures', () => {
+    it('should tokenize T#123 as PARAM(T) followed by VARIABLE(#123)', () => {
+      const tokens = scanner.tokenize('T#123');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].value).toBe('T');
+      expect(tokens[1].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[1].value).toBe('#123');
+    });
+
+    it('should tokenize H#123 as PARAM(H) followed by VARIABLE(#123)', () => {
+      const tokens = scanner.tokenize('H#123');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].value).toBe('H');
+      expect(tokens[1].category).toBe(TokenCategory.VARIABLE);
+      expect(tokens[1].value).toBe('#123');
+    });
+
+    it('should tokenize H27.4 as PARAM(H) followed by NUMBER(27.4)', () => {
+      const tokens = scanner.tokenize('H27.4');
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].category).toBe(TokenCategory.PARAM);
+      expect(tokens[0].value).toBe('H');
+      expect(tokens[1].category).toBe(TokenCategory.NUMBER);
+      expect(tokens[1].value).toBe('27.4');
+    });
+
+    it('should tokenize M3 S[1234 / #123] correctly', () => {
+      const tokens = scanner.tokenize('M3 S[1234 / #123]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.MCODE,
+        TokenCategory.WS,
+        TokenCategory.PARAM,
+        TokenCategory.LBRACKET,
+        TokenCategory.NUMBER,
+        TokenCategory.WS,
+        TokenCategory.SLASH,
+        TokenCategory.WS,
+        TokenCategory.VARIABLE,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[0].value).toBe('M3');
+      expect(tokens[2].value).toBe('S');
+      expect(tokens[4].value).toBe('1234');
+      expect(tokens[8].value).toBe('#123');
+    });
+
+    it('should tokenize G65 P5000 correctly', () => {
+      const tokens = scanner.tokenize('G65 P5000');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.GCODE,
+        TokenCategory.WS,
+        TokenCategory.PARAM,
+        TokenCategory.NUMBER,
+      ]);
+      expect(tokens[0].value).toBe('G65');
+      expect(tokens[3].value).toBe('5000');
+    });
+
+    it('should tokenize F[#123/2] correctly', () => {
+      const tokens = scanner.tokenize('F[#123/2]');
+      const categories = tokens.map((t) => t.category);
+      expect(categories).toEqual([
+        TokenCategory.PARAM,
+        TokenCategory.LBRACKET,
+        TokenCategory.VARIABLE,
+        TokenCategory.SLASH,
+        TokenCategory.NUMBER,
+        TokenCategory.RBRACKET,
+      ]);
+      expect(tokens[0].value).toBe('F');
+      expect(tokens[2].value).toBe('#123');
+      expect(tokens[4].value).toBe('2');
+    });
+  });
 });
