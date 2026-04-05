@@ -7,5 +7,5 @@
 
 import './registerDialects';
 
-export type { DialectFactories } from './DialectRegistry';
+export type { IDialectFactory } from './DialectRegistry';
 export { DialectRegistry } from './DialectRegistry';

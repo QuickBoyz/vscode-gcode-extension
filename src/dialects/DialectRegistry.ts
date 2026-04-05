@@ -19,8 +19,11 @@ import { DialectValidator } from '../utils/DialectValidator';
 
 /**
  * Factory functions that each dialect registration must supply.
+ *
+ * Not implemented by a class — used as a structural contract for the
+ * object literals passed to `DialectRegistry.register()`.
  */
-export interface DialectFactories {
+export interface IDialectFactory {
   readonly createParser: (tokens: readonly LexerToken[], inputText?: string) => BaseParser;
   readonly createFormatter: (settings?: Partial<FormatterConfig>) => FormatterInterface;
   readonly createDataProvider: () => IDataProvider;
@@ -34,7 +37,7 @@ export interface DialectFactories {
  * than through the registry map.
  */
 export class DialectRegistry {
-  private static readonly registry = new Map<DialectType, DialectFactories>();
+  private static readonly registry = new Map<DialectType, IDialectFactory>();
 
   /**
    * Register factory functions for a dialect.
@@ -42,7 +45,7 @@ export class DialectRegistry {
    * @param dialect - The dialect to register
    * @param factories - Factory functions for parser, formatter, and data provider
    */
-  static register(dialect: DialectType, factories: DialectFactories): void {
+  static register(dialect: DialectType, factories: IDialectFactory): void {
     DialectRegistry.registry.set(dialect, factories);
   }
 
@@ -123,7 +126,7 @@ export class DialectRegistry {
   /**
    * Retrieve the factory functions for a dialect, or throw a descriptive error.
    */
-  private static getFactories(dialect: DialectType): DialectFactories {
+  private static getFactories(dialect: DialectType): IDialectFactory {
     const factories = DialectRegistry.registry.get(dialect);
     if (!factories) {
       const registered = Array.from(DialectRegistry.registry.keys()).join(', ');
