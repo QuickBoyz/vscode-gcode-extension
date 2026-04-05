@@ -26,6 +26,8 @@ export enum ParserDiagnosticCode {
   UNEXPECTED_TOKEN = 'unexpected-token',
   EXPECTED_TOKEN = 'expected-token',
   EXPECTED_FUNCTION_NAME = 'expected-function-name',
+  UNTERMINATED_COMMENT = 'unterminated-comment',
+  UNTERMINATED_VARIABLE = 'unterminated-variable',
 }
 
 export class ErrorNode extends StatementNode {

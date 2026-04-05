@@ -7,6 +7,7 @@ import {
   FunctionCallNode,
   IfStatementNode,
   MotionCommandNode,
+  ParserDiagnosticCode,
   ProgramNode,
   VariableAssignmentNode,
   VariableReferenceNode,
@@ -462,6 +463,42 @@ Y0.0 X0.3 R0.225`,
       expect(program.statements[7]).toBeInstanceOf(AxisParameterNode);
       expect(program.statements[8]).toBeInstanceOf(AxisParameterNode);
       expect(program.statements[9]).toBeInstanceOf(AxisParameterNode);
+    });
+  });
+
+  describe('unterminated token detection', () => {
+    it('produces ErrorNode for unterminated parenthetical comment', () => {
+      const program = parse('(missing close paren');
+      const errorNode = program.statements.find((s) => s instanceof ErrorNode) as ErrorNode;
+      expect(errorNode).toBeDefined();
+      expect(errorNode.code).toBe(ParserDiagnosticCode.UNTERMINATED_COMMENT);
+      expect(errorNode.message).toContain('Unterminated parenthetical comment');
+    });
+
+    it('produces ErrorNode for unterminated named variable in assignment', () => {
+      const program = parse('#<missing_close\nX10');
+      const errorNode = program.statements.find((s) => s instanceof ErrorNode) as ErrorNode;
+      expect(errorNode).toBeDefined();
+      expect(errorNode.code).toBe(ParserDiagnosticCode.UNTERMINATED_VARIABLE);
+      expect(errorNode.message).toContain('Unterminated named variable');
+    });
+
+    it('produces ErrorNode for unterminated named variable in expression', () => {
+      const program = parse('#<x> = #<missing_close\nX10');
+      const errorNode = program.statements.find((s) => s instanceof ErrorNode) as ErrorNode;
+      expect(errorNode).toBeDefined();
+      expect(errorNode.code).toBe(ParserDiagnosticCode.UNTERMINATED_VARIABLE);
+    });
+
+    it('parses valid comment without error', () => {
+      const program = parse('(valid comment)');
+      expect(program.statements.some((s) => s instanceof ErrorNode)).toBe(false);
+    });
+
+    it('parses valid named variable without error', () => {
+      const program = parse('#<valid> = 10');
+      expect(program.statements.some((s) => s instanceof ErrorNode)).toBe(false);
+      expect(program.statements[0]).toBeInstanceOf(VariableAssignmentNode);
     });
   });
 });

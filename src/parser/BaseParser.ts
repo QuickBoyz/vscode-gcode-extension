@@ -345,6 +345,17 @@ export abstract class BaseParser {
 
   protected parseVariableAssignment(): StatementNode {
     const variable = this.tokens.expectCategory(TokenCategory.VARIABLE);
+    if (variable.unterminated) {
+      this.recoverToNextLine();
+      return this.factory.error(
+        'Unterminated named variable — missing closing >',
+        variable,
+        variable.value,
+        undefined,
+        undefined,
+        ParserDiagnosticCode.UNTERMINATED_VARIABLE
+      );
+    }
     this.tokens.expectCategory(TokenCategory.EQUALS);
 
     try {
@@ -476,6 +487,13 @@ export abstract class BaseParser {
             varToken,
             ParserDiagnosticCode.UNEXPECTED_EOF
           );
+        if (varToken.unterminated) {
+          throw new ParseError(
+            'Unterminated named variable — missing closing >',
+            varToken,
+            ParserDiagnosticCode.UNTERMINATED_VARIABLE
+          );
+        }
         return this.factory.variableRef(varToken);
       }
 
@@ -572,6 +590,16 @@ export abstract class BaseParser {
         token,
         ParserDiagnosticCode.UNEXPECTED_EOF
       );
+    if (token.unterminated) {
+      return this.factory.error(
+        'Unterminated parenthetical comment — missing closing )',
+        token,
+        token.value,
+        undefined,
+        undefined,
+        ParserDiagnosticCode.UNTERMINATED_COMMENT
+      );
+    }
     return this.factory.comment(token);
   }
 
