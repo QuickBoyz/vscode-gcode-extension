@@ -186,17 +186,8 @@ export class GCodeScanner {
     if (this.isAlpha(nextChar)) {
       this.readIdentifierTail();
       const value = this.source.slice(startOffset, this.position);
-      const resolved = this.resolveKeyword(value);
-      this.emit(
-        TokenCategory.IDENTIFIER,
-        resolved.keyword,
-        value,
-        startOffset,
-        startLine,
-        startCol,
-        0,
-        resolved.suffix
-      );
+      const keyword = this.resolveKeyword(value);
+      this.emit(TokenCategory.IDENTIFIER, keyword, value, startOffset, startLine, startCol);
       return;
     }
 
@@ -215,10 +206,10 @@ export class GCodeScanner {
   /**
    * Resolve the keyword for an identifier, including DO/END with trailing digits.
    */
-  private resolveKeyword(text: string): { keyword: KeywordType | null; suffix?: number } {
+  private resolveKeyword(text: string): KeywordType | null {
     const keyword = this.lookupKeywordInMap(text);
     if (keyword !== null) {
-      return { keyword };
+      return keyword;
     }
 
     // Special case: DO0, DO5, END0, END5 etc.
@@ -227,12 +218,11 @@ export class GCodeScanner {
     if (strippedText.length > 0 && strippedText.length < text.length) {
       const strippedKeyword = this.lookupKeywordInMap(strippedText);
       if (strippedKeyword === KeywordType.DO || strippedKeyword === KeywordType.END) {
-        const suffixStr = text.slice(strippedText.length);
-        return { keyword: strippedKeyword, suffix: parseInt(suffixStr, 10) };
+        return strippedKeyword;
       }
     }
 
-    return { keyword: null };
+    return null;
   }
 
   /**
@@ -467,8 +457,7 @@ export class GCodeScanner {
     startOffset: number,
     startLine: number,
     startCol: number,
-    lineBreaks: number = 0,
-    keywordSuffix?: number
+    lineBreaks: number = 0
   ): void {
     this.tokens.push(
       new LexerToken(
@@ -478,8 +467,7 @@ export class GCodeScanner {
         this.offsetBase + startOffset,
         startLine,
         startCol,
-        lineBreaks,
-        keywordSuffix
+        lineBreaks
       )
     );
   }
