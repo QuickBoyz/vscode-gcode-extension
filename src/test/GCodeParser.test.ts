@@ -51,7 +51,8 @@ o100 while [#<i> LT 10] DO
 o100 endwhile
     %`,
       program = parse(code);
-    expect(program.statements.length).toBe(2); // WhileStatement + trailing ProgramDelimiter
+    expect(program.statements.length).toBe(1); // WhileStatement (trailing % sets hasEndDelimiter)
+    expect(program.hasEndDelimiter).toBe(true);
 
     const loop = program.statements[0];
     expect(loop).toBeInstanceOf(WhileStatementNode);
@@ -296,7 +297,8 @@ G02 X[#<xpos> - #<tool_radius>] Y#<ypos> Z#<depth> F#<feed>
 %
     `,
       program = parse(code);
-    expect(program.statements.length).toBe(2); // MotionCommand + trailing ProgramDelimiter
+    expect(program.statements.length).toBe(1); // MotionCommand (trailing % sets hasEndDelimiter)
+    expect(program.hasEndDelimiter).toBe(true);
     const cmd = program.statements[0] as MotionCommandNode;
 
     expect(cmd.getParameters().length).toBe(4);
