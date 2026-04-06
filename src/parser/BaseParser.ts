@@ -74,8 +74,8 @@ export abstract class BaseParser {
   // Track the last motion command that had parameters (for parameter-only lines)
   lastCommandWithParams: MotionCommandNode | null = null;
   // Non-fatal validation errors emitted during parsing (e.g., suffix mismatches).
-  // Drained by parseStatementSafe after each successful statement parse.
-  private readonly pendingErrors: StatementNode[] = [];
+  // Drained into the statement list after each successful statement parse.
+  private pendingErrors: StatementNode[] = [];
 
   constructor(tokens: readonly LexerToken[], inputText?: string) {
     this.tokens = new TokenStream(tokens);
@@ -384,7 +384,7 @@ export abstract class BaseParser {
   private drainPendingErrors(target: StatementNode[]): void {
     if (this.pendingErrors.length > 0) {
       target.push(...this.pendingErrors);
-      this.pendingErrors.length = 0;
+      this.pendingErrors = [];
     }
   }
 
