@@ -2,7 +2,7 @@ import { copyFileSync, mkdirSync } from 'fs';
 import { build } from 'esbuild';
 
 await build({
-  entryPoints: ['src/webview/renderer.ts'],
+  entryPoints: ['src/webview/index.tsx'],
   bundle: true,
   outfile: 'dist/webview/renderer.js',
   format: 'iife',

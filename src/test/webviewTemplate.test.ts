@@ -23,7 +23,7 @@ describe('webview static files', () => {
     expect(html).toContain('{{scriptUri}}');
     expect(html).toContain('{{styleUri}}');
     expect(html).toContain('{{cspSource}}');
-    expect(html).toContain('id="canvas"');
+    expect(html).toContain('id="root"');
   });
 
   it('styles.css exists and is non-empty', () => {
