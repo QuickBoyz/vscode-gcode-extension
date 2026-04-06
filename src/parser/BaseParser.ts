@@ -94,11 +94,7 @@ export abstract class BaseParser {
     while (!this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) statements.push(stmt);
-      // Drain non-fatal validation errors emitted during parsing
-      if (this.pendingErrors.length > 0) {
-        statements.push(...this.pendingErrors);
-        this.pendingErrors.length = 0;
-      }
+      this.drainPendingErrors(statements);
     }
 
     // A trailing % is an end delimiter, not an interior program boundary.
@@ -318,12 +314,12 @@ export abstract class BaseParser {
     const hasDo = this.tokens.matchKeyword(KeywordType.DO);
     const doToken = hasDo ? this.tokens.next() : undefined;
 
-    this.validateDoSuffix(doToken);
-
     const body: StatementNode[] = [];
     while (!this.isEndWhile(label) && !this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) body.push(stmt);
+      // Drain non-fatal validation errors from nested constructs
+      this.drainPendingErrors(body);
     }
 
     // If there's a label, consume the OSUB label token before expecting END/ENDWHILE
@@ -343,7 +339,7 @@ export abstract class BaseParser {
     }
     const endWhileToken = this.tokens.expectKeyword(KeywordType.END, KeywordType.ENDWHILE);
 
-    this.validateEndSuffix(endWhileToken, doToken);
+    this.validateDoEndSuffixes(doToken, endWhileToken);
 
     return this.factory.whileStatement({
       condition,
@@ -356,97 +352,39 @@ export abstract class BaseParser {
   }
 
   /**
-   * Whether this dialect supports numbered DO/END (e.g., DO1/END1).
-   * Override in dialect subclasses that support Macro B numbered nesting.
+   * Validate DO/END keyword suffixes. Called after a WHILE loop is fully parsed.
+   *
+   * The default implementation rejects numbered DO/END (e.g., DO1/END1) since
+   * most dialects do not support them. Dialects that support numbered nesting
+   * (Fanuc/Haas Macro B) override this to validate suffix ranges and matching.
    */
-  protected supportsNumberedDoEnd(): boolean {
-    return false;
-  }
-
-  /**
-   * Whether a DO/END suffix value is valid for this dialect.
-   * Fanuc/Haas Macro B supports 1–3 for nesting levels.
-   * Only called when supportsNumberedDoEnd() returns true.
-   */
-  protected isValidDoEndSuffix(suffix: number): boolean {
-    return suffix >= 1 && suffix <= 3;
-  }
-
-  private validateDoSuffix(doToken?: LexerToken): void {
-    if (!doToken || doToken.keywordSuffix === undefined) return;
-
-    if (!this.supportsNumberedDoEnd()) {
-      this.pendingErrors.push(
-        this.factory.error(
-          `Numbered DO${doToken.keywordSuffix} is not supported in this dialect`,
-          doToken,
-          undefined,
-          undefined,
-          undefined,
-          ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
-        )
+  protected validateDoEndSuffixes(doToken?: LexerToken, endToken?: LexerToken): void {
+    if (doToken?.keywordSuffix !== undefined) {
+      this.addPendingError(
+        `Numbered DO${doToken.keywordSuffix} is not supported in this dialect`,
+        doToken,
+        ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
       );
-      return;
     }
-
-    if (!this.isValidDoEndSuffix(doToken.keywordSuffix)) {
-      this.pendingErrors.push(
-        this.factory.error(
-          `Invalid DO suffix ${doToken.keywordSuffix} — must be 1, 2, or 3`,
-          doToken,
-          undefined,
-          undefined,
-          undefined,
-          ParserDiagnosticCode.INVALID_DO_END_SUFFIX
-        )
+    if (endToken?.keywordSuffix !== undefined) {
+      this.addPendingError(
+        `Numbered END${endToken.keywordSuffix} is not supported in this dialect`,
+        endToken,
+        ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
       );
     }
   }
 
-  private validateEndSuffix(endToken: LexerToken, doToken?: LexerToken): void {
-    if (endToken.keywordSuffix === undefined) return;
+  protected addPendingError(message: string, token: LexerToken, code: ParserDiagnosticCode): void {
+    this.pendingErrors.push(
+      this.factory.error(message, token, undefined, undefined, undefined, code)
+    );
+  }
 
-    if (!this.supportsNumberedDoEnd()) {
-      this.pendingErrors.push(
-        this.factory.error(
-          `Numbered END${endToken.keywordSuffix} is not supported in this dialect`,
-          endToken,
-          undefined,
-          undefined,
-          undefined,
-          ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
-        )
-      );
-      return;
-    }
-
-    if (!this.isValidDoEndSuffix(endToken.keywordSuffix)) {
-      this.pendingErrors.push(
-        this.factory.error(
-          `Invalid END suffix ${endToken.keywordSuffix} — must be 1, 2, or 3`,
-          endToken,
-          undefined,
-          undefined,
-          undefined,
-          ParserDiagnosticCode.INVALID_DO_END_SUFFIX
-        )
-      );
-      return;
-    }
-
-    // Check DO/END suffix mismatch
-    const doSuffix = doToken?.keywordSuffix;
-    if (doSuffix !== undefined && endToken.keywordSuffix !== doSuffix) {
-      this.pendingErrors.push(
-        this.factory.error(
-          `END${endToken.keywordSuffix} does not match DO${doSuffix}`,
-          endToken,
-          undefined,
-          undefined,
-          undefined,
-          ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX
-        )
-      );
+  private drainPendingErrors(target: StatementNode[]): void {
+    if (this.pendingErrors.length > 0) {
+      target.push(...this.pendingErrors);
+      this.pendingErrors.length = 0;
     }
   }
 

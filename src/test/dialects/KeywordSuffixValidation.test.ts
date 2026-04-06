@@ -18,6 +18,7 @@ import {
   ErrorNode,
   ParserDiagnosticCode,
   ProgramNode,
+  StatementNode,
   WhileStatementNode,
 } from '../../parser/nodes';
 import { ErrorSuggestionDatabase } from '../../providers/ErrorSuggestionDatabase';
@@ -30,7 +31,15 @@ function parse(input: string, dialect: DialectType = DialectType.FANUC): Program
 }
 
 function findErrors(program: ProgramNode): ErrorNode[] {
-  return program.statements.filter((s): s is ErrorNode => s instanceof ErrorNode);
+  const errors: ErrorNode[] = [];
+  function collect(statements: readonly StatementNode[]): void {
+    for (const s of statements) {
+      if (s instanceof ErrorNode) errors.push(s);
+      if (s instanceof WhileStatementNode) collect(s.body);
+    }
+  }
+  collect(program.statements);
+  return errors;
 }
 
 function findWhile(program: ProgramNode): WhileStatementNode | undefined {
@@ -109,6 +118,69 @@ describe('Keyword suffix validation', () => {
       const errors = findErrors(program);
       const invalid = errors.filter((e) => e.code === ParserDiagnosticCode.INVALID_DO_END_SUFFIX);
       expect(invalid.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Fanuc dialect — nested WHILE loops', () => {
+    it('parses nested DO1/DO2 with correct suffixes', () => {
+      const code = [
+        'WHILE [#1 LT 10] DO1',
+        '  WHILE [#2 LT 5] DO2',
+        '    #2 = [#2 + 1]',
+        '  END2',
+        '  #1 = [#1 + 1]',
+        'END1',
+      ].join('\n');
+      const program = parse(code);
+      expect(findErrors(program)).toHaveLength(0);
+      const outerWhile = findWhile(program);
+      expect(outerWhile).toBeDefined();
+      expect(outerWhile!.doSuffix).toBe(1);
+      expect(outerWhile!.endSuffix).toBe(1);
+      const innerWhile = outerWhile!.body.find(
+        (s): s is WhileStatementNode => s instanceof WhileStatementNode
+      );
+      expect(innerWhile).toBeDefined();
+      expect(innerWhile!.doSuffix).toBe(2);
+      expect(innerWhile!.endSuffix).toBe(2);
+    });
+
+    it('reports mismatch in inner loop without affecting outer loop', () => {
+      const code = [
+        'WHILE [#1 LT 10] DO1',
+        '  WHILE [#2 LT 5] DO2',
+        '    #2 = [#2 + 1]',
+        '  END3',
+        '  #1 = [#1 + 1]',
+        'END1',
+      ].join('\n');
+      const program = parse(code);
+      const errors = findErrors(program);
+      const mismatch = errors.find((e) => e.code === ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX);
+      expect(mismatch).toBeDefined();
+      expect(mismatch!.message).toContain('DO2');
+      // Outer loop should still parse successfully
+      const outerWhile = findWhile(program);
+      expect(outerWhile).toBeDefined();
+    });
+  });
+
+  describe('Fanuc dialect — mixed numbered and unnumbered DO/END', () => {
+    it('accepts numbered DO with unnumbered END (no mismatch error)', () => {
+      const program = parse('WHILE [#1 LT 10] DO1\n  #1 = [#1 + 1]\nEND');
+      // No mismatch since END has no suffix — only DO1 suffix exists
+      const mismatches = findErrors(program).filter(
+        (e) => e.code === ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX
+      );
+      expect(mismatches).toHaveLength(0);
+    });
+
+    it('accepts unnumbered DO with numbered END (no mismatch error)', () => {
+      const program = parse('WHILE [#1 LT 10] DO\n  #1 = [#1 + 1]\nEND1');
+      const mismatches = findErrors(program).filter(
+        (e) => e.code === ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX
+      );
+      expect(mismatches).toHaveLength(0);
     });
   });
 
