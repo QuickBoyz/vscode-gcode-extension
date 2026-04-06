@@ -1,8 +1,9 @@
 import { AstVisitor } from '../AstVisitor';
 import { AstNode } from './AstNode';
 import { Range } from './Range';
+import { StatementNode } from './StatementNode';
 
-export class CommentNode extends AstNode {
+export class CommentNode extends StatementNode {
   constructor(
     range: Range,
     readonly text: string,

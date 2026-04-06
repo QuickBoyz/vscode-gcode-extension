@@ -84,6 +84,21 @@ class MachineState {
   planeSelection: PlaneSelection = PlaneSelection.XY;
   programEnded = false;
   toolChanged = false;
+
+  /**
+   * Reset all tracked state to initial values for a new program section.
+   * When adding new state fields to MachineState, add them here too.
+   */
+  reset(): void {
+    this.motionMode = null;
+    this.feedRateSet = false;
+    this.spindleState = SpindleState.OFF;
+    this.coolantState = CoolantState.OFF;
+    this.distanceMode = DistanceMode.ABSOLUTE;
+    this.planeSelection = PlaneSelection.XY;
+    this.programEnded = false;
+    this.toolChanged = false;
+  }
 }
 
 /**
@@ -204,14 +219,7 @@ export class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
   }
 
   private resetForNewProgram(): void {
-    this.state.programEnded = false;
-    this.state.motionMode = null;
-    this.state.feedRateSet = false;
-    this.state.spindleState = SpindleState.OFF;
-    this.state.coolantState = CoolantState.OFF;
-    this.state.distanceMode = DistanceMode.ABSOLUTE;
-    this.state.planeSelection = PlaneSelection.XY;
-    this.state.toolChanged = false;
+    this.state.reset();
     this.lineNumbers.clear();
   }
 
