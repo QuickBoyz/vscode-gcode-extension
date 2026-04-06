@@ -14,6 +14,8 @@ export class WhileStatementNode extends BlockStatementNode {
     readonly endWhileTokenRange: Range,
     readonly doTokenRange?: Range,
     readonly label?: string,
+    readonly doSuffix?: number,
+    readonly endSuffix?: number,
     parent?: AstNode
   ) {
     super(range, body, parent);

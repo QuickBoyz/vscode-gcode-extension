@@ -132,7 +132,9 @@ export class AstFactory {
       this.rangeFrom(args.whileToken),
       this.rangeFrom(args.endWhileToken),
       this.rangeFrom(args.doToken),
-      args.label?.value
+      args.label?.value,
+      args.doToken?.keywordSuffix,
+      args.endWhileToken.keywordSuffix
     );
     this.setParents(args.body, node);
     return node;

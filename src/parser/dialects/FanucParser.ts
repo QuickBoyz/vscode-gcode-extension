@@ -25,6 +25,10 @@ const UNKNOWN_SUBROUTINE_TARGET = 'unknown';
  * M98/M99 subroutine call/return.
  */
 export class FanucParser extends BaseParser {
+  protected override supportsNumberedDoEnd(): boolean {
+    return true;
+  }
+
   protected parseStatement(): StatementNode | null {
     const token = this.tokens.peek();
     if (!token) return null;
