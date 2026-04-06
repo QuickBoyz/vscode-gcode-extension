@@ -1,3 +1,4 @@
+import { LexerToken } from '../../lexer/LexerToken';
 import { KeywordType, TokenCategory } from '../../lexer/types';
 import {
   AxisParameterNode,
@@ -24,7 +25,39 @@ const UNKNOWN_SUBROUTINE_TARGET = 'unknown';
  * parameters, line numbers, basic IF/WHILE (no O-block labels), and
  * M98/M99 subroutine call/return.
  */
+/** Maximum nesting level for Fanuc/Haas Macro B WHILE DO/END loops. */
+const MAX_DO_END_NESTING_LEVEL = 3;
+
 export class FanucParser extends BaseParser {
+  protected override validateDoEndSuffixes(doToken?: LexerToken, endToken?: LexerToken): void {
+    this.validateSuffix(doToken, 'DO');
+    this.validateSuffix(endToken, 'END');
+
+    // Check DO/END suffix mismatch
+    if (
+      doToken?.keywordSuffix !== undefined &&
+      endToken?.keywordSuffix !== undefined &&
+      doToken.keywordSuffix !== endToken.keywordSuffix
+    ) {
+      this.addPendingError(
+        `END${endToken.keywordSuffix} does not match DO${doToken.keywordSuffix}`,
+        endToken,
+        ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX
+      );
+    }
+  }
+
+  private validateSuffix(token: LexerToken | undefined, keyword: string): void {
+    if (!token || token.keywordSuffix === undefined) return;
+    if (token.keywordSuffix < 1 || token.keywordSuffix > MAX_DO_END_NESTING_LEVEL) {
+      this.addPendingError(
+        `Invalid ${keyword} suffix ${token.keywordSuffix} — must be 1 through ${MAX_DO_END_NESTING_LEVEL}`,
+        token,
+        ParserDiagnosticCode.INVALID_DO_END_SUFFIX
+      );
+    }
+  }
+
   protected parseStatement(): StatementNode | null {
     const token = this.tokens.peek();
     if (!token) return null;

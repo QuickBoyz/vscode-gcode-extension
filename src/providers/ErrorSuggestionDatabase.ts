@@ -210,6 +210,25 @@ function buildCodeSuggestions(): Map<DiagnosticCode, ErrorSuggestion> {
     example: '#<my_variable>',
   });
 
+  map.set(ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX, {
+    enhancedMessage: 'DO and END nesting numbers do not match',
+    suggestion:
+      'Each WHILE/DO must be closed by an END with the same nesting number. Use DO1/END1, DO2/END2, or DO3/END3.',
+    example: 'WHILE [#1 LT 10] DO1\n  #1 = [#1 + 1]\nEND1',
+  });
+
+  map.set(ParserDiagnosticCode.INVALID_DO_END_SUFFIX, {
+    enhancedMessage: 'DO/END nesting number is out of valid range',
+    suggestion: 'Macro B supports nesting levels 1, 2, and 3 only. Use DO1/END1 through DO3/END3.',
+    example: 'WHILE [#1 LT 10] DO1\n  WHILE [#2 LT 5] DO2\n    #2 = [#2 + 1]\n  END2\nEND1',
+  });
+
+  map.set(ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END, {
+    enhancedMessage: 'Numbered DO/END is not supported in this dialect',
+    suggestion:
+      'Numbered DO/END (e.g., DO1/END1) is a Fanuc/Haas Macro B feature. Use DO/END or WHILE/ENDWHILE without numbers in this dialect.',
+  });
+
   return map;
 }
 

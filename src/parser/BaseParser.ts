@@ -73,6 +73,9 @@ export abstract class BaseParser {
   protected inputLines: string[];
   // Track the last motion command that had parameters (for parameter-only lines)
   lastCommandWithParams: MotionCommandNode | null = null;
+  // Non-fatal validation errors emitted during parsing (e.g., suffix mismatches).
+  // Drained into the statement list after each successful statement parse.
+  private pendingErrors: StatementNode[] = [];
 
   constructor(tokens: readonly LexerToken[], inputText?: string) {
     this.tokens = new TokenStream(tokens);
@@ -91,6 +94,7 @@ export abstract class BaseParser {
     while (!this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) statements.push(stmt);
+      this.drainPendingErrors(statements);
     }
 
     // A trailing % is an end delimiter, not an interior program boundary.
@@ -309,10 +313,13 @@ export abstract class BaseParser {
     // DO is expected, but we tolerate missing DO for error recovery
     const hasDo = this.tokens.matchKeyword(KeywordType.DO);
     const doToken = hasDo ? this.tokens.next() : undefined;
+
     const body: StatementNode[] = [];
     while (!this.isEndWhile(label) && !this.tokens.eof()) {
       const stmt = this.parseStatementSafe();
       if (stmt) body.push(stmt);
+      // Drain non-fatal validation errors from nested constructs
+      this.drainPendingErrors(body);
     }
 
     // If there's a label, consume the OSUB label token before expecting END/ENDWHILE
@@ -332,6 +339,8 @@ export abstract class BaseParser {
     }
     const endWhileToken = this.tokens.expectKeyword(KeywordType.END, KeywordType.ENDWHILE);
 
+    this.validateDoEndSuffixes(doToken, endWhileToken);
+
     return this.factory.whileStatement({
       condition,
       body,
@@ -340,6 +349,43 @@ export abstract class BaseParser {
       doToken,
       label,
     });
+  }
+
+  /**
+   * Validate DO/END keyword suffixes. Called after a WHILE loop is fully parsed.
+   *
+   * The default implementation rejects numbered DO/END (e.g., DO1/END1) since
+   * most dialects do not support them. Dialects that support numbered nesting
+   * (Fanuc/Haas Macro B) override this to validate suffix ranges and matching.
+   */
+  protected validateDoEndSuffixes(doToken?: LexerToken, endToken?: LexerToken): void {
+    if (doToken?.keywordSuffix !== undefined) {
+      this.addPendingError(
+        `Numbered DO${doToken.keywordSuffix} is not supported in this dialect`,
+        doToken,
+        ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
+      );
+    }
+    if (endToken?.keywordSuffix !== undefined) {
+      this.addPendingError(
+        `Numbered END${endToken.keywordSuffix} is not supported in this dialect`,
+        endToken,
+        ParserDiagnosticCode.UNSUPPORTED_NUMBERED_DO_END
+      );
+    }
+  }
+
+  protected addPendingError(message: string, token: LexerToken, code: ParserDiagnosticCode): void {
+    this.pendingErrors.push(
+      this.factory.error(message, token, undefined, undefined, undefined, code)
+    );
+  }
+
+  private drainPendingErrors(target: StatementNode[]): void {
+    if (this.pendingErrors.length > 0) {
+      target.push(...this.pendingErrors);
+      this.pendingErrors = [];
+    }
   }
 
   protected isEndWhile(startLabel?: LexerToken): boolean {
