@@ -509,8 +509,7 @@ $cube-half: 40px;
     transition: all 0.1s;
   }
 
-  // For vertical edges (width = EDGE_SIZE, height = EDGE_LENGTH)
-  &[style*='width: 12px'] {
+  &--vertical {
     &::after {
       width: 1px;
       height: 100%;
@@ -522,8 +521,7 @@ $cube-half: 40px;
     }
   }
 
-  // For horizontal edges (width = EDGE_LENGTH, height = EDGE_SIZE)
-  &[style*='height: 12px'] {
+  &--horizontal {
     &::after {
       width: 100%;
       height: 1px;

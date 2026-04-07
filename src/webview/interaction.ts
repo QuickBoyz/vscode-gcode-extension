@@ -9,6 +9,7 @@
  */
 
 import { CameraState, DragMode } from './types';
+import { ORBIT_SENSITIVITY, POLE_MARGIN } from './constants';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -30,9 +31,6 @@ export interface InteractionState {
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Radians per pixel of mouse movement during orbit. */
-const ORBIT_SENSITIVITY = 0.008;
-
 /** Zoom multiplier when scrolling down (zoom out). */
 const ZOOM_OUT_FACTOR = 1.12;
 
@@ -41,11 +39,6 @@ const ZOOM_IN_FACTOR = 0.89;
 
 /** Minimum orbit radius to prevent the camera from collapsing. */
 const MINIMUM_RADIUS = 0.01;
-
-/**
- * Margin in radians from the poles (+/- PI/2) to prevent gimbal lock.
- */
-const POLE_MARGIN = 0.01;
 
 /** CSS class applied to the canvas while dragging. */
 const DRAGGING_CLASS = 'dragging';

@@ -40,6 +40,15 @@ export function animateCamera(
   onFrame: () => void,
   onComplete?: () => void
 ): () => void {
+  // Guard: instant snap for zero or negative duration
+  if (duration <= 0) {
+    camera.theta = target.theta;
+    camera.phi = target.phi;
+    onFrame();
+    onComplete?.();
+    return () => {};
+  }
+
   const startTheta = camera.theta;
   const startPhi = camera.phi;
   const deltaTheta = normalizeAngle(target.theta - startTheta);

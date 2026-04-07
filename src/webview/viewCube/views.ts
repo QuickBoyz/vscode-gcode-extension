@@ -6,8 +6,7 @@ export interface ViewTarget {
   readonly phi: number;
 }
 
-/** Pole margin matching the interaction module's POLE_MARGIN. */
-const POLE_MARGIN = 0.01;
+import { POLE_MARGIN } from '../constants';
 
 /**
  * Camera angles for the 6 face views (orthographic axes).

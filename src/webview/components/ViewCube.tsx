@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useCameraRef, useScheduleRender, useAnimationCancel } from '../context/VisualizerContext';
+import { ORBIT_SENSITIVITY, POLE_MARGIN } from '../constants';
 import { FACE_VIEWS, EDGE_VIEWS, ViewTarget } from '../viewCube/views';
 import { animateCamera } from '../viewCube/animation';
 
@@ -12,14 +13,8 @@ const HALF = CUBE_SIZE / 2;
 /** Animation duration in milliseconds. */
 const ANIMATION_DURATION = 100;
 
-/** Orbit sensitivity in radians per pixel (matches interaction.ts). */
-const ORBIT_SENSITIVITY = 0.008;
-
 /** Minimum mouse movement in pixels to distinguish drag from click. */
 const DRAG_THRESHOLD = 3;
-
-/** Maximum phi to prevent gimbal lock (matches interaction.ts POLE_MARGIN). */
-const POLE_MARGIN = 0.01;
 
 /** CSS 3D transform for each face. */
 const FACE_TRANSFORMS: Record<string, string> = {
@@ -71,12 +66,13 @@ const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
  * - phi: elevation from XY plane
  *
  * CSS 3D uses Y-up by default, so we map:
- * - rotateX(-phi in degrees) for elevation
- * - rotateZ(-theta in degrees) for azimuth
+ * - rotateX(phi in degrees) for elevation
+ * - rotateZ(theta in degrees) for azimuth
  *
- * Note: The cube shows the scene from the camera's perspective, so the
- * rotation is inverted — when camera theta increases (rotates left),
- * the cube appears to rotate right.
+ * The signs are positive (not negated) because the cube represents the
+ * scene, not the camera — when the camera orbits right (theta decreases),
+ * the scene (and cube) appears to rotate left, which matches positive theta
+ * in CSS rotateZ.
  */
 function cameraToCSS(theta: number, phi: number): string {
   const thetaDeg = (theta * 180) / Math.PI;
@@ -95,12 +91,18 @@ export function ViewCube() {
   const dragStartRef = useRef({ x: 0, y: 0 });
   const rafIdRef = useRef<number | null>(null);
 
-  // Sync cube CSS transform to camera state on every animation frame
+  // Sync cube CSS transform to camera state on every animation frame.
+  // Dirty check avoids DOM writes when the camera is stationary.
   useEffect(() => {
+    let prevTheta = NaN;
+    let prevPhi = NaN;
+
     function syncTransform(): void {
       const camera = cameraRef.current;
       const cube = cubeRef.current;
-      if (camera && cube) {
+      if (camera && cube && (camera.theta !== prevTheta || camera.phi !== prevPhi)) {
+        prevTheta = camera.theta;
+        prevPhi = camera.phi;
         cube.style.transform = cameraToCSS(camera.theta, camera.phi);
       }
       rafIdRef.current = requestAnimationFrame(syncTransform);
@@ -213,8 +215,9 @@ export function ViewCube() {
   useEffect(() => {
     return () => {
       cancelAnimationRef.current?.();
+      registerAnimationCancel(null);
     };
-  }, []);
+  }, [registerAnimationCancel]);
 
   return (
     <div id="view-cube-container" onMouseDown={handleMouseDown}>
@@ -232,7 +235,7 @@ export function ViewCube() {
         {EDGE_DEFINITIONS.map((edge) => (
           <div
             key={edge.name}
-            className="view-cube-edge"
+            className={`view-cube-edge ${edge.width < edge.height ? 'view-cube-edge--vertical' : 'view-cube-edge--horizontal'}`}
             style={{
               transform: edge.transform,
               width: `${edge.width}px`,
