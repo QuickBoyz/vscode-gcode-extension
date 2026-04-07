@@ -27,7 +27,8 @@ interface PlaybackContextValue {
 interface PlaybackProviderProps {
   readonly children: React.ReactNode;
   readonly segmentsRef: React.RefObject<PathSegment[]>;
-  readonly scheduleRender: () => void;
+  /** Synchronous render — called directly from the playback rAF tick. */
+  readonly renderNow: () => void;
   readonly rapidSpeed: number;
   readonly defaultFeedRate: number;
   readonly followSourceLine: boolean;
@@ -53,7 +54,7 @@ const INITIAL_SNAPSHOT: PlaybackSnapshot = {
 export function PlaybackProvider({
   children,
   segmentsRef,
-  scheduleRender,
+  renderNow,
   rapidSpeed,
   defaultFeedRate,
   followSourceLine,
@@ -63,8 +64,8 @@ export function PlaybackProvider({
   // Refs for latest prop values used in callbacks
   const followSourceLineRef = useRef(followSourceLine);
   followSourceLineRef.current = followSourceLine;
-  const scheduleRenderRef = useRef(scheduleRender);
-  scheduleRenderRef.current = scheduleRender;
+  const renderNowRef = useRef(renderNow);
+  renderNowRef.current = renderNow;
 
   // Speed multiplier state (drives both engine ref and snapshot)
   const speedMultiplierRef = useRef(DEFAULT_SPEED_MULTIPLIER);
@@ -139,7 +140,7 @@ export function PlaybackProvider({
   // ── Engine callbacks ─────────────────────────────────────────────
 
   const onTick = useCallback(() => {
-    scheduleRenderRef.current();
+    renderNowRef.current();
     throttledSnapshotUpdate();
   }, [throttledSnapshotUpdate]);
 

@@ -21,6 +21,8 @@ export interface CameraControls {
   readonly fitView: (segments: PathSegment[], bounds: PathBounds | null) => void;
   readonly resetView: (segments: PathSegment[], bounds: PathBounds | null) => void;
   readonly scheduleRender: () => void;
+  /** Render immediately (synchronous). Use from within an existing rAF callback. */
+  readonly renderNow: () => void;
   readonly clearProjectedCache: () => void;
   readonly renderOverlay: (hoveredIndex: number | null) => void;
 }
@@ -51,7 +53,8 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
 
   const playbackRefs = usePlaybackEngineRefs();
 
-  const { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache } = useRenderLoop(
+  const { scheduleRender, renderNow, renderOverlay, getProjectedCache, clearProjectedCache } =
+    useRenderLoop(
     canvasRef,
     overlayRef,
     segmentsRef,
@@ -91,6 +94,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       fitView,
       resetView,
       scheduleRender,
+      renderNow,
       clearProjectedCache,
       renderOverlay,
     });
@@ -98,6 +102,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
     fitView,
     resetView,
     scheduleRender,
+    renderNow,
     clearProjectedCache,
     renderOverlay,
     registerCameraControls,

@@ -7,7 +7,18 @@ interface PlaybackBarProps {
   readonly onFollowChange: (follow: boolean) => void;
 }
 
-export function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
+/**
+ * Wrapper that subscribes to the playback snapshot and conditionally
+ * renders the PlaybackBar. This isolates the snapshot subscription
+ * so CanvasArea never re-renders from playback state changes.
+ */
+export function PlaybackBarWrapper(props: PlaybackBarProps) {
+  const { status } = usePlaybackSnapshot();
+  if (status === PlaybackStatus.IDLE) return null;
+  return <PlaybackBar {...props} />;
+}
+
+function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
   const { status, currentIndex, totalSegments, speedMultiplier } = usePlaybackSnapshot();
   const { play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed } =
     usePlaybackActions();

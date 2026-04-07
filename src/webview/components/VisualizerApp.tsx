@@ -4,7 +4,7 @@ import {
   useDocumentState,
   useVisualizerSettings,
   useCameraControls,
-  useScheduleRender,
+  useRenderNow,
 } from '../context/VisualizerContext';
 import {
   PlaybackProvider,
@@ -52,7 +52,7 @@ function VisualizerLayout() {
 function PlaybackBridge({ children }: { readonly children: React.ReactNode }) {
   const { segments } = useDocumentState();
   const { settings } = useVisualizerSettings();
-  const scheduleRender = useScheduleRender();
+  const renderNow = useRenderNow();
 
   const segmentsRef = useRef<PathSegment[]>(segments);
   segmentsRef.current = segments;
@@ -60,7 +60,7 @@ function PlaybackBridge({ children }: { readonly children: React.ReactNode }) {
   return (
     <PlaybackProvider
       segmentsRef={segmentsRef}
-      scheduleRender={scheduleRender}
+      renderNow={renderNow}
       rapidSpeed={settings.playback.rapidSpeed}
       defaultFeedRate={settings.playback.defaultFeedRate}
       followSourceLine={settings.playback.followSourceLine}

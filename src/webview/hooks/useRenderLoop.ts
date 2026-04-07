@@ -34,6 +34,8 @@ export interface PlaybackRenderRefs {
 
 export interface UseRenderLoopResult {
   readonly scheduleRender: () => void;
+  /** Render immediately (synchronous). Use from within an existing rAF callback. */
+  readonly renderNow: () => void;
   readonly renderOverlay: (hoveredIndex: number | null) => void;
   readonly getProjectedCache: () => readonly ProjectedSegmentData[];
   readonly clearProjectedCache: () => void;
@@ -62,6 +64,10 @@ export function useRenderLoop(
   );
 
   const render = useCallback(() => {
+    // Cancel any pending scheduled render — we're rendering now.
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+    }
     animationFrameIdRef.current = null;
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
@@ -261,5 +267,11 @@ export function useRenderLoop(
     projectedCacheRef.current = [];
   }, []);
 
-  return { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache };
+  return {
+    scheduleRender,
+    renderNow: render,
+    renderOverlay,
+    getProjectedCache,
+    clearProjectedCache,
+  };
 }
