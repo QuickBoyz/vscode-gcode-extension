@@ -80,22 +80,30 @@ function drawClosedPolygon(ctx: CanvasRenderingContext2D, points: readonly Point
 }
 
 /**
- * Draws a fan polygon from a single apex to a ring of base points.
+ * Draws individual triangular faces from an apex to consecutive ring points.
+ * Each triangle is: apex → ring[i] → ring[i+1].
  */
-function drawFan(ctx: CanvasRenderingContext2D, apex: Point2D, ring: readonly Point2D[]): void {
-  if (ring.length < 2) return;
-  ctx.beginPath();
-  ctx.moveTo(apex.x, apex.y);
-  for (const p of ring) {
-    ctx.lineTo(p.x, p.y);
+function drawConeFaces(
+  ctx: CanvasRenderingContext2D,
+  apex: Point2D,
+  ring: readonly Point2D[]
+): void {
+  const n = ring.length;
+  if (n < 2) return;
+  for (let i = 0; i < n; i++) {
+    const ni = (i + 1) % n;
+    ctx.beginPath();
+    ctx.moveTo(apex.x, apex.y);
+    ctx.lineTo(ring[i].x, ring[i].y);
+    ctx.lineTo(ring[ni].x, ring[ni].y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
 }
 
 /**
- * Draws a quad strip connecting two rings (cylinder side surface).
+ * Draws quad faces connecting two rings (cylinder side surface).
  * Each quad is: bottom[i] → top[i] → top[i+1] → bottom[i+1].
  */
 function drawCylinderSides(
@@ -163,27 +171,20 @@ export function drawToolMarker(
   ctx.globalAlpha = TOOL_MARKER_OPACITY;
   ctx.lineWidth = TOOL_MARKER_OUTLINE_WIDTH;
   ctx.strokeStyle = TOOL_MARKER_OUTLINE_COLOR;
+  ctx.lineJoin = 'round';
 
-  // Draw cylinder body (back-to-front: top cap, sides, bottom is shared with cone base)
+  // Draw cylinder body
   if (cylinderTopRing.length >= 2 && coneBaseRing.length >= 2) {
     ctx.fillStyle = TOOL_CYLINDER_COLOR;
-
-    // Cylinder top cap
     drawClosedPolygon(ctx, cylinderTopRing);
-
-    // Cylinder sides
     drawCylinderSides(ctx, coneBaseRing, cylinderTopRing);
   }
 
-  // Draw cone (tip to cone base ring)
+  // Draw cone (individual triangular faces for correct rendering)
   if (coneBaseRing.length >= 2) {
     ctx.fillStyle = TOOL_CONE_COLOR;
-
-    // Cone base (shared with cylinder bottom — draw it to close the shape)
     drawClosedPolygon(ctx, coneBaseRing);
-
-    // Cone sides
-    drawFan(ctx, tip, coneBaseRing);
+    drawConeFaces(ctx, tip, coneBaseRing);
   }
 
   ctx.restore();
