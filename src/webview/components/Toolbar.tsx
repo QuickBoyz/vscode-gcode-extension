@@ -5,9 +5,17 @@ interface ToolbarProps {
   readonly settings: VisualizerConfig;
   readonly onSettingsChange: (patch: Partial<VisualizerConfig>) => void;
   readonly onResetView: () => void;
+  readonly onPlayback: () => void;
+  readonly isPlaybackActive: boolean;
 }
 
-export function Toolbar({ settings, onSettingsChange, onResetView }: ToolbarProps) {
+export function Toolbar({
+  settings,
+  onSettingsChange,
+  onResetView,
+  onPlayback,
+  isPlaybackActive,
+}: ToolbarProps) {
   return (
     <div id="toolbar">
       <div className="ctrl-group">
@@ -86,6 +94,14 @@ export function Toolbar({ settings, onSettingsChange, onResetView }: ToolbarProp
         }
       >
         {settings.projection === ProjectionMode.PERSPECTIVE ? 'Persp' : 'Ortho'}
+      </button>
+      <button
+        id="btnPlayback"
+        title="Enter playback mode"
+        className={isPlaybackActive ? 'active' : ''}
+        onClick={onPlayback}
+      >
+        {isPlaybackActive ? 'Exit Playback' : 'Playback'}
       </button>
       <span className="hint">
         Left drag: rotate &nbsp;&middot;&nbsp; Shift+drag / Right drag: pan &nbsp;&middot;&nbsp;

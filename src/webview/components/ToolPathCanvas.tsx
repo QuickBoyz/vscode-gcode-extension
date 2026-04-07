@@ -11,6 +11,7 @@ import {
   useCameraControls,
   useMousePosition,
 } from '../context/VisualizerContext';
+import { usePlaybackEngineRefs } from '../context/PlaybackContext';
 
 interface ToolPathCanvasProps {
   readonly wrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -48,13 +49,20 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
 
   const cameraRef = useRef<CameraState>(null);
 
+  const playbackRefs = usePlaybackEngineRefs();
+
   const { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache } = useRenderLoop(
     canvasRef,
     overlayRef,
     segmentsRef,
     boundsRef,
     cameraRef,
-    settingsRef
+    settingsRef,
+    {
+      statusRef: playbackRefs.statusRef,
+      currentIndexRef: playbackRefs.currentIndexRef,
+      toolPositionRef: playbackRefs.toolPositionRef,
+    }
   );
 
   const { camera, fitView, resetView, isDragging } = useCamera(canvasRef, scheduleRender);
