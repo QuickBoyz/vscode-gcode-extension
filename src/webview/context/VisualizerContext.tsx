@@ -1,0 +1,254 @@
+import React, { createContext, useCallback, useContext, useMemo, useReducer, useRef } from 'react';
+import { PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
+import { DEFAULT_ERROR_MESSAGE } from '../constants';
+import { useExtensionMessages } from '../hooks/useExtensionMessages';
+import { useSettings } from '../hooks/useSettings';
+import { useDwellTooltip } from '../hooks/useDwellTooltip';
+import { CameraControls } from '../components/ToolPathCanvas';
+import {
+  DocumentState,
+  INITIAL_DOCUMENT_STATE,
+  SourceTokens,
+  WebviewMessage,
+  documentReducer,
+} from './documentReducer';
+
+// ── Context value types ─────────────────────────────────────────────
+
+interface VisualizerStateValue {
+  readonly document: DocumentState;
+  readonly settings: VisualizerConfig;
+  readonly tooltip: {
+    readonly visibleIndex: number | null;
+    readonly anchorPosition: { readonly x: number; readonly y: number };
+  };
+}
+
+interface VisualizerActionsValue {
+  readonly updateSettings: (patch: Partial<VisualizerConfig>) => void;
+  readonly resetView: () => void;
+  readonly registerCameraControls: (controls: CameraControls) => void;
+  readonly updateMousePosition: (clientX: number, clientY: number) => void;
+  readonly tooltip: {
+    readonly onHoverChange: (index: number | null) => void;
+    readonly onCursorMove: (infoPanelVisible: boolean) => void;
+    readonly onDragStart: () => void;
+    readonly onCanvasLeave: (infoPanelVisible: boolean) => void;
+    readonly onPanelEnter: () => void;
+    readonly onPanelLeave: () => void;
+  };
+}
+
+// ── Contexts ────────────────────────────────────────────────────────
+
+const StateContext = createContext<VisualizerStateValue | null>(null);
+const ActionsContext = createContext<VisualizerActionsValue | null>(null);
+
+// ── Provider ────────────────────────────────────────────────────────
+
+export function VisualizerProvider({ children }: { readonly children: React.ReactNode }) {
+  const [document, dispatch] = useReducer(documentReducer, INITIAL_DOCUMENT_STATE);
+  const { settings, updateSettings: rawUpdateSettings, applyExternalSettings } = useSettings();
+
+  const mousePositionRef = useRef({ x: 0, y: 0 });
+  const cameraControlsRef = useRef<CameraControls | null>(null);
+  const segmentsRef = useRef<PathSegment[]>(document.segments);
+  segmentsRef.current = document.segments;
+  const boundsRef = useRef<PathBounds | null>(document.bounds);
+  boundsRef.current = document.bounds;
+
+  const {
+    visibleIndex,
+    anchorPosition,
+    onHoverChange,
+    onCursorMove,
+    onDragStart,
+    onCanvasLeave,
+    onPanelEnter,
+    onPanelLeave,
+    hide: hideTooltip,
+  } = useDwellTooltip(mousePositionRef);
+
+  // ── Camera controls ───────────────────────────────────────────────
+
+  const registerCameraControls = useCallback((controls: CameraControls) => {
+    cameraControlsRef.current = controls;
+  }, []);
+
+  const resetView = useCallback(() => {
+    cameraControlsRef.current?.resetView(segmentsRef.current, boundsRef.current);
+  }, []);
+
+  // ── Settings (triggers canvas re-render) ──────────────────────────
+
+  const updateSettings = useCallback(
+    (patch: Partial<VisualizerConfig>) => {
+      rawUpdateSettings(patch);
+      requestAnimationFrame(() => {
+        const controls = cameraControlsRef.current;
+        if (controls) {
+          controls.clearProjectedCache();
+          controls.scheduleRender();
+        }
+      });
+    },
+    [rawUpdateSettings]
+  );
+
+  // ── Mouse position (stored in ref, no re-renders) ────────────────
+
+  const updateMousePosition = useCallback((clientX: number, clientY: number) => {
+    mousePositionRef.current = { x: clientX, y: clientY };
+  }, []);
+
+  // ── Extension messages ────────────────────────────────────────────
+
+  const handleMessage = useCallback(
+    (message: unknown) => {
+      const msg = message as WebviewMessage;
+      switch (msg.type) {
+        case 'update': {
+          dispatch({
+            type: 'update',
+            segments: msg.segments ?? [],
+            bounds: msg.bounds ?? null,
+            sourceTokens: msg.sourceTokens as SourceTokens | undefined,
+          });
+          hideTooltip();
+          requestAnimationFrame(() => {
+            const controls = cameraControlsRef.current;
+            if (controls) {
+              controls.clearProjectedCache();
+              controls.fitView(msg.segments ?? [], msg.bounds ?? null);
+              controls.scheduleRender();
+            }
+          });
+          break;
+        }
+        case 'updateSettings': {
+          applyExternalSettings(msg.settings);
+          break;
+        }
+        case 'error': {
+          dispatch({ type: 'error', message: msg.message || DEFAULT_ERROR_MESSAGE });
+          break;
+        }
+        case 'loading': {
+          dispatch({ type: 'loading' });
+          break;
+        }
+      }
+    },
+    [applyExternalSettings, hideTooltip]
+  );
+
+  useExtensionMessages(handleMessage);
+
+  // ── Context values ────────────────────────────────────────────────
+
+  const stateValue = useMemo<VisualizerStateValue>(
+    () => ({
+      document,
+      settings,
+      tooltip: { visibleIndex, anchorPosition },
+    }),
+    [document, settings, visibleIndex, anchorPosition]
+  );
+
+  const actionsValue = useMemo<VisualizerActionsValue>(
+    () => ({
+      updateSettings,
+      resetView,
+      registerCameraControls,
+      updateMousePosition,
+      tooltip: {
+        onHoverChange,
+        onCursorMove,
+        onDragStart,
+        onCanvasLeave,
+        onPanelEnter,
+        onPanelLeave,
+      },
+    }),
+    [
+      updateSettings,
+      resetView,
+      registerCameraControls,
+      updateMousePosition,
+      onHoverChange,
+      onCursorMove,
+      onDragStart,
+      onCanvasLeave,
+      onPanelEnter,
+      onPanelLeave,
+    ]
+  );
+
+  return (
+    <StateContext.Provider value={stateValue}>
+      <ActionsContext.Provider value={actionsValue}>{children}</ActionsContext.Provider>
+    </StateContext.Provider>
+  );
+}
+
+// ── Consumer hooks ──────────────────────────────────────────────────
+
+function useVisualizerState(): VisualizerStateValue {
+  const ctx = useContext(StateContext);
+  if (!ctx) throw new Error('useVisualizerState must be used within VisualizerProvider');
+  return ctx;
+}
+
+function useVisualizerActions(): VisualizerActionsValue {
+  const ctx = useContext(ActionsContext);
+  if (!ctx) throw new Error('useVisualizerActions must be used within VisualizerProvider');
+  return ctx;
+}
+
+/** Document data: segments, bounds, sourceTokens, error, loading. */
+export function useDocumentState(): DocumentState {
+  return useVisualizerState().document;
+}
+
+/** Visualizer settings and the update function. */
+export function useVisualizerSettings(): {
+  readonly settings: VisualizerConfig;
+  readonly updateSettings: (patch: Partial<VisualizerConfig>) => void;
+} {
+  const { settings } = useVisualizerState();
+  const { updateSettings } = useVisualizerActions();
+  return { settings, updateSettings };
+}
+
+/** Tooltip visibility, anchor position, and interaction handlers. */
+export function useTooltip(): {
+  readonly visibleIndex: number | null;
+  readonly anchorPosition: { readonly x: number; readonly y: number };
+  readonly onHoverChange: (index: number | null) => void;
+  readonly onCursorMove: (infoPanelVisible: boolean) => void;
+  readonly onDragStart: () => void;
+  readonly onCanvasLeave: (infoPanelVisible: boolean) => void;
+  readonly onPanelEnter: () => void;
+  readonly onPanelLeave: () => void;
+} {
+  const { tooltip } = useVisualizerState();
+  const { tooltip: actions } = useVisualizerActions();
+  return { ...tooltip, ...actions };
+}
+
+/** Camera control registration and reset. */
+export function useCameraControls(): {
+  readonly registerCameraControls: (controls: CameraControls) => void;
+  readonly resetView: () => void;
+} {
+  const { registerCameraControls, resetView } = useVisualizerActions();
+  return { registerCameraControls, resetView };
+}
+
+/** Mouse position ref update (no re-renders). */
+export function useMousePosition(): {
+  readonly updateMousePosition: (clientX: number, clientY: number) => void;
+} {
+  const { updateMousePosition } = useVisualizerActions();
+  return { updateMousePosition };
+}

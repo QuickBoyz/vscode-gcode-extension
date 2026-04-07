@@ -23,12 +23,12 @@ describe('webview static files', () => {
     expect(html).toContain('{{scriptUri}}');
     expect(html).toContain('{{styleUri}}');
     expect(html).toContain('{{cspSource}}');
-    expect(html).toContain('id="canvas"');
+    expect(html).toContain('id="root"');
   });
 
-  it('styles.css exists and is non-empty', () => {
-    const css = fs.readFileSync(path.join(webviewDir, 'styles.css'), 'utf-8');
-    expect(css.length).toBeGreaterThan(100);
-    expect(css).toContain('--vscode-editor-background');
+  it('styles.scss exists and is non-empty', () => {
+    const scss = fs.readFileSync(path.join(webviewDir, 'styles.scss'), 'utf-8');
+    expect(scss.length).toBeGreaterThan(100);
+    expect(scss).toContain('--vscode-editor-background');
   });
 });

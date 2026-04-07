@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2020", "DOM"],
+    "jsx": "react-jsx",
     "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
@@ -14,6 +15,6 @@
     "outDir": "./dist/webview",
     "rootDir": "./src"
   },
-  "include": ["src/webview/**/*.ts"],
+  "include": ["src/webview/**/*.tsx?"],
   "exclude": ["node_modules"]
 }
