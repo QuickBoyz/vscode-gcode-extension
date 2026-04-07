@@ -100,7 +100,7 @@ export class AstFactory {
     elseIfClauses?: IfClauseNode[];
   }) {
     const node = new IfStatementNode(
-      this.rangeFrom(args.label, args.endLabel),
+      this.rangeFrom(args.label ?? args.ifClause, args.endLabel),
       args.ifClause,
       this.rangeFrom(args.endLabel),
       args.elseClause,
