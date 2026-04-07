@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer, useRef } from 'react';
 import { PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
+import { CameraState } from '../types';
 import { DEFAULT_ERROR_MESSAGE } from '../constants';
 import { useExtensionMessages } from '../hooks/useExtensionMessages';
 import { useSettings } from '../hooks/useSettings';
@@ -31,6 +32,8 @@ interface VisualizerActionsValue {
   readonly scheduleRender: () => void;
   /** Render immediately (synchronous). Use from within an existing rAF callback. */
   readonly renderNow: () => void;
+  readonly cameraRef: React.RefObject<CameraState | null>;
+  readonly registerCameraState: (camera: CameraState) => void;
   readonly updateMousePosition: (clientX: number, clientY: number) => void;
   readonly tooltip: {
     readonly onHoverChange: (index: number | null) => void;
@@ -55,6 +58,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
 
   const mousePositionRef = useRef({ x: 0, y: 0 });
   const cameraControlsRef = useRef<CameraControls | null>(null);
+  const cameraStateRef = useRef<CameraState | null>(null);
   const segmentsRef = useRef<PathSegment[]>(document.segments);
   segmentsRef.current = document.segments;
   const boundsRef = useRef<PathBounds | null>(document.bounds);
@@ -76,6 +80,10 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
 
   const registerCameraControls = useCallback((controls: CameraControls) => {
     cameraControlsRef.current = controls;
+  }, []);
+
+  const registerCameraState = useCallback((camera: CameraState) => {
+    cameraStateRef.current = camera;
   }, []);
 
   const resetView = useCallback(() => {
@@ -173,6 +181,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       registerCameraControls,
       scheduleRender,
       renderNow,
+      cameraRef: cameraStateRef,
+      registerCameraState,
       updateMousePosition,
       tooltip: {
         onHoverChange,
@@ -189,6 +199,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       registerCameraControls,
       scheduleRender,
       renderNow,
+      registerCameraState,
       updateMousePosition,
       onHoverChange,
       onCursorMove,
@@ -251,13 +262,19 @@ export function useTooltip(): {
   return { ...tooltip, ...actions };
 }
 
+/** Camera state ref for direct access (e.g. ViewCube sync). */
+export function useCameraRef(): React.RefObject<CameraState | null> {
+  return useVisualizerActions().cameraRef;
+}
+
 /** Camera control registration and reset. */
 export function useCameraControls(): {
   readonly registerCameraControls: (controls: CameraControls) => void;
+  readonly registerCameraState: (camera: CameraState) => void;
   readonly resetView: () => void;
 } {
-  const { registerCameraControls, resetView } = useVisualizerActions();
-  return { registerCameraControls, resetView };
+  const { registerCameraControls, registerCameraState, resetView } = useVisualizerActions();
+  return { registerCameraControls, registerCameraState, resetView };
 }
 
 /** Mouse position ref update (no re-renders). */

@@ -34,7 +34,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
   const { segments, bounds } = useDocumentState();
   const { settings } = useVisualizerSettings();
   const { visibleIndex, onHoverChange, onCursorMove, onCanvasLeave, onDragStart } = useTooltip();
-  const { registerCameraControls } = useCameraControls();
+  const { registerCameraControls, registerCameraState } = useCameraControls();
   const { updateMousePosition } = useMousePosition();
 
   // Stable refs for latest values (used by imperative render/hit-test loops)
@@ -95,7 +95,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
 
   const { scheduleHitTest } = useHitTesting(getProjectedCache, onHitTestResult);
 
-  // Expose camera controls to provider
+  // Expose camera controls and camera state to provider
   useEffect(() => {
     registerCameraControls({
       fitView,
@@ -105,6 +105,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       clearProjectedCache,
       renderOverlay,
     });
+    registerCameraState(camera);
   }, [
     fitView,
     resetView,
@@ -113,6 +114,8 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
     clearProjectedCache,
     renderOverlay,
     registerCameraControls,
+    registerCameraState,
+    camera,
   ]);
 
   // Canvas resize
