@@ -60,7 +60,6 @@ input[type='color'] {
 }
 
 input[type='range'] {
-  width: 80px;
   cursor: pointer;
   accent-color: var(--vscode-progressBar-background, #0e70c0);
 }
@@ -70,7 +69,8 @@ input[type='range'] {
   text-align: right;
 }
 
-button {
+button,
+select {
   padding: 3px 10px;
   background: var(--vscode-button-secondaryBackground, #3a3d41);
   color: var(--vscode-button-secondaryForeground, #cccccc);
@@ -398,4 +398,39 @@ $font-size: var(--vscode-editor-font-size, 12px);
     flex: 1;
     word-break: break-word;
   }
+}
+
+// ── Playback bar ───────────────────────────────────────────────────
+
+.playback-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playback-progress {
+  color: var(--vscode-descriptionForeground, #999);
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.playback-scrubber {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--vscode-progressBar-background, #0e70c0);
 }

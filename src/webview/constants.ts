@@ -64,3 +64,47 @@ export function getSegmentColor(motionType: MotionType, settings: VisualizerConf
       return FALLBACK_SEGMENT_COLOR;
   }
 }
+
+// ── Playback ──────────────────────────────────────────────────────────
+
+/** Opacity for past (already visited) segments during playback. */
+export const PLAYBACK_PAST_OPACITY = 0.4;
+
+/** Tool marker diameter in world units (mm). Shared by cone and cylinder. */
+export const TOOL_MARKER_DIAMETER = 3;
+
+/** Tool marker cone (tip) height in world units (mm). */
+export const TOOL_CONE_HEIGHT = 3;
+
+/** Tool marker cylinder (body) height in world units (mm). */
+export const TOOL_CYLINDER_HEIGHT = 12;
+
+/** Number of points around the marker cross-section circle. */
+export const TOOL_MARKER_RESOLUTION = 12;
+
+/** Tool marker body fill opacity. */
+export const TOOL_MARKER_OPACITY = 0.35;
+
+/** Tool marker cylinder fill colour. */
+export const TOOL_CYLINDER_COLOR = '#b0b0b0';
+
+/** Tool marker cone fill colour (slightly darker than cylinder). */
+export const TOOL_CONE_COLOR = '#999999';
+
+/** Tool marker outline colour. */
+export const TOOL_MARKER_OUTLINE_COLOR = '#777777';
+
+/** Tool marker outline width. */
+export const TOOL_MARKER_OUTLINE_WIDTH = 0.5;
+
+/** Tool tip dot radius in screen pixels. */
+export const TOOL_TIP_RADIUS = 5;
+
+/** Tool tip dot fill colour. */
+export const TOOL_TIP_COLOR = '#ff4500';
+
+/** Tool tip dot outline colour. */
+export const TOOL_TIP_OUTLINE_COLOR = '#1a1a1a';
+
+/** Tool tip dot outline width. */
+export const TOOL_TIP_OUTLINE_WIDTH = 1.5;

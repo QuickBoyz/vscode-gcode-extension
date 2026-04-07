@@ -28,6 +28,9 @@ interface VisualizerActionsValue {
   readonly updateSettings: (patch: Partial<VisualizerConfig>) => void;
   readonly resetView: () => void;
   readonly registerCameraControls: (controls: CameraControls) => void;
+  readonly scheduleRender: () => void;
+  /** Render immediately (synchronous). Use from within an existing rAF callback. */
+  readonly renderNow: () => void;
   readonly updateMousePosition: (clientX: number, clientY: number) => void;
   readonly tooltip: {
     readonly onHoverChange: (index: number | null) => void;
@@ -77,6 +80,14 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
 
   const resetView = useCallback(() => {
     cameraControlsRef.current?.resetView(segmentsRef.current, boundsRef.current);
+  }, []);
+
+  const scheduleRender = useCallback(() => {
+    cameraControlsRef.current?.scheduleRender();
+  }, []);
+
+  const renderNow = useCallback(() => {
+    cameraControlsRef.current?.renderNow();
   }, []);
 
   // ── Settings (triggers canvas re-render) ──────────────────────────
@@ -160,6 +171,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       updateSettings,
       resetView,
       registerCameraControls,
+      scheduleRender,
+      renderNow,
       updateMousePosition,
       tooltip: {
         onHoverChange,
@@ -174,6 +187,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       updateSettings,
       resetView,
       registerCameraControls,
+      scheduleRender,
+      renderNow,
       updateMousePosition,
       onHoverChange,
       onCursorMove,
@@ -251,4 +266,14 @@ export function useMousePosition(): {
 } {
   const { updateMousePosition } = useVisualizerActions();
   return { updateMousePosition };
+}
+
+/** Trigger a canvas re-render via the registered camera controls. */
+export function useScheduleRender(): () => void {
+  return useVisualizerActions().scheduleRender;
+}
+
+/** Render the canvas immediately (synchronous). Use from within rAF callbacks. */
+export function useRenderNow(): () => void {
+  return useVisualizerActions().renderNow;
 }

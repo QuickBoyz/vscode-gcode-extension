@@ -348,6 +348,25 @@
             "orthographic"
           ],
           "description": "Projection mode for the 3D visualizer"
+        },
+        "gcode.visualizer.playback.rapidSpeed": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 100,
+          "maximum": 100000,
+          "description": "Rapid traverse speed in mm/min for playback animation"
+        },
+        "gcode.visualizer.playback.defaultFeedRate": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "maximum": 100000,
+          "description": "Fallback feed rate in mm/min when no F value is set in the G-code"
+        },
+        "gcode.visualizer.playback.followSourceLine": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scroll the editor to the current source line during playback"
         }
       }
     }

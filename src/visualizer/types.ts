@@ -109,6 +109,20 @@ export interface VisualizerConfig {
   readonly showRapidMoves: boolean;
   /** Projection mode (perspective or orthographic) */
   readonly projection: ProjectionMode;
+  /** Playback animation configuration. */
+  readonly playback: PlaybackConfig;
+}
+
+/**
+ * Configuration for the playback animation mode.
+ */
+export interface PlaybackConfig {
+  /** Rapid traverse speed in mm/min for playback animation. */
+  readonly rapidSpeed: number;
+  /** Fallback feed rate in mm/min when no F value is set in the G-code. */
+  readonly defaultFeedRate: number;
+  /** Automatically scroll the editor to the current source line during playback. */
+  readonly followSourceLine: boolean;
 }
 
 // ---------------------------------------------------------------------------

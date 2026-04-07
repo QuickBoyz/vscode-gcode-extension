@@ -1,14 +1,23 @@
 import { useCallback, useRef } from 'react';
-import { MotionType, PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
+import {
+  MotionType,
+  PathBounds,
+  PathPoint,
+  PathSegment,
+  VisualizerConfig,
+} from '../../visualizer/types';
 import { CameraState } from '../types';
 import { project } from '../projection';
 import { drawAxes } from '../axes';
 import { drawGrid } from '../grid';
+import { drawToolMarkerBody, drawToolMarkerTip } from '../toolMarker';
 import { ProjectedSegmentData } from '../hitTesting';
+import { PlaybackStatus } from '../playback/types';
 import {
   DEFAULT_BACKGROUND_COLOR,
   getSegmentColor,
   MINIMUM_THICKNESS,
+  PLAYBACK_PAST_OPACITY,
   RAPID_DASH_PATTERN,
   RAPID_OPACITY,
   RAPID_THICKNESS_FACTOR,
@@ -17,8 +26,16 @@ import {
   HOVER_SHADOW_BLUR,
 } from '../constants';
 
+export interface PlaybackRenderRefs {
+  readonly statusRef: React.RefObject<PlaybackStatus>;
+  readonly currentIndexRef: React.RefObject<number>;
+  readonly toolPositionRef: React.RefObject<PathPoint>;
+}
+
 export interface UseRenderLoopResult {
   readonly scheduleRender: () => void;
+  /** Render immediately (synchronous). Use from within an existing rAF callback. */
+  readonly renderNow: () => void;
   readonly renderOverlay: (hoveredIndex: number | null) => void;
   readonly getProjectedCache: () => readonly ProjectedSegmentData[];
   readonly clearProjectedCache: () => void;
@@ -35,7 +52,8 @@ export function useRenderLoop(
   segmentsRef: React.RefObject<PathSegment[]>,
   boundsRef: React.RefObject<PathBounds | null>,
   cameraRef: React.RefObject<CameraState | null>,
-  settingsRef: React.RefObject<VisualizerConfig>
+  settingsRef: React.RefObject<VisualizerConfig>,
+  playbackRef?: PlaybackRenderRefs
 ): UseRenderLoopResult {
   const animationFrameIdRef = useRef<number | null>(null);
   const projectedCacheRef = useRef<ProjectedSegmentData[]>([]);
@@ -46,6 +64,10 @@ export function useRenderLoop(
   );
 
   const render = useCallback(() => {
+    // Cancel any pending scheduled render — we're rendering now.
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+    }
     animationFrameIdRef.current = null;
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
@@ -83,8 +105,24 @@ export function useRenderLoop(
     const thickness = Math.max(MINIMUM_THICKNESS, settings.lineThickness);
     const projectionMode = settings.projection;
 
+    // Determine playback state
+    const isPlaybackActive =
+      playbackRef?.statusRef.current !== undefined &&
+      playbackRef.statusRef.current !== PlaybackStatus.IDLE;
+    const playbackIndex = playbackRef?.currentIndexRef.current ?? -1;
+
     // Depth-sort segments (painter's algorithm using mid-point depth)
-    const sorted = segments.map((segment) => {
+    // Iterate directly with index to avoid both the filter allocation and O(n) indexOf.
+    const visibleCount = isPlaybackActive
+      ? Math.min(Math.max(playbackIndex + 1, 0), segments.length)
+      : segments.length;
+
+    const sorted: { segment: PathSegment; depth: number; segmentIndex: number }[] = [];
+    for (let i = 0; i < visibleCount; i++) {
+      const segment = segments[i];
+      if (!segment) {
+        continue;
+      }
       const midpoint = segment.points[Math.floor(segment.points.length / 2)];
       const projected = project(
         midpoint.x,
@@ -95,8 +133,8 @@ export function useRenderLoop(
         canvasHeight,
         projectionMode
       );
-      return { segment, depth: projected ? projected.depth : Infinity };
-    });
+      sorted.push({ segment, depth: projected ? projected.depth : Infinity, segmentIndex: i });
+    }
     sorted.sort((a, b) => b.depth - a.depth);
 
     const newProjectedCache: ProjectedSegmentData[] = [];
@@ -107,12 +145,27 @@ export function useRenderLoop(
 
       if (isRapidMove && !settings.showRapidMoves) continue;
 
+      const segmentIndex = entry.segmentIndex;
+      const isCurrentSegment = isPlaybackActive && segmentIndex === playbackIndex;
+      const isPastSegment = isPlaybackActive && segmentIndex < playbackIndex;
+
       const color = getSegmentColor(segment.type, settings);
       context.strokeStyle = color;
       context.lineWidth = isRapidMove
         ? Math.max(MINIMUM_THICKNESS, thickness * RAPID_THICKNESS_FACTOR)
         : thickness;
-      context.globalAlpha = isRapidMove ? RAPID_OPACITY : 1.0;
+
+      // Apply playback dimming
+      if (isPastSegment) {
+        context.globalAlpha = PLAYBACK_PAST_OPACITY;
+      } else if (isCurrentSegment) {
+        context.globalAlpha = 1.0;
+      } else if (isRapidMove) {
+        context.globalAlpha = RAPID_OPACITY;
+      } else {
+        context.globalAlpha = 1.0;
+      }
+
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.setLineDash(isRapidMove ? (RAPID_DASH_PATTERN as number[]) : []);
@@ -145,7 +198,6 @@ export function useRenderLoop(
       context.stroke();
 
       if (projectedPoints.length >= 2) {
-        const segmentIndex = segments.indexOf(entry.segment);
         newProjectedCache.push({ segmentIndex, points: projectedPoints });
       }
     }
@@ -154,8 +206,32 @@ export function useRenderLoop(
     context.globalAlpha = 1.0;
     context.setLineDash([]);
 
+    // Draw tool marker body before axes so axes render above the cone/cylinder
+    if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
+      drawToolMarkerBody(
+        context,
+        playbackRef.toolPositionRef.current,
+        camera,
+        canvasWidth,
+        canvasHeight,
+        projectionMode
+      );
+    }
+
     drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
-  }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef]);
+
+    // Draw tip dot after axes so it's always on top
+    if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
+      drawToolMarkerTip(
+        context,
+        playbackRef.toolPositionRef.current,
+        camera,
+        canvasWidth,
+        canvasHeight,
+        projectionMode
+      );
+    }
+  }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef, playbackRef]);
 
   const scheduleRender = useCallback(() => {
     if (animationFrameIdRef.current === null) {
@@ -208,5 +284,11 @@ export function useRenderLoop(
     projectedCacheRef.current = [];
   }, []);
 
-  return { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache };
+  return {
+    scheduleRender,
+    renderNow: render,
+    renderOverlay,
+    getProjectedCache,
+    clearProjectedCache,
+  };
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PathBounds, PathSegment } from '../../visualizer/types';
 import { CameraState } from '../types';
 import { useCamera } from '../hooks/useCamera';
@@ -11,6 +11,7 @@ import {
   useCameraControls,
   useMousePosition,
 } from '../context/VisualizerContext';
+import { usePlaybackEngineRefs } from '../context/PlaybackContext';
 
 interface ToolPathCanvasProps {
   readonly wrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -20,6 +21,8 @@ export interface CameraControls {
   readonly fitView: (segments: PathSegment[], bounds: PathBounds | null) => void;
   readonly resetView: (segments: PathSegment[], bounds: PathBounds | null) => void;
   readonly scheduleRender: () => void;
+  /** Render immediately (synchronous). Use from within an existing rAF callback. */
+  readonly renderNow: () => void;
   readonly clearProjectedCache: () => void;
   readonly renderOverlay: (hoveredIndex: number | null) => void;
 }
@@ -48,14 +51,29 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
 
   const cameraRef = useRef<CameraState>(null);
 
-  const { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache } = useRenderLoop(
-    canvasRef,
-    overlayRef,
-    segmentsRef,
-    boundsRef,
-    cameraRef,
-    settingsRef
+  const playbackRefs = usePlaybackEngineRefs();
+
+  // Memoize so the render callback's dependency is stable across re-renders.
+  // The individual refs (useRef objects) never change reference.
+  const playbackRenderRefs = useMemo(
+    () => ({
+      statusRef: playbackRefs.statusRef,
+      currentIndexRef: playbackRefs.currentIndexRef,
+      toolPositionRef: playbackRefs.toolPositionRef,
+    }),
+    [playbackRefs.statusRef, playbackRefs.currentIndexRef, playbackRefs.toolPositionRef]
   );
+
+  const { scheduleRender, renderNow, renderOverlay, getProjectedCache, clearProjectedCache } =
+    useRenderLoop(
+      canvasRef,
+      overlayRef,
+      segmentsRef,
+      boundsRef,
+      cameraRef,
+      settingsRef,
+      playbackRenderRefs
+    );
 
   const { camera, fitView, resetView, isDragging } = useCamera(canvasRef, scheduleRender);
   cameraRef.current = camera;
@@ -83,6 +101,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       fitView,
       resetView,
       scheduleRender,
+      renderNow,
       clearProjectedCache,
       renderOverlay,
     });
@@ -90,6 +109,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
     fitView,
     resetView,
     scheduleRender,
+    renderNow,
     clearProjectedCache,
     renderOverlay,
     registerCameraControls,
@@ -106,6 +126,9 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       if (!canvas || !overlay) return;
       const width = wrapper.clientWidth;
       const height = wrapper.clientHeight;
+      // Only reset dimensions when they actually change — setting
+      // canvas.width/height clears all content (web platform behavior).
+      if (canvas.width === width && canvas.height === height) return;
       canvas.width = width;
       canvas.height = height;
       overlay.width = width;

@@ -38,6 +38,7 @@ type ExtensionToWebviewMessage =
  * Message types received from the webview.
  */
 type WebviewToExtensionMessage =
+  | { type: 'ready' }
   | { type: 'settingsChange'; settings: VisualizerConfig }
   | { type: 'navigateToLine'; line: number };
 
@@ -62,6 +63,10 @@ export class GCodeVisualizerPanel {
   private readonly panel: vscode.WebviewPanel;
   private readonly configProvider: ClientConfigProvider;
   private disposables: vscode.Disposable[] = [];
+
+  /** Pending initial message, sent once the webview signals `ready`. */
+  private pendingUpdate: ExtensionToWebviewMessage | null = null;
+  private webviewReady = false;
 
   private constructor(panel: vscode.WebviewPanel, configProvider: ClientConfigProvider) {
     this.panel = panel;
@@ -114,7 +119,9 @@ export class GCodeVisualizerPanel {
     const instance = new GCodeVisualizerPanel(panel, configProvider);
     GCodeVisualizerPanel.instance = instance;
     instance.initContent(extensionUri);
-    instance.update(pathData, settings, sourceText);
+    // Don't send data yet — the webview JS hasn't loaded.
+    // Store it as pending; it will be sent when the webview posts `ready`.
+    instance.pendingUpdate = instance.buildUpdateMessage(pathData, settings, sourceText);
   }
 
   /**
@@ -221,14 +228,27 @@ export class GCodeVisualizerPanel {
       .replace(/\{\{cspSource\}\}/g, webview.cspSource);
   }
 
-  private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
-    const msg: ExtensionToWebviewMessage = {
+  private buildUpdateMessage(
+    pathData: ToolPathData,
+    settings: VisualizerConfig,
+    sourceText: string
+  ): ExtensionToWebviewMessage {
+    return {
       type: 'update',
       segments: pathData.segments,
       bounds: pathData.bounds,
       settings,
       sourceTokens: tokenizeSourceLines(sourceText.split(/\r?\n/)),
     };
+  }
+
+  private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
+    const msg = this.buildUpdateMessage(pathData, settings, sourceText);
+    if (!this.webviewReady) {
+      // Webview not ready yet — store for later delivery.
+      this.pendingUpdate = msg;
+      return;
+    }
     this.panel.webview.postMessage(msg);
   }
 
@@ -246,6 +266,15 @@ export class GCodeVisualizerPanel {
   }
 
   private handleMessage(msg: WebviewToExtensionMessage): void {
+    if (msg.type === 'ready') {
+      this.webviewReady = true;
+      if (this.pendingUpdate) {
+        this.panel.webview.postMessage(this.pendingUpdate);
+        this.pendingUpdate = null;
+      }
+      return;
+    }
+
     if (msg.type === 'navigateToLine') {
       for (const callback of GCodeVisualizerPanel.navigateCallbacks) {
         callback(msg.line);
