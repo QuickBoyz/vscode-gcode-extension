@@ -1,37 +1,11 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { MotionType, PathSegment } from '../../visualizer/types';
+import { MotionType } from '../../visualizer/types';
 import { INFO_PANEL_OFFSET_X, INFO_PANEL_OFFSET_Y } from '../constants';
+import { useDocumentState, useTooltip } from '../context/VisualizerContext';
 import vscode from '../vscodeApi';
 
-/**
- * Captures the mouse position at the moment the tooltip becomes visible
- * so the panel stays anchored instead of following the cursor.
- */
-function useAnchoredPosition(
-  segmentIndex: number | null,
-  mouseClientX: number,
-  mouseClientY: number
-): { readonly x: number; readonly y: number } {
-  const anchorRef = useRef({ x: 0, y: 0 });
-  const prevIndexRef = useRef<number | null>(null);
-
-  if (segmentIndex !== null && prevIndexRef.current !== segmentIndex) {
-    anchorRef.current = { x: mouseClientX, y: mouseClientY };
-  }
-  prevIndexRef.current = segmentIndex;
-
-  return anchorRef.current;
-}
-
 interface InfoPanelProps {
-  readonly segment: PathSegment | null;
-  readonly segmentIndex: number | null;
-  readonly sourceTokens: readonly { text: string; type: string }[][] | undefined;
-  readonly mouseClientX: number;
-  readonly mouseClientY: number;
   readonly wrapperRef: React.RefObject<HTMLDivElement | null>;
-  readonly onMouseEnter: () => void;
-  readonly onMouseLeave: () => void;
 }
 
 function formatMotionType(type: MotionType): string {
@@ -49,29 +23,22 @@ function formatMotionType(type: MotionType): string {
   }
 }
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({
-  segment,
-  segmentIndex,
-  sourceTokens,
-  mouseClientX,
-  mouseClientY,
-  wrapperRef,
-  onMouseEnter,
-  onMouseLeave,
-}) => {
+export function InfoPanel({ wrapperRef }: InfoPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const anchor = useAnchoredPosition(segmentIndex, mouseClientX, mouseClientY);
+  const { segments, sourceTokens } = useDocumentState();
+  const { visibleIndex, anchorPosition, onPanelEnter, onPanelLeave } = useTooltip();
 
   // Position the panel after render so we can measure its dimensions.
-  // Only re-run when the visible segment changes (anchor updates), not on every cursor move.
+  // Depends on visibleIndex (triggers when a new segment becomes visible)
+  // and anchorPosition (captured by the dwell tooltip when the timer fires).
   useLayoutEffect(() => {
     const panel = panelRef.current;
     const wrapper = wrapperRef.current;
-    if (!panel || !wrapper || segmentIndex === null) return;
+    if (!panel || !wrapper || visibleIndex === null) return;
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const cursorX = anchor.x - wrapperRect.left;
-    const cursorY = anchor.y - wrapperRect.top;
+    const cursorX = anchorPosition.x - wrapperRect.left;
+    const cursorY = anchorPosition.y - wrapperRect.top;
     const panelWidth = panel.offsetWidth;
     const panelHeight = panel.offsetHeight;
 
@@ -90,10 +57,13 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
 
     panel.style.left = `${panelX}px`;
     panel.style.top = `${panelY}px`;
-  }, [segmentIndex, anchor, wrapperRef]);
+  }, [visibleIndex, anchorPosition, wrapperRef]);
 
-  if (segmentIndex === null || !segment) {
-    return <div id="info-panel" />;
+  const segment =
+    visibleIndex !== null && visibleIndex < segments.length ? segments[visibleIndex] : null;
+
+  if (visibleIndex === null || !segment) {
+    return null;
   }
 
   const ctx = segment.context;
@@ -104,7 +74,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const tokens = lineNum !== undefined ? sourceTokens?.[lineNum] : undefined;
 
   return (
-    <div id="info-panel" ref={panelRef} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <div id="info-panel" ref={panelRef} onMouseEnter={onPanelEnter} onMouseLeave={onPanelLeave}>
       <div id="info-type">{formatMotionType(segment.type)}</div>
       <div id="info-source">
         {lineNum !== undefined && <span className="token-line-num">{`Line ${lineNum + 1}: `}</span>}
@@ -145,4 +115,4 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
       )}
     </div>
   );
-};
+}

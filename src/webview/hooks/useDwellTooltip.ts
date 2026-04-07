@@ -1,9 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { DWELL_DELAY_MS, GRACE_ZONE_DELAY_MS } from '../constants';
 
 export interface UseDwellTooltipResult {
   /** Segment index whose info panel is currently visible (null = hidden). */
   readonly visibleIndex: number | null;
+  /** Mouse position captured when the tooltip became visible (for anchoring). */
+  readonly anchorPosition: { readonly x: number; readonly y: number };
   /** Call when the hovered segment changes (from hit testing). */
   readonly onHoverChange: (segmentIndex: number | null) => void;
   /** Call when the cursor moves (resets dwell timer, manages grace zone). */
@@ -16,18 +18,24 @@ export interface UseDwellTooltipResult {
   readonly onPanelEnter: () => void;
   /** Call when the cursor leaves the info panel. */
   readonly onPanelLeave: () => void;
-  /** Whether the cursor is currently inside the info panel. */
-  readonly cursorInPanel: boolean;
   /** Force-hide the tooltip. */
   readonly hide: () => void;
 }
 
 /**
- * Manages the dwell timer (80ms) and grace zone timer (300ms) state machine
+ * Manages the dwell timer (80 ms) and grace zone timer (300 ms) state machine
  * for the segment info tooltip.
+ *
+ * Accepts a ref to the current mouse position so it can capture the cursor
+ * coordinates at the moment the tooltip becomes visible (anchor position).
+ * This keeps mouse position out of React state and avoids re-renders on
+ * every mouse move.
  */
-export function useDwellTooltip(): UseDwellTooltipResult {
+export function useDwellTooltip(
+  mousePositionRef: React.RefObject<{ readonly x: number; readonly y: number }>
+): UseDwellTooltipResult {
   const [visibleIndex, setVisibleIndex] = useState<number | null>(null);
+  const [anchorPosition, setAnchorPosition] = useState({ x: 0, y: 0 });
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const graceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const cursorInPanelRef = useRef(false);
@@ -70,10 +78,11 @@ export function useDwellTooltip(): UseDwellTooltipResult {
         dwellTimerRef.current = undefined;
         if (hoveredRef.current === idx) {
           setVisibleIndex(idx);
+          setAnchorPosition({ ...mousePositionRef.current });
         }
       }, DWELL_DELAY_MS);
     }
-  }, [clearDwell]);
+  }, [clearDwell, mousePositionRef]);
 
   const onHoverChange = useCallback(
     (segmentIndex: number | null) => {
@@ -128,13 +137,13 @@ export function useDwellTooltip(): UseDwellTooltipResult {
 
   return {
     visibleIndex,
+    anchorPosition,
     onHoverChange,
     onCursorMove,
     onDragStart,
     onCanvasLeave,
     onPanelEnter,
     onPanelLeave,
-    cursorInPanel: cursorInPanelRef.current,
     hide,
   };
 }

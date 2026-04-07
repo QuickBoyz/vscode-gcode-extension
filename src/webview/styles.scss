@@ -6,6 +6,8 @@
   padding: 0;
 }
 
+// ── Base ────────────────────────────────────────────────────────────
+
 html,
 body {
   height: 100%;
@@ -21,6 +23,8 @@ body {
   flex-direction: column;
   height: 100vh;
 }
+
+// ── Toolbar ─────────────────────────────────────────────────────────
 
 #toolbar {
   display: flex;
@@ -92,6 +96,8 @@ button {
   margin-left: auto;
 }
 
+// ── Canvas ──────────────────────────────────────────────────────────
+
 #canvas-wrapper {
   flex: 1;
   position: relative;
@@ -140,6 +146,8 @@ button {
   color: var(--vscode-descriptionForeground, #555);
   pointer-events: none;
 }
+
+// ── Loading overlay ─────────────────────────────────────────────────
 
 #loading-overlay {
   position: absolute;

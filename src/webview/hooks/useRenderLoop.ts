@@ -34,7 +34,7 @@ export function useRenderLoop(
   overlayRef: React.RefObject<HTMLCanvasElement | null>,
   segmentsRef: React.RefObject<PathSegment[]>,
   boundsRef: React.RefObject<PathBounds | null>,
-  cameraRef: React.RefObject<CameraState>,
+  cameraRef: React.RefObject<CameraState | null>,
   settingsRef: React.RefObject<VisualizerConfig>
 ): UseRenderLoopResult {
   const animationFrameIdRef = useRef<number | null>(null);
@@ -49,12 +49,16 @@ export function useRenderLoop(
     animationFrameIdRef.current = null;
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
+
     if (!canvas || !context) return;
+
+    const camera = cameraRef.current;
+
+    if (!camera) return;
 
     const segments = segmentsRef.current;
     const bounds = boundsRef.current;
     const settings = settingsRef.current;
-    const camera = cameraRef.current;
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 

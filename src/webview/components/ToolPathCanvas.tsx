@@ -1,24 +1,19 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
+import { PathBounds, PathSegment } from '../../visualizer/types';
 import { CameraState } from '../types';
 import { useCamera } from '../hooks/useCamera';
 import { useRenderLoop } from '../hooks/useRenderLoop';
 import { useHitTesting } from '../hooks/useHitTesting';
+import {
+  useDocumentState,
+  useVisualizerSettings,
+  useTooltip,
+  useCameraControls,
+  useMousePosition,
+} from '../context/VisualizerContext';
 
 interface ToolPathCanvasProps {
-  readonly segments: PathSegment[];
-  readonly bounds: PathBounds | null;
-  readonly settings: VisualizerConfig;
-  readonly hoveredSegmentIndex: number | null;
-  readonly onHoverChange: (index: number | null) => void;
-  readonly onCursorMove: (infoPanelVisible: boolean) => void;
-  readonly onCanvasLeave: (infoPanelVisible: boolean) => void;
-  readonly onDragStart: () => void;
-  readonly infoPanelVisible: boolean;
-  readonly onMousePosition: (clientX: number, clientY: number) => void;
   readonly wrapperRef: React.RefObject<HTMLDivElement | null>;
-  /** Called with fitView/resetView so parent can trigger them. */
-  readonly onCameraReady: (controls: CameraControls) => void;
 }
 
 export interface CameraControls {
@@ -29,37 +24,29 @@ export interface CameraControls {
   readonly renderOverlay: (hoveredIndex: number | null) => void;
 }
 
-export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
-  segments,
-  bounds,
-  settings,
-  hoveredSegmentIndex,
-  onHoverChange,
-  onCursorMove,
-  onCanvasLeave,
-  onDragStart,
-  infoPanelVisible,
-  onMousePosition,
-  wrapperRef,
-  onCameraReady,
-}) => {
+export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
 
-  // Stable refs for latest values
+  const { segments, bounds } = useDocumentState();
+  const { settings } = useVisualizerSettings();
+  const { visibleIndex, onHoverChange, onCursorMove, onCanvasLeave, onDragStart } = useTooltip();
+  const { registerCameraControls } = useCameraControls();
+  const { updateMousePosition } = useMousePosition();
+
+  // Stable refs for latest values (used by imperative render/hit-test loops)
   const segmentsRef = useRef<PathSegment[]>(segments);
   segmentsRef.current = segments;
   const boundsRef = useRef<PathBounds | null>(bounds);
   boundsRef.current = bounds;
-  const settingsRef = useRef<VisualizerConfig>(settings);
+  const settingsRef = useRef(settings);
   settingsRef.current = settings;
-  const hoveredRef = useRef<number | null>(hoveredSegmentIndex);
-  hoveredRef.current = hoveredSegmentIndex;
-  const infoPanelVisibleRef = useRef(infoPanelVisible);
-  infoPanelVisibleRef.current = infoPanelVisible;
+  const hoveredRef = useRef<number | null>(visibleIndex);
+  hoveredRef.current = visibleIndex;
+  const infoPanelVisibleRef = useRef(visibleIndex !== null);
+  infoPanelVisibleRef.current = visibleIndex !== null;
 
-  // Camera ref for render loop
-  const cameraRef = useRef<CameraState>(null as unknown as CameraState);
+  const cameraRef = useRef<CameraState>(null);
 
   const { scheduleRender, renderOverlay, getProjectedCache, clearProjectedCache } = useRenderLoop(
     canvasRef,
@@ -73,18 +60,16 @@ export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
   const { camera, fitView, resetView, isDragging } = useCamera(canvasRef, scheduleRender);
   cameraRef.current = camera;
 
-  // Hit testing
+  // Hit testing — only call onHoverChange once per result (fixes issue #3)
   const onHitTestResult = useCallback(
     (index: number | null) => {
       if (index !== hoveredRef.current) {
-        onHoverChange(index);
         const canvas = canvasRef.current;
         if (canvas) {
           canvas.style.cursor = index !== null ? 'pointer' : 'grab';
         }
         renderOverlay(index);
       }
-      // Always notify for dwell timer restart
       onHoverChange(index);
     },
     [onHoverChange, renderOverlay]
@@ -92,10 +77,23 @@ export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
 
   const { scheduleHitTest } = useHitTesting(getProjectedCache, onHitTestResult);
 
-  // Expose camera controls to parent
+  // Expose camera controls to provider
   useEffect(() => {
-    onCameraReady({ fitView, resetView, scheduleRender, clearProjectedCache, renderOverlay });
-  }, [fitView, resetView, scheduleRender, clearProjectedCache, renderOverlay, onCameraReady]);
+    registerCameraControls({
+      fitView,
+      resetView,
+      scheduleRender,
+      clearProjectedCache,
+      renderOverlay,
+    });
+  }, [
+    fitView,
+    resetView,
+    scheduleRender,
+    clearProjectedCache,
+    renderOverlay,
+    registerCameraControls,
+  ]);
 
   // Canvas resize
   useEffect(() => {
@@ -124,7 +122,7 @@ export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
   // Mouse move handler
   const handleMouseMove = useCallback(
     (event: React.MouseEvent) => {
-      onMousePosition(event.clientX, event.clientY);
+      updateMousePosition(event.clientX, event.clientY);
 
       if (isDragging()) {
         if (hoveredRef.current !== null) {
@@ -145,7 +143,7 @@ export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
       const y = (event.clientY - rect.top) * scaleY;
       scheduleHitTest(x, y);
     },
-    [isDragging, onDragStart, onCursorMove, onMousePosition, renderOverlay, scheduleHitTest]
+    [isDragging, onDragStart, onCursorMove, updateMousePosition, renderOverlay, scheduleHitTest]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -169,4 +167,4 @@ export const ToolPathCanvas: React.FC<ToolPathCanvasProps> = ({
       <canvas id="overlay" ref={overlayRef} />
     </>
   );
-};
+}
