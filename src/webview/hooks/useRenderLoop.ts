@@ -1,14 +1,22 @@
 import { useCallback, useRef } from 'react';
-import { MotionType, PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
+import {
+  MotionType,
+  PathBounds,
+  PathPoint,
+  PathSegment,
+  VisualizerConfig,
+} from '../../visualizer/types';
 import { CameraState } from '../types';
 import { project } from '../projection';
 import { drawAxes } from '../axes';
 import { drawGrid } from '../grid';
 import { ProjectedSegmentData } from '../hitTesting';
+import { PlaybackStatus } from '../playback/types';
 import {
   DEFAULT_BACKGROUND_COLOR,
   getSegmentColor,
   MINIMUM_THICKNESS,
+  PLAYBACK_PAST_OPACITY,
   RAPID_DASH_PATTERN,
   RAPID_OPACITY,
   RAPID_THICKNESS_FACTOR,
@@ -16,6 +24,12 @@ import {
   HOVER_ALPHA,
   HOVER_SHADOW_BLUR,
 } from '../constants';
+
+export interface PlaybackRenderRefs {
+  readonly statusRef: React.RefObject<PlaybackStatus>;
+  readonly currentIndexRef: React.RefObject<number>;
+  readonly toolPositionRef: React.RefObject<PathPoint>;
+}
 
 export interface UseRenderLoopResult {
   readonly scheduleRender: () => void;
@@ -35,7 +49,8 @@ export function useRenderLoop(
   segmentsRef: React.RefObject<PathSegment[]>,
   boundsRef: React.RefObject<PathBounds | null>,
   cameraRef: React.RefObject<CameraState | null>,
-  settingsRef: React.RefObject<VisualizerConfig>
+  settingsRef: React.RefObject<VisualizerConfig>,
+  playbackRef?: PlaybackRenderRefs
 ): UseRenderLoopResult {
   const animationFrameIdRef = useRef<number | null>(null);
   const projectedCacheRef = useRef<ProjectedSegmentData[]>([]);
@@ -83,8 +98,19 @@ export function useRenderLoop(
     const thickness = Math.max(MINIMUM_THICKNESS, settings.lineThickness);
     const projectionMode = settings.projection;
 
+    // Determine playback state
+    const isPlaybackActive =
+      playbackRef?.statusRef.current !== undefined &&
+      playbackRef.statusRef.current !== PlaybackStatus.IDLE;
+    const playbackIndex = playbackRef?.currentIndexRef.current ?? -1;
+
+    // Select visible segments — during playback, only show up to current index
+    const visibleSegments = isPlaybackActive
+      ? segments.filter((_, i) => i <= playbackIndex)
+      : segments;
+
     // Depth-sort segments (painter's algorithm using mid-point depth)
-    const sorted = segments.map((segment) => {
+    const sorted = visibleSegments.map((segment) => {
       const midpoint = segment.points[Math.floor(segment.points.length / 2)];
       const projected = project(
         midpoint.x,
@@ -107,12 +133,27 @@ export function useRenderLoop(
 
       if (isRapidMove && !settings.showRapidMoves) continue;
 
+      const segmentIndex = segments.indexOf(entry.segment);
+      const isCurrentSegment = isPlaybackActive && segmentIndex === playbackIndex;
+      const isPastSegment = isPlaybackActive && segmentIndex < playbackIndex;
+
       const color = getSegmentColor(segment.type, settings);
       context.strokeStyle = color;
       context.lineWidth = isRapidMove
         ? Math.max(MINIMUM_THICKNESS, thickness * RAPID_THICKNESS_FACTOR)
         : thickness;
-      context.globalAlpha = isRapidMove ? RAPID_OPACITY : 1.0;
+
+      // Apply playback dimming
+      if (isPastSegment) {
+        context.globalAlpha = PLAYBACK_PAST_OPACITY;
+      } else if (isCurrentSegment) {
+        context.globalAlpha = 1.0;
+      } else if (isRapidMove) {
+        context.globalAlpha = RAPID_OPACITY;
+      } else {
+        context.globalAlpha = 1.0;
+      }
+
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.setLineDash(isRapidMove ? (RAPID_DASH_PATTERN as number[]) : []);
@@ -145,7 +186,6 @@ export function useRenderLoop(
       context.stroke();
 
       if (projectedPoints.length >= 2) {
-        const segmentIndex = segments.indexOf(entry.segment);
         newProjectedCache.push({ segmentIndex, points: projectedPoints });
       }
     }
@@ -155,7 +195,7 @@ export function useRenderLoop(
     context.setLineDash([]);
 
     drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
-  }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef]);
+  }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef, playbackRef]);
 
   const scheduleRender = useCallback(() => {
     if (animationFrameIdRef.current === null) {
