@@ -68,8 +68,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         wrapperRef={wrapperRef}
         onCameraReady={onCameraReady}
       />
-      <EmptyMessage visible={segments.length === 0 && !loading} />
-      <LoadingOverlay visible={loading} />
+      {segments.length === 0 && !loading && <EmptyMessage />}
+      {loading && <LoadingOverlay />}
       <SegmentStats count={segments.length} />
       <InfoPanel
         segment={hoveredSegment}

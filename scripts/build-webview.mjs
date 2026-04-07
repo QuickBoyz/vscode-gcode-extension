@@ -1,5 +1,6 @@
-import { copyFileSync, mkdirSync } from 'fs';
+import { copyFileSync, mkdirSync, writeFileSync } from 'fs';
 import { build } from 'esbuild';
+import * as sass from 'sass';
 
 await build({
   entryPoints: ['src/webview/index.tsx'],
@@ -14,6 +15,8 @@ await build({
 
 mkdirSync('dist/webview', { recursive: true });
 copyFileSync('src/webview/index.html', 'dist/webview/index.html');
-copyFileSync('src/webview/styles.css', 'dist/webview/styles.css');
+
+const result = sass.compile('src/webview/styles.scss');
+writeFileSync('dist/webview/styles.css', result.css);
 
 console.log('Webview build complete.');

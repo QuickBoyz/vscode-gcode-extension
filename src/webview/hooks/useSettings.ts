@@ -5,7 +5,7 @@ import vscode from '../vscodeApi';
 const DEFAULT_SETTINGS: VisualizerConfig = {
   rapidColor: '#ff6b6b',
   feedColor: '#4ecdc4',
-  arcColor: '#45b7d1',
+  arcColor: '#f0e68c',
   lineThickness: 1,
   showGrid: true,
   gridSpacing: 10,

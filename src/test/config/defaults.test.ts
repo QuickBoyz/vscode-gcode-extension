@@ -79,7 +79,7 @@ describe('DEFAULT_GCODE_CONFIG', () => {
     const visualizer = DEFAULT_GCODE_CONFIG.visualizer;
     expect(visualizer.rapidColor).toBe('#ff6b6b');
     expect(visualizer.feedColor).toBe('#4ecdc4');
-    expect(visualizer.arcColor).toBe('#45b7d1');
+    expect(visualizer.arcColor).toBe('#f0e68c');
     expect(visualizer.lineThickness).toBe(1);
     expect(visualizer.showGrid).toBe(true);
     expect(visualizer.gridSpacing).toBe(10);

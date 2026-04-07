@@ -15,6 +15,6 @@
     "outDir": "./dist/webview",
     "rootDir": "./src"
   },
-  "include": ["src/webview/**/*.ts", "src/webview/**/*.tsx"],
+  "include": ["src/webview/**/*.tsx?"],
   "exclude": ["node_modules"]
 }

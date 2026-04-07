@@ -10,7 +10,7 @@ interface ToolbarProps {
 export const Toolbar: React.FC<ToolbarProps> = ({ settings, onSettingsChange, onResetView }) => (
   <div id="toolbar">
     <div className="ctrl-group">
-      <label htmlFor="rapidColor">Rapid (G0):</label>
+      <label htmlFor="rapidColor">Rapid:</label>
       <input
         type="color"
         id="rapidColor"
@@ -20,7 +20,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ settings, onSettingsChange, on
       />
     </div>
     <div className="ctrl-group">
-      <label htmlFor="feedColor">Feed (G1):</label>
+      <label htmlFor="feedColor">Feed:</label>
       <input
         type="color"
         id="feedColor"
@@ -30,7 +30,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ settings, onSettingsChange, on
       />
     </div>
     <div className="ctrl-group">
-      <label htmlFor="arcColor">Arc (G2/G3):</label>
+      <label htmlFor="arcColor">Arc:</label>
       <input
         type="color"
         id="arcColor"
@@ -66,7 +66,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ settings, onSettingsChange, on
     </button>
     <button
       id="btnToggleRapid"
-      title="Toggle rapid (G0) move visibility"
+      title="Toggle rapid move visibility"
       className={settings.showRapidMoves ? 'active' : ''}
       onClick={() => onSettingsChange({ showRapidMoves: !settings.showRapidMoves })}
     >

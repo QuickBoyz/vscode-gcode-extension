@@ -84,6 +84,7 @@
     "lint-staged": "^16.2.7",
     "mocha": "^11.7.5",
     "prettier": "^3.7.4",
+    "sass": "^1.99.0",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
@@ -312,7 +313,7 @@
         },
         "gcode.visualizer.arcColor": {
           "type": "string",
-          "default": "#45b7d1",
+          "default": "#f0e68c",
           "description": "Colour for arc (G2/G3) moves in the 3D visualizer"
         },
         "gcode.visualizer.lineThickness": {

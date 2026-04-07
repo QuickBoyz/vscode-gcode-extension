@@ -1,0 +1,393 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, sans-serif);
+  font-size: 12px;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 7px 14px;
+  background: var(--vscode-sideBar-background, #252526);
+  border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  label {
+    white-space: nowrap;
+    color: var(--vscode-descriptionForeground, #999);
+  }
+}
+
+input[type='color'] {
+  width: 28px;
+  height: 22px;
+  border: 1px solid var(--vscode-input-border, #555);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 1px;
+  background: transparent;
+}
+
+input[type='range'] {
+  width: 80px;
+  cursor: pointer;
+  accent-color: var(--vscode-progressBar-background, #0e70c0);
+}
+
+.thickness-val {
+  min-width: 20px;
+  text-align: right;
+}
+
+button {
+  padding: 3px 10px;
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+  border: 1px solid var(--vscode-button-border, #555);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--vscode-editor-font-size, 12px);
+
+  &:hover {
+    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+  }
+
+  &.active {
+    background: var(--vscode-button-background, #0e70c0);
+    color: var(--vscode-button-foreground, #ffffff);
+  }
+}
+
+.hint {
+  color: var(--vscode-descriptionForeground, #666);
+  font-size: var(--vscode-editor-font-size, 12px);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+#canvas-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#canvas,
+#overlay {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#canvas {
+  cursor: grab;
+
+  &.dragging {
+    cursor: grabbing;
+  }
+}
+
+#overlay {
+  pointer-events: none;
+}
+
+#empty-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--vscode-editor-font-size, 12px);
+  color: var(--vscode-descriptionForeground, #666);
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.8;
+}
+
+#stats {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: var(--vscode-editor-font-size, 12px);
+  color: var(--vscode-descriptionForeground, #555);
+  pointer-events: none;
+}
+
+#loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--vscode-descriptionForeground, #666);
+  border-top-color: var(--vscode-progressBar-background, #0e70c0);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  margin-top: 10px;
+  color: var(--vscode-descriptionForeground, #999);
+  font-size: var(--vscode-editor-font-size, 12px);
+}
+
+// ── Info panel (hover tooltip) ──────────────────────────────────────
+
+$monospace: var(--vscode-editor-font-family, monospace);
+$font-size: var(--vscode-editor-font-size, 12px);
+
+#info-panel {
+  position: absolute;
+  z-index: 5;
+  padding: 8px 12px;
+  background: var(--vscode-editorHoverWidget-background, #252526);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #454545);
+  border-radius: 4px;
+  font-size: $font-size;
+  line-height: 1.5;
+  color: var(--vscode-editorHoverWidget-foreground, #cccccc);
+  pointer-events: auto;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  #info-type {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--vscode-editorHoverWidget-highlightForeground, #cccccc);
+  }
+
+  #info-source {
+    color: var(--vscode-descriptionForeground, #999);
+    font-family: $monospace;
+    font-size: $font-size;
+  }
+
+  #info-coords,
+  #info-extra {
+    color: var(--vscode-descriptionForeground, #999);
+    font-family: $monospace;
+    font-size: $font-size;
+  }
+
+  #info-goto {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--vscode-textLink-foreground, #3794ff);
+    cursor: pointer;
+    margin-top: 2px;
+    text-align: left;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // Syntax highlighting — class names and colours match the
+  // extension's TextMate theme (themes/gcode-theme.json).
+
+  .token-line-num {
+    color: var(--vscode-editorLineNumber-foreground, #858585);
+  }
+
+  .token-comment,
+  .token-parenComment {
+    color: #7d7d7d;
+    font-style: italic;
+  }
+
+  .token-GCODE,
+  .token-MCODE {
+    color: #c678dd;
+    font-weight: 600;
+  }
+
+  .token-PARAM {
+    color: #e06c75;
+  }
+
+  .token-NUMBER {
+    color: #d19a66;
+  }
+
+  .token-VAR,
+  .token-hash {
+    color: #e06c75;
+    font-style: italic;
+  }
+
+  .token-lineNumber {
+    color: #d5d5d5;
+  }
+
+  .token-IF,
+  .token-ELSE,
+  .token-ELSEIF,
+  .token-ENDIF,
+  .token-WHILE,
+  .token-ENDWHILE,
+  .token-DO,
+  .token-END,
+  .token-THEN,
+  .token-GOTO,
+  .token-OSUB {
+    color: #c678dd;
+  }
+
+  .token-FUNC {
+    color: #56b6c2;
+  }
+
+  .token-RELOP,
+  .token-MOD,
+  .token-equals,
+  .token-plus,
+  .token-minus,
+  .token-star,
+  .token-slash {
+    color: #56b6c2;
+  }
+
+  .token-percent {
+    color: #98c379;
+  }
+
+  .token-lBracket,
+  .token-rBracket,
+  .token-comma,
+  .token-dot,
+  .token-ws,
+  .token-plain {
+    color: inherit;
+  }
+}
+
+// Light theme overrides — VS Code adds .vscode-light to <body>
+.vscode-light #info-panel {
+  .token-comment,
+  .token-parenComment {
+    color: #008000;
+  }
+
+  .token-GCODE,
+  .token-MCODE {
+    color: #0000ff;
+    font-weight: 600;
+  }
+
+  .token-PARAM {
+    color: #001080;
+  }
+  .token-NUMBER {
+    color: #098658;
+  }
+
+  .token-VAR,
+  .token-hash {
+    color: #001080;
+  }
+
+  .token-lineNumber {
+    color: #333333;
+  }
+
+  .token-IF,
+  .token-ELSE,
+  .token-ELSEIF,
+  .token-ENDIF,
+  .token-WHILE,
+  .token-ENDWHILE,
+  .token-DO,
+  .token-END,
+  .token-THEN,
+  .token-GOTO,
+  .token-OSUB {
+    color: #af00db;
+  }
+
+  .token-FUNC {
+    color: #795e26;
+  }
+
+  .token-RELOP,
+  .token-MOD,
+  .token-equals,
+  .token-plus,
+  .token-minus,
+  .token-star,
+  .token-slash {
+    color: #000000;
+  }
+
+  .token-percent {
+    color: #098658;
+  }
+}
+
+// ── Error banner ────────────────────────────────────────────────────
+
+#error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+  border-bottom: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  color: var(--vscode-errorForeground, #f48771);
+  font-size: var(--vscode-editor-font-size, 12px);
+  flex-shrink: 0;
+
+  .error-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .error-text {
+    flex: 1;
+    word-break: break-word;
+  }
+}

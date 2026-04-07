@@ -64,7 +64,9 @@ export const VisualizerApp: React.FC = () => {
           const newBounds = (msg.bounds as PathBounds) || null;
           setSegments(newSegments);
           setBounds(newBounds);
-          setSourceTokens(msg.sourceTokens as readonly { text: string; type: string }[][] | undefined);
+          setSourceTokens(
+            msg.sourceTokens as readonly { text: string; type: string }[][] | undefined
+          );
           // Clear stale hover state
           hideTooltip();
           // Defer fitView + render to next tick so state has flushed
@@ -124,7 +126,7 @@ export const VisualizerApp: React.FC = () => {
         onSettingsChange={handleSettingsChange}
         onResetView={handleResetView}
       />
-      <ErrorBanner message={error} />
+      {error && <ErrorBanner message={error} />}
       <CanvasArea
         segments={segments}
         bounds={bounds}

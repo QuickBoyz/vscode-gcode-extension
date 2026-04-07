@@ -3,6 +3,26 @@ import { MotionType, PathSegment } from '../../visualizer/types';
 import { INFO_PANEL_OFFSET_X, INFO_PANEL_OFFSET_Y } from '../constants';
 import vscode from '../vscodeApi';
 
+/**
+ * Captures the mouse position at the moment the tooltip becomes visible
+ * so the panel stays anchored instead of following the cursor.
+ */
+function useAnchoredPosition(
+  segmentIndex: number | null,
+  mouseClientX: number,
+  mouseClientY: number
+): { readonly x: number; readonly y: number } {
+  const anchorRef = useRef({ x: 0, y: 0 });
+  const prevIndexRef = useRef<number | null>(null);
+
+  if (segmentIndex !== null && prevIndexRef.current !== segmentIndex) {
+    anchorRef.current = { x: mouseClientX, y: mouseClientY };
+  }
+  prevIndexRef.current = segmentIndex;
+
+  return anchorRef.current;
+}
+
 interface InfoPanelProps {
   readonly segment: PathSegment | null;
   readonly segmentIndex: number | null;
@@ -17,13 +37,13 @@ interface InfoPanelProps {
 function formatMotionType(type: MotionType): string {
   switch (type) {
     case MotionType.RAPID:
-      return 'Rapid (G0)';
+      return 'Rapid';
     case MotionType.FEED:
-      return 'Feed (G1)';
+      return 'Feed';
     case MotionType.ARC_CW:
-      return 'Arc CW (G2)';
+      return 'Arc CW';
     case MotionType.ARC_CCW:
-      return 'Arc CCW (G3)';
+      return 'Arc CCW';
     default:
       return 'Unknown';
   }
@@ -40,16 +60,18 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   onMouseLeave,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  const anchor = useAnchoredPosition(segmentIndex, mouseClientX, mouseClientY);
 
-  // Position the panel after render so we can measure its dimensions
+  // Position the panel after render so we can measure its dimensions.
+  // Only re-run when the visible segment changes (anchor updates), not on every cursor move.
   useLayoutEffect(() => {
     const panel = panelRef.current;
     const wrapper = wrapperRef.current;
     if (!panel || !wrapper || segmentIndex === null) return;
 
     const wrapperRect = wrapper.getBoundingClientRect();
-    const cursorX = mouseClientX - wrapperRect.left;
-    const cursorY = mouseClientY - wrapperRect.top;
+    const cursorX = anchor.x - wrapperRect.left;
+    const cursorY = anchor.y - wrapperRect.top;
     const panelWidth = panel.offsetWidth;
     const panelHeight = panel.offsetHeight;
 
@@ -68,10 +90,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
 
     panel.style.left = `${panelX}px`;
     panel.style.top = `${panelY}px`;
-  });
+  }, [segmentIndex, anchor, wrapperRef]);
 
   if (segmentIndex === null || !segment) {
-    return <div id="info-panel" style={{ display: 'none' }} />;
+    return <div id="info-panel" />;
   }
 
   const ctx = segment.context;
@@ -82,18 +104,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   const tokens = lineNum !== undefined ? sourceTokens?.[lineNum] : undefined;
 
   return (
-    <div
-      id="info-panel"
-      ref={panelRef}
-      style={{ display: 'block', pointerEvents: 'auto' }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <div id="info-panel" ref={panelRef} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <div id="info-type">{formatMotionType(segment.type)}</div>
       <div id="info-source">
-        {lineNum !== undefined && (
-          <span className="token-line-num">{`Line ${lineNum + 1}: `}</span>
-        )}
+        {lineNum !== undefined && <span className="token-line-num">{`Line ${lineNum + 1}: `}</span>}
         {tokens?.map((token, i) => (
           <span key={i} className={`token-${token.type}`}>
             {token.text}
@@ -124,7 +138,6 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
         <button
           id="info-goto"
           type="button"
-          style={{ display: 'block' }}
           onClick={() => vscode.postMessage({ type: 'navigateToLine', line: lineNum })}
         >
           {`Go to line ${lineNum + 1}`}

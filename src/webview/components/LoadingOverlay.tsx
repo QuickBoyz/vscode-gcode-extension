@@ -1,12 +1,8 @@
-import React from 'react';
-
-interface LoadingOverlayProps {
-  readonly visible: boolean;
+export function LoadingOverlay() {
+  return (
+    <div id="loading-overlay">
+      <div className="spinner" />
+      <span className="loading-text">Parsing...</span>
+    </div>
+  );
 }
-
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ visible }) => (
-  <div id="loading-overlay" style={{ display: visible ? 'flex' : 'none' }}>
-    <div className="spinner" />
-    <span className="loading-text">Parsing...</span>
-  </div>
-);
