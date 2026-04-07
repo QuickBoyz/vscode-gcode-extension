@@ -22,17 +22,17 @@ function VisualizerLayout() {
   const { settings, updateSettings } = useVisualizerSettings();
   const { resetView } = useCameraControls();
   const snapshot = usePlaybackSnapshot();
-  const { play, stop } = usePlaybackActions();
+  const { play, exit } = usePlaybackActions();
 
   const isPlaybackActive = snapshot.status !== PlaybackStatus.IDLE;
 
   const handlePlaybackToggle = useCallback(() => {
     if (isPlaybackActive) {
-      stop();
+      exit();
     } else {
       play();
     }
-  }, [isPlaybackActive, play, stop]);
+  }, [isPlaybackActive, play, exit]);
 
   return (
     <div id="app">

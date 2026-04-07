@@ -38,7 +38,10 @@ export interface PlaybackSnapshot {
 export interface PlaybackActions {
   readonly play: () => void;
   readonly pause: () => void;
+  /** Reset to beginning, stay in playback mode (paused at segment 0). */
   readonly stop: () => void;
+  /** Exit playback mode entirely, return to full static view. */
+  readonly exit: () => void;
   readonly stepForward: () => void;
   readonly stepBack: () => void;
   readonly seekToSegment: (index: number) => void;

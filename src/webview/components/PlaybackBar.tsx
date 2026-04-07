@@ -20,7 +20,7 @@ export function PlaybackBarWrapper(props: PlaybackBarProps) {
 
 function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
   const { status, currentIndex, totalSegments, speedMultiplier } = usePlaybackSnapshot();
-  const { play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed } =
+  const { play, pause, stop, exit, stepForward, stepBack, seekToSegment, setSpeed } =
     usePlaybackActions();
 
   const isPlaying = status === PlaybackStatus.PLAYING;
@@ -47,13 +47,13 @@ function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
           break;
         case 'Escape':
           e.preventDefault();
-          stop();
+          exit();
           break;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isPlaying, play, pause, stop, stepForward, stepBack]);
+  }, [isPlaying, play, pause, exit, stepForward, stepBack]);
 
   const handleScrub = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -181,6 +181,7 @@ export function PlaybackProvider({
       play: engineActions.play,
       pause: engineActions.pause,
       stop: engineActions.stop,
+      exit: engineActions.exit,
       stepForward: engineActions.stepForward,
       stepBack: engineActions.stepBack,
       seekToSegment: engineActions.seekToSegment,

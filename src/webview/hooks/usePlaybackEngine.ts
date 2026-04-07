@@ -17,6 +17,7 @@ export interface PlaybackEngineActions {
   readonly play: () => void;
   readonly pause: () => void;
   readonly stop: () => void;
+  readonly exit: () => void;
   readonly stepForward: () => void;
   readonly stepBack: () => void;
   readonly seekToSegment: (index: number) => void;
@@ -229,9 +230,18 @@ export function usePlaybackEngine(options: EngineOptions): {
     currentIndexRef.current = 0;
     segmentProgressRef.current = 0;
     updateToolPosition();
-    setStatus(PlaybackStatus.IDLE);
+    setStatus(PlaybackStatus.PAUSED);
     onTickRef.current();
     onSegmentChangeRef.current(0);
+  }, [cancelLoop, updateToolPosition, setStatus]);
+
+  const exit = useCallback(() => {
+    cancelLoop();
+    currentIndexRef.current = 0;
+    segmentProgressRef.current = 0;
+    updateToolPosition();
+    setStatus(PlaybackStatus.IDLE);
+    onTickRef.current();
   }, [cancelLoop, updateToolPosition, setStatus]);
 
   const stepForward = useCallback(() => {
@@ -310,8 +320,8 @@ export function usePlaybackEngine(options: EngineOptions): {
   );
 
   const actions = useMemo<PlaybackEngineActions>(
-    () => ({ play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed }),
-    [play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed]
+    () => ({ play, pause, stop, exit, stepForward, stepBack, seekToSegment, setSpeed }),
+    [play, pause, stop, exit, stepForward, stepBack, seekToSegment, setSpeed]
   );
 
   return { refs, actions };
