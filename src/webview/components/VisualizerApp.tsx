@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   VisualizerProvider,
   useDocumentState,
@@ -26,13 +26,13 @@ function VisualizerLayout() {
 
   const isPlaybackActive = snapshot.status !== PlaybackStatus.IDLE;
 
-  const handlePlaybackToggle = () => {
+  const handlePlaybackToggle = useCallback(() => {
     if (isPlaybackActive) {
       stop();
     } else {
       play();
     }
-  };
+  }, [isPlaybackActive, play, stop]);
 
   return (
     <div id="app">

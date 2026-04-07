@@ -99,3 +99,6 @@ export const TOOL_TIP_OUTLINE_COLOR = '#1a1a1a';
 
 /** Tool tip dot outline width. */
 export const TOOL_TIP_OUTLINE_WIDTH = 1.5;
+
+/** Tool marker cone outline width. */
+export const TOOL_CONE_OUTLINE_WIDTH = 0.5;

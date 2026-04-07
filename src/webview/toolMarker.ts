@@ -7,6 +7,7 @@ import {
   TOOL_CONE_HEIGHT,
   TOOL_CONE_OPACITY,
   TOOL_CONE_OUTLINE_COLOR,
+  TOOL_CONE_OUTLINE_WIDTH,
   TOOL_CONE_RESOLUTION,
   TOOL_TIP_COLOR,
   TOOL_TIP_OUTLINE_COLOR,
@@ -63,7 +64,7 @@ export function drawToolMarker(
     ctx.globalAlpha = TOOL_CONE_OPACITY;
     ctx.fillStyle = TOOL_CONE_COLOR;
     ctx.strokeStyle = TOOL_CONE_OUTLINE_COLOR;
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = TOOL_CONE_OUTLINE_WIDTH;
 
     // Cone sides: tip → base points
     ctx.beginPath();

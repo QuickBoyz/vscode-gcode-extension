@@ -105,13 +105,13 @@ export function useRenderLoop(
       playbackRef.statusRef.current !== PlaybackStatus.IDLE;
     const playbackIndex = playbackRef?.currentIndexRef.current ?? -1;
 
-    // Select visible segments — during playback, only show up to current index
-    const visibleSegments = isPlaybackActive
-      ? segments.filter((_, i) => i <= playbackIndex)
-      : segments;
-
     // Depth-sort segments (painter's algorithm using mid-point depth)
-    const sorted = visibleSegments.map((segment) => {
+    // Iterate directly with index to avoid both the filter allocation and O(n) indexOf.
+    const visibleCount = isPlaybackActive ? playbackIndex + 1 : segments.length;
+
+    const sorted: { segment: PathSegment; depth: number; segmentIndex: number }[] = [];
+    for (let i = 0; i < visibleCount; i++) {
+      const segment = segments[i];
       const midpoint = segment.points[Math.floor(segment.points.length / 2)];
       const projected = project(
         midpoint.x,
@@ -122,8 +122,8 @@ export function useRenderLoop(
         canvasHeight,
         projectionMode
       );
-      return { segment, depth: projected ? projected.depth : Infinity };
-    });
+      sorted.push({ segment, depth: projected ? projected.depth : Infinity, segmentIndex: i });
+    }
     sorted.sort((a, b) => b.depth - a.depth);
 
     const newProjectedCache: ProjectedSegmentData[] = [];
@@ -134,7 +134,7 @@ export function useRenderLoop(
 
       if (isRapidMove && !settings.showRapidMoves) continue;
 
-      const segmentIndex = segments.indexOf(entry.segment);
+      const segmentIndex = entry.segmentIndex;
       const isCurrentSegment = isPlaybackActive && segmentIndex === playbackIndex;
       const isPastSegment = isPlaybackActive && segmentIndex < playbackIndex;
 
