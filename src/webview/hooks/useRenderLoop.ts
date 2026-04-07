@@ -10,6 +10,7 @@ import { CameraState } from '../types';
 import { project } from '../projection';
 import { drawAxes } from '../axes';
 import { drawGrid } from '../grid';
+import { drawToolMarker } from '../toolMarker';
 import { ProjectedSegmentData } from '../hitTesting';
 import { PlaybackStatus } from '../playback/types';
 import {
@@ -195,6 +196,18 @@ export function useRenderLoop(
     context.setLineDash([]);
 
     drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
+
+    // Draw tool marker during playback
+    if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
+      drawToolMarker(
+        context,
+        playbackRef.toolPositionRef.current,
+        camera,
+        canvasWidth,
+        canvasHeight,
+        projectionMode
+      );
+    }
   }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef, playbackRef]);
 
   const scheduleRender = useCallback(() => {
