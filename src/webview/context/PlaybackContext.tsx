@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { PathSegment } from '../../visualizer/types';
 import {
   DEFAULT_SPEED_MULTIPLIER,
@@ -14,10 +22,15 @@ import {
 } from '../hooks/usePlaybackEngine';
 import vscode from '../vscodeApi';
 
-// ── Context value type ─────────────────────────────────────────────
+// ── Context value types ────────────────────────────────────────────
 
-interface PlaybackContextValue {
+/** Changes on every snapshot update (~10Hz during playback). */
+interface PlaybackStateValue {
   readonly snapshot: PlaybackSnapshot;
+}
+
+/** Stable across snapshot updates — actions and refs don't change. */
+interface PlaybackStableValue {
   readonly actions: PlaybackActions;
   readonly engineRefs: PlaybackEngineRefs;
 }
@@ -34,9 +47,10 @@ interface PlaybackProviderProps {
   readonly followSourceLine: boolean;
 }
 
-// ── Context ────────────────────────────────────────────────────────
+// ── Contexts (split to avoid snapshot churn re-rendering stable consumers) ──
 
-const PlaybackContext = createContext<PlaybackContextValue | null>(null);
+const PlaybackStateCtx = createContext<PlaybackStateValue | null>(null);
+const PlaybackStableCtx = createContext<PlaybackStableValue | null>(null);
 
 // ── Initial snapshot ───────────────────────────────────────────────
 
@@ -165,6 +179,22 @@ export function PlaybackProvider({
   const engineRefsRef = useRef(engineRefs);
   engineRefsRef.current = engineRefs;
 
+  // Guard: clamp playback index when segments change (document re-parsed)
+  const prevSegmentCountRef = useRef(segmentsRef.current.length);
+  useEffect(() => {
+    const newCount = segmentsRef.current.length;
+    if (newCount === prevSegmentCountRef.current) return;
+    prevSegmentCountRef.current = newCount;
+
+    if (engineRefs.statusRef.current === PlaybackStatus.IDLE) return;
+
+    if (newCount === 0) {
+      engineActions.exit();
+    } else if (engineRefs.currentIndexRef.current >= newCount) {
+      engineActions.seekToSegment(newCount - 1);
+    }
+  });
+
   // ── Wrapped actions (setSpeed also updates snapshot) ─────────────
 
   const setSpeed = useCallback(
@@ -190,41 +220,41 @@ export function PlaybackProvider({
     [engineActions, setSpeed]
   );
 
-  // ── Context value ────────────────────────────────────────────────
+  // ── Context values ───────────────────────────────────────────────
 
-  const value = useMemo<PlaybackContextValue>(
-    () => ({
-      snapshot,
-      actions,
-      engineRefs,
-    }),
-    [snapshot, actions, engineRefs]
+  const stateValue = useMemo<PlaybackStateValue>(() => ({ snapshot }), [snapshot]);
+
+  const stableValue = useMemo<PlaybackStableValue>(
+    () => ({ actions, engineRefs }),
+    [actions, engineRefs]
   );
 
-  return <PlaybackContext.Provider value={value}>{children}</PlaybackContext.Provider>;
+  return (
+    <PlaybackStableCtx.Provider value={stableValue}>
+      <PlaybackStateCtx.Provider value={stateValue}>{children}</PlaybackStateCtx.Provider>
+    </PlaybackStableCtx.Provider>
+  );
 }
 
 // ── Consumer hooks ─────────────────────────────────────────────────
 
-function usePlaybackContext(): PlaybackContextValue {
-  const ctx = useContext(PlaybackContext);
-  if (!ctx) {
-    throw new Error('usePlaybackContext must be used within PlaybackProvider');
-  }
-  return ctx;
-}
-
-/** Read-only playback state snapshot (throttled at ~100ms). */
+/** Read-only playback state snapshot (throttled at ~100ms). Subscribes to state context. */
 export function usePlaybackSnapshot(): PlaybackSnapshot {
-  return usePlaybackContext().snapshot;
+  const ctx = useContext(PlaybackStateCtx);
+  if (!ctx) throw new Error('usePlaybackSnapshot must be used within PlaybackProvider');
+  return ctx.snapshot;
 }
 
-/** Playback control actions (play, pause, stop, step, seek, setSpeed). */
+/** Playback control actions. Subscribes to stable context (does NOT re-render on snapshot). */
 export function usePlaybackActions(): PlaybackActions {
-  return usePlaybackContext().actions;
+  const ctx = useContext(PlaybackStableCtx);
+  if (!ctx) throw new Error('usePlaybackActions must be used within PlaybackProvider');
+  return ctx.actions;
 }
 
-/** Direct access to engine refs for hot-path rendering (canvas draw loop). */
+/** Direct access to engine refs. Subscribes to stable context (does NOT re-render on snapshot). */
 export function usePlaybackEngineRefs(): PlaybackEngineRefs {
-  return usePlaybackContext().engineRefs;
+  const ctx = useContext(PlaybackStableCtx);
+  if (!ctx) throw new Error('usePlaybackEngineRefs must be used within PlaybackProvider');
+  return ctx.engineRefs;
 }

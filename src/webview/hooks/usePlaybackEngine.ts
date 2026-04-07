@@ -119,7 +119,9 @@ export function usePlaybackEngine(options: EngineOptions): {
         return;
       }
 
-      const dt = (timestamp - lastTime) / 1000; // seconds
+      // Clamp dt to prevent large jumps when the webview panel is hidden
+      // and regains focus (rAF resumes with a stale lastTime).
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
       const segments = segmentsRef.current;
       if (segments.length === 0) {
         return;
@@ -201,6 +203,9 @@ export function usePlaybackEngine(options: EngineOptions): {
 
   const play = useCallback(() => {
     if (statusRef.current === PlaybackStatus.PLAYING) {
+      return;
+    }
+    if (segmentsRef.current.length === 0) {
       return;
     }
 

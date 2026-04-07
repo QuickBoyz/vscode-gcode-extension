@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useDocumentState, useVisualizerSettings } from '../context/VisualizerContext';
 import { ToolPathCanvas } from './ToolPathCanvas';
 import { InfoPanel } from './InfoPanel';
@@ -12,6 +12,13 @@ export function CanvasArea() {
   const { segments, loading } = useDocumentState();
   const { settings, updateSettings } = useVisualizerSettings();
 
+  const handleFollowChange = useCallback(
+    (follow: boolean) => {
+      updateSettings({ playback: { ...settings.playback, followSourceLine: follow } });
+    },
+    [settings.playback, updateSettings]
+  );
+
   return (
     <div id="canvas-wrapper" ref={wrapperRef}>
       <ToolPathCanvas wrapperRef={wrapperRef} />
@@ -21,9 +28,7 @@ export function CanvasArea() {
       <InfoPanel wrapperRef={wrapperRef} />
       <PlaybackBarWrapper
         followSourceLine={settings.playback.followSourceLine}
-        onFollowChange={(follow) =>
-          updateSettings({ playback: { ...settings.playback, followSourceLine: follow } })
-        }
+        onFollowChange={handleFollowChange}
       />
     </div>
   );
