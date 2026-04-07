@@ -9,6 +9,7 @@ import {
   useVisualizerSettings,
   useTooltip,
   useCameraControls,
+  useCancelAnimation,
   useMousePosition,
 } from '../context/VisualizerContext';
 import { usePlaybackEngineRefs } from '../context/PlaybackContext';
@@ -35,6 +36,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
   const { settings } = useVisualizerSettings();
   const { visibleIndex, onHoverChange, onCursorMove, onCanvasLeave, onDragStart } = useTooltip();
   const { registerCameraControls, registerCameraState } = useCameraControls();
+  const cancelAnimation = useCancelAnimation();
   const { updateMousePosition } = useMousePosition();
 
   // Stable refs for latest values (used by imperative render/hit-test loops)
@@ -75,7 +77,11 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       playbackRenderRefs
     );
 
-  const { camera, fitView, resetView, isDragging } = useCamera(canvasRef, scheduleRender);
+  const { camera, fitView, resetView, isDragging } = useCamera(
+    canvasRef,
+    scheduleRender,
+    cancelAnimation
+  );
   cameraRef.current = camera;
 
   // Hit testing — only call onHoverChange once per result (fixes issue #3)

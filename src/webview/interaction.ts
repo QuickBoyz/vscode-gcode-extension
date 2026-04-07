@@ -66,7 +66,8 @@ const DRAGGING_CLASS = 'dragging';
 export function setupInteraction(
   canvas: HTMLCanvasElement,
   camera: CameraState,
-  onCameraChange: () => void
+  onCameraChange: () => void,
+  onDragStart?: () => void
 ): InteractionState {
   let dragMode: DragMode | null = null;
   let lastMouseX = 0;
@@ -81,6 +82,7 @@ export function setupInteraction(
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
     canvas.classList.add(DRAGGING_CLASS);
+    onDragStart?.();
     event.preventDefault();
   }
 

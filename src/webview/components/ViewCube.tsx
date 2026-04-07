@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useCameraRef, useScheduleRender } from '../context/VisualizerContext';
+import { useCameraRef, useScheduleRender, useAnimationCancel } from '../context/VisualizerContext';
 import { FACE_VIEWS, EDGE_VIEWS, ViewTarget } from '../viewCube/views';
 import { animateCamera } from '../viewCube/animation';
 
@@ -87,6 +87,7 @@ function cameraToCSS(theta: number, phi: number): string {
 export function ViewCube() {
   const cameraRef = useCameraRef();
   const scheduleRender = useScheduleRender();
+  const { registerAnimationCancel } = useAnimationCancel();
 
   const cubeRef = useRef<HTMLDivElement>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
@@ -121,17 +122,21 @@ export function ViewCube() {
       // Cancel any in-progress animation
       cancelAnimationRef.current?.();
 
-      cancelAnimationRef.current = animateCamera(
+      const cancel = animateCamera(
         camera,
         view,
         ANIMATION_DURATION,
         scheduleRender,
         () => {
           cancelAnimationRef.current = null;
+          registerAnimationCancel(null);
         }
       );
+
+      cancelAnimationRef.current = cancel;
+      registerAnimationCancel(cancel);
     },
-    [cameraRef, scheduleRender]
+    [cameraRef, scheduleRender, registerAnimationCancel]
   );
 
   // Handle mouse down on the cube (start potential drag or click)

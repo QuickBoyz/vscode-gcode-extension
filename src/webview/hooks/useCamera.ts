@@ -18,7 +18,8 @@ export interface UseCameraResult {
  */
 export function useCamera(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  onCameraChange: () => void
+  onCameraChange: () => void,
+  onDragStart?: () => void
 ): UseCameraResult {
   const cameraRef = useRef<CameraState>(createCameraState());
   const isDraggingRef = useRef<() => boolean>(() => false);
@@ -27,10 +28,10 @@ export function useCamera(
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const handle = setupInteraction(canvas, cameraRef.current, onCameraChange);
+    const handle = setupInteraction(canvas, cameraRef.current, onCameraChange, onDragStart);
     isDraggingRef.current = handle.isDragging;
     return () => handle.cleanup();
-  }, [canvasRef, onCameraChange]);
+  }, [canvasRef, onCameraChange, onDragStart]);
 
   const fitView = useCallback((segments: PathSegment[], bounds: PathBounds | null) => {
     if (segments.length === 0 || !bounds) return;

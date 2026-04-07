@@ -34,6 +34,8 @@ interface VisualizerActionsValue {
   readonly renderNow: () => void;
   readonly cameraRef: React.RefObject<CameraState | null>;
   readonly registerCameraState: (camera: CameraState) => void;
+  readonly registerAnimationCancel: (cancel: (() => void) | null) => void;
+  readonly cancelAnimation: () => void;
   readonly updateMousePosition: (clientX: number, clientY: number) => void;
   readonly tooltip: {
     readonly onHoverChange: (index: number | null) => void;
@@ -84,6 +86,17 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
 
   const registerCameraState = useCallback((camera: CameraState) => {
     cameraStateRef.current = camera;
+  }, []);
+
+  const animationCancelRef = useRef<(() => void) | null>(null);
+
+  const registerAnimationCancel = useCallback((cancel: (() => void) | null) => {
+    animationCancelRef.current = cancel;
+  }, []);
+
+  const cancelAnimation = useCallback(() => {
+    animationCancelRef.current?.();
+    animationCancelRef.current = null;
   }, []);
 
   const resetView = useCallback(() => {
@@ -183,6 +196,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       renderNow,
       cameraRef: cameraStateRef,
       registerCameraState,
+      registerAnimationCancel,
+      cancelAnimation,
       updateMousePosition,
       tooltip: {
         onHoverChange,
@@ -200,6 +215,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       scheduleRender,
       renderNow,
       registerCameraState,
+      registerAnimationCancel,
+      cancelAnimation,
       updateMousePosition,
       onHoverChange,
       onCursorMove,
@@ -283,6 +300,19 @@ export function useMousePosition(): {
 } {
   const { updateMousePosition } = useVisualizerActions();
   return { updateMousePosition };
+}
+
+/** Register/unregister the active ViewCube animation cancel function. */
+export function useAnimationCancel(): {
+  readonly registerAnimationCancel: (cancel: (() => void) | null) => void;
+} {
+  const { registerAnimationCancel } = useVisualizerActions();
+  return { registerAnimationCancel };
+}
+
+/** Cancel any in-progress ViewCube animation. */
+export function useCancelAnimation(): () => void {
+  return useVisualizerActions().cancelAnimation;
 }
 
 /** Trigger a canvas re-render via the registered camera controls. */
