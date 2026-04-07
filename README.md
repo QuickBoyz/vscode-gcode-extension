@@ -359,41 +359,6 @@ None at this time. Please report issues on [GitHub Issues](https://github.com/Qu
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
-### Version 2.3.0
-
-- Migrated visualizer webview from vanilla IIFE to React
-
-### Version 2.2.0
-
-- Semantic analysis layer with modal state tracking and incremental parsing
-- Quick-fix code actions with intelligent error suggestions
-- Enhanced IntelliSense with snippets, grouping, and keyword completions
-- Go to Definition and Find References for variables
-- Dialect-aware axis parameter validation
-- Multi-program file support with program boundary reset
-- Complete G/M code command databases for all four dialects
-- DO/END keyword suffix validation for Macro B nesting
-
-### Version 2.1.0
-
-- Hand-written lexer redesign for better performance and dialect handling
-- Multi-dialect parser architecture with per-dialect subclasses
-- Subroutine parsing and formatting across all four dialects
-- Hierarchical document outline
-
-### Version 2.0.0
-
-- 3D G-code tool-path visualizer with interactive navigation
-- Code folding for control structures
-- Error detection to block formatting on syntax errors
-- Modal G-code support for standalone axis parameters
-
-### Version 1.1.0
-
-- Configurable dialect support (LinuxCNC, Fanuc, Haas, Siemens)
-- LSP architecture with formatting, hover, symbols, rename, and semantic tokens
-- Robust error handling and recovery
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
