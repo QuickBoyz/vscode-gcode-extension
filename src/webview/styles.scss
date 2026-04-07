@@ -434,3 +434,128 @@ $font-size: var(--vscode-editor-font-size, 12px);
   cursor: pointer;
   accent-color: var(--vscode-progressBar-background, #0e70c0);
 }
+
+// ── ViewCube navigation gizmo ──────────────────────────────────────
+
+$cube-size: 80px;
+$cube-half: 40px;
+
+#view-cube-container {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 120px;
+  height: 120px;
+  z-index: 4;
+  perspective: 300px;
+  perspective-origin: 50% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+#view-cube {
+  width: $cube-size;
+  height: $cube-size;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.view-cube-face {
+  position: absolute;
+  width: $cube-size;
+  height: $cube-size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+
+  background: rgba(60, 63, 70, 0.85);
+  border: 1px solid rgba(150, 150, 150, 0.3);
+  color: rgba(200, 200, 200, 0.8);
+  font: bold 10px var(--vscode-font-family, 'Segoe UI', sans-serif);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:hover {
+    background: rgba(80, 83, 92, 0.9);
+    color: rgba(230, 230, 230, 1);
+  }
+}
+
+.view-cube-edge {
+  position: absolute;
+  backface-visibility: hidden;
+  cursor: pointer;
+
+  // Visible line: centered 1px strip
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    content: '';
+    position: absolute;
+    background: rgba(150, 150, 150, 0.4);
+    transition: all 0.1s;
+  }
+
+  // For vertical edges (width = EDGE_SIZE, height = EDGE_LENGTH)
+  &[style*='width: 12px'] {
+    &::after {
+      width: 1px;
+      height: 100%;
+    }
+
+    &:hover::after {
+      width: 2px;
+      background: rgba(180, 180, 180, 0.7);
+    }
+  }
+
+  // For horizontal edges (width = EDGE_LENGTH, height = EDGE_SIZE)
+  &[style*='height: 12px'] {
+    &::after {
+      width: 100%;
+      height: 1px;
+    }
+
+    &:hover::after {
+      height: 2px;
+      background: rgba(180, 180, 180, 0.7);
+    }
+  }
+}
+
+// Light theme overrides
+.vscode-light {
+  .view-cube-face {
+    background: rgba(220, 222, 228, 0.85);
+    border-color: rgba(100, 100, 100, 0.3);
+    color: rgba(60, 60, 60, 0.8);
+
+    &:hover {
+      background: rgba(200, 202, 210, 0.9);
+      color: rgba(30, 30, 30, 1);
+    }
+  }
+
+  .view-cube-edge {
+    &::after {
+      background: rgba(100, 100, 100, 0.4);
+    }
+
+    &:hover::after {
+      background: rgba(80, 80, 80, 0.7);
+    }
+  }
+}
