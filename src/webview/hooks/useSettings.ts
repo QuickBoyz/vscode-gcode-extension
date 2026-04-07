@@ -11,6 +11,11 @@ const DEFAULT_SETTINGS: VisualizerConfig = {
   gridSpacing: 10,
   showRapidMoves: true,
   projection: ProjectionMode.PERSPECTIVE,
+  playback: {
+    rapidSpeed: 10000,
+    defaultFeedRate: 1000,
+    followSourceLine: false,
+  },
 };
 
 export interface UseSettingsResult {

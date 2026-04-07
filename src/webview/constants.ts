@@ -64,3 +64,38 @@ export function getSegmentColor(motionType: MotionType, settings: VisualizerConf
       return FALLBACK_SEGMENT_COLOR;
   }
 }
+
+// ── Playback ──────────────────────────────────────────────────────────
+
+/** Opacity for past (already visited) segments during playback. */
+export const PLAYBACK_PAST_OPACITY = 0.4;
+
+/** Tool marker cone base diameter in world units (mm). */
+export const TOOL_CONE_DIAMETER = 3;
+
+/** Tool marker cone height in world units (mm). */
+export const TOOL_CONE_HEIGHT = 8;
+
+/** Number of points around the cone base circle. */
+export const TOOL_CONE_RESOLUTION = 8;
+
+/** Tool marker cone body fill opacity. */
+export const TOOL_CONE_OPACITY = 0.35;
+
+/** Tool marker cone body fill colour. */
+export const TOOL_CONE_COLOR = '#c0c0c0';
+
+/** Tool marker cone outline colour. */
+export const TOOL_CONE_OUTLINE_COLOR = '#888888';
+
+/** Tool tip dot radius in screen pixels. */
+export const TOOL_TIP_RADIUS = 5;
+
+/** Tool tip dot fill colour. */
+export const TOOL_TIP_COLOR = '#ff4500';
+
+/** Tool tip dot outline colour. */
+export const TOOL_TIP_OUTLINE_COLOR = '#1a1a1a';
+
+/** Tool tip dot outline width. */
+export const TOOL_TIP_OUTLINE_WIDTH = 1.5;

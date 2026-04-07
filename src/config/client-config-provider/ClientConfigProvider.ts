@@ -68,6 +68,11 @@ export class ClientConfigProvider extends ConfigProvider {
         gridSpacing: config.get<number>('visualizer.gridSpacing'),
         showRapidMoves: config.get<boolean>('visualizer.showRapidMoves'),
         projection: config.get<string>('visualizer.projection'),
+        playback: {
+          rapidSpeed: config.get<number>('visualizer.playback.rapidSpeed'),
+          defaultFeedRate: config.get<number>('visualizer.playback.defaultFeedRate'),
+          followSourceLine: config.get<boolean>('visualizer.playback.followSourceLine'),
+        },
       },
       extractor: {
         machineHome: config.get<Record<string, number>>('extractor.machineHome'),
