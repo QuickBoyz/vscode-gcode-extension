@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PathPoint, PathSegment } from '../../visualizer/types';
 import { PlaybackStatus } from '../playback/types';
 import { interpolatePolyline, polylineLength } from '../playback/geometry';
@@ -302,24 +302,17 @@ export function usePlaybackEngine(options: EngineOptions): {
     };
   }, [cancelLoop]);
 
-  // ── Return ─────────────────────────────────────────────────────────
+  // ── Return (memoized to prevent context value churn) ────────────────
 
-  const refs: PlaybackEngineRefs = {
-    currentIndexRef,
-    segmentProgressRef,
-    toolPositionRef,
-    statusRef,
-  };
+  const refs = useMemo<PlaybackEngineRefs>(
+    () => ({ currentIndexRef, segmentProgressRef, toolPositionRef, statusRef }),
+    [] // Refs are created once by useRef — stable for the lifetime of the hook
+  );
 
-  const actions: PlaybackEngineActions = {
-    play,
-    pause,
-    stop,
-    stepForward,
-    stepBack,
-    seekToSegment,
-    setSpeed,
-  };
+  const actions = useMemo<PlaybackEngineActions>(
+    () => ({ play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed }),
+    [play, pause, stop, stepForward, stepBack, seekToSegment, setSpeed]
+  );
 
   return { refs, actions };
 }
