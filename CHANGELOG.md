@@ -31,12 +31,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v2.3.0] - 2026-04-07
+
+### Changed
+- Migrated visualizer webview from vanilla IIFE to React (#112, #113)
+
+## [v2.2.0] - 2026-04-06
+
 ### Added
+- Semantic analysis layer with modal state tracking and diagnostics (#86, #88)
+- Incremental parsing for improved performance (#88)
 - Complete G/M code command databases for all four dialects (#70)
 - Diagnostic severity levels (Error, Warning, Information, Hint) in error reporting (#71)
 - Go to Definition and Find References for variables (#72)
+- Variable analysis warnings and M98 severity downgrade (#74)
+- Quick-fix code actions with structured diagnostic codes (#75)
+- Enhanced IntelliSense with snippets, grouping, and keyword completions (#76)
+- Intelligent error suggestions for common parse errors (#96)
+- Multi-program file support with program boundary reset (#97)
+- Dialect-aware axis parameter validation (#99, #104)
+- Unterminated token detection with error pipeline integration (#103)
+- DO/END keyword suffix extraction as token metadata (#105)
+- DO/END keyword suffix validation for Macro B nesting (#111)
+
+### Changed
+- Extracted HoverProvider dispatch into strategy pattern (#92)
+- Unified factory switch statements into DialectRegistry (#93)
+- Deduplicated formatter and data provider dialect implementations (#94)
+- Extracted scanner operator dispatch to table-driven lookup (#106)
+- Replaced `instanceof` with polymorphic `isProgramDelimiter()` (#110)
 
 ### Fixed
+- Track newlines inside parenthetical comments in GCodeScanner (#95)
 - Unsafe enum comparison lint error in DocumentSymbolVisitor
 
 ## [v2.1.0] - 2026-04-01

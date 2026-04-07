@@ -13,7 +13,7 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
   - Live-update on document change
 - **Syntax Highlighting**: Semantic token-based highlighting for G-Code files with 50+ file extensions
 - **Document Formatting**: Intelligent formatting with customizable options and dialect-specific syntax
-- **Completions**: Dialect-aware IntelliSense for G/M commands, parameters, variables, functions, and operators
+- **Completions**: Dialect-aware IntelliSense with snippets and grouping for G/M commands, parameters, variables, functions, and operators
 - **Go to Definition / Find References**: Navigate to variable assignments and find all usages
 - **Hover Information**: Intelligent tooltips showing:
   - Variable values and declarations
@@ -24,7 +24,9 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
 - **Code Folding**: Fold IF/WHILE/subroutine blocks
 - **Variable Renaming**: Rename variables across entire document
 - **Document Highlights**: Highlight all occurrences of a variable
-- **Diagnostics**: Syntax error reporting with severity levels (Error, Warning, Information, Hint)
+- **Diagnostics**: Syntax error reporting with severity levels, quick-fix code actions, and intelligent error suggestions
+- **Semantic Analysis**: Modal state tracking and dialect-aware axis parameter validation
+- **Multi-Program Support**: Parse and navigate files containing multiple programs
 - **Subroutine Support**: Parsing and formatting of subroutines across all four dialects
 - **Robust Error Handling**: Parser gracefully handles unsupported syntax
   - Preserves original code when encountering parse errors
@@ -356,6 +358,21 @@ None at this time. Please report issues on [GitHub Issues](https://github.com/Qu
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
+
+### Version 2.3.0
+
+- Migrated visualizer webview from vanilla IIFE to React
+
+### Version 2.2.0
+
+- Semantic analysis layer with modal state tracking and incremental parsing
+- Quick-fix code actions with intelligent error suggestions
+- Enhanced IntelliSense with snippets, grouping, and keyword completions
+- Go to Definition and Find References for variables
+- Dialect-aware axis parameter validation
+- Multi-program file support with program boundary reset
+- Complete G/M code command databases for all four dialects
+- DO/END keyword suffix validation for Macro B nesting
 
 ### Version 2.1.0
 
