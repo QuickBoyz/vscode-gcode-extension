@@ -10,7 +10,7 @@ import { CameraState } from '../types';
 import { project } from '../projection';
 import { drawAxes } from '../axes';
 import { drawGrid } from '../grid';
-import { drawToolMarker } from '../toolMarker';
+import { drawToolMarkerBody, drawToolMarkerTip } from '../toolMarker';
 import { ProjectedSegmentData } from '../hitTesting';
 import { PlaybackStatus } from '../playback/types';
 import {
@@ -113,11 +113,16 @@ export function useRenderLoop(
 
     // Depth-sort segments (painter's algorithm using mid-point depth)
     // Iterate directly with index to avoid both the filter allocation and O(n) indexOf.
-    const visibleCount = isPlaybackActive ? playbackIndex + 1 : segments.length;
+    const visibleCount = isPlaybackActive
+      ? Math.min(Math.max(playbackIndex + 1, 0), segments.length)
+      : segments.length;
 
     const sorted: { segment: PathSegment; depth: number; segmentIndex: number }[] = [];
     for (let i = 0; i < visibleCount; i++) {
       const segment = segments[i];
+      if (!segment) {
+        continue;
+      }
       const midpoint = segment.points[Math.floor(segment.points.length / 2)];
       const projected = project(
         midpoint.x,
@@ -201,11 +206,23 @@ export function useRenderLoop(
     context.globalAlpha = 1.0;
     context.setLineDash([]);
 
+    // Draw tool marker body before axes so axes render above the cone/cylinder
+    if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
+      drawToolMarkerBody(
+        context,
+        playbackRef.toolPositionRef.current,
+        camera,
+        canvasWidth,
+        canvasHeight,
+        projectionMode
+      );
+    }
+
     drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
 
-    // Draw tool marker during playback
+    // Draw tip dot after axes so it's always on top
     if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
-      drawToolMarker(
+      drawToolMarkerTip(
         context,
         playbackRef.toolPositionRef.current,
         camera,

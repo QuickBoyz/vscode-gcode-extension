@@ -127,9 +127,10 @@ function drawCylinderSides(
 }
 
 /**
- * Draws the pencil-shaped tool marker at the given position.
+ * Draws the cone and cylinder body of the tool marker (without the tip dot).
+ * Call this before axes so the body appears behind them.
  */
-export function drawToolMarker(
+export function drawToolMarkerBody(
   ctx: CanvasRenderingContext2D,
   toolPosition: PathPoint,
   camera: CameraState,
@@ -142,7 +143,6 @@ export function drawToolMarker(
   const coneBaseZ = tipZ + TOOL_CONE_HEIGHT;
   const cylinderTopZ = coneBaseZ + TOOL_CYLINDER_HEIGHT;
 
-  // Project the three key elevations
   const tip = project(cx, cy, tipZ, camera, canvasWidth, canvasHeight, projectionMode);
   if (!tip) return;
 
@@ -188,8 +188,24 @@ export function drawToolMarker(
   }
 
   ctx.restore();
+}
 
-  // Tip dot — always on top of everything
+/**
+ * Draws the tip dot of the tool marker. Always rendered on top of everything.
+ * Call this after axes so the tip dot appears above them.
+ */
+export function drawToolMarkerTip(
+  ctx: CanvasRenderingContext2D,
+  toolPosition: PathPoint,
+  camera: CameraState,
+  canvasWidth: number,
+  canvasHeight: number,
+  projectionMode: ProjectionMode
+): void {
+  const { x: cx, y: cy, z: tipZ } = toolPosition;
+  const tip = project(cx, cy, tipZ, camera, canvasWidth, canvasHeight, projectionMode);
+  if (!tip) return;
+
   ctx.save();
   ctx.globalAlpha = 1.0;
   ctx.fillStyle = TOOL_TIP_COLOR;

@@ -206,19 +206,77 @@ export function PlaybackProvider({
     [engineActions, immediateSnapshotUpdate]
   );
 
+  // Clear source line throttle so manual actions navigate immediately
+  const clearSourceLineThrottle = useCallback(() => {
+    if (sourceLineThrottleRef.current !== undefined) {
+      clearTimeout(sourceLineThrottleRef.current);
+      sourceLineThrottleRef.current = undefined;
+    }
+  }, []);
+
+  const stepForward = useCallback(() => {
+    clearSourceLineThrottle();
+    engineActions.stepForward();
+  }, [engineActions, clearSourceLineThrottle]);
+
+  const stepBack = useCallback(() => {
+    clearSourceLineThrottle();
+    engineActions.stepBack();
+  }, [engineActions, clearSourceLineThrottle]);
+
+  const seekToSegment = useCallback(
+    (index: number) => {
+      clearSourceLineThrottle();
+      engineActions.seekToSegment(index);
+    },
+    [engineActions, clearSourceLineThrottle]
+  );
+
   const actions = useMemo<PlaybackActions>(
     () => ({
       play: engineActions.play,
       pause: engineActions.pause,
       stop: engineActions.stop,
       exit: engineActions.exit,
-      stepForward: engineActions.stepForward,
-      stepBack: engineActions.stepBack,
-      seekToSegment: engineActions.seekToSegment,
+      stepForward,
+      stepBack,
+      seekToSegment,
       setSpeed,
     }),
-    [engineActions, setSpeed]
+    [engineActions, stepForward, stepBack, seekToSegment, setSpeed]
   );
+
+  // ── Timer cleanup on unmount ─────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      if (uiThrottleTimerRef.current !== undefined) {
+        clearTimeout(uiThrottleTimerRef.current);
+      }
+      if (sourceLineThrottleRef.current !== undefined) {
+        clearTimeout(sourceLineThrottleRef.current);
+      }
+    };
+  }, []);
+
+  // ── Navigate immediately when follow mode is toggled on while paused ──
+
+  const prevFollowRef = useRef(followSourceLine);
+  useEffect(() => {
+    const wasFollowing = prevFollowRef.current;
+    prevFollowRef.current = followSourceLine;
+
+    if (!wasFollowing && followSourceLine) {
+      const index = engineRefsRef.current.currentIndexRef.current;
+      const segments = segmentsRef.current;
+      if (index < segments.length) {
+        const sourceLine = segments[index].context?.sourceLine;
+        if (sourceLine !== undefined) {
+          vscode.postMessage({ type: 'navigateToLine', line: sourceLine });
+        }
+      }
+    }
+  }, [followSourceLine, segmentsRef]);
 
   // ── Context values ───────────────────────────────────────────────
 

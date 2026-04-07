@@ -20,7 +20,7 @@ export function PlaybackBarWrapper(props: PlaybackBarProps) {
 
 function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
   const { status, currentIndex, totalSegments, speedMultiplier } = usePlaybackSnapshot();
-  const { play, pause, stop, exit, stepForward, stepBack, seekToSegment, setSpeed } =
+  const { play, pause, exit, stepForward, stepBack, seekToSegment, setSpeed } =
     usePlaybackActions();
 
   const isPlaying = status === PlaybackStatus.PLAYING;
@@ -72,7 +72,7 @@ function PlaybackBar({ followSourceLine, onFollowChange }: PlaybackBarProps) {
   return (
     <div className="playback-bar">
       <div className="playback-controls">
-        <button className="playback-btn" title="Stop (Escape)" onClick={stop}>
+        <button className="playback-btn" title="Exit playback (Escape)" onClick={exit}>
           ■
         </button>
         <button className="playback-btn" title="Step back (←)" onClick={stepBack}>

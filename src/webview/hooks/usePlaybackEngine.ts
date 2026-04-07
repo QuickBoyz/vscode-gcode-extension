@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { PathPoint, PathSegment } from '../../visualizer/types';
 import { PlaybackStatus } from '../playback/types';
-import { interpolatePolyline, polylineLength } from '../playback/geometry';
+import { interpolatePolyline } from '../playback/geometry';
 import { segmentDuration } from '../playback/timing';
 
 // ── Exported interfaces ────────────────────────────────────────────
@@ -124,6 +124,13 @@ export function usePlaybackEngine(options: EngineOptions): {
       const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
       const segments = segmentsRef.current;
       if (segments.length === 0) {
+        // Inline cancel to avoid circular dependency with cancelLoop
+        if (rafIdRef.current !== 0) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = 0;
+        }
+        lastTimeRef.current = 0;
+        setStatus(PlaybackStatus.PAUSED);
         return;
       }
 
