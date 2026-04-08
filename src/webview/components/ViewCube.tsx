@@ -5,7 +5,7 @@ import { FACE_VIEWS, EDGE_VIEWS, ViewTarget } from '../viewCube/views';
 import { animateCamera } from '../viewCube/animation';
 
 /** Size of each cube face in CSS pixels. */
-const CUBE_SIZE = 80;
+const CUBE_SIZE = 64;
 
 /** Half the cube size — used for translateZ positioning. */
 const HALF = CUBE_SIZE / 2;

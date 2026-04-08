@@ -437,15 +437,15 @@ $font-size: var(--vscode-editor-font-size, 12px);
 
 // ── ViewCube navigation gizmo ──────────────────────────────────────
 
-$cube-size: 80px;
-$cube-half: 40px;
+$cube-size: 64px;
+$cube-half: 32px;
 
 #view-cube-container {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 120px;
-  height: 120px;
+  top: 24px;
+  right: 24px;
+  width: 100px;
+  height: 100px;
   z-index: 4;
   perspective: 300px;
   perspective-origin: 50% 50%;
