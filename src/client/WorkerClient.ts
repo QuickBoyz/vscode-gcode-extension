@@ -16,13 +16,15 @@ import { Worker } from 'worker_threads';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DialectType } from '../constants';
-import { VisualizerService } from './VisualizerService';
+import { VariableResolutionService } from '../visualizer/VariableResolutionService';
 import {
+  SerializedVariables,
   VisualizerResult,
   WorkerErrorResponse,
   WorkerRequest,
   WorkerResponse,
 } from '../visualizer/types';
+import { VisualizerService } from './VisualizerService';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;
@@ -79,14 +81,21 @@ export class WorkerClient {
   parse(
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
-    maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations
+    maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations,
+    variables?: SerializedVariables
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
     if (this.synchronousFallback) {
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect));
+      const variableService = new VariableResolutionService({
+        settingsVariables: variables,
+      });
+      const initialVariables = variableService.resolve();
+      return Promise.resolve(
+        this.fallbackService.extractToolPath(text, dialect, initialVariables)
+      );
     }
 
     this.generationCounter += 1;
@@ -99,7 +108,13 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect));
+      const variableService = new VariableResolutionService({
+        settingsVariables: variables,
+      });
+      const initialVariables = variableService.resolve();
+      return Promise.resolve(
+        this.fallbackService.extractToolPath(text, dialect, initialVariables)
+      );
     }
 
     const request: WorkerRequest = {
@@ -108,6 +123,7 @@ export class WorkerClient {
       text,
       maxIterations,
       dialect,
+      variables,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {

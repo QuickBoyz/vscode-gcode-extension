@@ -10,7 +10,8 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VisualizerConfig } from '../visualizer/types';
+import { VariableDefinitions } from '../visualizer/VariableResolutionService';
+import { SerializedVariables, VisualizerConfig } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';
 
@@ -44,6 +45,12 @@ export class CommandProvider {
 
   /** Navigation callback registration (disposed with the panel). */
   private navigationRegistration: vscode.Disposable | undefined;
+
+  /** Variable override callback registration (disposed with the panel). */
+  private variableOverrideRegistration: vscode.Disposable | undefined;
+
+  /** Runtime variable overrides set from the visualizer panel UI. */
+  private runtimeVariableOverrides: VariableDefinitions = {};
 
   constructor(configProvider: ClientConfigProvider) {
     this.configProvider = configProvider;
@@ -98,8 +105,14 @@ export class CommandProvider {
 
         const workerClient = this.ensureWorkerClient(context);
         const config = await this.configProvider.getConfig();
+        const mergedVariables = this.mergeVariables(config.variables);
 
-        const result = await workerClient.parse(documentText, config.dialect);
+        const result = await workerClient.parse(
+          documentText,
+          config.dialect,
+          undefined,
+          mergedVariables
+        );
         const settings: VisualizerConfig = config.visualizer;
 
         if (!result.success) {
@@ -118,6 +131,7 @@ export class CommandProvider {
           this.configProvider
         );
         this.registerNavigationCallback();
+        this.registerVariableOverrideCallback();
         this.startDocumentChangeListener();
       }
     );
@@ -187,6 +201,12 @@ export class CommandProvider {
             GCodeVisualizerPanel.updateSettings(config.visualizer);
           });
         }
+
+        // When gcode.variables changes, re-extract the tool path with updated variables.
+        if (event.affectsConfiguration('gcode.variables')) {
+          this.configProvider.invalidate();
+          void this.refreshVisualizerWithCurrentDocument();
+        }
       }
     );
 
@@ -205,6 +225,21 @@ export class CommandProvider {
     }
     this.navigationRegistration = GCodeVisualizerPanel.onNavigateToLine((line) => {
       void this.navigateToSourceLine(line);
+    });
+  }
+
+  /**
+   * Registers a callback to handle variable override messages from the
+   * webview. When overrides change, the tool path is re-extracted with
+   * the updated values. Idempotent: does nothing if already registered.
+   */
+  private registerVariableOverrideCallback(): void {
+    if (this.variableOverrideRegistration) {
+      return;
+    }
+    this.variableOverrideRegistration = GCodeVisualizerPanel.onVariableOverrides((overrides) => {
+      this.runtimeVariableOverrides = overrides;
+      void this.refreshVisualizerWithCurrentDocument();
     });
   }
 
@@ -254,6 +289,14 @@ export class CommandProvider {
       this.navigationRegistration = undefined;
     }
 
+    if (this.variableOverrideRegistration) {
+      this.variableOverrideRegistration.dispose();
+      this.variableOverrideRegistration = undefined;
+    }
+
+    // Clear runtime overrides when the panel is closed.
+    this.runtimeVariableOverrides = {};
+
     if (this.panelDisposeRegistration) {
       this.panelDisposeRegistration.dispose();
       this.panelDisposeRegistration = undefined;
@@ -295,7 +338,13 @@ export class CommandProvider {
     try {
       const sourceText = document.getText();
       const config = await this.configProvider.getConfig();
-      const result = await this.workerClient.parse(sourceText, config.dialect);
+      const mergedVariables = this.mergeVariables(config.variables);
+      const result = await this.workerClient.parse(
+        sourceText,
+        config.dialect,
+        undefined,
+        mergedVariables
+      );
       const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
@@ -319,6 +368,37 @@ export class CommandProvider {
     if (this.debounceTimer !== undefined) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = undefined;
+    }
+  }
+
+  /**
+   * Merges settings variables with runtime overrides into a single
+   * serialized record for the worker. Runtime overrides take precedence.
+   */
+  private mergeVariables(settingsVariables: VariableDefinitions): SerializedVariables {
+    return { ...settingsVariables, ...this.runtimeVariableOverrides };
+  }
+
+  /**
+   * Refreshes the visualizer by finding the current G-code document
+   * (either the tracked active document or the active text editor)
+   * and re-extracting the tool path.
+   */
+  private async refreshVisualizerWithCurrentDocument(): Promise<void> {
+    if (!this.workerClient || !GCodeVisualizerPanel.isOpen) {
+      return;
+    }
+
+    const uri = this.activeDocumentUri ?? vscode.window.activeTextEditor?.document.uri;
+    if (!uri) {
+      return;
+    }
+
+    try {
+      const document = await vscode.workspace.openTextDocument(uri);
+      await this.refreshVisualizerFromDocument(document);
+    } catch {
+      // Document may have been closed or moved.
     }
   }
 

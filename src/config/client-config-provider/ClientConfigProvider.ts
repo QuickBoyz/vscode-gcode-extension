@@ -80,6 +80,7 @@ export class ClientConfigProvider extends ConfigProvider {
       interpreter: {
         maxIterations: config.get<number>('interpreter.maxIterations'),
       },
+      variables: config.get<Record<string, number>>('variables') ?? {},
     };
 
     return Promise.resolve(raw);

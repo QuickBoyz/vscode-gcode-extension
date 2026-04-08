@@ -31,11 +31,13 @@ import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { MODAL_MOTION_COMMANDS } from '../constants/GCodeCommands';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { InterpreterConfig, MotionHandler } from './types';
+import { VariableEnvironment } from './VariableResolutionService';
 
 export class GCodeInterpreter {
   private readonly variableEnvironment = new Map<string | number, number>();
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
   private readonly options: InterpreterConfig;
+  private readonly initialVariables: VariableEnvironment;
   private totalIterations = 0;
   private iterationLimitReached = false;
 
@@ -49,9 +51,11 @@ export class GCodeInterpreter {
 
   constructor(
     private readonly motionHandler: MotionHandler,
-    options?: Partial<InterpreterConfig>
+    options?: Partial<InterpreterConfig>,
+    initialVariables?: VariableEnvironment
   ) {
     this.options = { ...DEFAULT_GCODE_CONFIG.interpreter, ...options };
+    this.initialVariables = initialVariables ?? new Map();
     this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
   }
 
@@ -66,6 +70,13 @@ export class GCodeInterpreter {
    */
   interpret(program: ProgramNode): void {
     this.variableEnvironment.clear();
+
+    // Seed the environment with initial variables (from settings/overrides).
+    // These act as defaults that can be overwritten by program assignments.
+    for (const [key, value] of this.initialVariables) {
+      this.variableEnvironment.set(key, value);
+    }
+
     this.totalIterations = 0;
     this.iterationLimitReached = false;
     this.activeMotionCommand = null;

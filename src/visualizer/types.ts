@@ -156,6 +156,12 @@ export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
 // ---------------------------------------------------------------------------
 
 /**
+ * Serialized variable definitions for the worker thread protocol.
+ * Uses a plain record because {@link Map} is not structured-cloneable.
+ */
+export type SerializedVariables = Readonly<Record<string, number>>;
+
+/**
  * Message sent from the main thread to the visualizer worker.
  */
 export interface WorkerRequest {
@@ -164,6 +170,8 @@ export interface WorkerRequest {
   readonly text: string;
   readonly maxIterations: number;
   readonly dialect: DialectType;
+  /** Pre-seeded variable values (settings + runtime overrides). */
+  readonly variables?: SerializedVariables;
 }
 
 /**

@@ -368,6 +368,14 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically scroll the editor to the current source line during playback"
+        },
+        "gcode.variables": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Global variable values for the G-code visualizer and interpreter. Keys can use any of these formats:\n- `#100` — numbered variable\n- `#<tool_diameter>` — named variable\n- `100` or `tool_diameter` — shorthand (without `#` prefix)\n\nValues must be numbers. These variables are pre-loaded before program execution, so they act as defaults that can be overwritten by assignments in the G-code program.\n\nExample:\n```json\n{\n  \"#100\": 25.4,\n  \"#<tool_diameter>\": 6.35,\n  \"#5221\": 0.0\n}\n```",
+          "additionalProperties": {
+            "type": "number"
+          }
         }
       }
     }

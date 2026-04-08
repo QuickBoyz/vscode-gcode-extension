@@ -8,6 +8,7 @@
 
 import { DialectType } from '../constants';
 import { FormatterConfig } from '../formatter/types';
+import { VariableDefinitions } from '../visualizer/VariableResolutionService';
 import { ExtractorConfig, InterpreterConfig, VisualizerConfig } from '../visualizer/types';
 
 /**
@@ -24,6 +25,8 @@ export interface GCodeConfig {
   readonly extractor: ExtractorConfig;
   /** Interpreter settings (loop limits, execution behaviour). */
   readonly interpreter: InterpreterConfig;
+  /** User-defined global variable values. */
+  readonly variables: VariableDefinitions;
 }
 
 /**
