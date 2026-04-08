@@ -89,13 +89,8 @@ export class WorkerClient {
     }
 
     if (this.synchronousFallback) {
-      const variableService = new VariableResolutionService({
-        settingsVariables: variables,
-      });
-      const initialVariables = variableService.resolve();
-      return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, initialVariables)
-      );
+      const resolved = this.resolveVariables(variables);
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
     }
 
     this.generationCounter += 1;
@@ -108,13 +103,8 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      const variableService = new VariableResolutionService({
-        settingsVariables: variables,
-      });
-      const initialVariables = variableService.resolve();
-      return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, initialVariables)
-      );
+      const resolved = this.resolveVariables(variables);
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
     }
 
     const request: WorkerRequest = {
@@ -249,5 +239,16 @@ export class WorkerClient {
       void this.worker.terminate();
       this.worker = undefined;
     }
+  }
+
+  /**
+   * Resolves serialized variable definitions into a variable environment.
+   */
+  private resolveVariables(
+    variables?: SerializedVariables
+  ): ReadonlyMap<string | number, number> | undefined {
+    if (!variables) return undefined;
+    const service = new VariableResolutionService({ settingsVariables: variables });
+    return service.resolve();
   }
 }
