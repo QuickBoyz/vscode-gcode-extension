@@ -54,6 +54,7 @@ export function animateCamera(
   const deltaTheta = normalizeAngle(target.theta - startTheta);
   const deltaPhi = target.phi - startPhi;
 
+  let rafId: number | null = null;
   let cancelled = false;
   let startTime: number | null = null;
 
@@ -73,8 +74,9 @@ export function animateCamera(
     onFrame();
 
     if (progress < 1) {
-      requestAnimationFrame(step);
+      rafId = requestAnimationFrame(step);
     } else {
+      rafId = null;
       // Snap to exact target
       camera.theta = target.theta;
       camera.phi = target.phi;
@@ -83,9 +85,13 @@ export function animateCamera(
     }
   }
 
-  requestAnimationFrame(step);
+  rafId = requestAnimationFrame(step);
 
   return () => {
     cancelled = true;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
   };
 }

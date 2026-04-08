@@ -140,38 +140,40 @@ function cameraToCSS(theta: number, phi: number): string {
 
 export function ViewCube() {
   const cameraRef = useCameraRef();
-  const scheduleRender = useScheduleRender();
+  const baseScheduleRender = useScheduleRender();
   const { registerAnimationCancel } = useAnimationCancel();
 
   const cubeRef = useRef<HTMLDivElement>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
-  const rafIdRef = useRef<number | null>(null);
+  const lastSyncedAnglesRef = useRef({ theta: NaN, phi: NaN });
 
-  // Sync cube CSS transform to camera state on every animation frame.
-  // Dirty check avoids DOM writes when the camera is stationary.
-  useEffect(() => {
-    let prevTheta = NaN;
-    let prevPhi = NaN;
+  // Sync cube CSS transform to match current camera angles.
+  // Only writes to DOM when theta/phi have actually changed.
+  const syncCubeTransform = useCallback((): void => {
+    const camera = cameraRef.current;
+    const cube = cubeRef.current;
+    if (!camera || !cube) return;
 
-    function syncTransform(): void {
-      const camera = cameraRef.current;
-      const cube = cubeRef.current;
-      if (camera && cube && (camera.theta !== prevTheta || camera.phi !== prevPhi)) {
-        prevTheta = camera.theta;
-        prevPhi = camera.phi;
-        cube.style.transform = cameraToCSS(camera.theta, camera.phi);
-      }
-      rafIdRef.current = requestAnimationFrame(syncTransform);
-    }
-    rafIdRef.current = requestAnimationFrame(syncTransform);
-    return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
+    const last = lastSyncedAnglesRef.current;
+    if (camera.theta === last.theta && camera.phi === last.phi) return;
+
+    last.theta = camera.theta;
+    last.phi = camera.phi;
+    cube.style.transform = cameraToCSS(camera.theta, camera.phi);
   }, [cameraRef]);
+
+  // Wrap scheduleRender to also sync the cube transform on every render.
+  const scheduleRender = useCallback((): void => {
+    syncCubeTransform();
+    baseScheduleRender();
+  }, [baseScheduleRender, syncCubeTransform]);
+
+  // Sync cube transform once on mount; subsequent updates piggyback on render scheduling.
+  useEffect(() => {
+    syncCubeTransform();
+  }, [syncCubeTransform]);
 
   // Navigate to a predefined view
   const navigateTo = useCallback(
@@ -210,6 +212,7 @@ export function ViewCube() {
           // Cancel any in-progress animation when drag starts
           cancelAnimationRef.current?.();
           cancelAnimationRef.current = null;
+          registerAnimationCancel(null);
           // Reset drag start to current position for smooth initial movement
           dragStartRef.current = { x: moveEvent.clientX, y: moveEvent.clientY };
           return;
@@ -240,7 +243,7 @@ export function ViewCube() {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [cameraRef, scheduleRender]
+    [cameraRef, scheduleRender, registerAnimationCancel]
   );
 
   // Handle click on a face (only fires if not dragging)
@@ -263,6 +266,19 @@ export function ViewCube() {
     [navigateTo]
   );
 
+  // Handle keyboard activation on faces/edges
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent, name: string, isEdge: boolean) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        const views = isEdge ? EDGE_VIEWS : FACE_VIEWS;
+        const view = views[name];
+        if (view) navigateTo(view);
+      }
+    },
+    [navigateTo]
+  );
+
   // Cleanup animation on unmount
   useEffect(() => {
     return () => {
@@ -279,7 +295,11 @@ export function ViewCube() {
             key={name}
             className="view-cube-face"
             style={{ transform: FACE_TRANSFORMS[name] }}
+            role="button"
+            tabIndex={0}
+            aria-label={`${name} view`}
             onClick={() => handleFaceClick(name)}
+            onKeyDown={(e) => handleKeyDown(e, name, false)}
           >
             {name.toUpperCase()}
           </div>
@@ -297,7 +317,11 @@ export function ViewCube() {
               marginLeft: `${-edge.width / 2}px`,
               marginTop: `${-edge.height / 2}px`,
             }}
+            role="button"
+            tabIndex={0}
+            aria-label={`${edge.name} edge view`}
             onClick={() => handleEdgeClick(edge.name)}
+            onKeyDown={(e) => handleKeyDown(e, edge.name, true)}
           />
         ))}
       </div>

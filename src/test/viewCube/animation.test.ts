@@ -47,12 +47,16 @@ describe('animateCamera', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     let frameId = 0;
+    let frameTime = 0;
+    const frameDurationMs = 16;
     // rAF doesn't exist in Node — define stubs so spyOn can attach
     globalThis.requestAnimationFrame = (() => 0) as typeof requestAnimationFrame;
     globalThis.cancelAnimationFrame = (() => {}) as typeof cancelAnimationFrame;
     jest.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
       frameId++;
-      setTimeout(() => cb(performance.now()), 0);
+      frameTime += frameDurationMs;
+      const scheduledFrameTime = frameTime;
+      setTimeout(() => cb(scheduledFrameTime), frameDurationMs);
       return frameId;
     });
     jest.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {
