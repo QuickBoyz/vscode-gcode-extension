@@ -376,6 +376,18 @@
           "additionalProperties": {
             "type": "number"
           }
+        },
+        "gcode.workspace.indexingEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable workspace-wide symbol indexing for Ctrl+T search across all G-code files"
+        },
+        "gcode.workspace.maxSymbols": {
+          "type": "integer",
+          "default": 10000,
+          "minimum": 100,
+          "maximum": 100000,
+          "description": "Maximum number of symbols to index across all workspace files"
         }
       }
     }

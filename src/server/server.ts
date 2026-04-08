@@ -29,6 +29,8 @@ import { CompletionProvider } from '../providers/CompletionProvider';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 import { GCodeConfig } from '../config/types';
 import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
+import { WorkspaceSymbolIndex } from '../providers/WorkspaceSymbolIndex';
+import { WorkspaceSymbolProvider } from '../providers/WorkspaceSymbolProvider';
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all);
@@ -68,6 +70,8 @@ connection.onInitialize((_params: InitializeParams): InitializeResult => {
         interFileDependencies: false,
         workspaceDiagnostics: false,
       },
+      // Enable workspace symbol search (Ctrl+T)
+      workspaceSymbolProvider: true,
       // Enable completion with trigger characters
       completionProvider: {
         triggerCharacters: [
@@ -110,6 +114,7 @@ connection.onDidChangeConfiguration(() => {
   // Clear cached config and document states when configuration changes
   configProvider.invalidate();
   documentStateManager.clearAll();
+  workspaceSymbolIndex.clear();
   connection.console.log('Configuration changed - caches cleared');
 });
 
@@ -146,7 +151,9 @@ const formatterService = new FormatterService(),
   hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager),
   codeActionProvider = new CodeActionProvider(),
-  completionProvider = new CompletionProvider(documentStateManager);
+  completionProvider = new CompletionProvider(documentStateManager),
+  workspaceSymbolIndex = new WorkspaceSymbolIndex(),
+  workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex);
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -276,6 +283,11 @@ connection.onCompletionResolve((item) => {
   return completionProvider.resolveCompletionItem(item);
 });
 
+// Register workspace symbol provider
+connection.onWorkspaceSymbol((params) => {
+  return workspaceSymbolProvider.provideWorkspaceSymbols(params.query);
+});
+
 // Register code action provider
 connection.onCodeAction(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -350,6 +362,9 @@ documents.onDidChangeContent((change) => {
         connection.sendDiagnostics({ uri, diagnostics }).catch((error: Error) => {
           connection.console.error(`Failed to send diagnostics for ${uri}: ${error.message}`);
         });
+
+        // Update workspace symbol index
+        workspaceSymbolIndex.indexFile(uri, change.document.getText(), settings.dialect);
       });
     }, DIAGNOSTICS_DEBOUNCE_MS)
   );
@@ -369,6 +384,9 @@ documents.onDidOpen(async (event) => {
         `Failed to send diagnostics for ${event.document.uri}: ${error.message}`
       );
     });
+
+  // Index file for workspace symbol search
+  workspaceSymbolIndex.indexFile(event.document.uri, event.document.getText(), settings.dialect);
 });
 
 // Clean up caches and timers when a document is closed
@@ -380,6 +398,8 @@ documents.onDidClose((event) => {
     diagnosticsTimers.delete(uri);
   }
   documentStateManager.removeDocument(uri);
+  // Note: We intentionally keep workspace symbols indexed after close,
+  // so workspace symbol search still finds symbols from previously opened files.
 });
 
 // Register pull-based diagnostics handler (for newer VS Code versions)
