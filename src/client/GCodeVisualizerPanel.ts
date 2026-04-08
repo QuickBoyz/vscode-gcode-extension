@@ -17,7 +17,12 @@ import * as vscode from 'vscode';
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { tokenizeSourceLines, TokenSpan } from '../visualizer/sourceTokenizer';
 import { VariableDefinitions } from '../visualizer/VariableResolutionService';
-import { PathBounds, ToolPathData, VisualizerConfig } from '../visualizer/types';
+import {
+  PathBounds,
+  ReferencedVariable,
+  ToolPathData,
+  VisualizerConfig,
+} from '../visualizer/types';
 import { generateNonce } from './nonce';
 
 /**
@@ -30,6 +35,7 @@ type ExtensionToWebviewMessage =
       bounds: PathBounds;
       settings: VisualizerConfig;
       sourceTokens: readonly TokenSpan[][];
+      referencedVariables: readonly ReferencedVariable[];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
@@ -263,6 +269,7 @@ export class GCodeVisualizerPanel {
       bounds: pathData.bounds,
       settings,
       sourceTokens: tokenizeSourceLines(sourceText.split(/\r?\n/)),
+      referencedVariables: pathData.referencedVariables,
     };
   }
 

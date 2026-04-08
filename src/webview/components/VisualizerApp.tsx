@@ -12,14 +12,14 @@ import {
   usePlaybackActions,
 } from '../context/PlaybackContext';
 import { PlaybackStatus } from '../playback/types';
-import { PathSegment } from '../../visualizer/types';
+import { PathSegment, ReferencedVariable } from '../../visualizer/types';
 import { Toolbar } from './Toolbar';
 import { ErrorBanner } from './ErrorBanner';
 import { CanvasArea } from './CanvasArea';
 import { VariablePanel } from './VariablePanel';
 
 function VisualizerLayout() {
-  const { error } = useDocumentState();
+  const { error, referencedVariables } = useDocumentState();
   const { settings, updateSettings } = useVisualizerSettings();
   const { resetView } = useCameraControls();
   const snapshot = usePlaybackSnapshot();
@@ -55,6 +55,7 @@ function VisualizerLayout() {
         onToggle={handleVariablePanelToggle}
         overrides={variableOverrides}
         onOverridesChange={setVariableOverrides}
+        referencedVariables={referencedVariables}
       />
       {error && <ErrorBanner message={error} />}
       <CanvasArea />

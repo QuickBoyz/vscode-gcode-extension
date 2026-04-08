@@ -40,6 +40,7 @@ import {
   PathBounds,
   PathPoint,
   PathSegment,
+  ReferencedVariable,
   ToolPathData,
 } from './types';
 
@@ -246,7 +247,26 @@ export class GCodePathExtractor implements MotionHandler {
     const interpreter = new GCodeInterpreter(this, undefined, initialVariables);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
-    return { segments: this.segments, bounds };
+    const referencedVariables = this.buildReferencedVariables(interpreter, initialVariables);
+    return { segments: this.segments, bounds, referencedVariables };
+  }
+
+  /**
+   * Builds the list of referenced variables from the interpreter's
+   * tracking data, including their resolved values.
+   */
+  private buildReferencedVariables(
+    interpreter: GCodeInterpreter,
+    initialVariables?: VariableEnvironment
+  ): ReferencedVariable[] {
+    const references: ReferencedVariable[] = [];
+    for (const key of interpreter.referencedVariables) {
+      const value = initialVariables?.get(key) ?? null;
+      const displayKey = typeof key === 'number' ? `#${key}` : `#<${key}>`;
+      references.push({ key: displayKey, value });
+    }
+    // Sort for stable display order: numeric keys first (by number), then named keys alphabetically.
+    return references.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
 
   // -------------------------------------------------------------------------
