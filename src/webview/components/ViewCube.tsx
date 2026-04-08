@@ -66,18 +66,14 @@ const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
  * - phi: elevation from XY plane
  *
  * CSS 3D uses Y-up by default, so we map:
- * - rotateX(phi in degrees) for elevation
+ * - rotateX(-phi in degrees) for elevation (negated: CSS rotateX positive
+ *   tilts top away from viewer, but positive phi should tilt top toward viewer)
  * - rotateZ(theta in degrees) for azimuth
- *
- * The signs are positive (not negated) because the cube represents the
- * scene, not the camera — when the camera orbits right (theta decreases),
- * the scene (and cube) appears to rotate left, which matches positive theta
- * in CSS rotateZ.
  */
 function cameraToCSS(theta: number, phi: number): string {
   const thetaDeg = (theta * 180) / Math.PI;
   const phiDeg = (phi * 180) / Math.PI;
-  return `rotateX(${phiDeg}deg) rotateZ(${thetaDeg}deg)`;
+  return `rotateX(${-phiDeg}deg) rotateZ(${thetaDeg}deg)`;
 }
 
 export function ViewCube() {
