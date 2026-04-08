@@ -1,0 +1,210 @@
+import { VariableResolutionService } from '../visualizer/VariableResolutionService';
+
+describe('VariableResolutionService', () => {
+  // ---------------------------------------------------------------------------
+  // Basic construction
+  // ---------------------------------------------------------------------------
+
+  it('creates an empty variable environment with no inputs', () => {
+    const service = new VariableResolutionService();
+    const env = service.resolve();
+
+    expect(env.size).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Settings defaults
+  // ---------------------------------------------------------------------------
+
+  it('includes variables from settings defaults', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4, '#<tool_diameter>': 6.35 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(25.4);
+    expect(env.get('tool_diameter')).toBe(6.35);
+  });
+
+  it('handles numeric variable keys without # prefix', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '100': 25.4 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(25.4);
+  });
+
+  it('handles named variable keys without # and angle brackets', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { 'tool_diameter': 6.35 },
+    });
+    const env = service.resolve();
+
+    expect(env.get('tool_diameter')).toBe(6.35);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Runtime overrides
+  // ---------------------------------------------------------------------------
+
+  it('includes variables from runtime overrides', () => {
+    const service = new VariableResolutionService({
+      runtimeOverrides: { '#100': 50.0 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(50.0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Precedence: runtime override > settings > default (0)
+  // ---------------------------------------------------------------------------
+
+  it('runtime overrides take precedence over settings defaults', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+      runtimeOverrides: { '#100': 50.0 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(50.0);
+  });
+
+  it('settings values are used when no runtime override exists', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4, '#200': 10.0 },
+      runtimeOverrides: { '#100': 50.0 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(50.0);
+    expect(env.get(200)).toBe(10.0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Variable key normalization
+  // ---------------------------------------------------------------------------
+
+  it('normalizes #<name> format to string name', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#<my_var>': 42 },
+    });
+    const env = service.resolve();
+
+    expect(env.get('my_var')).toBe(42);
+  });
+
+  it('normalizes #123 format to numeric key', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#123': 99 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(123)).toBe(99);
+  });
+
+  it('normalizes named variable keys case-insensitively', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#<Tool_Diameter>': 6.35 },
+    });
+    const env = service.resolve();
+
+    expect(env.get('tool_diameter')).toBe(6.35);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Merging settings and overrides
+  // ---------------------------------------------------------------------------
+
+  it('merges settings and runtime overrides for different variables', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+      runtimeOverrides: { '#<tool_diameter>': 6.35 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(25.4);
+    expect(env.get('tool_diameter')).toBe(6.35);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Update methods
+  // ---------------------------------------------------------------------------
+
+  it('updates settings variables and re-resolves', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+    });
+
+    service.updateSettingsVariables({ '#100': 30.0, '#200': 10.0 });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(30.0);
+    expect(env.get(200)).toBe(10.0);
+  });
+
+  it('updates runtime overrides and re-resolves', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+    });
+
+    service.updateRuntimeOverrides({ '#100': 50.0 });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(50.0);
+  });
+
+  it('clears runtime overrides', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+      runtimeOverrides: { '#100': 50.0 },
+    });
+
+    service.clearRuntimeOverrides();
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(25.4);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Edge cases
+  // ---------------------------------------------------------------------------
+
+  it('handles empty settings and overrides', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: {},
+      runtimeOverrides: {},
+    });
+    const env = service.resolve();
+
+    expect(env.size).toBe(0);
+  });
+
+  it('handles zero values correctly', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 0 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(0);
+  });
+
+  it('handles negative values correctly', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': -25.4 },
+    });
+    const env = service.resolve();
+
+    expect(env.get(100)).toBe(-25.4);
+  });
+
+  it('ignores invalid variable key formats', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '': 42, '###': 99 },
+    });
+    const env = service.resolve();
+
+    expect(env.size).toBe(0);
+  });
+});
