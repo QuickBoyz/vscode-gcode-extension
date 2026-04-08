@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ReferencedVariable } from '../../visualizer/types';
 import vscode from '../vscodeApi';
 
 /** A single variable entry displayed in the panel. */
@@ -18,10 +19,21 @@ interface VariablePanelProps {
   readonly overrides: Readonly<Record<string, number>>;
   /** Called when overrides change. */
   readonly onOverridesChange: (overrides: Readonly<Record<string, number>>) => void;
+  /** Variables referenced in the current G-code program. */
+  readonly referencedVariables: readonly ReferencedVariable[];
 }
 
 /** Debounce delay in milliseconds for posting override changes. */
 const OVERRIDE_DEBOUNCE_MS = 400;
+
+/**
+ * Pattern matching recognized G-code variable key formats:
+ * - `#nnn` or `nnn` — numeric variable
+ * - `#<name>` — named variable with angle brackets
+ * - `name` — bare named variable (letters, digits, underscores)
+ */
+const VALID_VARIABLE_KEY_PATTERN =
+  /^(#?\d+|#?<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
 
 /**
  * Collapsible panel for viewing and overriding G-code variables.
@@ -35,10 +47,19 @@ export function VariablePanel({
   onToggle,
   overrides,
   onOverridesChange,
+  referencedVariables,
 }: VariablePanelProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [keyError, setKeyError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the debounce timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const entries: VariableEntry[] = Object.entries(overrides).map(([key, value]) => ({
     key,
@@ -69,8 +90,7 @@ export function VariablePanel({
 
   const handleRemove = useCallback(
     (key: string) => {
-      const updated = { ...overrides };
-      delete (updated as Record<string, number>)[key];
+      const updated = Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== key));
       onOverridesChange(updated);
       postOverrides(updated);
     },
@@ -81,9 +101,15 @@ export function VariablePanel({
     const trimmedKey = newKey.trim();
     if (!trimmedKey) return;
 
+    if (!VALID_VARIABLE_KEY_PATTERN.test(trimmedKey)) {
+      setKeyError('Invalid variable key. Use #nnn, #<name>, or name.');
+      return;
+    }
+
     const parsed = parseFloat(newValue);
     if (isNaN(parsed)) return;
 
+    setKeyError('');
     const updated = { ...overrides, [trimmedKey]: parsed };
     onOverridesChange(updated);
     postOverrides(updated);
@@ -110,7 +136,11 @@ export function VariablePanel({
       <button className="variable-panel-toggle" type="button" onClick={onToggle}>
         <span className="toggle-icon">{isOpen ? '\u25BC' : '\u25B6'}</span>
         <span>Variables</span>
-        {entries.length > 0 && <span className="variable-count">{entries.length}</span>}
+        {(entries.length > 0 || referencedVariables.length > 0) && (
+          <span className="variable-count">
+            {entries.length + referencedVariables.length}
+          </span>
+        )}
       </button>
 
       {isOpen && (
@@ -149,10 +179,13 @@ export function VariablePanel({
           <div className="variable-add-row">
             <input
               type="text"
-              className="variable-key-input"
+              className={`variable-key-input${keyError ? ' variable-key-invalid' : ''}`}
               placeholder="#100 or #<name>"
               value={newKey}
-              onChange={(event) => setNewKey(event.target.value)}
+              onChange={(event) => {
+                setNewKey(event.target.value);
+                if (keyError) setKeyError('');
+              }}
               onKeyDown={handleKeyDown}
             />
             <input
@@ -169,10 +202,30 @@ export function VariablePanel({
             </button>
           </div>
 
+          {keyError && <div className="variable-key-error">{keyError}</div>}
+
           {entries.length > 0 && (
             <button className="variable-clear-all" type="button" onClick={handleClearAll}>
               Clear All
             </button>
+          )}
+
+          {referencedVariables.length > 0 && (
+            <div className="variable-referenced-section">
+              <div className="variable-referenced-header">Referenced in program</div>
+              <div className="variable-list">
+                {referencedVariables.map((variable) => (
+                  <div key={variable.key} className="variable-row variable-referenced-row">
+                    <span className="variable-key" title={variable.key}>
+                      {variable.key}
+                    </span>
+                    <span className="variable-referenced-value">
+                      {variable.value !== null ? variable.value : 'unset'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
