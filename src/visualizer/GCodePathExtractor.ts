@@ -32,6 +32,7 @@ import {
 import { ARC_PLANE_CONFIGS, ArcPlane, ArcPlaneConfig } from './ArcPlane';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
+import { VariableEnvironment } from './VariableResolutionService';
 import {
   MotionContext,
   MotionHandler,
@@ -229,8 +230,12 @@ export class GCodePathExtractor implements MotionHandler {
    * Entry point: interpret the program AST and return extracted path data.
    * Resets all internal state before each extraction so the same instance
    * can be reused across multiple documents.
+   *
+   * @param program          - Parsed G-code program AST
+   * @param initialVariables - Optional pre-seeded variable environment
+   *                           (from user settings / runtime overrides)
    */
-  extract(program: ProgramNode): ToolPathData {
+  extract(program: ProgramNode, initialVariables?: VariableEnvironment): ToolPathData {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
@@ -238,7 +243,7 @@ export class GCodePathExtractor implements MotionHandler {
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
-    const interpreter = new GCodeInterpreter(this);
+    const interpreter = new GCodeInterpreter(this, undefined, initialVariables);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     return { segments: this.segments, bounds };

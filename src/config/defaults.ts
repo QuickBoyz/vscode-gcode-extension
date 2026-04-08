@@ -54,4 +54,6 @@ export const DEFAULT_GCODE_CONFIG: GCodeConfig = {
   interpreter: {
     maxIterations: 10_000,
   },
+
+  variables: {},
 };

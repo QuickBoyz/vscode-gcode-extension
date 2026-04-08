@@ -11,6 +11,7 @@ import { DialectType } from '../constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
+import { VariableEnvironment } from '../visualizer/VariableResolutionService';
 import { VisualizerResult } from '../visualizer/types';
 
 export class VisualizerService {
@@ -26,17 +27,22 @@ export class VisualizerService {
    * Returns a discriminated union so callers can handle parse or extraction
    * errors without try/catch.
    *
-   * @param text    Raw G-code file content
-   * @param dialect G-code dialect for lexing and parsing
-   * @returns       A {@link VisualizerResult} indicating success with data or failure with a message
+   * @param text              Raw G-code file content
+   * @param dialect           G-code dialect for lexing and parsing
+   * @param initialVariables  Optional pre-seeded variable environment
+   * @returns                 A {@link VisualizerResult} indicating success with data or failure with a message
    */
-  extractToolPath(text: string, dialect: DialectType = DialectType.LINUXCNC): VisualizerResult {
+  extractToolPath(
+    text: string,
+    dialect: DialectType = DialectType.LINUXCNC,
+    initialVariables?: VariableEnvironment
+  ): VisualizerResult {
     try {
       const lexer = LexerFactory.create(dialect);
       const tokens = lexer.tokenize(text);
       const parser = ParserFactory.create(dialect, tokens, text);
       const ast = parser.parseProgram();
-      const data = this.extractor.extract(ast);
+      const data = this.extractor.extract(ast, initialVariables);
       return { success: true, data };
     } catch (error: unknown) {
       const errorMessage =
