@@ -1,3 +1,5 @@
+import { POLE_MARGIN } from '../constants';
+
 /**
  * Target camera angles for a predefined view.
  */
@@ -5,8 +7,6 @@ export interface ViewTarget {
   readonly theta: number;
   readonly phi: number;
 }
-
-import { POLE_MARGIN } from '../constants';
 
 /**
  * Camera angles for the 6 face views (orthographic axes).

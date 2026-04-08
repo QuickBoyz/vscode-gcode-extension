@@ -1,6 +1,5 @@
 import { FACE_VIEWS, EDGE_VIEWS } from '../../webview/viewCube/views';
-
-const POLE_MARGIN = 0.01;
+import { POLE_MARGIN } from '../../webview/constants';
 
 describe('ViewCube view definitions', () => {
   describe('FACE_VIEWS', () => {

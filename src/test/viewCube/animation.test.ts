@@ -127,6 +127,20 @@ describe('animateCamera', () => {
     expect(camera.theta).toBeGreaterThanOrEqual((3 * Math.PI) / 4 - 0.01);
   });
 
+  it('snaps instantly when duration is zero', () => {
+    const camera = createCamera(0, 0);
+    const onFrame = jest.fn();
+    const onComplete = jest.fn();
+
+    animateCamera(camera, { theta: Math.PI / 2, phi: Math.PI / 4 }, 0, onFrame, onComplete);
+
+    expect(camera.theta).toBe(Math.PI / 2);
+    expect(camera.phi).toBe(Math.PI / 4);
+    expect(onFrame).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
   it('does nothing when already at target', () => {
     const camera = createCamera(Math.PI / 2, Math.PI / 4);
     const onFrame = jest.fn();
