@@ -56,4 +56,9 @@ export const DEFAULT_GCODE_CONFIG: GCodeConfig = {
   },
 
   variables: {},
+
+  workspace: {
+    indexingEnabled: true,
+    maxSymbols: 10_000,
+  },
 };

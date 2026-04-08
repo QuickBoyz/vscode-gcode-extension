@@ -9,12 +9,14 @@ suite('Workspace Symbol Tests', () => {
   test('Should find subroutine definitions via workspace symbols', async () => {
     await TestUtils.createGCodeDocument('O100 SUB\nG0 X10\nO100 ENDSUB', 'ws-symbol-sub.nc');
 
-    // Wait for the language server to index the document
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
-      'vscode.executeWorkspaceSymbolProvider',
-      'O100'
+    // Poll until the language server has indexed the document
+    const symbols = await TestUtils.waitForCondition(
+      async () =>
+        vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+          'vscode.executeWorkspaceSymbolProvider',
+          'O100'
+        ),
+      (result) => Array.isArray(result) && result.some((s) => s.name === 'O100')
     );
 
     assert.ok(Array.isArray(symbols), 'Should return array of symbols');
@@ -25,12 +27,14 @@ suite('Workspace Symbol Tests', () => {
   test('Should find variables via workspace symbols', async () => {
     await TestUtils.createGCodeDocument('#<feed> = 100\n#<speed> = 500', 'ws-symbol-var.nc');
 
-    // Wait for the language server to index the document
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
-      'vscode.executeWorkspaceSymbolProvider',
-      'feed'
+    // Poll until the language server has indexed the document
+    const symbols = await TestUtils.waitForCondition(
+      async () =>
+        vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+          'vscode.executeWorkspaceSymbolProvider',
+          'feed'
+        ),
+      (result) => Array.isArray(result) && result.some((s) => s.name.includes('feed'))
     );
 
     assert.ok(Array.isArray(symbols), 'Should return array of symbols');
@@ -57,12 +61,14 @@ suite('Workspace Symbol Tests', () => {
   test('Should find symbols with partial match', async () => {
     await TestUtils.createGCodeDocument('O500 SUB\nG0 X10\nO500 ENDSUB', 'ws-symbol-partial.nc');
 
-    // Wait for the language server to index the document
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
-      'vscode.executeWorkspaceSymbolProvider',
-      'O5'
+    // Poll until the language server has indexed the document
+    const symbols = await TestUtils.waitForCondition(
+      async () =>
+        vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+          'vscode.executeWorkspaceSymbolProvider',
+          'O5'
+        ),
+      (result) => Array.isArray(result) && result.some((s) => s.name.includes('O5'))
     );
 
     assert.ok(Array.isArray(symbols), 'Should return array of symbols');

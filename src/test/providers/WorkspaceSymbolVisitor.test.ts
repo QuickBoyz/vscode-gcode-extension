@@ -73,7 +73,7 @@ describe('WorkspaceSymbolVisitor', () => {
 
   describe('subroutine labels', () => {
     it('extracts standalone O-block label as Key symbol', () => {
-      const symbols = getWorkspaceSymbols('O0001', DialectType.FANUC);
+      const symbols = getWorkspaceSymbols('O0001', TEST_URI, DialectType.FANUC);
 
       expect(symbols).toHaveLength(1);
       expect(symbols[0].name).toBe('O0001');

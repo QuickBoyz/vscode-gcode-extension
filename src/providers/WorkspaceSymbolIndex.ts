@@ -14,7 +14,7 @@ import { ParserFactory } from '../parser/ParserFactory';
 import { WorkspaceSymbol, WorkspaceSymbolVisitor } from './WorkspaceSymbolVisitor';
 
 /** Default maximum number of symbols to return from a search query. */
-const DEFAULT_MAX_RESULTS = 100;
+export const DEFAULT_MAX_RESULTS = 100;
 
 /** Default maximum number of symbols to index across the workspace. */
 const DEFAULT_MAX_SYMBOLS = 10000;

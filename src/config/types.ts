@@ -16,6 +16,16 @@ import {
 } from '../visualizer/types';
 
 /**
+ * Workspace-level configuration for symbol indexing.
+ */
+export interface WorkspaceConfig {
+  /** Whether workspace-wide symbol indexing is enabled. */
+  readonly indexingEnabled: boolean;
+  /** Maximum number of symbols to index across all workspace files. */
+  readonly maxSymbols: number;
+}
+
+/**
  * Root configuration for the entire G-code extension.
  */
 export interface GCodeConfig {
@@ -31,6 +41,8 @@ export interface GCodeConfig {
   readonly interpreter: InterpreterConfig;
   /** User-defined global variable values. */
   readonly variables: VariableDefinitions;
+  /** Workspace settings (symbol indexing). */
+  readonly workspace: WorkspaceConfig;
 }
 
 /**

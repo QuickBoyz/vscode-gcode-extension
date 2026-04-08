@@ -257,6 +257,38 @@ export class TestUtils {
   }
 
   /**
+   * Poll until a condition returns a truthy value, or throw on timeout.
+   *
+   * Useful for waiting on language server indexing or other async server
+   * behaviour instead of a hard-coded `setTimeout`.
+   *
+   * @param fn       - Async function that returns the result to check.
+   * @param check    - Predicate applied to the result — polling stops when it returns `true`.
+   * @param timeout  - Maximum time in milliseconds before giving up.
+   * @param interval - Polling interval in milliseconds.
+   * @returns The first result for which `check` returned `true`.
+   */
+  static async waitForCondition<T>(
+    fn: () => Promise<T>,
+    check: (result: T) => boolean,
+    timeout: number = 10000,
+    interval: number = 250
+  ): Promise<T> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      const result = await fn();
+      if (check(result)) {
+        return result;
+      }
+      await this.sleep(interval);
+    }
+
+    // Run one last time and return whatever we get
+    return fn();
+  }
+
+  /**
    * Wait for a specific amount of time
    */
   private static async sleep(ms: number): Promise<void> {

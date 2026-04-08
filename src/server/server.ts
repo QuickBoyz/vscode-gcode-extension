@@ -116,7 +116,19 @@ connection.onDidChangeConfiguration(() => {
   documentStateManager.clearAll();
   workspaceSymbolIndex.clear();
   connection.console.log('Configuration changed - caches cleared');
+
+  // Re-apply workspace settings after cache invalidation
+  void applyWorkspaceSettings();
 });
+
+/**
+ * Reads workspace-level settings from the config provider
+ * and applies them to the workspace symbol index.
+ */
+async function applyWorkspaceSettings(): Promise<void> {
+  const config = await configProvider.getConfig();
+  workspaceSymbolIndex.setMaxSymbols(config.workspace.maxSymbols);
+}
 
 /**
  * Fetches the scoped {@link GCodeConfig} for a document URI and
@@ -357,14 +369,17 @@ documents.onDidChangeContent((change) => {
     uri,
     setTimeout(() => {
       diagnosticsTimers.delete(uri);
-      void getDocumentSettings(uri).then((settings) => {
+      void configProvider.getConfig(uri).then((config) => {
+        const settings = toGCodeSettings(config);
         const diagnostics = diagnosticsProvider.provideDiagnostics(change.document, settings);
         connection.sendDiagnostics({ uri, diagnostics }).catch((error: Error) => {
           connection.console.error(`Failed to send diagnostics for ${uri}: ${error.message}`);
         });
 
-        // Update workspace symbol index
-        workspaceSymbolIndex.indexFile(uri, change.document.getText(), settings.dialect);
+        // Update workspace symbol index if indexing is enabled
+        if (config.workspace.indexingEnabled) {
+          workspaceSymbolIndex.indexFile(uri, change.document.getText(), config.dialect);
+        }
       });
     }, DIAGNOSTICS_DEBOUNCE_MS)
   );
@@ -372,8 +387,9 @@ documents.onDidChangeContent((change) => {
 
 // Also publish diagnostics when document is opened
 documents.onDidOpen(async (event) => {
-  const settings = await getDocumentSettings(event.document.uri),
-    diagnostics = diagnosticsProvider.provideDiagnostics(event.document, settings);
+  const config = await configProvider.getConfig(event.document.uri);
+  const settings = toGCodeSettings(config);
+  const diagnostics = diagnosticsProvider.provideDiagnostics(event.document, settings);
   connection
     .sendDiagnostics({
       uri: event.document.uri,
@@ -385,8 +401,10 @@ documents.onDidOpen(async (event) => {
       );
     });
 
-  // Index file for workspace symbol search
-  workspaceSymbolIndex.indexFile(event.document.uri, event.document.getText(), settings.dialect);
+  // Index file for workspace symbol search if indexing is enabled
+  if (config.workspace.indexingEnabled) {
+    workspaceSymbolIndex.indexFile(event.document.uri, event.document.getText(), config.dialect);
+  }
 });
 
 // Clean up caches and timers when a document is closed
