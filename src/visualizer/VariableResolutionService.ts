@@ -1,0 +1,143 @@
+/**
+ * VariableResolutionService
+ *
+ * Merges variable values from multiple sources into a single
+ * {@link Map} environment suitable for the G-code interpreter.
+ *
+ * Sources and precedence (highest to lowest):
+ *   1. Runtime overrides — set interactively in the visualizer panel
+ *   2. Settings defaults — defined in `gcode.variables` in settings.json
+ *   3. Program assignments — handled by the interpreter at execution time
+ *   4. Default (0) — the interpreter returns null for unknown variables
+ *
+ * This service handles sources 1 and 2. Source 3 is handled by the
+ * interpreter itself (variable assignments in the program take effect
+ * during execution). Source 4 is the evaluator's fallback.
+ *
+ * Variable key normalization:
+ *   - `#100` or `100` → numeric key `100`
+ *   - `#<name>` or `name` → lowercase string key `name`
+ *   - Named variables are case-insensitive (stored lowercase)
+ */
+
+/** Map of user-provided variable names (as typed in settings) to values. */
+export type VariableDefinitions = Readonly<Record<string, number>>;
+
+/** The resolved variable environment type used by the interpreter. */
+export type VariableEnvironment = ReadonlyMap<string | number, number>;
+
+/** Pattern matching a numeric variable key: #123 or just 123 */
+const NUMERIC_VARIABLE_PATTERN = /^#?(\d+)$/;
+
+/** Pattern matching a named variable key: #<name> or just name */
+const NAMED_VARIABLE_PATTERN = /^#?<([a-zA-Z_][a-zA-Z0-9_]*)>$/;
+
+/** Pattern matching a bare named variable key (no delimiters): name */
+const BARE_NAMED_VARIABLE_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+/**
+ * Options for constructing a {@link VariableResolutionService}.
+ */
+export interface VariableResolutionOptions {
+  /** Variables defined in VS Code settings (`gcode.variables`). */
+  readonly settingsVariables?: VariableDefinitions;
+  /** Runtime overrides set interactively in the visualizer panel. */
+  readonly runtimeOverrides?: VariableDefinitions;
+}
+
+/**
+ * Normalizes a user-provided variable key to the internal format
+ * used by the interpreter's variable environment.
+ *
+ * @returns A numeric key for numbered variables, a lowercase string
+ *          key for named variables, or `null` if the key is invalid.
+ */
+function normalizeVariableKey(key: string): string | number | null {
+  // Try numeric pattern: #123 or 123
+  const numericMatch = NUMERIC_VARIABLE_PATTERN.exec(key);
+  if (numericMatch) {
+    return parseInt(numericMatch[1], 10);
+  }
+
+  // Try named pattern: #<name>
+  const namedMatch = NAMED_VARIABLE_PATTERN.exec(key);
+  if (namedMatch) {
+    return namedMatch[1].toLowerCase();
+  }
+
+  // Try bare named pattern: name
+  if (BARE_NAMED_VARIABLE_PATTERN.test(key)) {
+    return key.toLowerCase();
+  }
+
+  return null;
+}
+
+/**
+ * Service that merges variable definitions from settings and runtime
+ * overrides into a single variable environment for the interpreter.
+ */
+export class VariableResolutionService {
+  private settingsVariables: VariableDefinitions;
+  private runtimeOverrides: VariableDefinitions;
+
+  constructor(options?: VariableResolutionOptions) {
+    this.settingsVariables = options?.settingsVariables ?? {};
+    this.runtimeOverrides = options?.runtimeOverrides ?? {};
+  }
+
+  /**
+   * Resolves all variable sources into a single environment map.
+   *
+   * Precedence: runtime overrides > settings defaults.
+   * Program assignments are handled separately by the interpreter.
+   */
+  resolve(): VariableEnvironment {
+    const environment = new Map<string | number, number>();
+
+    // Apply settings first (lower precedence)
+    this.applyDefinitions(environment, this.settingsVariables);
+
+    // Apply runtime overrides (higher precedence — overwrites settings)
+    this.applyDefinitions(environment, this.runtimeOverrides);
+
+    return environment;
+  }
+
+  /**
+   * Replaces the settings variables with a new set.
+   */
+  updateSettingsVariables(variables: VariableDefinitions): void {
+    this.settingsVariables = variables;
+  }
+
+  /**
+   * Replaces the runtime overrides with a new set.
+   */
+  updateRuntimeOverrides(overrides: VariableDefinitions): void {
+    this.runtimeOverrides = overrides;
+  }
+
+  /**
+   * Clears all runtime overrides, reverting to settings-only values.
+   */
+  clearRuntimeOverrides(): void {
+    this.runtimeOverrides = {};
+  }
+
+  /**
+   * Applies a set of variable definitions to the environment map,
+   * normalizing keys and skipping invalid ones.
+   */
+  private applyDefinitions(
+    environment: Map<string | number, number>,
+    definitions: VariableDefinitions
+  ): void {
+    for (const [rawKey, value] of Object.entries(definitions)) {
+      const normalizedKey = normalizeVariableKey(rawKey);
+      if (normalizedKey !== null) {
+        environment.set(normalizedKey, value);
+      }
+    }
+  }
+}
