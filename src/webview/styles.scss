@@ -501,6 +501,8 @@ $cube-half: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  left: 50%;
+  top: 50%;
 
   &::after {
     content: '';

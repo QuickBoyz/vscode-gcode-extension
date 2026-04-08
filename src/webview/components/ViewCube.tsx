@@ -312,8 +312,6 @@ export function ViewCube() {
               transform: edge.transform,
               width: `${edge.width}px`,
               height: `${edge.height}px`,
-              left: '50%',
-              top: '50%',
               marginLeft: `${-edge.width / 2}px`,
               marginTop: `${-edge.height / 2}px`,
             }}
