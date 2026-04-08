@@ -78,8 +78,8 @@ function normalizeVariableKey(key: string): string | number | null {
  * overrides into a single variable environment for the interpreter.
  */
 export class VariableResolutionService {
-  private settingsVariables: VariableDefinitions;
-  private runtimeOverrides: VariableDefinitions;
+  private readonly settingsVariables: VariableDefinitions;
+  private readonly runtimeOverrides: VariableDefinitions;
 
   constructor(options?: VariableResolutionOptions) {
     this.settingsVariables = options?.settingsVariables ?? {};
@@ -105,35 +105,20 @@ export class VariableResolutionService {
   }
 
   /**
-   * Replaces the settings variables with a new set.
-   */
-  updateSettingsVariables(variables: VariableDefinitions): void {
-    this.settingsVariables = variables;
-  }
-
-  /**
-   * Replaces the runtime overrides with a new set.
-   */
-  updateRuntimeOverrides(overrides: VariableDefinitions): void {
-    this.runtimeOverrides = overrides;
-  }
-
-  /**
-   * Clears all runtime overrides, reverting to settings-only values.
-   */
-  clearRuntimeOverrides(): void {
-    this.runtimeOverrides = {};
-  }
-
-  /**
    * Applies a set of variable definitions to the environment map,
    * normalizing keys and skipping invalid ones.
+   *
+   * Non-numeric values are silently skipped to guard against
+   * manually-edited settings.json with string values.
    */
   private applyDefinitions(
     environment: Map<string | number, number>,
     definitions: VariableDefinitions
   ): void {
     for (const [rawKey, value] of Object.entries(definitions)) {
+      if (typeof value !== 'number') {
+        continue;
+      }
       const normalizedKey = normalizeVariableKey(rawKey);
       if (normalizedKey !== null) {
         environment.set(normalizedKey, value);

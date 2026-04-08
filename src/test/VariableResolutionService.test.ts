@@ -37,7 +37,7 @@ describe('VariableResolutionService', () => {
 
   it('handles named variable keys without # and angle brackets', () => {
     const service = new VariableResolutionService({
-      settingsVariables: { 'tool_diameter': 6.35 },
+      settingsVariables: { tool_diameter: 6.35 },
     });
     const env = service.resolve();
 
@@ -129,45 +129,6 @@ describe('VariableResolutionService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Update methods
-  // ---------------------------------------------------------------------------
-
-  it('updates settings variables and re-resolves', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4 },
-    });
-
-    service.updateSettingsVariables({ '#100': 30.0, '#200': 10.0 });
-    const env = service.resolve();
-
-    expect(env.get(100)).toBe(30.0);
-    expect(env.get(200)).toBe(10.0);
-  });
-
-  it('updates runtime overrides and re-resolves', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4 },
-    });
-
-    service.updateRuntimeOverrides({ '#100': 50.0 });
-    const env = service.resolve();
-
-    expect(env.get(100)).toBe(50.0);
-  });
-
-  it('clears runtime overrides', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4 },
-      runtimeOverrides: { '#100': 50.0 },
-    });
-
-    service.clearRuntimeOverrides();
-    const env = service.resolve();
-
-    expect(env.get(100)).toBe(25.4);
-  });
-
-  // ---------------------------------------------------------------------------
   // Edge cases
   // ---------------------------------------------------------------------------
 
@@ -206,5 +167,20 @@ describe('VariableResolutionService', () => {
     const env = service.resolve();
 
     expect(env.size).toBe(0);
+  });
+
+  it('ignores non-numeric values from manually-edited settings', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: {
+        '#100': 25.4,
+        '#200': 'not a number' as unknown as number,
+        '#300': true as unknown as number,
+        '#<name>': undefined as unknown as number,
+      },
+    });
+    const env = service.resolve();
+
+    expect(env.size).toBe(1);
+    expect(env.get(100)).toBe(25.4);
   });
 });
