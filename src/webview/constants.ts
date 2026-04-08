@@ -108,3 +108,11 @@ export const TOOL_TIP_OUTLINE_COLOR = '#1a1a1a';
 
 /** Tool tip dot outline width. */
 export const TOOL_TIP_OUTLINE_WIDTH = 1.5;
+
+// ── Shared interaction constants ─────────────────────────────────────
+
+/** Radians per pixel of mouse movement during orbit. */
+export const ORBIT_SENSITIVITY = 0.008;
+
+/** Margin in radians from the poles (+/- PI/2) to prevent gimbal lock. */
+export const POLE_MARGIN = 0.01;

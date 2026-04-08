@@ -6,6 +6,7 @@ import { SegmentStats } from './SegmentStats';
 import { EmptyMessage } from './EmptyMessage';
 import { LoadingOverlay } from './LoadingOverlay';
 import { PlaybackBarWrapper } from './PlaybackBar';
+import { ViewCube } from './ViewCube';
 
 export function CanvasArea() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -22,6 +23,7 @@ export function CanvasArea() {
   return (
     <div id="canvas-wrapper" ref={wrapperRef}>
       <ToolPathCanvas wrapperRef={wrapperRef} />
+      <ViewCube />
       {segments.length === 0 && !loading && <EmptyMessage />}
       {loading && <LoadingOverlay />}
       <SegmentStats count={segments.length} />
