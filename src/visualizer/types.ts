@@ -82,11 +82,24 @@ export interface PathBounds {
 }
 
 /**
+ * A variable reference extracted from the G-code program.
+ * Serializable for the worker thread / webview protocol.
+ */
+export interface ReferencedVariable {
+  /** The variable key (numeric index or string name). */
+  readonly key: string;
+  /** The resolved value at the end of interpretation, or `null` if unset. */
+  readonly value: number | null;
+}
+
+/**
  * The full result returned by {@link GCodePathExtractor}.
  */
 export interface ToolPathData {
   readonly segments: readonly PathSegment[];
   readonly bounds: PathBounds;
+  /** Variables referenced in the G-code program with their resolved values. */
+  readonly referencedVariables: readonly ReferencedVariable[];
 }
 
 /**
@@ -170,8 +183,10 @@ export interface WorkerRequest {
   readonly text: string;
   readonly maxIterations: number;
   readonly dialect: DialectType;
-  /** Pre-seeded variable values (settings + runtime overrides). */
-  readonly variables?: SerializedVariables;
+  /** Variables defined in VS Code settings (`gcode.variables`). */
+  readonly settingsVariables?: SerializedVariables;
+  /** Runtime overrides set interactively in the visualizer panel. */
+  readonly runtimeOverrides?: SerializedVariables;
 }
 
 /**

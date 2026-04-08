@@ -25,9 +25,10 @@ parentPort?.on('message', (request: WorkerRequest) => {
     const startTime = Date.now();
     const dialect = request.dialect;
 
-    // Resolve initial variables from the serialized definitions.
+    // Resolve initial variables from settings and runtime overrides.
     const variableService = new VariableResolutionService({
-      settingsVariables: request.variables,
+      settingsVariables: request.settingsVariables,
+      runtimeOverrides: request.runtimeOverrides,
     });
     const initialVariables = variableService.resolve();
 

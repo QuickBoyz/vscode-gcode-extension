@@ -16,9 +16,11 @@ import { Worker } from 'worker_threads';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DialectType } from '../constants';
-import { VariableResolutionService } from '../visualizer/VariableResolutionService';
 import {
-  SerializedVariables,
+  VariableDefinitions,
+  VariableResolutionService,
+} from '../visualizer/VariableResolutionService';
+import {
   VisualizerResult,
   WorkerErrorResponse,
   WorkerRequest,
@@ -74,22 +76,26 @@ export class WorkerClient {
    * (generation-counter cancellation). Only the most recent request
    * resolves to the caller.
    *
-   * @param text             Raw G-code file content
-   * @param maxIterations    Maximum loop iterations for the interpreter
-   * @returns                A {@link VisualizerResult} discriminated union
+   * @param text               Raw G-code file content
+   * @param dialect            G-code dialect for lexing and parsing
+   * @param maxIterations      Maximum loop iterations for the interpreter
+   * @param settingsVariables  Variables from VS Code settings (`gcode.variables`)
+   * @param runtimeOverrides   Runtime overrides from the visualizer panel UI
+   * @returns                  A {@link VisualizerResult} discriminated union
    */
   parse(
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
     maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations,
-    variables?: SerializedVariables
+    settingsVariables?: VariableDefinitions,
+    runtimeOverrides?: VariableDefinitions
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
     if (this.synchronousFallback) {
-      const resolved = this.resolveVariables(variables);
+      const resolved = this.resolveVariables(settingsVariables, runtimeOverrides);
       return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
     }
 
@@ -103,7 +109,7 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      const resolved = this.resolveVariables(variables);
+      const resolved = this.resolveVariables(settingsVariables, runtimeOverrides);
       return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
     }
 
@@ -113,7 +119,8 @@ export class WorkerClient {
       text,
       maxIterations,
       dialect,
-      variables,
+      settingsVariables,
+      runtimeOverrides,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {
@@ -242,13 +249,14 @@ export class WorkerClient {
   }
 
   /**
-   * Resolves serialized variable definitions into a variable environment.
+   * Resolves variable definitions from both sources into a variable environment.
    */
   private resolveVariables(
-    variables?: SerializedVariables
+    settingsVariables?: VariableDefinitions,
+    runtimeOverrides?: VariableDefinitions
   ): ReadonlyMap<string | number, number> | undefined {
-    if (!variables) return undefined;
-    const service = new VariableResolutionService({ settingsVariables: variables });
+    if (!settingsVariables && !runtimeOverrides) return undefined;
+    const service = new VariableResolutionService({ settingsVariables, runtimeOverrides });
     return service.resolve();
   }
 }
