@@ -30,12 +30,23 @@ import { FunctionCallNode } from '../parser/nodes/FunctionCallNode';
 import { VariableReferenceNode } from '../parser/nodes/VariableReferenceNode';
 
 export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
+  /** Set of variable names (string or numeric) referenced during evaluation. */
+  private readonly accessedVariables = new Set<string | number>();
+
   constructor(private readonly variableEnvironment: ReadonlyMap<string | number, number>) {
     super();
   }
 
   protected defaultValue(): number | null {
     return null;
+  }
+
+  /**
+   * Returns a read-only view of all variable names that have been
+   * referenced during the lifetime of this evaluator.
+   */
+  get referencedVariables(): ReadonlySet<string | number> {
+    return this.accessedVariables;
   }
 
   /**
@@ -60,6 +71,7 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
   }
 
   override visitVariableReference(node: VariableReferenceNode): number | null {
+    this.accessedVariables.add(node.name);
     return this.variableEnvironment.get(node.name) ?? null;
   }
 

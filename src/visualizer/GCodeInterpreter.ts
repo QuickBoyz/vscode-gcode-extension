@@ -65,6 +65,14 @@ export class GCodeInterpreter {
   }
 
   /**
+   * Returns all variable names referenced during interpretation.
+   * Only meaningful after {@link interpret} has been called.
+   */
+  get referencedVariables(): ReadonlySet<string | number> {
+    return this.expressionEvaluator.referencedVariables;
+  }
+
+  /**
    * Interpret the entire program. Resets all internal state so the
    * same instance can be reused across multiple programs.
    */
