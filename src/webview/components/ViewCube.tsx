@@ -40,22 +40,84 @@ interface EdgeDefinition {
 const EDGE_SIZE = 12; // hit area width in px
 const EDGE_LENGTH = CUBE_SIZE; // length along the edge
 
+// Edge transforms use translate3d for positioning + rotations for orientation.
+// CSS transforms apply right-to-left: rotation first, then translation in parent coords.
 const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
-  // Horizontal edges (connect side faces at same elevation)
-  { name: 'Front-Right', transform: `rotateY(45deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_SIZE, height: EDGE_LENGTH },
-  { name: 'Front-Left', transform: `rotateY(-45deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_SIZE, height: EDGE_LENGTH },
-  { name: 'Back-Right', transform: `rotateY(135deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_SIZE, height: EDGE_LENGTH },
-  { name: 'Back-Left', transform: `rotateY(-135deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_SIZE, height: EDGE_LENGTH },
-  // Top horizontal edges
-  { name: 'Front-Top', transform: `rotateX(45deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Back-Top', transform: `rotateX(45deg) rotateY(180deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Right-Top', transform: `rotateX(45deg) rotateY(90deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Left-Top', transform: `rotateX(45deg) rotateY(-90deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  // Bottom horizontal edges
-  { name: 'Front-Bottom', transform: `rotateX(-45deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Back-Bottom', transform: `rotateX(-45deg) rotateY(180deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Right-Bottom', transform: `rotateX(-45deg) rotateY(90deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
-  { name: 'Left-Bottom', transform: `rotateX(-45deg) rotateY(-90deg) translateZ(${HALF * Math.SQRT2}px)`, width: EDGE_LENGTH, height: EDGE_SIZE },
+  // Vertical edges (run along CSS Y-axis at cube corners)
+  {
+    name: 'Front-Right',
+    transform: `translate3d(${HALF}px, 0, ${HALF}px) rotateY(45deg)`,
+    width: EDGE_SIZE,
+    height: EDGE_LENGTH,
+  },
+  {
+    name: 'Front-Left',
+    transform: `translate3d(${-HALF}px, 0, ${HALF}px) rotateY(-45deg)`,
+    width: EDGE_SIZE,
+    height: EDGE_LENGTH,
+  },
+  {
+    name: 'Back-Right',
+    transform: `translate3d(${HALF}px, 0, ${-HALF}px) rotateY(135deg)`,
+    width: EDGE_SIZE,
+    height: EDGE_LENGTH,
+  },
+  {
+    name: 'Back-Left',
+    transform: `translate3d(${-HALF}px, 0, ${-HALF}px) rotateY(-135deg)`,
+    width: EDGE_SIZE,
+    height: EDGE_LENGTH,
+  },
+  // Top edges (at y = -HALF in CSS coords)
+  {
+    name: 'Front-Top',
+    transform: `translate3d(0, ${-HALF}px, ${HALF}px) rotateX(45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Back-Top',
+    transform: `translate3d(0, ${-HALF}px, ${-HALF}px) rotateX(135deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Right-Top',
+    transform: `translate3d(${HALF}px, ${-HALF}px, 0) rotateY(90deg) rotateX(45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Left-Top',
+    transform: `translate3d(${-HALF}px, ${-HALF}px, 0) rotateY(-90deg) rotateX(45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  // Bottom edges (at y = +HALF in CSS coords)
+  {
+    name: 'Front-Bottom',
+    transform: `translate3d(0, ${HALF}px, ${HALF}px) rotateX(-45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Back-Bottom',
+    transform: `translate3d(0, ${HALF}px, ${-HALF}px) rotateX(-135deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Right-Bottom',
+    transform: `translate3d(${HALF}px, ${HALF}px, 0) rotateY(90deg) rotateX(-45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
+  {
+    name: 'Left-Bottom',
+    transform: `translate3d(${-HALF}px, ${HALF}px, 0) rotateY(-90deg) rotateX(-45deg)`,
+    width: EDGE_LENGTH,
+    height: EDGE_SIZE,
+  },
 ];
 
 /**
@@ -66,14 +128,14 @@ const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
  * - phi: elevation from XY plane
  *
  * CSS 3D uses Y-up by default, so we map:
- * - rotateX(-phi in degrees) for elevation (negated: CSS rotateX positive
- *   tilts top away from viewer, but positive phi should tilt top toward viewer)
- * - rotateZ(theta in degrees) for azimuth
+ * - rotateX(-phi) for elevation (CSS rotateX positive tilts top away,
+ *   but positive phi means looking up, so we negate)
+ * - rotateY(theta) for azimuth (CSS Y axis = vertical = visualizer Z axis)
  */
 function cameraToCSS(theta: number, phi: number): string {
   const thetaDeg = (theta * 180) / Math.PI;
   const phiDeg = (phi * 180) / Math.PI;
-  return `rotateX(${-phiDeg}deg) rotateZ(${thetaDeg}deg)`;
+  return `rotateX(${-phiDeg}deg) rotateY(${thetaDeg}deg)`;
 }
 
 export function ViewCube() {
@@ -120,16 +182,10 @@ export function ViewCube() {
       // Cancel any in-progress animation
       cancelAnimationRef.current?.();
 
-      const cancel = animateCamera(
-        camera,
-        view,
-        ANIMATION_DURATION,
-        scheduleRender,
-        () => {
-          cancelAnimationRef.current = null;
-          registerAnimationCancel(null);
-        }
-      );
+      const cancel = animateCamera(camera, view, ANIMATION_DURATION, scheduleRender, () => {
+        cancelAnimationRef.current = null;
+        registerAnimationCancel(null);
+      });
 
       cancelAnimationRef.current = cancel;
       registerAnimationCancel(cancel);
@@ -236,6 +292,10 @@ export function ViewCube() {
               transform: edge.transform,
               width: `${edge.width}px`,
               height: `${edge.height}px`,
+              left: '50%',
+              top: '50%',
+              marginLeft: `${-edge.width / 2}px`,
+              marginTop: `${-edge.height / 2}px`,
             }}
             onClick={() => handleEdgeClick(edge.name)}
           />
