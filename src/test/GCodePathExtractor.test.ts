@@ -651,4 +651,86 @@ G2 X20 Z0 I5 K0
     const homeEnd = data.segments[2].points[data.segments[2].points.length - 1];
     expect(homeEnd).toEqual({ x: 0, y: 0, z: 0 });
   });
+
+  // ---------------------------------------------------------------------------
+  // User-defined initial variables
+  // ---------------------------------------------------------------------------
+
+  describe('initial variables', () => {
+    /**
+     * Helper: tokenise, parse, and extract with initial variables.
+     */
+    function extractWithVariables(
+      input: string,
+      variables: ReadonlyMap<string | number, number>
+    ): ToolPathData {
+      const lexer = new GCodeLexer();
+      const tokens = lexer.tokenize(input);
+      const parser = new LinuxCNCParser(tokens, input);
+      const ast = parser.parseProgram();
+      const extractor = new GCodePathExtractor();
+      return extractor.extract(ast, variables);
+    }
+
+    it('uses initial variables for numbered variable references', () => {
+      const variables = new Map<string | number, number>([[100, 25.4]]);
+      const data = extractWithVariables('G1 X#100', variables);
+      expect(data.segments).toHaveLength(1);
+      expect(data.segments[0].points[1]).toEqual({ x: 25.4, y: 0, z: 0 });
+    });
+
+    it('uses initial variables for named variable references', () => {
+      const variables = new Map<string | number, number>([['offset_x', 10]]);
+      const data = extractWithVariables('G1 X#<offset_x>', variables);
+      expect(data.segments).toHaveLength(1);
+      expect(data.segments[0].points[1]).toEqual({ x: 10, y: 0, z: 0 });
+    });
+
+    it('program assignments override initial variables', () => {
+      const variables = new Map<string | number, number>([[100, 25.4]]);
+      const data = extractWithVariables('#100 = 50\nG1 X#100', variables);
+      expect(data.segments).toHaveLength(1);
+      expect(data.segments[0].points[1]).toEqual({ x: 50, y: 0, z: 0 });
+    });
+
+    it('initial variables are used before any program assignment', () => {
+      const variables = new Map<string | number, number>([[100, 25.4]]);
+      const data = extractWithVariables('G1 X#100\n#100 = 50\nG1 Y#100', variables);
+      expect(data.segments).toHaveLength(2);
+      // First move uses initial value
+      expect(data.segments[0].points[1]).toEqual({ x: 25.4, y: 0, z: 0 });
+      // Second move uses program assignment
+      expect(data.segments[1].points[1]).toEqual({ x: 25.4, y: 50, z: 0 });
+    });
+
+    it('without initial variables, unresolved variables default to null', () => {
+      // Without initial variables, #100 should be null (evaluator returns null)
+      // and the axis parameter evaluation returns null, meaning position unchanged
+      const data = extract('G1 X#100');
+      expect(data.segments).toHaveLength(1);
+      // X stays at 0 since #100 is unresolved (null -> no change)
+      expect(data.segments[0].points[1]).toEqual({ x: 0, y: 0, z: 0 });
+    });
+
+    it('initial variables work with expressions', () => {
+      const variables = new Map<string | number, number>([
+        [100, 10],
+        [200, 5],
+      ]);
+      const data = extractWithVariables('G1 X[#100 + #200]', variables);
+      expect(data.segments).toHaveLength(1);
+      expect(data.segments[0].points[1]).toEqual({ x: 15, y: 0, z: 0 });
+    });
+
+    it('multiple axes use different initial variables', () => {
+      const variables = new Map<string | number, number>([
+        [100, 10],
+        [200, 20],
+        [300, 30],
+      ]);
+      const data = extractWithVariables('G1 X#100 Y#200 Z#300', variables);
+      expect(data.segments).toHaveLength(1);
+      expect(data.segments[0].points[1]).toEqual({ x: 10, y: 20, z: 30 });
+    });
+  });
 });
