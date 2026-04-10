@@ -188,6 +188,7 @@ export function VariablePanel({
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [keyError, setKeyError] = useState('');
+  const [overridesOpen, setOverridesOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(true);
   const [referencedOpen, setReferencedOpen] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -289,53 +290,73 @@ export function VariablePanel({
 
       {isOpen && (
         <div className="variable-panel-content">
-          {entries.length > 0 && (
-            <>
-              <div className="variable-list">
-                {entries.map((entry) => (
-                  <EditableVariableRow
-                    key={entry.key}
-                    variableKey={entry.key}
-                    value={entry.value}
-                    hasOverride={true}
-                    onSave={handleSaveOverride}
-                    onRemove={handleRemoveOverride}
-                  />
-                ))}
-              </div>
-              <button className="variable-clear-all" type="button" onClick={handleClearAll}>
-                Clear All
-              </button>
-            </>
-          )}
-
-          <div className="variable-add-row">
-            <input
-              type="text"
-              className={`variable-key-input${keyError ? ' variable-key-invalid' : ''}`}
-              placeholder="#100 or #<name>"
-              value={newKey}
-              onChange={(event) => {
-                setNewKey(event.target.value);
-                if (keyError) setKeyError('');
-              }}
-              onKeyDown={handleKeyDown}
-            />
-            <input
-              type="number"
-              className="variable-value-input"
-              placeholder="Value"
-              step="any"
-              value={newValue}
-              onChange={(event) => setNewValue(event.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <button className="variable-add" type="button" title="Add variable" onClick={handleAdd}>
-              +
+          <div className="variable-referenced-section">
+            <button
+              className="variable-section-toggle"
+              type="button"
+              onClick={() => setOverridesOpen((prev) => !prev)}
+            >
+              <span className="toggle-icon">{overridesOpen ? '\u25BC' : '\u25B6'}</span>
+              <span>Overrides</span>
+              {entries.length > 0 && (
+                <span className="variable-count">{entries.length}</span>
+              )}
             </button>
+            {overridesOpen && (
+              <>
+                <div className="variable-add-row">
+                  <input
+                    type="text"
+                    className={`variable-key-input${keyError ? ' variable-key-invalid' : ''}`}
+                    placeholder="#100 or #<name>"
+                    value={newKey}
+                    onChange={(event) => {
+                      setNewKey(event.target.value);
+                      if (keyError) setKeyError('');
+                    }}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <input
+                    type="number"
+                    className="variable-value-input"
+                    placeholder="Value"
+                    step="any"
+                    value={newValue}
+                    onChange={(event) => setNewValue(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button
+                    className="variable-add"
+                    type="button"
+                    title="Add variable"
+                    onClick={handleAdd}
+                  >
+                    +
+                  </button>
+                </div>
+                {keyError && <div className="variable-key-error">{keyError}</div>}
+                {entries.length > 0 && (
+                  <>
+                    <div className="variable-list">
+                      {entries.map((entry) => (
+                        <EditableVariableRow
+                          key={entry.key}
+                          variableKey={entry.key}
+                          value={entry.value}
+                          hasOverride={true}
+                          onSave={handleSaveOverride}
+                          onRemove={handleRemoveOverride}
+                        />
+                      ))}
+                    </div>
+                    <button className="variable-clear-all" type="button" onClick={handleClearAll}>
+                      Clear All
+                    </button>
+                  </>
+                )}
+              </>
+            )}
           </div>
-
-          {keyError && <div className="variable-key-error">{keyError}</div>}
 
           {settingsEntries.length > 0 && (
             <div className="variable-referenced-section">
