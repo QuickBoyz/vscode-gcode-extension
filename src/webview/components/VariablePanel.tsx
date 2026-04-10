@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReferencedVariable } from '../../visualizer/types';
 import vscode from '../vscodeApi';
 
@@ -61,10 +61,10 @@ export function VariablePanel({
     };
   }, []);
 
-  const entries: VariableEntry[] = Object.entries(overrides).map(([key, value]) => ({
-    key,
-    value,
-  }));
+  const entries: VariableEntry[] = useMemo(
+    () => Object.entries(overrides).map(([key, value]) => ({ key, value })),
+    [overrides]
+  );
 
   const postOverrides = useCallback((updated: Readonly<Record<string, number>>) => {
     if (debounceRef.current) {
@@ -138,7 +138,7 @@ export function VariablePanel({
         <span>Variables</span>
         {(entries.length > 0 || referencedVariables.length > 0) && (
           <span className="variable-count">
-            {entries.length + referencedVariables.length}
+            {new Set([...entries.map(e => e.key), ...referencedVariables.map(v => v.key)]).size}
           </span>
         )}
       </button>

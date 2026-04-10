@@ -26,15 +26,6 @@ export type VariableDefinitions = Readonly<Record<string, number>>;
 /** The resolved variable environment type used by the interpreter. */
 export type VariableEnvironment = ReadonlyMap<string | number, number>;
 
-/** Pattern matching a numeric variable key: #123 or just 123 */
-const NUMERIC_VARIABLE_PATTERN = /^#?(\d+)$/;
-
-/** Pattern matching a named variable key: #<name> or just name */
-const NAMED_VARIABLE_PATTERN = /^#?<([a-zA-Z_][a-zA-Z0-9_]*)>$/;
-
-/** Pattern matching a bare named variable key (no delimiters): name */
-const BARE_NAMED_VARIABLE_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
 /**
  * Options for constructing a {@link VariableResolutionService}.
  */
@@ -46,38 +37,19 @@ export interface VariableResolutionOptions {
 }
 
 /**
- * Normalizes a user-provided variable key to the internal format
- * used by the interpreter's variable environment.
- *
- * @returns A numeric key for numbered variables, a lowercase string
- *          key for named variables, or `null` if the key is invalid.
- */
-function normalizeVariableKey(key: string): string | number | null {
-  // Try numeric pattern: #123 or 123
-  const numericMatch = NUMERIC_VARIABLE_PATTERN.exec(key);
-  if (numericMatch) {
-    return parseInt(numericMatch[1], 10);
-  }
-
-  // Try named pattern: #<name>
-  const namedMatch = NAMED_VARIABLE_PATTERN.exec(key);
-  if (namedMatch) {
-    return namedMatch[1].toLowerCase();
-  }
-
-  // Try bare named pattern: name
-  if (BARE_NAMED_VARIABLE_PATTERN.test(key)) {
-    return key.toLowerCase();
-  }
-
-  return null;
-}
-
-/**
  * Service that merges variable definitions from settings and runtime
  * overrides into a single variable environment for the interpreter.
  */
 export class VariableResolutionService {
+  /** Pattern matching a numeric variable key: #123 or just 123 */
+  private static readonly NUMERIC_VARIABLE_PATTERN = /^#?(\d+)$/;
+
+  /** Pattern matching a named variable key: #<name> */
+  private static readonly NAMED_VARIABLE_PATTERN = /^#<([a-zA-Z_][a-zA-Z0-9_]*)>$/;
+
+  /** Pattern matching a bare named variable key (no delimiters): name */
+  private static readonly BARE_NAMED_VARIABLE_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
   private readonly settingsVariables: VariableDefinitions;
   private readonly runtimeOverrides: VariableDefinitions;
 
@@ -119,10 +91,38 @@ export class VariableResolutionService {
       if (typeof value !== 'number') {
         continue;
       }
-      const normalizedKey = normalizeVariableKey(rawKey);
+      const normalizedKey = VariableResolutionService.normalizeVariableKey(rawKey);
       if (normalizedKey !== null) {
         environment.set(normalizedKey, value);
       }
     }
+  }
+
+  /**
+   * Normalizes a user-provided variable key to the internal format
+   * used by the interpreter's variable environment.
+   *
+   * @returns A numeric key for numbered variables, a lowercase string
+   *          key for named variables, or `null` if the key is invalid.
+   */
+  private static normalizeVariableKey(key: string): string | number | null {
+    // Try numeric pattern: #123 or 123
+    const numericMatch = VariableResolutionService.NUMERIC_VARIABLE_PATTERN.exec(key);
+    if (numericMatch) {
+      return parseInt(numericMatch[1], 10);
+    }
+
+    // Try named pattern: #<name>
+    const namedMatch = VariableResolutionService.NAMED_VARIABLE_PATTERN.exec(key);
+    if (namedMatch) {
+      return namedMatch[1].toLowerCase();
+    }
+
+    // Try bare named pattern: name
+    if (VariableResolutionService.BARE_NAMED_VARIABLE_PATTERN.test(key)) {
+      return key.toLowerCase();
+    }
+
+    return null;
   }
 }
