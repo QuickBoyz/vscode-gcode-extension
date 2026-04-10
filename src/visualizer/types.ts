@@ -6,6 +6,7 @@
  * the webview bundle.
  */
 
+import { VariableDefinitions } from '../config/types';
 import { DialectType } from '../constants';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
@@ -169,12 +170,6 @@ export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
 // ---------------------------------------------------------------------------
 
 /**
- * Serialized variable definitions for the worker thread protocol.
- * Uses a plain record because {@link Map} is not structured-cloneable.
- */
-export type SerializedVariables = Readonly<Record<string, number>>;
-
-/**
  * Message sent from the main thread to the visualizer worker.
  */
 export interface WorkerRequest {
@@ -184,9 +179,9 @@ export interface WorkerRequest {
   readonly maxIterations: number;
   readonly dialect: DialectType;
   /** Variables defined in VS Code settings (`gcode.variables`). */
-  readonly settingsVariables?: SerializedVariables;
+  readonly settingsVariables?: VariableDefinitions;
   /** Runtime overrides set interactively in the visualizer panel. */
-  readonly runtimeOverrides?: SerializedVariables;
+  readonly runtimeOverrides?: VariableDefinitions;
 }
 
 /**

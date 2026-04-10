@@ -9,7 +9,9 @@ describe('VariableResolutionService', () => {
     const service = new VariableResolutionService();
     const env = service.resolve();
 
-    expect(env.size).toBe(0);
+    // Empty environment — arbitrary keys should return null
+    expect(env.peek(100)).toBeNull();
+    expect(env.peek('any_var')).toBeNull();
   });
 
   // ---------------------------------------------------------------------------
@@ -22,8 +24,8 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(25.4);
-    expect(env.get('tool_diameter')).toBe(6.35);
+    expect(env.peek(100)).toBe(25.4);
+    expect(env.peek('tool_diameter')).toBe(6.35);
   });
 
   it('handles numeric variable keys without # prefix', () => {
@@ -32,7 +34,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(25.4);
+    expect(env.peek(100)).toBe(25.4);
   });
 
   it('handles named variable keys without # and angle brackets', () => {
@@ -41,7 +43,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get('tool_diameter')).toBe(6.35);
+    expect(env.peek('tool_diameter')).toBe(6.35);
   });
 
   // ---------------------------------------------------------------------------
@@ -54,7 +56,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(50.0);
+    expect(env.peek(100)).toBe(50.0);
   });
 
   // ---------------------------------------------------------------------------
@@ -68,7 +70,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(50.0);
+    expect(env.peek(100)).toBe(50.0);
   });
 
   it('settings values are used when no runtime override exists', () => {
@@ -78,8 +80,8 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(50.0);
-    expect(env.get(200)).toBe(10.0);
+    expect(env.peek(100)).toBe(50.0);
+    expect(env.peek(200)).toBe(10.0);
   });
 
   // ---------------------------------------------------------------------------
@@ -92,7 +94,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get('my_var')).toBe(42);
+    expect(env.peek('my_var')).toBe(42);
   });
 
   it('normalizes #123 format to numeric key', () => {
@@ -101,7 +103,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(123)).toBe(99);
+    expect(env.peek(123)).toBe(99);
   });
 
   it('normalizes named variable keys case-insensitively', () => {
@@ -110,7 +112,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get('tool_diameter')).toBe(6.35);
+    expect(env.peek('tool_diameter')).toBe(6.35);
   });
 
   // ---------------------------------------------------------------------------
@@ -124,8 +126,8 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(25.4);
-    expect(env.get('tool_diameter')).toBe(6.35);
+    expect(env.peek(100)).toBe(25.4);
+    expect(env.peek('tool_diameter')).toBe(6.35);
   });
 
   // ---------------------------------------------------------------------------
@@ -139,7 +141,9 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.size).toBe(0);
+    // Empty environment — arbitrary keys should return null
+    expect(env.peek(100)).toBeNull();
+    expect(env.peek('any_var')).toBeNull();
   });
 
   it('handles zero values correctly', () => {
@@ -148,7 +152,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(0);
+    expect(env.peek(100)).toBe(0);
   });
 
   it('handles negative values correctly', () => {
@@ -157,7 +161,7 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.get(100)).toBe(-25.4);
+    expect(env.peek(100)).toBe(-25.4);
   });
 
   it('ignores invalid variable key formats', () => {
@@ -166,7 +170,9 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.size).toBe(0);
+    // Invalid keys should not be present
+    expect(env.peek(0)).toBeNull();
+    expect(env.peek('any_var')).toBeNull();
   });
 
   it('ignores non-numeric values from manually-edited settings', () => {
@@ -180,7 +186,10 @@ describe('VariableResolutionService', () => {
     });
     const env = service.resolve();
 
-    expect(env.size).toBe(1);
-    expect(env.get(100)).toBe(25.4);
+    expect(env.peek(100)).toBe(25.4);
+    // Non-numeric values should have been ignored
+    expect(env.peek(200)).toBeNull();
+    expect(env.peek(300)).toBeNull();
+    expect(env.peek('name')).toBeNull();
   });
 });

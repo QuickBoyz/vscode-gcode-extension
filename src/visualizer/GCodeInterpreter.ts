@@ -34,12 +34,9 @@ import { InterpreterConfig, MotionHandler } from './types';
 import { VariableEnvironment } from './VariableResolutionService';
 
 export class GCodeInterpreter {
-  private readonly variableEnvironment = new Map<string | number, number>();
+  private readonly environment: VariableEnvironment;
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
   private readonly options: InterpreterConfig;
-  private readonly initialVariables: VariableEnvironment;
-  /** Variables that cannot be overwritten by program assignments. */
-  private readonly pinnedVariables: ReadonlySet<string | number>;
   private totalIterations = 0;
   private iterationLimitReached = false;
 
@@ -54,13 +51,11 @@ export class GCodeInterpreter {
   constructor(
     private readonly motionHandler: MotionHandler,
     options?: Partial<InterpreterConfig>,
-    initialVariables?: VariableEnvironment,
-    pinnedVariables?: ReadonlySet<string | number>
+    environment?: VariableEnvironment
   ) {
     this.options = { ...DEFAULT_GCODE_CONFIG.interpreter, ...options };
-    this.initialVariables = initialVariables ?? new Map();
-    this.pinnedVariables = pinnedVariables ?? new Set();
-    this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
+    this.environment = environment ?? new VariableEnvironment();
+    this.expressionEvaluator = new GCodeExpressionEvaluator(this.environment);
   }
 
   /** Whether the interpreter hit the max iteration limit. */
@@ -69,11 +64,11 @@ export class GCodeInterpreter {
   }
 
   /**
-   * Returns all variable names referenced during interpretation.
+   * Returns all variable keys that were read during interpretation.
    * Only meaningful after {@link interpret} has been called.
    */
   get referencedVariables(): ReadonlySet<string | number> {
-    return this.expressionEvaluator.referencedVariables;
+    return this.environment.referencedKeys;
   }
 
   /**
@@ -81,7 +76,7 @@ export class GCodeInterpreter {
    * if the variable was never assigned.
    */
   getVariableValue(name: string | number): number | null {
-    return this.variableEnvironment.get(name) ?? null;
+    return this.environment.peek(name);
   }
 
   /**
@@ -89,15 +84,7 @@ export class GCodeInterpreter {
    * same instance can be reused across multiple programs.
    */
   interpret(program: ProgramNode): void {
-    this.variableEnvironment.clear();
-    this.expressionEvaluator.clearReferencedVariables();
-
-    // Seed the environment with initial variables (from settings/overrides).
-    // These act as defaults that can be overwritten by program assignments.
-    for (const [key, value] of this.initialVariables) {
-      this.variableEnvironment.set(key, value);
-    }
-
+    this.environment.reset();
     this.totalIterations = 0;
     this.iterationLimitReached = false;
     this.activeMotionCommand = null;
@@ -184,8 +171,8 @@ export class GCodeInterpreter {
 
   private interpretVariableAssignment(node: VariableAssignmentNode): void {
     const value = this.expressionEvaluator.evaluate(node.value);
-    if (value !== null && !this.pinnedVariables.has(node.name)) {
-      this.variableEnvironment.set(node.name, value);
+    if (value !== null) {
+      this.environment.set(node.name, value);
     }
   }
 

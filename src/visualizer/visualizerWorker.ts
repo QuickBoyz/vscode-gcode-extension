@@ -23,22 +23,15 @@ parentPort?.on('message', (request: WorkerRequest) => {
 
   try {
     const startTime = Date.now();
-    const dialect = request.dialect;
 
-    // Resolve initial variables from settings and runtime overrides.
-    const variableService = new VariableResolutionService({
+    // Resolve variables from settings and runtime overrides into a
+    // single VariableEnvironment that the interpreter uses directly.
+    const environment = new VariableResolutionService({
       settingsVariables: request.settingsVariables,
       runtimeOverrides: request.runtimeOverrides,
-    });
-    const initialVariables = variableService.resolve();
-    const pinnedVariables = variableService.pinnedKeys();
+    }).resolve();
 
-    const result = service.extractToolPath(
-      request.text,
-      dialect,
-      initialVariables,
-      pinnedVariables
-    );
+    const result = service.extractToolPath(request.text, request.dialect, environment);
     const durationMs = Date.now() - startTime;
 
     const response: WorkerResponse = {
