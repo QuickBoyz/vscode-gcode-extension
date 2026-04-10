@@ -77,6 +77,21 @@ export class VariableResolutionService {
   }
 
   /**
+   * Returns the normalized keys from runtime overrides. These variables
+   * are "pinned" and should not be overwritten by program assignments.
+   */
+  pinnedKeys(): ReadonlySet<string | number> {
+    const keys = new Set<string | number>();
+    for (const rawKey of Object.keys(this.runtimeOverrides)) {
+      const normalized = VariableResolutionService.normalizeVariableKey(rawKey);
+      if (normalized !== null) {
+        keys.add(normalized);
+      }
+    }
+    return keys;
+  }
+
+  /**
    * Applies a set of variable definitions to the environment map,
    * normalizing keys and skipping invalid ones.
    *

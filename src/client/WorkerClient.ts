@@ -18,6 +18,7 @@ import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DialectType } from '../constants';
 import {
   VariableDefinitions,
+  VariableEnvironment,
   VariableResolutionService,
 } from '../visualizer/VariableResolutionService';
 import {
@@ -95,8 +96,8 @@ export class WorkerClient {
     }
 
     if (this.synchronousFallback) {
-      const resolved = this.resolveVariables(settingsVariables, runtimeOverrides);
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
+      const { resolved, pinned } = this.resolveVariables(settingsVariables, runtimeOverrides);
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved, pinned));
     }
 
     this.generationCounter += 1;
@@ -109,8 +110,8 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      const resolved = this.resolveVariables(settingsVariables, runtimeOverrides);
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved));
+      const { resolved, pinned } = this.resolveVariables(settingsVariables, runtimeOverrides);
+      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, resolved, pinned));
     }
 
     const request: WorkerRequest = {
@@ -249,14 +250,14 @@ export class WorkerClient {
   }
 
   /**
-   * Resolves variable definitions from both sources into a variable environment.
+   * Resolves variable definitions and returns the environment + pinned keys.
    */
   private resolveVariables(
     settingsVariables?: VariableDefinitions,
     runtimeOverrides?: VariableDefinitions
-  ): ReadonlyMap<string | number, number> | undefined {
-    if (!settingsVariables && !runtimeOverrides) return undefined;
+  ): { resolved?: VariableEnvironment; pinned?: ReadonlySet<string | number> } {
+    if (!settingsVariables && !runtimeOverrides) return {};
     const service = new VariableResolutionService({ settingsVariables, runtimeOverrides });
-    return service.resolve();
+    return { resolved: service.resolve(), pinned: service.pinnedKeys() };
   }
 }
