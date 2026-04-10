@@ -36,14 +36,146 @@ const OVERRIDE_DEBOUNCE_MS = 400;
  * - `name` — bare named variable (letters, digits, underscores)
  */
 const VALID_VARIABLE_KEY_PATTERN =
-  /^(#?\d+|#?<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
+  /^(#?\d+|#<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
+
+// ---------------------------------------------------------------------------
+// Inline-editable variable row
+// ---------------------------------------------------------------------------
+
+interface EditableVariableRowProps {
+  /** The variable key to display. */
+  readonly variableKey: string;
+  /** The current value (from settings, program, or override). */
+  readonly value: number | null;
+  /** Whether this variable already has a runtime override. */
+  readonly hasOverride: boolean;
+  /** Called when the user saves an edited value. */
+  readonly onSave: (key: string, value: number) => void;
+  /** Called when the user removes the override for this variable. */
+  readonly onRemove?: (key: string) => void;
+}
+
+function EditableVariableRow({
+  variableKey,
+  value,
+  hasOverride,
+  onSave,
+  onRemove,
+}: EditableVariableRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = useCallback(() => {
+    setEditValue(value !== null ? String(value) : '0');
+    setEditing(true);
+  }, [value]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const handleSave = useCallback(() => {
+    const parsed = parseFloat(editValue);
+    if (!isNaN(parsed)) {
+      onSave(variableKey, parsed);
+    }
+    setEditing(false);
+  }, [editValue, variableKey, onSave]);
+
+  const handleCancel = useCallback(() => {
+    setEditing(false);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleSave();
+      } else if (event.key === 'Escape') {
+        handleCancel();
+      }
+    },
+    [handleSave, handleCancel]
+  );
+
+  if (editing) {
+    return (
+      <div className="variable-row variable-row-editing">
+        <span className="variable-key" title={variableKey}>
+          {variableKey}
+        </span>
+        <input
+          ref={inputRef}
+          type="number"
+          className="variable-value-input"
+          value={editValue}
+          step="any"
+          onChange={(event) => setEditValue(event.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <button
+          className="variable-action-btn variable-save-btn"
+          type="button"
+          title="Save"
+          onClick={handleSave}
+        >
+          {'\u2713'}
+        </button>
+        <button
+          className="variable-action-btn variable-cancel-btn"
+          type="button"
+          title="Cancel"
+          onClick={handleCancel}
+        >
+          {'\u2715'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`variable-row ${hasOverride ? 'variable-override-row' : 'variable-referenced-row'}`}>
+      <span className="variable-key" title={variableKey}>
+        {variableKey}
+      </span>
+      <span className="variable-referenced-value">
+        {value !== null ? value : 'unset'}
+      </span>
+      <button
+        className="variable-action-btn variable-edit-btn"
+        type="button"
+        title="Edit value"
+        onClick={startEdit}
+      >
+        {'\u270E'}
+      </button>
+      {hasOverride && onRemove && (
+        <button
+          className="variable-action-btn variable-remove-btn"
+          type="button"
+          title="Remove override"
+          onClick={() => onRemove(variableKey)}
+        >
+          {'\u2715'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main panel
+// ---------------------------------------------------------------------------
 
 /**
  * Collapsible panel for viewing and overriding G-code variables.
  *
- * Users can add new variables, edit values, and remove overrides.
- * Changes are debounced and sent to the extension host via postMessage,
- * which triggers a tool-path re-extraction.
+ * Users can edit any variable value inline. Edits create runtime overrides
+ * that are debounced and sent to the extension host via postMessage,
+ * triggering a tool-path re-extraction.
  */
 export function VariablePanel({
   isOpen,
@@ -87,19 +219,16 @@ export function VariablePanel({
     }, OVERRIDE_DEBOUNCE_MS);
   }, []);
 
-  const handleValueChange = useCallback(
-    (key: string, valueText: string) => {
-      const parsed = parseFloat(valueText);
-      if (isNaN(parsed)) return;
-
-      const updated = { ...overrides, [key]: parsed };
+  const handleSaveOverride = useCallback(
+    (key: string, value: number) => {
+      const updated = { ...overrides, [key]: value };
       onOverridesChange(updated);
       postOverrides(updated);
     },
     [overrides, onOverridesChange, postOverrides]
   );
 
-  const handleRemove = useCallback(
+  const handleRemoveOverride = useCallback(
     (key: string) => {
       const updated = Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== key));
       onOverridesChange(updated);
@@ -121,12 +250,10 @@ export function VariablePanel({
     if (isNaN(parsed)) return;
 
     setKeyError('');
-    const updated = { ...overrides, [trimmedKey]: parsed };
-    onOverridesChange(updated);
-    postOverrides(updated);
+    handleSaveOverride(trimmedKey, parsed);
     setNewKey('');
     setNewValue('');
-  }, [newKey, newValue, overrides, onOverridesChange, postOverrides]);
+  }, [newKey, newValue, handleSaveOverride]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -142,13 +269,14 @@ export function VariablePanel({
     postOverrides({});
   }, [onOverridesChange, postOverrides]);
 
-  const handleOverrideFromReferenced = useCallback(
-    (key: string, value: number | null) => {
-      const updated = { ...overrides, [key]: value ?? 0 };
-      onOverridesChange(updated);
-      postOverrides(updated);
-    },
-    [overrides, onOverridesChange, postOverrides]
+  const totalCount = useMemo(
+    () =>
+      new Set([
+        ...entries.map((e) => e.key),
+        ...settingsEntries.map((e) => e.key),
+        ...referencedVariables.map((v) => v.key),
+      ]).size,
+    [entries, settingsEntries, referencedVariables]
   );
 
   return (
@@ -156,48 +284,29 @@ export function VariablePanel({
       <button className="variable-panel-toggle" type="button" onClick={onToggle}>
         <span className="toggle-icon">{isOpen ? '\u25BC' : '\u25B6'}</span>
         <span>Variables</span>
-        {(entries.length > 0 || settingsEntries.length > 0 || referencedVariables.length > 0) && (
-          <span className="variable-count">
-            {new Set([
-              ...entries.map(e => e.key),
-              ...settingsEntries.map(e => e.key),
-              ...referencedVariables.map(v => v.key),
-            ]).size}
-          </span>
-        )}
+        {totalCount > 0 && <span className="variable-count">{totalCount}</span>}
       </button>
 
       {isOpen && (
         <div className="variable-panel-content">
-          {entries.length === 0 && (
-            <div className="variable-empty">No variable overrides defined.</div>
-          )}
-
           {entries.length > 0 && (
-            <div className="variable-list">
-              {entries.map((entry) => (
-                <div key={entry.key} className="variable-row">
-                  <span className="variable-key" title={entry.key}>
-                    {entry.key}
-                  </span>
-                  <input
-                    type="number"
-                    className="variable-value-input"
+            <>
+              <div className="variable-list">
+                {entries.map((entry) => (
+                  <EditableVariableRow
+                    key={entry.key}
+                    variableKey={entry.key}
                     value={entry.value}
-                    step="any"
-                    onChange={(event) => handleValueChange(entry.key, event.target.value)}
+                    hasOverride={true}
+                    onSave={handleSaveOverride}
+                    onRemove={handleRemoveOverride}
                   />
-                  <button
-                    className="variable-remove"
-                    type="button"
-                    title="Remove override"
-                    onClick={() => handleRemove(entry.key)}
-                  >
-                    {'\u2715'}
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <button className="variable-clear-all" type="button" onClick={handleClearAll}>
+                Clear All
+              </button>
+            </>
           )}
 
           <div className="variable-add-row">
@@ -228,12 +337,6 @@ export function VariablePanel({
 
           {keyError && <div className="variable-key-error">{keyError}</div>}
 
-          {entries.length > 0 && (
-            <button className="variable-clear-all" type="button" onClick={handleClearAll}>
-              Clear All
-            </button>
-          )}
-
           {settingsEntries.length > 0 && (
             <div className="variable-referenced-section">
               <button
@@ -248,22 +351,14 @@ export function VariablePanel({
               {settingsOpen && (
                 <div className="variable-list">
                   {settingsEntries.map((entry) => (
-                    <div key={entry.key} className="variable-row variable-referenced-row">
-                      <span className="variable-key" title={entry.key}>
-                        {entry.key}
-                      </span>
-                      <span className="variable-referenced-value">{entry.value}</span>
-                      {!(entry.key in overrides) && (
-                        <button
-                          className="variable-override-btn"
-                          type="button"
-                          title="Override this variable"
-                          onClick={() => handleOverrideFromReferenced(entry.key, entry.value)}
-                        >
-                          {'\u270E'}
-                        </button>
-                      )}
-                    </div>
+                    <EditableVariableRow
+                      key={entry.key}
+                      variableKey={entry.key}
+                      value={entry.value}
+                      hasOverride={entry.key in overrides}
+                      onSave={handleSaveOverride}
+                      onRemove={entry.key in overrides ? handleRemoveOverride : undefined}
+                    />
                   ))}
                 </div>
               )}
@@ -284,24 +379,14 @@ export function VariablePanel({
               {referencedOpen && (
                 <div className="variable-list">
                   {referencedVariables.map((variable) => (
-                    <div key={variable.key} className="variable-row variable-referenced-row">
-                      <span className="variable-key" title={variable.key}>
-                        {variable.key}
-                      </span>
-                      <span className="variable-referenced-value">
-                        {variable.value !== null ? variable.value : 'unset'}
-                      </span>
-                      {!(variable.key in overrides) && (
-                        <button
-                          className="variable-override-btn"
-                          type="button"
-                          title="Override this variable"
-                          onClick={() => handleOverrideFromReferenced(variable.key, variable.value)}
-                        >
-                          {'\u270E'}
-                        </button>
-                      )}
-                    </div>
+                    <EditableVariableRow
+                      key={variable.key}
+                      variableKey={variable.key}
+                      value={variable.value}
+                      hasOverride={variable.key in overrides}
+                      onSave={handleSaveOverride}
+                      onRemove={variable.key in overrides ? handleRemoveOverride : undefined}
+                    />
                   ))}
                 </div>
               )}
