@@ -563,12 +563,25 @@ $font-size: var(--vscode-editor-font-size, 12px);
   border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
 }
 
-.variable-referenced-header {
+.variable-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 0;
+  background: transparent;
+  border: none;
   color: var(--vscode-descriptionForeground, #999);
+  cursor: pointer;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  text-align: left;
+  margin-bottom: 4px;
+
+  &:hover {
+    color: var(--vscode-editor-foreground, #cccccc);
+  }
 }
 
 .variable-referenced-row {

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { VariableDefinitions } from '../../visualizer/VariableResolutionService';
 import { ReferencedVariable } from '../../visualizer/types';
 import vscode from '../vscodeApi';
 
@@ -21,6 +22,8 @@ interface VariablePanelProps {
   readonly onOverridesChange: (overrides: Readonly<Record<string, number>>) => void;
   /** Variables referenced in the current G-code program. */
   readonly referencedVariables: readonly ReferencedVariable[];
+  /** Variables defined in VS Code settings (`gcode.variables`). */
+  readonly settingsVariables: VariableDefinitions;
 }
 
 /** Debounce delay in milliseconds for posting override changes. */
@@ -48,10 +51,13 @@ export function VariablePanel({
   overrides,
   onOverridesChange,
   referencedVariables,
+  settingsVariables,
 }: VariablePanelProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [keyError, setKeyError] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [referencedOpen, setReferencedOpen] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear the debounce timer on unmount.
@@ -64,6 +70,11 @@ export function VariablePanel({
   const entries: VariableEntry[] = useMemo(
     () => Object.entries(overrides).map(([key, value]) => ({ key, value })),
     [overrides]
+  );
+
+  const settingsEntries: VariableEntry[] = useMemo(
+    () => Object.entries(settingsVariables).map(([key, value]) => ({ key, value })),
+    [settingsVariables]
   );
 
   const postOverrides = useCallback((updated: Readonly<Record<string, number>>) => {
@@ -145,9 +156,13 @@ export function VariablePanel({
       <button className="variable-panel-toggle" type="button" onClick={onToggle}>
         <span className="toggle-icon">{isOpen ? '\u25BC' : '\u25B6'}</span>
         <span>Variables</span>
-        {(entries.length > 0 || referencedVariables.length > 0) && (
+        {(entries.length > 0 || settingsEntries.length > 0 || referencedVariables.length > 0) && (
           <span className="variable-count">
-            {new Set([...entries.map(e => e.key), ...referencedVariables.map(v => v.key)]).size}
+            {new Set([
+              ...entries.map(e => e.key),
+              ...settingsEntries.map(e => e.key),
+              ...referencedVariables.map(v => v.key),
+            ]).size}
           </span>
         )}
       </button>
@@ -219,31 +234,77 @@ export function VariablePanel({
             </button>
           )}
 
+          {settingsEntries.length > 0 && (
+            <div className="variable-referenced-section">
+              <button
+                className="variable-section-toggle"
+                type="button"
+                onClick={() => setSettingsOpen((prev) => !prev)}
+              >
+                <span className="toggle-icon">{settingsOpen ? '\u25BC' : '\u25B6'}</span>
+                <span>From settings</span>
+                <span className="variable-count">{settingsEntries.length}</span>
+              </button>
+              {settingsOpen && (
+                <div className="variable-list">
+                  {settingsEntries.map((entry) => (
+                    <div key={entry.key} className="variable-row variable-referenced-row">
+                      <span className="variable-key" title={entry.key}>
+                        {entry.key}
+                      </span>
+                      <span className="variable-referenced-value">{entry.value}</span>
+                      {!(entry.key in overrides) && (
+                        <button
+                          className="variable-override-btn"
+                          type="button"
+                          title="Override this variable"
+                          onClick={() => handleOverrideFromReferenced(entry.key, entry.value)}
+                        >
+                          {'\u270E'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {referencedVariables.length > 0 && (
             <div className="variable-referenced-section">
-              <div className="variable-referenced-header">Referenced in program</div>
-              <div className="variable-list">
-                {referencedVariables.map((variable) => (
-                  <div key={variable.key} className="variable-row variable-referenced-row">
-                    <span className="variable-key" title={variable.key}>
-                      {variable.key}
-                    </span>
-                    <span className="variable-referenced-value">
-                      {variable.value !== null ? variable.value : 'unset'}
-                    </span>
-                    {!(variable.key in overrides) && (
-                      <button
-                        className="variable-override-btn"
-                        type="button"
-                        title="Override this variable"
-                        onClick={() => handleOverrideFromReferenced(variable.key, variable.value)}
-                      >
-                        {'\u270E'}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <button
+                className="variable-section-toggle"
+                type="button"
+                onClick={() => setReferencedOpen((prev) => !prev)}
+              >
+                <span className="toggle-icon">{referencedOpen ? '\u25BC' : '\u25B6'}</span>
+                <span>Referenced in program</span>
+                <span className="variable-count">{referencedVariables.length}</span>
+              </button>
+              {referencedOpen && (
+                <div className="variable-list">
+                  {referencedVariables.map((variable) => (
+                    <div key={variable.key} className="variable-row variable-referenced-row">
+                      <span className="variable-key" title={variable.key}>
+                        {variable.key}
+                      </span>
+                      <span className="variable-referenced-value">
+                        {variable.value !== null ? variable.value : 'unset'}
+                      </span>
+                      {!(variable.key in overrides) && (
+                        <button
+                          className="variable-override-btn"
+                          type="button"
+                          title="Override this variable"
+                          onClick={() => handleOverrideFromReferenced(variable.key, variable.value)}
+                        >
+                          {'\u270E'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
