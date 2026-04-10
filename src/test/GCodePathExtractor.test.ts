@@ -4,6 +4,7 @@ import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { MotionType, ToolPathData } from '../visualizer/types';
+import { VariableEnvironment } from '../visualizer/VariableResolutionService';
 
 describe('GCodePathExtractor', () => {
   /**
@@ -669,7 +670,7 @@ G2 X20 Z0 I5 K0
       const parser = new LinuxCNCParser(tokens, input);
       const ast = parser.parseProgram();
       const extractor = new GCodePathExtractor();
-      return extractor.extract(ast, variables);
+      return extractor.extract(ast, VariableEnvironment.fromEntries(variables));
     }
 
     it('uses initial variables for numbered variable references', () => {

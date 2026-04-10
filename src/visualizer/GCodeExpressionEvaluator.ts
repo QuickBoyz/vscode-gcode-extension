@@ -1,8 +1,8 @@
 /**
  * GCodeExpressionEvaluator
  *
- * Visitor that evaluates G-code expression AST nodes using a mutable
- * variable environment (shared with the interpreter).
+ * Visitor that evaluates G-code expression AST nodes using a
+ * {@link VariableEnvironment} (shared with the interpreter).
  *
  * Supports:
  *   - Numeric and string literals
@@ -28,34 +28,15 @@ import {
 import { UnaryExpressionNode } from '../parser/nodes/expressions/UnaryExpressionNode';
 import { FunctionCallNode } from '../parser/nodes/FunctionCallNode';
 import { VariableReferenceNode } from '../parser/nodes/VariableReferenceNode';
+import { VariableEnvironment } from './VariableResolutionService';
 
 export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
-  /** Set of variable names (string or numeric) referenced during evaluation. */
-  private readonly accessedVariables = new Set<string | number>();
-
-  constructor(private readonly variableEnvironment: ReadonlyMap<string | number, number>) {
+  constructor(private readonly environment: VariableEnvironment) {
     super();
   }
 
   protected defaultValue(): number | null {
     return null;
-  }
-
-  /**
-   * Returns a read-only view of all variable names that have been
-   * referenced during the lifetime of this evaluator.
-   */
-  get referencedVariables(): ReadonlySet<string | number> {
-    return this.accessedVariables;
-  }
-
-  /**
-   * Clears the set of referenced variables. Should be called at the
-   * start of each interpreter run to avoid accumulating stale entries
-   * across multiple {@link GCodeInterpreter.interpret} calls.
-   */
-  clearReferencedVariables(): void {
-    this.accessedVariables.clear();
   }
 
   /**
@@ -80,8 +61,7 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
   }
 
   override visitVariableReference(node: VariableReferenceNode): number | null {
-    this.accessedVariables.add(node.name);
-    return this.variableEnvironment.get(node.name) ?? null;
+    return this.environment.get(node.name) ?? null;
   }
 
   override visitBinaryExpression(node: BinaryExpressionNode): number | null {

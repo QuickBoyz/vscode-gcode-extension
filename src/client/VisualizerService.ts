@@ -27,25 +27,22 @@ export class VisualizerService {
    * Returns a discriminated union so callers can handle parse or extraction
    * errors without try/catch.
    *
-   * @param text              Raw G-code file content
-   * @param dialect           G-code dialect for lexing and parsing
-   * @param initialVariables  Optional pre-seeded variable environment
-   * @param pinnedVariables   Optional set of variable keys that cannot
-   *                          be overwritten by program assignments
-   * @returns                 A {@link VisualizerResult} indicating success with data or failure with a message
+   * @param text        Raw G-code file content
+   * @param dialect     G-code dialect for lexing and parsing
+   * @param environment Optional pre-configured variable environment
+   * @returns           A {@link VisualizerResult} indicating success with data or failure with a message
    */
   extractToolPath(
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
-    initialVariables?: VariableEnvironment,
-    pinnedVariables?: ReadonlySet<string | number>
+    environment?: VariableEnvironment
   ): VisualizerResult {
     try {
       const lexer = LexerFactory.create(dialect);
       const tokens = lexer.tokenize(text);
       const parser = ParserFactory.create(dialect, tokens, text);
       const ast = parser.parseProgram();
-      const data = this.extractor.extract(ast, initialVariables, pinnedVariables);
+      const data = this.extractor.extract(ast, environment);
       return { success: true, data };
     } catch (error: unknown) {
       const errorMessage =

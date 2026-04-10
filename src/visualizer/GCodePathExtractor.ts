@@ -232,17 +232,11 @@ export class GCodePathExtractor implements MotionHandler {
    * Resets all internal state before each extraction so the same instance
    * can be reused across multiple documents.
    *
-   * @param program          - Parsed G-code program AST
-   * @param initialVariables - Optional pre-seeded variable environment
-   *                           (from user settings / runtime overrides)
-   * @param pinnedVariables  - Optional set of variable keys that cannot
-   *                           be overwritten by program assignments
+   * @param program     - Parsed G-code program AST
+   * @param environment - Optional pre-configured variable environment
+   *                      (from {@link VariableResolutionService})
    */
-  extract(
-    program: ProgramNode,
-    initialVariables?: VariableEnvironment,
-    pinnedVariables?: ReadonlySet<string | number>
-  ): ToolPathData {
+  extract(program: ProgramNode, environment?: VariableEnvironment): ToolPathData {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
@@ -250,7 +244,7 @@ export class GCodePathExtractor implements MotionHandler {
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
-    const interpreter = new GCodeInterpreter(this, undefined, initialVariables, pinnedVariables);
+    const interpreter = new GCodeInterpreter(this, undefined, environment);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     const referencedVariables = this.buildReferencedVariables(interpreter);

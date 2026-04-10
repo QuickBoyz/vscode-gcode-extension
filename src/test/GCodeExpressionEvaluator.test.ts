@@ -10,6 +10,7 @@ import { FunctionCallNode } from '../parser/nodes/FunctionCallNode';
 import { Range } from '../parser/nodes/Range';
 import { VariableReferenceNode } from '../parser/nodes/VariableReferenceNode';
 import { GCodeExpressionEvaluator } from '../visualizer/GCodeExpressionEvaluator';
+import { VariableEnvironment } from '../visualizer/VariableResolutionService';
 
 /** Shorthand range for test nodes. */
 const R = Range.create(0, 0, 0, 0);
@@ -21,25 +22,25 @@ describe('GCodeExpressionEvaluator', () => {
 
   it('evaluates a positive numeric literal', () => {
     const node = new LiteralExpressionNode(R, 42);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(42);
   });
 
   it('evaluates a string literal that parses to a number', () => {
     const node = new LiteralExpressionNode(R, '3.14');
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeCloseTo(3.14);
   });
 
   it('returns null for a non-numeric string literal', () => {
     const node = new LiteralExpressionNode(R, 'hello');
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
   it('evaluates zero literal', () => {
     const node = new LiteralExpressionNode(R, 0);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(0);
   });
 
@@ -50,14 +51,14 @@ describe('GCodeExpressionEvaluator', () => {
   it('evaluates negated literal', () => {
     const inner = new LiteralExpressionNode(R, 10);
     const node = new UnaryExpressionNode(R, UnaryOperatorType.Minus, inner, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(-10);
   });
 
   it('returns null when negating an unresolvable expression', () => {
     const unknownVariable = new VariableReferenceNode(R, 'unknown');
     const node = new UnaryExpressionNode(R, UnaryOperatorType.Minus, unknownVariable, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
@@ -66,21 +67,25 @@ describe('GCodeExpressionEvaluator', () => {
   // ---------------------------------------------------------------------------
 
   it('resolves a named variable reference from environment', () => {
-    const environment = new Map<string | number, number>([['x_max', 619]]);
+    const environment = VariableEnvironment.fromEntries(
+      new Map<string | number, number>([['x_max', 619]])
+    );
     const evaluator = new GCodeExpressionEvaluator(environment);
     const node = new VariableReferenceNode(R, 'x_max');
     expect(evaluator.evaluate(node)).toBe(619);
   });
 
   it('resolves a numbered variable reference from environment', () => {
-    const environment = new Map<string | number, number>([[100, 25.4]]);
+    const environment = VariableEnvironment.fromEntries(
+      new Map<string | number, number>([[100, 25.4]])
+    );
     const evaluator = new GCodeExpressionEvaluator(environment);
     const node = new VariableReferenceNode(R, 100);
     expect(evaluator.evaluate(node)).toBeCloseTo(25.4);
   });
 
   it('returns null for an unknown variable', () => {
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     const node = new VariableReferenceNode(R, 'undefined_var');
     expect(evaluator.evaluate(node)).toBeNull();
   });
@@ -93,7 +98,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 10);
     const right = new LiteralExpressionNode(R, 5);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Add, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(15);
   });
 
@@ -101,7 +106,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 10);
     const right = new LiteralExpressionNode(R, 3);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Subtract, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(7);
   });
 
@@ -109,7 +114,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 4);
     const right = new LiteralExpressionNode(R, 7);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Multiply, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(28);
   });
 
@@ -117,7 +122,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 20);
     const right = new LiteralExpressionNode(R, 4);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Divide, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(5);
   });
 
@@ -125,7 +130,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 10);
     const right = new LiteralExpressionNode(R, 0);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Divide, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
@@ -133,7 +138,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 10);
     const right = new LiteralExpressionNode(R, 3);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Mod, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(1);
   });
 
@@ -141,7 +146,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 10);
     const right = new LiteralExpressionNode(R, 0);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Mod, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
@@ -149,7 +154,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new VariableReferenceNode(R, 'unknown');
     const right = new LiteralExpressionNode(R, 5);
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Add, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
@@ -157,7 +162,7 @@ describe('GCodeExpressionEvaluator', () => {
     const left = new LiteralExpressionNode(R, 5);
     const right = new VariableReferenceNode(R, 'unknown');
     const node = new BinaryExpressionNode(R, left, BinaryOperatorType.Add, right, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
@@ -182,7 +187,7 @@ describe('GCodeExpressionEvaluator', () => {
       left,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(nodeTrue)).toBe(1);
     expect(evaluator.evaluate(nodeFalse)).toBe(0);
   });
@@ -197,7 +202,7 @@ describe('GCodeExpressionEvaluator', () => {
       right,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(1);
   });
 
@@ -211,7 +216,7 @@ describe('GCodeExpressionEvaluator', () => {
       right,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(1);
   });
 
@@ -225,7 +230,7 @@ describe('GCodeExpressionEvaluator', () => {
       right,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(1);
   });
 
@@ -248,7 +253,7 @@ describe('GCodeExpressionEvaluator', () => {
       lessRight,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(nodeEqual)).toBe(1);
     expect(evaluator.evaluate(nodeLess)).toBe(1);
   });
@@ -263,7 +268,7 @@ describe('GCodeExpressionEvaluator', () => {
       equalRight,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(nodeEqual)).toBe(1);
   });
 
@@ -284,13 +289,15 @@ describe('GCodeExpressionEvaluator', () => {
       outerRight,
       R
     );
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(outerMul)).toBe(30);
   });
 
   it('evaluates expression with variable and arithmetic', () => {
     // #<base> + 5  where #<base>=10 => 15
-    const environment = new Map<string | number, number>([['base', 10]]);
+    const environment = VariableEnvironment.fromEntries(
+      new Map<string | number, number>([['base', 10]])
+    );
     const evaluator = new GCodeExpressionEvaluator(environment);
     const varRef = new VariableReferenceNode(R, 'base');
     const literal = new LiteralExpressionNode(R, 5);
@@ -305,84 +312,84 @@ describe('GCodeExpressionEvaluator', () => {
   it('evaluates ABS function', () => {
     const argument = new LiteralExpressionNode(R, -17);
     const node = new FunctionCallNode(R, 'ABS', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(17);
   });
 
   it('evaluates ROUND function', () => {
     const argument = new LiteralExpressionNode(R, 3.7);
     const node = new FunctionCallNode(R, 'ROUND', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(4);
   });
 
   it('evaluates FIX (floor) function', () => {
     const argument = new LiteralExpressionNode(R, 3.9);
     const node = new FunctionCallNode(R, 'FIX', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(3);
   });
 
   it('evaluates FUP (ceil) function', () => {
     const argument = new LiteralExpressionNode(R, 3.1);
     const node = new FunctionCallNode(R, 'FUP', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(4);
   });
 
   it('evaluates SQRT function', () => {
     const argument = new LiteralExpressionNode(R, 16);
     const node = new FunctionCallNode(R, 'SQRT', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(4);
   });
 
   it('evaluates SIN function', () => {
     const argument = new LiteralExpressionNode(R, 0);
     const node = new FunctionCallNode(R, 'SIN', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(0);
   });
 
   it('evaluates COS function', () => {
     const argument = new LiteralExpressionNode(R, 0);
     const node = new FunctionCallNode(R, 'COS', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(1);
   });
 
   it('evaluates LN function with valid argument', () => {
     const argument = new LiteralExpressionNode(R, Math.E);
     const node = new FunctionCallNode(R, 'LN', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeCloseTo(1);
   });
 
   it('returns null for LN of zero or negative', () => {
     const argument = new LiteralExpressionNode(R, 0);
     const node = new FunctionCallNode(R, 'LN', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
   it('returns null for unknown function', () => {
     const argument = new LiteralExpressionNode(R, 5);
     const node = new FunctionCallNode(R, 'UNKNOWN_FUNC', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
   it('returns null when function argument is unresolvable', () => {
     const unknownVar = new VariableReferenceNode(R, 'missing');
     const node = new FunctionCallNode(R, 'ABS', unknownVar, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBeNull();
   });
 
   it('handles case-insensitive function names', () => {
     const argument = new LiteralExpressionNode(R, -5);
     const node = new FunctionCallNode(R, 'abs', argument, R);
-    const evaluator = new GCodeExpressionEvaluator(new Map());
+    const evaluator = new GCodeExpressionEvaluator(new VariableEnvironment());
     expect(evaluator.evaluate(node)).toBe(5);
   });
 });

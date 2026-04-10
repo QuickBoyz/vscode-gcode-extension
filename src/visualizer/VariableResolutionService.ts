@@ -2,17 +2,19 @@
  * VariableResolutionService
  *
  * Merges variable values from multiple sources into a single
- * {@link Map} environment suitable for the G-code interpreter.
+ * {@link VariableEnvironment} suitable for the G-code interpreter.
  *
  * Sources and precedence (highest to lowest):
- *   1. Runtime overrides — set interactively in the visualizer panel
+ *   1. Runtime overrides — set interactively in the visualizer panel;
+ *      these are **pinned** and cannot be overwritten by program assignments
  *   2. Settings defaults — defined in `gcode.variables` in settings.json
  *   3. Program assignments — handled by the interpreter at execution time
- *   4. Default (0) — the interpreter returns null for unknown variables
+ *   4. Default (null) — the evaluator returns null for unknown variables
  *
  * This service handles sources 1 and 2. Source 3 is handled by the
  * interpreter itself (variable assignments in the program take effect
- * during execution). Source 4 is the evaluator's fallback.
+ * during execution, unless the variable is pinned). Source 4 is the
+ * evaluator's fallback.
  *
  * Variable key normalization:
  *   - `#100` or `100` → numeric key `100`
@@ -20,11 +22,10 @@
  *   - Named variables are case-insensitive (stored lowercase)
  */
 
-/** Map of user-provided variable names (as typed in settings) to values. */
-export type VariableDefinitions = Readonly<Record<string, number>>;
+import { VariableDefinitions } from '../config/types';
 
-/** The resolved variable environment type used by the interpreter. */
-export type VariableEnvironment = ReadonlyMap<string | number, number>;
+// Re-export so existing imports from this module continue to work.
+export type { VariableDefinitions } from '../config/types';
 
 /**
  * Options for constructing a {@link VariableResolutionService}.
@@ -36,9 +37,117 @@ export interface VariableResolutionOptions {
   readonly runtimeOverrides?: VariableDefinitions;
 }
 
+// ---------------------------------------------------------------------------
+// VariableEnvironment — self-contained variable store
+// ---------------------------------------------------------------------------
+
+/**
+ * Self-contained variable environment for the G-code interpreter.
+ *
+ * Encapsulates variable storage, pinning (runtime overrides that
+ * program assignments cannot overwrite), and access tracking (which
+ * variables were read during evaluation).
+ *
+ * Consumers use this single object instead of threading separate
+ * Map + pinnedSet + accessedSet through the pipeline.
+ */
+export class VariableEnvironment {
+  private readonly variables = new Map<string | number, number>();
+  private readonly pinned = new Set<string | number>();
+  private readonly accessed = new Set<string | number>();
+  private readonly initialSnapshot = new Map<string | number, number>();
+
+  /**
+   * Creates a VariableEnvironment pre-seeded with the given variables.
+   * Convenience factory for tests and simple use cases.
+   */
+  static fromEntries(entries: ReadonlyMap<string | number, number>): VariableEnvironment {
+    const env = new VariableEnvironment();
+    for (const [key, value] of entries) {
+      env.seed(key, value, false);
+    }
+    return env;
+  }
+
+  /**
+   * Sets a variable value. If the variable is pinned (from a runtime
+   * override), the write is silently ignored.
+   *
+   * Used by the interpreter for program assignments (`#100 = 50`).
+   */
+  set(key: string | number, value: number): void {
+    if (!this.pinned.has(key)) {
+      this.variables.set(key, value);
+    }
+  }
+
+  /**
+   * Gets a variable value and records the access for tracking.
+   *
+   * Used by the expression evaluator for variable references.
+   */
+  get(key: string | number): number | undefined {
+    this.accessed.add(key);
+    return this.variables.get(key);
+  }
+
+  /**
+   * Returns the value of a variable without tracking the access.
+   * Returns `null` if the variable was never assigned.
+   *
+   * Used for building the referenced variables display list.
+   */
+  peek(key: string | number): number | null {
+    return this.variables.get(key) ?? null;
+  }
+
+  /**
+   * Returns all variable keys that were read via {@link get} during
+   * interpretation.
+   */
+  get referencedKeys(): ReadonlySet<string | number> {
+    return this.accessed;
+  }
+
+  /**
+   * Seeds a variable with an initial value. If `pin` is true, the
+   * variable cannot be overwritten by program assignments.
+   *
+   * Used by {@link VariableResolutionService} during construction.
+   */
+  seed(key: string | number, value: number, pin: boolean): void {
+    this.variables.set(key, value);
+    this.initialSnapshot.set(key, value);
+    if (pin) {
+      this.pinned.add(key);
+    }
+  }
+
+  /**
+   * Resets the environment for a new interpretation run. Restores
+   * seeded values (settings + overrides) and clears access tracking,
+   * but preserves pinning.
+   *
+   * Used by the interpreter when reusing the same instance for
+   * multiple programs.
+   */
+  reset(): void {
+    this.variables.clear();
+    this.accessed.clear();
+
+    for (const [key, value] of this.initialSnapshot) {
+      this.variables.set(key, value);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VariableResolutionService — merges variable sources
+// ---------------------------------------------------------------------------
+
 /**
  * Service that merges variable definitions from settings and runtime
- * overrides into a single variable environment for the interpreter.
+ * overrides into a single {@link VariableEnvironment} for the interpreter.
  */
 export class VariableResolutionService {
   /** Pattern matching a numeric variable key: #123 or just 123 */
@@ -59,48 +168,35 @@ export class VariableResolutionService {
   }
 
   /**
-   * Resolves all variable sources into a single environment map.
+   * Resolves all variable sources into a single {@link VariableEnvironment}.
    *
-   * Precedence: runtime overrides > settings defaults.
-   * Program assignments are handled separately by the interpreter.
+   * Settings variables are seeded first (lower precedence), then runtime
+   * overrides are seeded on top and pinned so program assignments cannot
+   * overwrite them.
    */
   resolve(): VariableEnvironment {
-    const environment = new Map<string | number, number>();
+    const environment = new VariableEnvironment();
 
-    // Apply settings first (lower precedence)
-    this.applyDefinitions(environment, this.settingsVariables);
+    // Seed settings first (lower precedence, not pinned)
+    this.applyDefinitions(environment, this.settingsVariables, false);
 
-    // Apply runtime overrides (higher precedence — overwrites settings)
-    this.applyDefinitions(environment, this.runtimeOverrides);
+    // Seed runtime overrides (higher precedence, pinned)
+    this.applyDefinitions(environment, this.runtimeOverrides, true);
 
     return environment;
   }
 
   /**
-   * Returns the normalized keys from runtime overrides. These variables
-   * are "pinned" and should not be overwritten by program assignments.
-   */
-  pinnedKeys(): ReadonlySet<string | number> {
-    const keys = new Set<string | number>();
-    for (const rawKey of Object.keys(this.runtimeOverrides)) {
-      const normalized = VariableResolutionService.normalizeVariableKey(rawKey);
-      if (normalized !== null) {
-        keys.add(normalized);
-      }
-    }
-    return keys;
-  }
-
-  /**
-   * Applies a set of variable definitions to the environment map,
+   * Applies a set of variable definitions to the environment,
    * normalizing keys and skipping invalid ones.
    *
    * Non-numeric values are silently skipped to guard against
    * manually-edited settings.json with string values.
    */
   private applyDefinitions(
-    environment: Map<string | number, number>,
-    definitions: VariableDefinitions
+    environment: VariableEnvironment,
+    definitions: VariableDefinitions,
+    pin: boolean
   ): void {
     for (const [rawKey, value] of Object.entries(definitions)) {
       if (typeof value !== 'number') {
@@ -108,7 +204,7 @@ export class VariableResolutionService {
       }
       const normalizedKey = VariableResolutionService.normalizeVariableKey(rawKey);
       if (normalizedKey !== null) {
-        environment.set(normalizedKey, value);
+        environment.seed(normalizedKey, value, pin);
       }
     }
   }
