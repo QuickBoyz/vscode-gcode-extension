@@ -38,6 +38,8 @@ export class GCodeInterpreter {
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
   private readonly options: InterpreterConfig;
   private readonly initialVariables: VariableEnvironment;
+  /** Variables that cannot be overwritten by program assignments. */
+  private readonly pinnedVariables: ReadonlySet<string | number>;
   private totalIterations = 0;
   private iterationLimitReached = false;
 
@@ -52,10 +54,12 @@ export class GCodeInterpreter {
   constructor(
     private readonly motionHandler: MotionHandler,
     options?: Partial<InterpreterConfig>,
-    initialVariables?: VariableEnvironment
+    initialVariables?: VariableEnvironment,
+    pinnedVariables?: ReadonlySet<string | number>
   ) {
     this.options = { ...DEFAULT_GCODE_CONFIG.interpreter, ...options };
     this.initialVariables = initialVariables ?? new Map();
+    this.pinnedVariables = pinnedVariables ?? new Set();
     this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
   }
 
@@ -180,7 +184,7 @@ export class GCodeInterpreter {
 
   private interpretVariableAssignment(node: VariableAssignmentNode): void {
     const value = this.expressionEvaluator.evaluate(node.value);
-    if (value !== null) {
+    if (value !== null && !this.pinnedVariables.has(node.name)) {
       this.variableEnvironment.set(node.name, value);
     }
   }

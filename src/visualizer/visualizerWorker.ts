@@ -31,8 +31,14 @@ parentPort?.on('message', (request: WorkerRequest) => {
       runtimeOverrides: request.runtimeOverrides,
     });
     const initialVariables = variableService.resolve();
+    const pinnedVariables = variableService.pinnedKeys();
 
-    const result = service.extractToolPath(request.text, dialect, initialVariables);
+    const result = service.extractToolPath(
+      request.text,
+      dialect,
+      initialVariables,
+      pinnedVariables
+    );
     const durationMs = Date.now() - startTime;
 
     const response: WorkerResponse = {
