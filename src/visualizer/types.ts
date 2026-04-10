@@ -88,7 +88,7 @@ export interface PathBounds {
 export interface ReferencedVariable {
   /** The variable key (numeric index or string name). */
   readonly key: string;
-  /** The resolved value at the end of interpretation, or `null` if unset. */
+  /** The initial value from user settings/overrides, or `null` if not defined externally. */
   readonly value: number | null;
 }
 

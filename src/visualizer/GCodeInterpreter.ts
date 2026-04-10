@@ -78,6 +78,7 @@ export class GCodeInterpreter {
    */
   interpret(program: ProgramNode): void {
     this.variableEnvironment.clear();
+    this.expressionEvaluator.clearReferencedVariables();
 
     // Seed the environment with initial variables (from settings/overrides).
     // These act as defaults that can be overwritten by program assignments.

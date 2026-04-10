@@ -50,6 +50,15 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
   }
 
   /**
+   * Clears the set of referenced variables. Should be called at the
+   * start of each interpreter run to avoid accumulating stale entries
+   * across multiple {@link GCodeInterpreter.interpret} calls.
+   */
+  clearReferencedVariables(): void {
+    this.accessedVariables.clear();
+  }
+
+  /**
    * Evaluate an expression node, returning a numeric value or `null`
    * when the expression cannot be resolved.
    */
