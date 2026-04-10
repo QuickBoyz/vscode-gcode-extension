@@ -43,19 +43,18 @@ suite('Workspace Symbol Tests', () => {
   });
 
   test('Should return empty array for non-matching query', async () => {
-    const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
-      'vscode.executeWorkspaceSymbolProvider',
-      'NONEXISTENT_SYMBOL_12345'
+    const symbols = await TestUtils.waitForCondition(
+      async () =>
+        vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+          'vscode.executeWorkspaceSymbolProvider',
+          'NONEXISTENT_SYMBOL_12345'
+        ),
+      (result) => Array.isArray(result)
     );
 
-    assert.ok(
-      Array.isArray(symbols) || symbols === undefined,
-      'Should return array or undefined for non-matching query'
-    );
-    if (Array.isArray(symbols)) {
-      const matching = symbols.filter((s) => s.name.includes('NONEXISTENT_SYMBOL_12345'));
-      assert.strictEqual(matching.length, 0, 'Should find no matching symbols');
-    }
+    assert.ok(Array.isArray(symbols), 'Should return array');
+    const matching = symbols.filter((s) => s.name.includes('NONEXISTENT_SYMBOL_12345'));
+    assert.strictEqual(matching.length, 0, 'Should find no matching symbols');
   });
 
   test('Should find symbols with partial match', async () => {

@@ -284,8 +284,12 @@ export class TestUtils {
       await this.sleep(interval);
     }
 
-    // Run one last time and return whatever we get
-    return fn();
+    // Run one last time and check condition — throw if still not met
+    const finalResult = await fn();
+    if (!check(finalResult)) {
+      throw new Error(`waitForCondition timed out after ${timeout}ms`);
+    }
+    return finalResult;
   }
 
   /**

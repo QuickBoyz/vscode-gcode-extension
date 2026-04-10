@@ -7,7 +7,10 @@
  */
 import { SymbolInformation } from 'vscode-languageserver/node';
 
-import { DEFAULT_MAX_RESULTS, WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
+import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
+
+/** Default maximum number of symbols to return from a search query. */
+const DEFAULT_MAX_RESULTS = 100;
 
 /**
  * Provider for LSP `workspace/symbol` requests.

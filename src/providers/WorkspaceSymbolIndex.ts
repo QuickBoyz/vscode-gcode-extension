@@ -8,26 +8,11 @@
  * via the WorkspaceSymbolVisitor.
  */
 import { DialectType } from '../constants';
+import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { AstTraverser } from '../parser/AstTraverser';
 import { ParserFactory } from '../parser/ParserFactory';
 import { WorkspaceSymbol, WorkspaceSymbolVisitor } from './WorkspaceSymbolVisitor';
-
-/** Default maximum number of symbols to return from a search query. */
-export const DEFAULT_MAX_RESULTS = 100;
-
-/** Default maximum number of symbols to index across the workspace. */
-const DEFAULT_MAX_SYMBOLS = 10000;
-
-/**
- * Configuration for the workspace symbol index.
- */
-export interface WorkspaceSymbolIndexConfig {
-  /** Whether workspace indexing is enabled. */
-  readonly indexingEnabled: boolean;
-  /** Maximum number of symbols to index across all files. */
-  readonly maxSymbols: number;
-}
 
 /**
  * In-memory index of workspace symbols.
@@ -46,7 +31,7 @@ export class WorkspaceSymbolIndex {
   /** Maximum symbols to store across all files. */
   private maxSymbols: number;
 
-  constructor(maxSymbols: number = DEFAULT_MAX_SYMBOLS) {
+  constructor(maxSymbols: number = DEFAULT_GCODE_CONFIG.workspace.maxSymbols) {
     this.maxSymbols = maxSymbols;
   }
 
@@ -113,7 +98,7 @@ export class WorkspaceSymbolIndex {
    * @param maxResults - Maximum number of results to return
    * @returns Matching symbols, sorted by relevance (prefix > substring)
    */
-  search(query: string, maxResults: number = DEFAULT_MAX_RESULTS): readonly WorkspaceSymbol[] {
+  search(query: string, maxResults = 100): readonly WorkspaceSymbol[] {
     const normalizedQuery = query.toLowerCase();
     const matches: WorkspaceSymbol[] = [];
 
@@ -179,15 +164,19 @@ export class WorkspaceSymbolIndex {
     content: string,
     dialect: DialectType
   ): readonly WorkspaceSymbol[] {
-    const lexer = LexerFactory.create(dialect);
-    const tokens = lexer.tokenize(content);
-    const parser = ParserFactory.create(dialect, tokens, content);
-    const ast = parser.parseProgram();
+    try {
+      const lexer = LexerFactory.create(dialect);
+      const tokens = lexer.tokenize(content);
+      const parser = ParserFactory.create(dialect, tokens, content);
+      const ast = parser.parseProgram();
 
-    const visitor = new WorkspaceSymbolVisitor(uri);
-    const traverser = new AstTraverser(visitor);
-    traverser.traverseProgram(ast);
+      const visitor = new WorkspaceSymbolVisitor(uri);
+      const traverser = new AstTraverser(visitor);
+      traverser.traverseProgram(ast);
 
-    return visitor.getSymbols();
+      return visitor.getSymbols();
+    } catch {
+      return [];
+    }
   }
 }

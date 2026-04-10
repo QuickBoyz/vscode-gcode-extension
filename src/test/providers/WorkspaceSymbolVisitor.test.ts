@@ -72,8 +72,16 @@ describe('WorkspaceSymbolVisitor', () => {
   });
 
   describe('subroutine labels', () => {
-    it('extracts standalone O-block label as Key symbol', () => {
+    it('extracts standalone O-block label as Key symbol (Fanuc)', () => {
       const symbols = getWorkspaceSymbols('O0001', TEST_URI, DialectType.FANUC);
+
+      expect(symbols).toHaveLength(1);
+      expect(symbols[0].name).toBe('O0001');
+      expect(symbols[0].kind).toBe(SymbolKind.Key);
+    });
+
+    it('extracts standalone O-block label as Key symbol (Haas)', () => {
+      const symbols = getWorkspaceSymbols('O0001', TEST_URI, DialectType.HAAS);
 
       expect(symbols).toHaveLength(1);
       expect(symbols[0].name).toBe('O0001');
