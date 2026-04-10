@@ -247,21 +247,18 @@ export class GCodePathExtractor implements MotionHandler {
     const interpreter = new GCodeInterpreter(this, undefined, initialVariables);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
-    const referencedVariables = this.buildReferencedVariables(interpreter, initialVariables);
+    const referencedVariables = this.buildReferencedVariables(interpreter);
     return { segments: this.segments, bounds, referencedVariables };
   }
 
   /**
    * Builds the list of referenced variables from the interpreter's
-   * tracking data, including their resolved values.
+   * tracking data, including their final resolved values after execution.
    */
-  private buildReferencedVariables(
-    interpreter: GCodeInterpreter,
-    initialVariables?: VariableEnvironment
-  ): readonly ReferencedVariable[] {
+  private buildReferencedVariables(interpreter: GCodeInterpreter): readonly ReferencedVariable[] {
     const references: ReferencedVariable[] = [];
     for (const key of interpreter.referencedVariables) {
-      const value = initialVariables?.get(key) ?? null;
+      const value = interpreter.getVariableValue(key);
       const displayKey = typeof key === 'number' ? `#${key}` : `#<${key}>`;
       references.push({ key: displayKey, value });
     }

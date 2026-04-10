@@ -73,6 +73,14 @@ export class GCodeInterpreter {
   }
 
   /**
+   * Returns the value of a variable after interpretation, or `null`
+   * if the variable was never assigned.
+   */
+  getVariableValue(name: string | number): number | null {
+    return this.variableEnvironment.get(name) ?? null;
+  }
+
+  /**
    * Interpret the entire program. Resets all internal state so the
    * same instance can be reused across multiple programs.
    */
