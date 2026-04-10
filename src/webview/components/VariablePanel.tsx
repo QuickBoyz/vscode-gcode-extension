@@ -131,6 +131,15 @@ export function VariablePanel({
     postOverrides({});
   }, [onOverridesChange, postOverrides]);
 
+  const handleOverrideFromReferenced = useCallback(
+    (key: string, value: number | null) => {
+      const updated = { ...overrides, [key]: value ?? 0 };
+      onOverridesChange(updated);
+      postOverrides(updated);
+    },
+    [overrides, onOverridesChange, postOverrides]
+  );
+
   return (
     <div className={`variable-panel ${isOpen ? 'open' : ''}`}>
       <button className="variable-panel-toggle" type="button" onClick={onToggle}>
@@ -222,6 +231,16 @@ export function VariablePanel({
                     <span className="variable-referenced-value">
                       {variable.value !== null ? variable.value : 'unset'}
                     </span>
+                    {!(variable.key in overrides) && (
+                      <button
+                        className="variable-override-btn"
+                        type="button"
+                        title="Override this variable"
+                        onClick={() => handleOverrideFromReferenced(variable.key, variable.value)}
+                      >
+                        {'\u270E'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
