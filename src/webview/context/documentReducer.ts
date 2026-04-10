@@ -1,4 +1,10 @@
-import { PathBounds, PathSegment, ReferencedVariable, VisualizerConfig } from '../../visualizer/types';
+import { VariableDefinitions } from '../../visualizer/VariableResolutionService';
+import {
+  PathBounds,
+  PathSegment,
+  ReferencedVariable,
+  VisualizerConfig,
+} from '../../visualizer/types';
 
 // ── Source token type (reused across the webview) ───────────────────
 
@@ -13,6 +19,7 @@ export type WebviewMessage =
       readonly bounds: PathBounds | null;
       readonly sourceTokens: SourceTokens | undefined;
       readonly referencedVariables: readonly ReferencedVariable[];
+      readonly settingsVariables: VariableDefinitions;
     }
   | { readonly type: 'updateSettings'; readonly settings: Partial<VisualizerConfig> }
   | { readonly type: 'error'; readonly message: string }
@@ -25,6 +32,7 @@ export interface DocumentState {
   readonly bounds: PathBounds | null;
   readonly sourceTokens: SourceTokens | undefined;
   readonly referencedVariables: readonly ReferencedVariable[];
+  readonly settingsVariables: VariableDefinitions;
   readonly error: string | null;
   readonly loading: boolean;
 }
@@ -36,6 +44,7 @@ export type DocumentAction =
       readonly bounds: PathBounds | null;
       readonly sourceTokens: SourceTokens | undefined;
       readonly referencedVariables: readonly ReferencedVariable[];
+      readonly settingsVariables: VariableDefinitions;
     }
   | { readonly type: 'error'; readonly message: string }
   | { readonly type: 'loading' };
@@ -45,6 +54,7 @@ export const INITIAL_DOCUMENT_STATE: DocumentState = {
   bounds: null,
   sourceTokens: undefined,
   referencedVariables: [],
+  settingsVariables: {},
   error: null,
   loading: false,
 };
@@ -57,6 +67,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         bounds: action.bounds,
         sourceTokens: action.sourceTokens,
         referencedVariables: action.referencedVariables,
+        settingsVariables: action.settingsVariables,
         error: null,
         loading: false,
       };

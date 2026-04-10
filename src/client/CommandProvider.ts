@@ -128,7 +128,8 @@ export class CommandProvider {
           result.data,
           settings,
           documentText,
-          this.configProvider
+          this.configProvider,
+          config.variables
         );
         this.registerNavigationCallback();
         this.registerVariableOverrideCallback();
@@ -348,7 +349,7 @@ export class CommandProvider {
       const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
-        GCodeVisualizerPanel.refresh(result.data, settings, sourceText);
+        GCodeVisualizerPanel.refresh(result.data, settings, sourceText, config.variables);
       } else {
         GCodeVisualizerPanel.showError(result.errorMessage);
       }

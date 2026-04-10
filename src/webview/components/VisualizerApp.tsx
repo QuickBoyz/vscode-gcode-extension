@@ -19,7 +19,7 @@ import { CanvasArea } from './CanvasArea';
 import { VariablePanel } from './VariablePanel';
 
 function VisualizerLayout() {
-  const { error, referencedVariables } = useDocumentState();
+  const { error, referencedVariables, settingsVariables } = useDocumentState();
   const { settings, updateSettings } = useVisualizerSettings();
   const { resetView } = useCameraControls();
   const snapshot = usePlaybackSnapshot();
@@ -56,6 +56,7 @@ function VisualizerLayout() {
         overrides={variableOverrides}
         onOverridesChange={setVariableOverrides}
         referencedVariables={referencedVariables}
+        settingsVariables={settingsVariables}
       />
       {error && <ErrorBanner message={error} />}
       <CanvasArea />

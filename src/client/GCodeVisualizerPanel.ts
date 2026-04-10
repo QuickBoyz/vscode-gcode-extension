@@ -36,6 +36,7 @@ type ExtensionToWebviewMessage =
       settings: VisualizerConfig;
       sourceTokens: readonly TokenSpan[][];
       referencedVariables: readonly ReferencedVariable[];
+      settingsVariables: VariableDefinitions;
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
@@ -108,11 +109,12 @@ export class GCodeVisualizerPanel {
     pathData: ToolPathData,
     settings: VisualizerConfig,
     sourceText: string,
-    configProvider: ClientConfigProvider
+    configProvider: ClientConfigProvider,
+    settingsVariables: VariableDefinitions = {}
   ): void {
     if (GCodeVisualizerPanel.instance) {
       GCodeVisualizerPanel.instance.panel.reveal();
-      GCodeVisualizerPanel.instance.update(pathData, settings, sourceText);
+      GCodeVisualizerPanel.instance.update(pathData, settings, sourceText, settingsVariables);
       return;
     }
 
@@ -135,15 +137,25 @@ export class GCodeVisualizerPanel {
     instance.initContent(extensionUri);
     // Don't send data yet — the webview JS hasn't loaded.
     // Store it as pending; it will be sent when the webview posts `ready`.
-    instance.pendingUpdate = instance.buildUpdateMessage(pathData, settings, sourceText);
+    instance.pendingUpdate = instance.buildUpdateMessage(
+      pathData,
+      settings,
+      sourceText,
+      settingsVariables
+    );
   }
 
   /**
    * Pushes updated path data and settings to an already-open panel.
    * Does nothing when the panel is not visible.
    */
-  static refresh(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
-    GCodeVisualizerPanel.instance?.update(pathData, settings, sourceText);
+  static refresh(
+    pathData: ToolPathData,
+    settings: VisualizerConfig,
+    sourceText: string,
+    settingsVariables: VariableDefinitions = {}
+  ): void {
+    GCodeVisualizerPanel.instance?.update(pathData, settings, sourceText, settingsVariables);
   }
 
   /**
@@ -261,7 +273,8 @@ export class GCodeVisualizerPanel {
   private buildUpdateMessage(
     pathData: ToolPathData,
     settings: VisualizerConfig,
-    sourceText: string
+    sourceText: string,
+    settingsVariables: VariableDefinitions = {}
   ): ExtensionToWebviewMessage {
     return {
       type: 'update',
@@ -270,11 +283,17 @@ export class GCodeVisualizerPanel {
       settings,
       sourceTokens: tokenizeSourceLines(sourceText.split(/\r?\n/)),
       referencedVariables: pathData.referencedVariables,
+      settingsVariables,
     };
   }
 
-  private update(pathData: ToolPathData, settings: VisualizerConfig, sourceText: string): void {
-    const msg = this.buildUpdateMessage(pathData, settings, sourceText);
+  private update(
+    pathData: ToolPathData,
+    settings: VisualizerConfig,
+    sourceText: string,
+    settingsVariables: VariableDefinitions = {}
+  ): void {
+    const msg = this.buildUpdateMessage(pathData, settings, sourceText, settingsVariables);
     if (!this.webviewReady) {
       // Webview not ready yet — store for later delivery.
       this.pendingUpdate = msg;
