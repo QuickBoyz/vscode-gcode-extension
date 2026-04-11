@@ -262,7 +262,7 @@ export class GCodePathExtractor implements MotionHandler {
       const displayKey = typeof key === 'number' ? `#${key}` : `#<${key}>`;
       references.push({ key: displayKey, value });
     }
-    // Sort for stable display order: numeric keys first (by number), then named keys alphabetically.
+    // Sort for stable display order: named keys alphabetically first, then numeric keys by number.
     return references.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
 

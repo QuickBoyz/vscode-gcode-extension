@@ -1,4 +1,4 @@
-import { VariableDefinitions } from '../../visualizer/VariableResolutionService';
+import { VariableDefinitions } from '../../config/types';
 import {
   PathBounds,
   PathSegment,

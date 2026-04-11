@@ -16,7 +16,7 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { tokenizeSourceLines, TokenSpan } from '../visualizer/sourceTokenizer';
-import { VariableDefinitions } from '../visualizer/VariableResolutionService';
+import { VariableDefinitions } from '../config/types';
 import {
   PathBounds,
   ReferencedVariable,

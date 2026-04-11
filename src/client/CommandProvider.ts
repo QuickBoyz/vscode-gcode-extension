@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VariableDefinitions } from '../visualizer/VariableResolutionService';
+import { VariableDefinitions } from '../config/types';
 import { VisualizerConfig } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';

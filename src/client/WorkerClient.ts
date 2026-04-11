@@ -16,8 +16,9 @@ import { Worker } from 'worker_threads';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DialectType } from '../constants';
+import { VariableDefinitions } from '../config/types';
 import {
-  VariableDefinitions,
+  VariableEnvironment,
   VariableResolutionService,
 } from '../visualizer/VariableResolutionService';
 import {
@@ -255,7 +256,7 @@ export class WorkerClient {
   private buildEnvironment(
     settingsVariables?: VariableDefinitions,
     runtimeOverrides?: VariableDefinitions
-  ): ReturnType<VariableResolutionService['resolve']> | undefined {
+  ): VariableEnvironment | undefined {
     if (!settingsVariables && !runtimeOverrides) return undefined;
     return new VariableResolutionService({ settingsVariables, runtimeOverrides }).resolve();
   }

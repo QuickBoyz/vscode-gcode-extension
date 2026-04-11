@@ -1,4 +1,7 @@
-import { VariableResolutionService } from '../visualizer/VariableResolutionService';
+import {
+  VariableEnvironment,
+  VariableResolutionService,
+} from '../visualizer/VariableResolutionService';
 
 describe('VariableResolutionService', () => {
   // ---------------------------------------------------------------------------
@@ -191,5 +194,90 @@ describe('VariableResolutionService', () => {
     expect(env.peek(200)).toBeNull();
     expect(env.peek(300)).toBeNull();
     expect(env.peek('name')).toBeNull();
+  });
+
+  it('ignores NaN and Infinity values from settings', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: {
+        '#100': NaN,
+        '#200': Infinity,
+        '#300': -Infinity,
+        '#400': 42,
+      },
+    });
+    const env = service.resolve();
+
+    expect(env.peek(100)).toBeNull();
+    expect(env.peek(200)).toBeNull();
+    expect(env.peek(300)).toBeNull();
+    expect(env.peek(400)).toBe(42);
+  });
+});
+
+describe('VariableEnvironment', () => {
+  it('set() on a pinned key is silently ignored', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4, true);
+
+    env.set(100, 99.9);
+
+    expect(env.peek(100)).toBe(25.4);
+  });
+
+  it('set() on a non-pinned key works normally', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4, false);
+
+    env.set(100, 99.9);
+
+    expect(env.peek(100)).toBe(99.9);
+  });
+
+  it('reset() restores initial snapshot values and clears access tracking', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4, false);
+    env.seed('feed', 500, false);
+
+    // Mutate via set and track via get
+    env.set(100, 99.9);
+    env.get(100);
+    env.get('feed');
+
+    expect(env.peek(100)).toBe(99.9);
+    expect(env.referencedKeys.size).toBe(2);
+
+    env.reset();
+
+    // Values restored to initial snapshot
+    expect(env.peek(100)).toBe(25.4);
+    expect(env.peek('feed')).toBe(500);
+    // Access tracking cleared
+    expect(env.referencedKeys.size).toBe(0);
+  });
+
+  it('reset() preserves pinning after reset', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4, true);
+
+    env.reset();
+    env.set(100, 99.9);
+
+    expect(env.peek(100)).toBe(25.4);
+  });
+
+  it('referencedKeys tracks keys accessed via get() but not via peek()', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4, false);
+    env.seed(200, 50.0, false);
+    env.seed('feed', 500, false);
+
+    env.get(100);
+    env.get('feed');
+    env.peek(200);
+
+    expect(env.referencedKeys.has(100)).toBe(true);
+    expect(env.referencedKeys.has('feed')).toBe(true);
+    expect(env.referencedKeys.has(200)).toBe(false);
+    expect(env.referencedKeys.size).toBe(2);
   });
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { VariableDefinitions } from '../../visualizer/VariableResolutionService';
+import { VariableDefinitions } from '../../config/types';
 import { ReferencedVariable } from '../../visualizer/types';
 import vscode from '../vscodeApi';
 
@@ -80,7 +80,7 @@ function EditableVariableRow({
 
   const handleSave = useCallback(() => {
     const parsed = parseFloat(editValue);
-    if (!isNaN(parsed)) {
+    if (Number.isFinite(parsed)) {
       onSave(variableKey, parsed);
     }
     setEditing(false);
@@ -248,7 +248,7 @@ export function VariablePanel({
     }
 
     const parsed = parseFloat(newValue);
-    if (isNaN(parsed)) return;
+    if (!Number.isFinite(parsed)) return;
 
     setKeyError('');
     handleSaveOverride(trimmedKey, parsed);
@@ -290,7 +290,7 @@ export function VariablePanel({
 
       {isOpen && (
         <div className="variable-panel-content">
-          <div className="variable-referenced-section">
+          <div className="variable-section">
             <button
               className="variable-section-toggle"
               type="button"
@@ -359,7 +359,7 @@ export function VariablePanel({
           </div>
 
           {settingsEntries.length > 0 && (
-            <div className="variable-referenced-section">
+            <div className="variable-section">
               <button
                 className="variable-section-toggle"
                 type="button"
@@ -387,7 +387,7 @@ export function VariablePanel({
           )}
 
           {referencedVariables.length > 0 && (
-            <div className="variable-referenced-section">
+            <div className="variable-section">
               <button
                 className="variable-section-toggle"
                 type="button"
