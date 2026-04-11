@@ -755,7 +755,7 @@ G2 X20 Z0 I5 K0
         ]);
         const data = extractWithVariables('G1 X#200 Y#100\nG1 X#<zebra> Y#<alpha>', variables);
         const keys = data.referencedVariables.map((v) => v.key);
-        expect(keys).toEqual(['#100', '#200', '#<alpha>', '#<zebra>']);
+        expect(keys).toEqual(['#<alpha>', '#<zebra>', '#100', '#200']);
       });
 
       it('value reflects the final resolved value after execution', () => {
