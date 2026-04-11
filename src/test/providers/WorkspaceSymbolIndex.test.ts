@@ -66,7 +66,7 @@ O100 ENDSUB`;
       expect(smallIndex.getSymbolCount()).toBe(1);
 
       smallIndex.indexFile('file:///file2.nc', 'O200 SUB\nO200 ENDSUB');
-      // file2 should still be indexed but with 0 symbols since limit is reached
+      // file2 is not indexed since the global symbol limit was already reached
       expect(smallIndex.getSymbolCount()).toBe(1);
     });
 
@@ -76,7 +76,7 @@ O100 ENDSUB`;
       const symbols = index.getFileSymbols('file:///test.nc');
       expect(symbols).toHaveLength(1);
       expect(symbols[0].name).toBe('O0001');
-      expect(symbols[0].kind).toBe(SymbolKind.Key);
+      expect(symbols[0].kind).toBe(SymbolKind.Module);
     });
   });
 

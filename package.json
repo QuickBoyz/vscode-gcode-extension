@@ -380,7 +380,7 @@
         "gcode.workspace.indexingEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable workspace-wide symbol indexing for Ctrl+T search across all G-code files"
+          "description": "Enable symbol indexing for Ctrl+T search across open G-code files"
         },
         "gcode.workspace.maxSymbols": {
           "type": "integer",
