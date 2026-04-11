@@ -28,10 +28,10 @@ import {
 import { UnaryExpressionNode } from '../parser/nodes/expressions/UnaryExpressionNode';
 import { FunctionCallNode } from '../parser/nodes/FunctionCallNode';
 import { VariableReferenceNode } from '../parser/nodes/VariableReferenceNode';
-import { VariableEnvironment } from './VariableResolutionService';
+import { VariableEnvironment } from './VariableEnvironment';
 
 export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
-  constructor(private readonly environment: VariableEnvironment) {
+  constructor(private readonly variableEnvironment: VariableEnvironment) {
     super();
   }
 
@@ -61,7 +61,7 @@ export class GCodeExpressionEvaluator extends BaseAstVisitor<number | null> {
   }
 
   override visitVariableReference(node: VariableReferenceNode): number | null {
-    return this.environment.get(node.name) ?? null;
+    return this.variableEnvironment.get(node.name) ?? null;
   }
 
   override visitBinaryExpression(node: BinaryExpressionNode): number | null {

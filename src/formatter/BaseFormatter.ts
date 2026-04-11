@@ -1,4 +1,5 @@
 import { DEFAULTS, GCodeSymbols } from '../constants';
+import { formatVariableName } from '../providers/RenameUtils';
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { AstTraverser } from '../parser/AstTraverser';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
@@ -183,13 +184,6 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements Form
     return `${axis}${value}`;
   }
 
-  protected formatVariableName(name: string | number): string {
-    if (typeof name === 'number') {
-      return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
-    }
-    return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
-  }
-
   protected formatCommand(node: MotionCommandNode): string {
     if (this.settings.prettyPrintCommands) {
       return normalizeCommand(node.command);
@@ -258,7 +252,7 @@ export abstract class BaseFormatter extends BaseAstVisitor<void> implements Form
   visitVariableAssignment(node: VariableAssignmentNode): void {
     this.handleLineGap(node.getRange().start.line);
     const valueStr = this.expressionFormatter.format(node.value);
-    this.addLine(`${this.formatVariableName(node.name)} = ${valueStr}`);
+    this.addLine(`${formatVariableName(node.name)} = ${valueStr}`);
   }
 
   visitFunctionCall(node: FunctionCallNode): string {

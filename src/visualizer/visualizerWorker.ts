@@ -11,7 +11,6 @@
 import { parentPort } from 'worker_threads';
 
 import { VisualizerService } from '../client/VisualizerService';
-import { VariableResolutionService } from './VariableResolutionService';
 import { WorkerErrorResponse, WorkerRequest, WorkerResponse } from './types';
 
 const service = new VisualizerService();
@@ -23,13 +22,11 @@ parentPort?.on('message', (request: WorkerRequest) => {
 
   try {
     const startTime = Date.now();
-
-    // Resolve settings variables into a VariableEnvironment for the interpreter.
-    const environment = new VariableResolutionService({
-      settingsVariables: request.settingsVariables,
-    }).resolve();
-
-    const result = service.extractToolPath(request.text, request.dialect, environment);
+    const result = service.extractToolPath(
+      request.text,
+      request.dialect,
+      request.settingsVariables
+    );
     const durationMs = Date.now() - startTime;
 
     const response: WorkerResponse = {

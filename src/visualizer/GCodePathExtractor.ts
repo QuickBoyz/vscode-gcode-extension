@@ -20,6 +20,7 @@
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
+import { formatVariableName } from '../providers/RenameUtils';
 import {
   RAPID_COMMANDS,
   FEED_COMMANDS,
@@ -32,7 +33,7 @@ import {
 import { ARC_PLANE_CONFIGS, ArcPlane, ArcPlaneConfig } from './ArcPlane';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { GCodeInterpreter } from './GCodeInterpreter';
-import { VariableEnvironment } from './VariableResolutionService';
+import { VariableEnvironment } from './VariableEnvironment';
 import {
   MotionContext,
   MotionHandler,
@@ -233,10 +234,10 @@ export class GCodePathExtractor implements MotionHandler {
    * can be reused across multiple documents.
    *
    * @param program     - Parsed G-code program AST
-   * @param environment - Optional pre-configured variable environment
+   * @param variableEnvironment - Optional pre-configured variable environment
    *                      (from {@link VariableResolutionService})
    */
-  extract(program: ProgramNode, environment?: VariableEnvironment): ToolPathData {
+  extract(program: ProgramNode, variableEnvironment?: VariableEnvironment): ToolPathData {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
@@ -244,7 +245,7 @@ export class GCodePathExtractor implements MotionHandler {
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
-    const interpreter = new GCodeInterpreter(this, undefined, environment);
+    const interpreter = new GCodeInterpreter(this, undefined, variableEnvironment);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     const referencedVariables = this.buildReferencedVariables(interpreter);
@@ -257,22 +258,14 @@ export class GCodePathExtractor implements MotionHandler {
    */
   private buildReferencedVariables(interpreter: GCodeInterpreter): readonly ReferencedVariable[] {
     const named: ReferencedVariable[] = [];
-    const numeric: { readonly ref: ReferencedVariable; readonly index: number }[] = [];
 
     for (const key of interpreter.referencedVariables) {
       const value = interpreter.getVariableValue(key);
-      if (typeof key === 'number') {
-        numeric.push({ ref: { key: `#${key}`, value }, index: key });
-      } else {
-        named.push({ key: `#<${key}>`, value });
-      }
+      const displayKey = formatVariableName(key);
+      named.push({ key: displayKey, value });
     }
 
-    // Stable display order: named keys alphabetically, then numeric keys by index.
-    named.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-    numeric.sort((a, b) => a.index - b.index);
-
-    return [...named, ...numeric.map((entry) => entry.ref)];
+    return named.sort((a, b) => a.key.localeCompare(b.key));
   }
 
   // -------------------------------------------------------------------------

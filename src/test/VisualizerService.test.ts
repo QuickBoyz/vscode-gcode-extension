@@ -1,7 +1,6 @@
 import { VisualizerService } from '../client/VisualizerService';
 import * as LexerFactoryModule from '../lexer/LexerFactory';
 import { MotionType } from '../visualizer/types';
-import { VariableEnvironment } from '../visualizer/VariableResolutionService';
 
 describe('VisualizerService', () => {
   let service: VisualizerService;
@@ -114,12 +113,7 @@ describe('VisualizerService', () => {
   // ---------------------------------------------------------------------------
 
   it('uses initial variables for tool-path extraction', () => {
-    const variables = new Map<string | number, number>([[100, 25.4]]);
-    const result = service.extractToolPath(
-      'G1 X#100',
-      undefined,
-      VariableEnvironment.fromEntries(variables)
-    );
+    const result = service.extractToolPath('G1 X#100', undefined, { '#100': 25.4 });
 
     expect(result.success).toBe(true);
     if (result.success) {

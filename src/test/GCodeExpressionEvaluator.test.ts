@@ -10,7 +10,7 @@ import { FunctionCallNode } from '../parser/nodes/FunctionCallNode';
 import { Range } from '../parser/nodes/Range';
 import { VariableReferenceNode } from '../parser/nodes/VariableReferenceNode';
 import { GCodeExpressionEvaluator } from '../visualizer/GCodeExpressionEvaluator';
-import { VariableEnvironment } from '../visualizer/VariableResolutionService';
+import { VariableEnvironment } from '../visualizer/VariableEnvironment';
 
 /** Shorthand range for test nodes. */
 const R = Range.create(0, 0, 0, 0);

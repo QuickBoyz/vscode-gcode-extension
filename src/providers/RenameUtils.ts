@@ -1,23 +1,83 @@
 /**
  * Rename Utilities
  *
- * Shared utility functions for variable renaming, position/range conversion,
- * and validation.
+ * Shared utility functions for variable formatting, normalization,
+ * renaming, position/range conversion, and validation.
  */
 import { GCodeSymbols, REGEX_PATTERNS } from '../constants';
 import { Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
 
+// ---------------------------------------------------------------------------
+// Formatting & normalization
+// ---------------------------------------------------------------------------
+
 /**
- * Format variable name for display/editing
- * Numeric: #1
- * Named: #<foo>
+ * Formats an internal variable key (number or string) to its display form.
+ *
+ *   - Numeric: `100` → `#100`
+ *   - Named:   `"foo"` → `#<foo>`
  */
 export function formatVariableName(name: string | number): string {
-  if (typeof name === 'number') {
+  if (typeof name === 'number' || /^\d+$/.test(String(name))) {
     return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
   }
   return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
 }
+
+/** Pattern matching a numeric variable key: #123 or just 123 */
+const NUMERIC_VARIABLE_PATTERN = /^#?(\d+)$/;
+
+/** Pattern matching a named variable key: #<name> */
+const NAMED_VARIABLE_PATTERN = /^#<([a-zA-Z_][a-zA-Z0-9_]*)>$/;
+
+/** Pattern matching a bare named variable key (no delimiters): name */
+const BARE_NAMED_VARIABLE_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+/**
+ * Normalizes a user-provided variable key to the internal format
+ * used by the interpreter's variable environment.
+ *
+ * @returns A numeric key for numbered variables, a lowercase string
+ *          key for named variables, or `null` if the key is invalid.
+ */
+export function normalizeVariableKey(key: string | number): string | number | null {
+  if (typeof key === 'number') {
+    return key;
+  }
+
+  const numericMatch = NUMERIC_VARIABLE_PATTERN.exec(key);
+  if (numericMatch) {
+    return parseInt(numericMatch[1], 10);
+  }
+
+  const namedMatch = NAMED_VARIABLE_PATTERN.exec(key);
+  if (namedMatch) {
+    return namedMatch[1].toLowerCase();
+  }
+
+  if (BARE_NAMED_VARIABLE_PATTERN.test(key)) {
+    return key.toLowerCase();
+  }
+
+  return null;
+}
+
+/**
+ * Converts a user-provided variable key to its canonical display form.
+ * Combines normalization with formatting: numeric keys become `#123`,
+ * named keys become `#<name>` (lowercase).
+ *
+ * @returns The canonical display key, or `null` if the input is invalid.
+ */
+export function canonicalizeVariableKey(key: string): string | null {
+  const normalized = normalizeVariableKey(key);
+  if (normalized === null) return null;
+  return formatVariableName(normalized);
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
 
 /**
  * Validate a new variable name
@@ -38,6 +98,10 @@ export function validateVariableName(name: string, isNumeric: boolean): boolean 
   // Named variables must match the pattern [a-zA-Z_][a-zA-Z0-9_]*
   return REGEX_PATTERNS.VALID_NAMED_VARIABLE.test(name);
 }
+
+// ---------------------------------------------------------------------------
+// Range & extraction
+// ---------------------------------------------------------------------------
 
 /**
  * Extract variable name from document text at a given range

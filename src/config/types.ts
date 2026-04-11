@@ -8,10 +8,12 @@
 
 import { DialectType } from '../constants';
 import { FormatterConfig } from '../formatter/types';
-import { ExtractorConfig, InterpreterConfig, VisualizerConfig } from '../visualizer/types';
-
-/** Map of user-provided variable names (as typed in settings) to values. */
-export type VariableDefinitions = Readonly<Record<string, number>>;
+import {
+  ExtractorConfig,
+  InterpreterConfig,
+  VariableDefinitions,
+  VisualizerConfig,
+} from '../visualizer/types';
 
 /**
  * Root configuration for the entire G-code extension.

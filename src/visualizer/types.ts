@@ -6,7 +6,6 @@
  * the webview bundle.
  */
 
-import { VariableDefinitions } from '../config/types';
 import { DialectType } from '../constants';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
@@ -168,6 +167,9 @@ export type VisualizerResult = VisualizerSuccess | VisualizerFailure;
 // ---------------------------------------------------------------------------
 // Worker thread message protocol
 // ---------------------------------------------------------------------------
+
+/** Map of user-provided variable names (as typed in settings) to values. */
+export type VariableDefinitions = Readonly<Record<string, number>>;
 
 /**
  * Message sent from the main thread to the visualizer worker.

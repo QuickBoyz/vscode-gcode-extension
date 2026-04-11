@@ -4,8 +4,9 @@
  * Centralizes variable-related operations for rename and highlight providers.
  * Provides symbol search, name formatting, validation, and range extraction.
  */
-import { GCodeSymbols, REGEX_PATTERNS } from '../constants';
+import { REGEX_PATTERNS } from '../constants';
 import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
+import { formatVariableName } from './RenameUtils';
 import { AnalysisResults } from './AnalysisResults';
 import { NodeFinder } from './NodeFinder';
 
@@ -72,29 +73,13 @@ export class VariableAnalysisService {
     }
 
     // For VariableAssignmentNode, extract just the variable name part
-    const formattedName = this.formatVariableName(node.name);
+    const formattedName = formatVariableName(node.name);
     return Range.create(
       fullRange.start.line,
       fullRange.start.character,
       fullRange.start.line,
       fullRange.start.character + formattedName.length
     );
-  }
-
-  /**
-   * Format variable name for display/editing
-   *
-   * - Numeric: #1
-   * - Named: #<foo>
-   *
-   * @param name - Variable name (string or number)
-   * @returns Formatted variable name
-   */
-  formatVariableName(name: string | number): string {
-    if (typeof name === 'number') {
-      return `${GCodeSymbols.VARIABLE_PREFIX}${name}`;
-    }
-    return `${GCodeSymbols.NAMED_VAR_OPEN}${name}${GCodeSymbols.NAMED_VAR_CLOSE}`;
   }
 
   /**

@@ -16,11 +16,11 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { tokenizeSourceLines, TokenSpan } from '../visualizer/sourceTokenizer';
-import { VariableDefinitions } from '../config/types';
 import {
   PathBounds,
   ReferencedVariable,
   ToolPathData,
+  VariableDefinitions,
   VisualizerConfig,
 } from '../visualizer/types';
 import { generateNonce } from './nonce';
@@ -47,7 +47,8 @@ type ExtensionToWebviewMessage =
  */
 type WebviewToExtensionMessage =
   | { type: 'ready' }
-  | { type: 'settingsChange'; settings?: VisualizerConfig; variables?: VariableDefinitions }
+  | { type: 'settingsChange'; settings?: VisualizerConfig }
+  | { type: 'variablesChange'; variables?: VariableDefinitions }
   | { type: 'navigateToLine'; line: number };
 
 /**
@@ -309,13 +310,11 @@ export class GCodeVisualizerPanel {
       return;
     }
 
-    if (msg.type !== 'settingsChange') return;
-
-    // Persist settings via the config provider.
-    if (msg.settings) {
+    if (msg.type === 'settingsChange') {
       void this.configProvider.updateConfig({ visualizer: msg.settings });
     }
-    if (msg.variables) {
+
+    if (msg.type === 'variablesChange') {
       void this.configProvider.updateConfig({ variables: msg.variables });
     }
   }
