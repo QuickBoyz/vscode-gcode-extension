@@ -256,14 +256,23 @@ export class GCodePathExtractor implements MotionHandler {
    * tracking data, including their final resolved values after execution.
    */
   private buildReferencedVariables(interpreter: GCodeInterpreter): readonly ReferencedVariable[] {
-    const references: ReferencedVariable[] = [];
+    const named: ReferencedVariable[] = [];
+    const numeric: { readonly ref: ReferencedVariable; readonly index: number }[] = [];
+
     for (const key of interpreter.referencedVariables) {
       const value = interpreter.getVariableValue(key);
-      const displayKey = typeof key === 'number' ? `#${key}` : `#<${key}>`;
-      references.push({ key: displayKey, value });
+      if (typeof key === 'number') {
+        numeric.push({ ref: { key: `#${key}`, value }, index: key });
+      } else {
+        named.push({ key: `#<${key}>`, value });
+      }
     }
-    // Sort for stable display order: named keys alphabetically first, then numeric keys by number.
-    return references.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+
+    // Stable display order: named keys alphabetically, then numeric keys by index.
+    named.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    numeric.sort((a, b) => a.index - b.index);
+
+    return [...named, ...numeric.map((entry) => entry.ref)];
   }
 
   // -------------------------------------------------------------------------
