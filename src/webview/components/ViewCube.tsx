@@ -135,7 +135,8 @@ const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
  * CSS 3D uses Y-up by default, so we map:
  * - rotateX(-phi) for elevation (CSS rotateX positive tilts top away,
  *   but positive phi means looking up, so we negate)
- * - rotateY(theta) for azimuth (CSS Y axis = vertical = visualizer Z axis)
+ * - rotateY(-theta) for azimuth (CSS Y axis = vertical = visualizer Z axis,
+ *   negated so that positive theta rotates the cube in the correct direction)
  */
 function cameraToCSS(theta: number, phi: number): string {
   const thetaDeg = (theta * 180) / Math.PI;

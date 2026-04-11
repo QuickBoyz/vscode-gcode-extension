@@ -118,7 +118,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
 
   const resetView = useCallback(() => {
     cameraControlsRef.current?.resetView(segmentsRef.current, boundsRef.current);
-  }, []);
+    notifyCameraChange();
+  }, [notifyCameraChange]);
 
   const scheduleRender = useCallback(() => {
     cameraControlsRef.current?.scheduleRender();
@@ -170,6 +171,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
               controls.clearProjectedCache();
               controls.fitView(msg.segments ?? [], msg.bounds ?? null);
               controls.scheduleRender();
+              notifyCameraChange();
             }
           });
           break;
@@ -188,7 +190,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
         }
       }
     },
-    [applyExternalSettings, hideTooltip]
+    [applyExternalSettings, hideTooltip, notifyCameraChange]
   );
 
   useExtensionMessages(handleMessage);

@@ -79,7 +79,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       playbackRenderRefs
     );
 
-  // Wrap scheduleRender so camera-change listeners (e.g. ViewCube sync) are notified.
+  // Wrap the camera-change callback so listeners (e.g. ViewCube sync) are notified on every change.
   const onCameraChange = useCallback(() => {
     notifyCameraChange();
     scheduleRender();
