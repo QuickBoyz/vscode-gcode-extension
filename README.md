@@ -5,9 +5,13 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
 ## Features
 
 - **3D Tool-Path Visualizer**: Interactive 3D view of cutting paths with orbit, pan, and zoom
+  - Tool-path animation and playback with play, pause, step, and speed controls
+  - ViewCube navigation gizmo for preset camera angles (faces and edges)
+  - Variable panel showing referenced and settings variables with inline override editing
   - Segment hover, selection, and info panel (feed rate, spindle speed, tool number)
   - Click-to-navigate from 3D segments to source G-code lines
   - Arc plane support (G17/G18/G19) and G28 home position
+  - Pre-load variables from settings for accurate path visualization
   - Reference grid, configurable colors and line widths
   - Off-thread parsing with loading indicator for large files
   - Live-update on document change
@@ -21,6 +25,7 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
   - Operator and function documentation
   - Axis parameter meanings
 - **Symbol Navigation**: Hierarchical document outline — symbols grouped by subroutine with IF/WHILE blocks as children
+- **Workspace Symbol Search**: Find G/M commands, variables, subroutines, and labels across open files (Ctrl+T)
 - **Code Folding**: Fold IF/WHILE/subroutine blocks
 - **Variable Renaming**: Rename variables across entire document
 - **Document Highlights**: Highlight all occurrences of a variable
@@ -161,16 +166,31 @@ Enable format on save in VS Code settings:
 
 This extension contributes the following settings:
 
-| Setting                               | Default      | Description                                                                  |
-| ------------------------------------- | ------------ | ---------------------------------------------------------------------------- |
-| `gcode.dialect`                       | `"linuxcnc"` | Select the G-code dialect/flavor for completions and documentation           |
-| `gcode.formatter.addLineNumbers`      | `false`      | Add N-block line numbers to each line (N10, N20, etc.)                       |
-| `gcode.formatter.lineNumberStart`     | `10`         | Starting line number when adding N-blocks                                    |
-| `gcode.formatter.lineNumberIncrement` | `10`         | Line number increment when adding N-blocks                                   |
-| `gcode.formatter.prettyPrintCommands` | `true`       | Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)              |
-| `gcode.formatter.prettyPrintNumbers`  | `true`       | Pretty-print parameter numbers to always include a decimal point (X2 → X2.0) |
-| `gcode.formatter.indent`              | `true`       | Enable indentation for control structures (WHILE, IF, etc.)                  |
-| `gcode.formatter.compactOutput`       | `false`      | Compact output mode - removes all empty lines                                |
+| Setting                                      | Default         | Description                                                                  |
+| -------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `gcode.dialect`                              | `"linuxcnc"`    | Select the G-code dialect/flavor for completions and documentation           |
+| `gcode.formatter.addLineNumbers`             | `false`         | Add N-block line numbers to each line (N10, N20, etc.)                       |
+| `gcode.formatter.lineNumberStart`            | `10`            | Starting line number when adding N-blocks                                    |
+| `gcode.formatter.lineNumberIncrement`        | `10`            | Line number increment when adding N-blocks                                   |
+| `gcode.formatter.prettyPrintCommands`        | `true`          | Pretty-print G and M codes with two digits (G1 → G01, M3 → M03)              |
+| `gcode.formatter.prettyPrintNumbers`         | `true`          | Pretty-print parameter numbers to always include a decimal point (X2 → X2.0) |
+| `gcode.formatter.indent`                     | `true`          | Enable indentation for control structures (WHILE, IF, etc.)                  |
+| `gcode.formatter.compactOutput`              | `false`         | Compact output mode - removes all empty lines                                |
+| `gcode.formatter.addProgramDelimiters`       | `true`          | Add program delimiters (%) at the beginning and end if not present           |
+| `gcode.visualizer.rapidColor`                | `"#ff6b6b"`     | Colour for rapid (G0) moves in the 3D visualizer                             |
+| `gcode.visualizer.feedColor`                 | `"#4ecdc4"`     | Colour for linear feed (G1) moves in the 3D visualizer                       |
+| `gcode.visualizer.arcColor`                  | `"#f0e68c"`     | Colour for arc (G2/G3) moves in the 3D visualizer                            |
+| `gcode.visualizer.lineThickness`             | `1`             | Line thickness (pixels) for tool-path lines                                  |
+| `gcode.visualizer.showGrid`                  | `true`          | Show reference grid on the XY plane                                          |
+| `gcode.visualizer.gridSpacing`               | `10`            | Grid line spacing in work units (mm or inches)                               |
+| `gcode.visualizer.showRapidMoves`            | `true`          | Show rapid (G0) moves in the 3D visualizer                                   |
+| `gcode.visualizer.projection`                | `"perspective"` | Projection mode: `"perspective"` or `"orthographic"`                         |
+| `gcode.visualizer.playback.rapidSpeed`       | `10000`         | Rapid traverse speed in mm/min for playback animation                        |
+| `gcode.visualizer.playback.defaultFeedRate`  | `1000`          | Fallback feed rate in mm/min when no F value is set                          |
+| `gcode.visualizer.playback.followSourceLine` | `false`         | Auto-scroll editor to current source line during playback                    |
+| `gcode.variables`                            | `{}`            | Global variable values pre-loaded before program execution                   |
+| `gcode.workspace.indexingEnabled`            | `true`          | Enable symbol indexing for Ctrl+T search across open files                   |
+| `gcode.workspace.maxSymbols`                 | `10000`         | Maximum number of symbols to index across all workspace files                |
 
 ## Architecture
 
@@ -209,7 +229,8 @@ src/
 │   ├── extension.ts # Extension entry point
 │   ├── CommandProvider.ts
 │   ├── GCodeVisualizerPanel.ts
-│   └── VisualizerService.ts
+│   ├── VisualizerService.ts
+│   └── WorkerClient.ts
 ├── server/          # Language Server implementation
 │   └── server.ts    # LSP server setup
 ├── lexer/           # Hand-written character scanner
@@ -235,8 +256,13 @@ src/
 ├── visualizer/      # 3D tool-path extraction (VS Code-free)
 │   ├── GCodePathExtractor.ts
 │   ├── GCodeInterpreter.ts
-│   └── GCodeExpressionEvaluator.ts
-├── webview/         # 3D visualizer webview (HTML/CSS/JS)
+│   ├── GCodeExpressionEvaluator.ts
+│   ├── VariableResolutionService.ts
+│   └── VariableEnvironment.ts
+├── webview/         # 3D visualizer React app
+│   ├── components/  # React components (variable panel, etc.)
+│   ├── playback/    # Animation/playback engine
+│   └── viewCube/    # ViewCube navigation gizmo
 ├── providers/       # LSP service layer
 │   ├── CompletionProvider.ts
 │   ├── DefinitionProvider.ts
@@ -249,6 +275,7 @@ src/
 │   ├── HoverProvider.ts
 │   ├── RenameProvider.ts
 │   ├── SemanticTokensProvider.ts
+│   ├── WorkspaceSymbolProvider.ts
 │   ├── DataProviderFactory.ts
 │   └── dialects/    # Dialect-specific data providers
 ├── test/            # Unit tests (Jest)

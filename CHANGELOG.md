@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tool-path animation and playback in the 3D visualizer — play, pause, step, and speed controls with real-time tool marker (#52, #120)
+- ViewCube navigation gizmo — click faces and edges for preset camera angles, synchronized with orbit controls (#121, #122)
+- Variable panel in the 3D visualizer — shows referenced and settings variables, inline editing, and override support
+- Variable resolution service — pre-load variables from settings (`gcode.variables`) before program execution
+- Workspace symbol search (Ctrl+T) — find G/M commands, variables, subroutines, and labels across open files
+- Playback settings: `gcode.visualizer.playback.rapidSpeed`, `gcode.visualizer.playback.defaultFeedRate`, `gcode.visualizer.playback.followSourceLine`
+- Global variable settings: `gcode.variables` for pre-loading variable values into the visualizer
+- Workspace indexing settings: `gcode.workspace.indexingEnabled`, `gcode.workspace.maxSymbols`
+- Formatter setting: `gcode.formatter.addProgramDelimiters` for auto-inserting `%` delimiters
+
+### Changed
+- Consolidated variable management into `VariableEnvironment` and `VariableResolutionService`
+- Moved variable merge logic from client adapter to `VisualizerService` (single composition root)
+- Restructured webview variable panel with collapsible sections and inline edit mode
+- Added webview watch mode (`npm run watch:webview`) for faster development iteration
+
+### Fixed
+- Referenced variables now show final resolved values in the variable panel
+- Runtime overrides are pinned so program assignments cannot overwrite user values
+- Order of referenced variable keys in extraction tests
+
 ## [v2.3.0] - 2026-04-07
 
 ### Changed

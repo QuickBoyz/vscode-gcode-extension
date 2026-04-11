@@ -22,7 +22,8 @@ All components have to have comprehensive unit test coverage, including:
 - **Parser**: GCodeParser, AstTraverser, AstFactory
 - **Formatters**: BaseFormatter, dialect-specific formatters (LinuxCNC, Fanuc, Haas, Siemens)
 - **Providers**: DocumentFormatting, DocumentRangeFormatting, HoverProvider, RenameProvider, etc.
-- **Services**: AstAnalysisService, DocumentStateManager, FormatterService
+- **Services**: AstAnalysisService, DocumentStateManager, FormatterService, VariableAnalysisService, WorkspaceSymbolIndex
+- **Visualizer**: GCodePathExtractor, GCodeInterpreter, VariableResolutionService
 - **Utilities**: CompletionUtils, RenameUtils, NodeFinder, MarkdownBuilder
 
 **Dialect-Specific Tests:**
@@ -89,6 +90,11 @@ E2E tests are located in `src/e2e/` and test the extension running in a real VS 
 - `documentHighlight.test.ts` - Symbol highlighting
 - `rename.test.ts` - Variable renaming
 - `semanticTokens.test.ts` - Semantic token provider (syntax coloring)
+- `completion.test.ts` - IntelliSense completions
+- `hover.test.ts` - Hover information provider
+- `codeAction.test.ts` - Quick-fix code actions
+- `visualizer.test.ts` - 3D visualizer integration
+- `workspaceSymbol.test.ts` - Workspace symbol search (Ctrl+T)
 
 ### Running E2E Tests
 
@@ -104,17 +110,25 @@ npm run test:all
 
 ```
 src/e2e/
-├── suite/              # Test suites
+├── suite/              # Test suites (13 files)
 │   ├── index.ts        # Test runner configuration
 │   ├── extension.test.ts
+│   ├── configuration.test.ts
 │   ├── formatting.test.ts
-│   └── ...
+│   ├── documentSymbol.test.ts
+│   ├── documentHighlight.test.ts
+│   ├── rename.test.ts
+│   ├── semanticTokens.test.ts
+│   ├── completion.test.ts
+│   ├── hover.test.ts
+│   ├── codeAction.test.ts
+│   ├── visualizer.test.ts
+│   └── workspaceSymbol.test.ts
 ├── fixtures/           # Test G-code files
 │   ├── simple.nc
 │   ├── complex.nc
 │   ├── variables.nc
 │   └── empty.nc
-├── runTest.ts          # E2E test entry point
 └── testUtils.ts        # Shared test utilities
 ```
 
