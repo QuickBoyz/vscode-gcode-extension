@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SegmentStatsProps {
   readonly count: number;
 }

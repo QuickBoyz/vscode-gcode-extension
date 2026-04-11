@@ -1,4 +1,3 @@
-import { VariableDefinitions } from '../../config/types';
 import {
   PathBounds,
   PathSegment,
@@ -19,7 +18,7 @@ export type WebviewMessage =
       readonly bounds: PathBounds | null;
       readonly sourceTokens: SourceTokens | undefined;
       readonly referencedVariables: readonly ReferencedVariable[];
-      readonly settingsVariables: VariableDefinitions;
+      readonly settingsVariables: readonly ReferencedVariable[];
     }
   | { readonly type: 'updateSettings'; readonly settings: Partial<VisualizerConfig> }
   | { readonly type: 'error'; readonly message: string }
@@ -32,7 +31,7 @@ export interface DocumentState {
   readonly bounds: PathBounds | null;
   readonly sourceTokens: SourceTokens | undefined;
   readonly referencedVariables: readonly ReferencedVariable[];
-  readonly settingsVariables: VariableDefinitions;
+  readonly settingsVariables: readonly ReferencedVariable[];
   readonly error: string | null;
   readonly loading: boolean;
 }
@@ -44,7 +43,7 @@ export type DocumentAction =
       readonly bounds: PathBounds | null;
       readonly sourceTokens: SourceTokens | undefined;
       readonly referencedVariables: readonly ReferencedVariable[];
-      readonly settingsVariables: VariableDefinitions;
+      readonly settingsVariables: readonly ReferencedVariable[];
     }
   | { readonly type: 'error'; readonly message: string }
   | { readonly type: 'loading' };
@@ -54,7 +53,7 @@ export const INITIAL_DOCUMENT_STATE: DocumentState = {
   bounds: null,
   sourceTokens: undefined,
   referencedVariables: [],
-  settingsVariables: {},
+  settingsVariables: [],
   error: null,
   loading: false,
 };
