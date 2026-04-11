@@ -38,6 +38,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc --project tsconfig.build.json && npm run build:webview",
     "build:webview": "node scripts/build-webview.mjs",
+    "watch:webview": "node scripts/build-webview.mjs --watch",
     "build:e2e": "npm run build && rm -rf out && tsc --project tsconfig.e2e.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
