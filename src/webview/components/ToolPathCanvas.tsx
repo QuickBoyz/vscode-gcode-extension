@@ -11,6 +11,7 @@ import {
   useCameraControls,
   useCancelAnimation,
   useMousePosition,
+  useNotifyCameraChange,
 } from '../context/VisualizerContext';
 import { usePlaybackEngineRefs } from '../context/PlaybackContext';
 
@@ -38,6 +39,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
   const { registerCameraControls, registerCameraState } = useCameraControls();
   const cancelAnimation = useCancelAnimation();
   const { updateMousePosition } = useMousePosition();
+  const notifyCameraChange = useNotifyCameraChange();
 
   // Stable refs for latest values (used by imperative render/hit-test loops)
   const segmentsRef = useRef<PathSegment[]>(segments);
@@ -77,9 +79,15 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
       playbackRenderRefs
     );
 
+  // Wrap scheduleRender so camera-change listeners (e.g. ViewCube sync) are notified.
+  const onCameraChange = useCallback(() => {
+    notifyCameraChange();
+    scheduleRender();
+  }, [notifyCameraChange, scheduleRender]);
+
   const { camera, fitView, resetView, isDragging } = useCamera(
     canvasRef,
-    scheduleRender,
+    onCameraChange,
     cancelAnimation
   );
   cameraRef.current = camera;

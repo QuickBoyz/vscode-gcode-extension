@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useCameraRef, useScheduleRender, useAnimationCancel } from '../context/VisualizerContext';
+import {
+  useCameraRef,
+  useScheduleRender,
+  useAnimationCancel,
+  useRegisterCameraChangeListener,
+} from '../context/VisualizerContext';
 import { ORBIT_SENSITIVITY, POLE_MARGIN } from '../constants';
 import { FACE_VIEWS, EDGE_VIEWS, ViewTarget } from '../viewCube/views';
 import { animateCamera } from '../viewCube/animation';
@@ -135,13 +140,14 @@ const EDGE_DEFINITIONS: readonly EdgeDefinition[] = [
 function cameraToCSS(theta: number, phi: number): string {
   const thetaDeg = (theta * 180) / Math.PI;
   const phiDeg = (phi * 180) / Math.PI;
-  return `rotateX(${-phiDeg}deg) rotateY(${thetaDeg}deg)`;
+  return `rotateX(${-phiDeg}deg) rotateY(${-thetaDeg}deg)`;
 }
 
 export function ViewCube() {
   const cameraRef = useCameraRef();
   const baseScheduleRender = useScheduleRender();
   const { registerAnimationCancel } = useAnimationCancel();
+  const registerCameraChangeListener = useRegisterCameraChangeListener();
 
   const cubeRef = useRef<HTMLDivElement>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
@@ -174,6 +180,11 @@ export function ViewCube() {
   useEffect(() => {
     syncCubeTransform();
   }, [syncCubeTransform]);
+
+  // Sync cube when the canvas camera changes (e.g. canvas drag).
+  useEffect(() => {
+    return registerCameraChangeListener(syncCubeTransform);
+  }, [registerCameraChangeListener, syncCubeTransform]);
 
   // Navigate to a predefined view
   const navigateTo = useCallback(
