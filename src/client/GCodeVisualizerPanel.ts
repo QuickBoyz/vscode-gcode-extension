@@ -36,7 +36,7 @@ type ExtensionToWebviewMessage =
       settings: VisualizerConfig;
       sourceTokens: readonly TokenSpan[][];
       referencedVariables: readonly ReferencedVariable[];
-      settingsVariables: VariableDefinitions;
+      settingsVariables: readonly ReferencedVariable[];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
@@ -260,7 +260,7 @@ export class GCodeVisualizerPanel {
       settings,
       sourceTokens: tokenizeSourceLines(sourceText.split(/\r?\n/)),
       referencedVariables: pathData.referencedVariables,
-      settingsVariables,
+      settingsVariables: Object.entries(settingsVariables).map(([key, value]) => ({ key, value })),
     };
   }
 

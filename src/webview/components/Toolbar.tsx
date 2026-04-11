@@ -1,4 +1,3 @@
-import React from 'react';
 import { ProjectionMode, VisualizerConfig } from '../../visualizer/types';
 
 interface ToolbarProps {

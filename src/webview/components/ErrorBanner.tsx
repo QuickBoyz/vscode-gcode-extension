@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface ErrorBannerProps {
   readonly message: string | null;
 }

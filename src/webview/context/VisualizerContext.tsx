@@ -164,7 +164,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
             bounds: msg.bounds ?? null,
             sourceTokens: msg.sourceTokens as SourceTokens | undefined,
             referencedVariables: msg.referencedVariables ?? [],
-            settingsVariables: msg.settingsVariables ?? {},
+            settingsVariables: msg.settingsVariables ?? [],
           });
           hideTooltip();
           requestAnimationFrame(() => {

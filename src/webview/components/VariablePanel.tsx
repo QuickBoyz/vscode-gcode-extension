@@ -1,27 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { VariableDefinitions } from '../../config/types';
 import { ReferencedVariable } from '../../visualizer/types';
 import { canonicalizeVariableKey } from '../../visualizer/variableKeyUtils';
 import vscode from '../vscodeApi';
-
-/** A single variable entry displayed in the panel. */
-interface VariableEntry {
-  /** The raw key as typed by the user (e.g. "#100" or "#<tool_diameter>"). */
-  readonly key: string;
-  /** The current numeric value (override or default). */
-  readonly value: number;
-}
 
 interface VariablePanelProps {
   /** Variables referenced in the current G-code program. */
   readonly referencedVariables: readonly ReferencedVariable[];
   /** Variables defined in VS Code settings (`gcode.variables`). */
-  readonly settingsVariables: VariableDefinitions;
+  readonly settingsVariables: readonly ReferencedVariable[];
 }
-
-/** Canonicalizes a user-provided variable key to a deterministic display form,
- *  preventing duplicate representations of the same variable (e.g. `100` vs `#100`). */
-const canonicalizeKey = canonicalizeVariableKey;
 
 // ---------------------------------------------------------------------------
 // Foldable section
@@ -181,31 +168,31 @@ function EditableVariableRow({
 // Variable list
 // ---------------------------------------------------------------------------
 
-/** Common shape for entries rendered in a VariableList. */
-interface VariableListEntry {
-  readonly key: string;
-  readonly value: number | null;
-}
-
 interface VariableListProps {
   /** The entries to render. */
-  readonly entries: readonly VariableListEntry[];
-  /** Current variable overrides, used to determine override status per entry. */
-  readonly overrides: Readonly<Record<string, number>>;
+  readonly entries: readonly ReferencedVariable[];
+  /** Keys that have a user-defined value (used to show override styling / remove button). */
+  readonly settingsKeys: ReadonlySet<string>;
   /** Called when the user saves an edited value. */
   readonly onSave: (key: string, value: number) => void;
   /** Called when the user removes an override. */
   readonly onRemove: (key: string) => void;
-  /** When true, all entries are treated as overrides. Defaults to checking `overrides`. */
+  /** When true, all entries are treated as overrides. Defaults to checking `settingsKeys`. */
   readonly allOverrides?: boolean;
 }
 
 /** Renders a `<ul>` of editable variable rows. */
-function VariableList({ entries, overrides, onSave, onRemove, allOverrides }: VariableListProps) {
+function VariableList({
+  entries,
+  settingsKeys,
+  onSave,
+  onRemove,
+  allOverrides,
+}: VariableListProps) {
   return (
     <ul className="variable-list">
       {entries.map((entry) => {
-        const hasOverride = allOverrides ?? entry.key in overrides;
+        const hasOverride = allOverrides ?? settingsKeys.has(entry.key);
         return (
           <EditableVariableRow
             key={entry.key}
@@ -239,18 +226,26 @@ export function VariablePanel({
   const [newValue, setNewValue] = useState('');
   const [keyError, setKeyError] = useState('');
 
-  const entries: VariableEntry[] = useMemo(
-    () => Object.entries(settingsVariables).map(([key, value]) => ({ key, value })),
+  const settingsKeys = useMemo(
+    () => new Set(settingsVariables.map((v) => v.key)),
     [settingsVariables]
   );
 
-  const postVariables = useCallback((updated: VariableDefinitions) => {
-    vscode.postMessage({ type: 'settingsChange', variables: updated });
+  /** Converts the array back to a Record for the extension host settings API. */
+  const postVariables = useCallback((entries: readonly ReferencedVariable[]) => {
+    const variables: Record<string, number> = {};
+    for (const { key, value } of entries) {
+      if (value !== null) variables[key] = value;
+    }
+    vscode.postMessage({ type: 'settingsChange', variables });
   }, []);
 
   const handleSave = useCallback(
     (key: string, value: number) => {
-      const updated = { ...settingsVariables, [key]: value };
+      const exists = settingsVariables.some((v) => v.key === key);
+      const updated = exists
+        ? settingsVariables.map((v) => (v.key === key ? { key, value } : v))
+        : [...settingsVariables, { key, value }];
       postVariables(updated);
     },
     [settingsVariables, postVariables]
@@ -258,8 +253,7 @@ export function VariablePanel({
 
   const handleRemove = useCallback(
     (key: string) => {
-      const { [key]: _, ...rest } = settingsVariables;
-      postVariables(rest);
+      postVariables(settingsVariables.filter((v) => v.key !== key));
     },
     [settingsVariables, postVariables]
   );
@@ -268,7 +262,7 @@ export function VariablePanel({
     const trimmedKey = newKey.trim();
     if (!trimmedKey) return;
 
-    const canonical = canonicalizeKey(trimmedKey);
+    const canonical = canonicalizeVariableKey(trimmedKey);
     if (canonical === null) {
       setKeyError('Invalid variable key. Use #nnn, #<name>, or name.');
       return;
@@ -293,16 +287,16 @@ export function VariablePanel({
   );
 
   const handleClearAll = useCallback(() => {
-    postVariables({});
+    postVariables([]);
   }, [postVariables]);
 
   const totalCount = useMemo(
     () =>
       new Set([
-        ...entries.map((e) => e.key),
+        ...settingsVariables.map((v) => v.key),
         ...referencedVariables.map((v) => v.key),
       ]).size,
-    [entries, referencedVariables]
+    [settingsVariables, referencedVariables]
   );
 
   return (
@@ -313,7 +307,7 @@ export function VariablePanel({
       </summary>
 
       <div className="variable-panel-content">
-        <VariableSection title="User variables" count={entries.length}>
+        <VariableSection title="User variables" count={settingsVariables.length}>
           <div className="variable-row variable-add-row">
             <input
               type="text"
@@ -340,11 +334,11 @@ export function VariablePanel({
             </button>
           </div>
           {keyError && <div className="variable-key-error">{keyError}</div>}
-          {entries.length > 0 && (
+          {settingsVariables.length > 0 && (
             <>
               <VariableList
-                entries={entries}
-                overrides={settingsVariables}
+                entries={settingsVariables}
+                settingsKeys={settingsKeys}
                 onSave={handleSave}
                 onRemove={handleRemove}
                 allOverrides={true}
@@ -360,7 +354,7 @@ export function VariablePanel({
           <VariableSection title="Referenced in program" count={referencedVariables.length}>
             <VariableList
               entries={referencedVariables}
-              overrides={settingsVariables}
+              settingsKeys={settingsKeys}
               onSave={handleSave}
               onRemove={handleRemove}
             />
