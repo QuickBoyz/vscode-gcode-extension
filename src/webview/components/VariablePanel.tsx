@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VariableDefinitions } from '../../config/types';
+import { VariableResolutionService } from '../../visualizer/VariableResolutionService';
 import { ReferencedVariable } from '../../visualizer/types';
 import vscode from '../vscodeApi';
 
@@ -12,26 +13,17 @@ interface VariableEntry {
 }
 
 interface VariablePanelProps {
-  /** Current variable overrides (key -> value). */
-  readonly overrides: Readonly<Record<string, number>>;
-  /** Called when overrides change. */
-  readonly onOverridesChange: (overrides: Readonly<Record<string, number>>) => void;
   /** Variables referenced in the current G-code program. */
   readonly referencedVariables: readonly ReferencedVariable[];
   /** Variables defined in VS Code settings (`gcode.variables`). */
   readonly settingsVariables: VariableDefinitions;
 }
 
-/** Debounce delay in milliseconds for posting override changes. */
-const OVERRIDE_DEBOUNCE_MS = 400;
-
-/**
- * Pattern matching recognized G-code variable key formats:
- * - `#nnn` or `nnn` — numeric variable
- * - `#<name>` — named variable with angle brackets
- * - `name` — bare named variable (letters, digits, underscores)
- */
-const VALID_VARIABLE_KEY_PATTERN = /^(#?\d+|#<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
+/** Canonicalizes a user-provided variable key to a deterministic display form,
+ *  preventing duplicate representations of the same variable (e.g. `100` vs `#100`). */
+const canonicalizeKey = VariableResolutionService.canonicalizeVariableKey.bind(
+  VariableResolutionService
+);
 
 // ---------------------------------------------------------------------------
 // Foldable section
@@ -236,73 +228,50 @@ function VariableList({ entries, overrides, onSave, onRemove, allOverrides }: Va
 // ---------------------------------------------------------------------------
 
 /**
- * Collapsible panel for viewing and overriding G-code variables.
+ * Collapsible panel for viewing and editing G-code variables.
  *
- * Users can edit any variable value inline. Edits create runtime overrides
- * that are debounced and sent to the extension host via postMessage,
- * triggering a tool-path re-extraction.
+ * Users can edit any variable value inline. Edits are persisted to
+ * VS Code settings via a `settingsChange` postMessage to the extension host.
  */
 export function VariablePanel({
-  overrides,
-  onOverridesChange,
   referencedVariables,
   settingsVariables,
 }: VariablePanelProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [keyError, setKeyError] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Clear the debounce timer on unmount.
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
 
   const entries: VariableEntry[] = useMemo(
-    () => Object.entries(overrides).map(([key, value]) => ({ key, value })),
-    [overrides]
-  );
-
-  const settingsEntries: VariableEntry[] = useMemo(
     () => Object.entries(settingsVariables).map(([key, value]) => ({ key, value })),
     [settingsVariables]
   );
 
-  const postOverrides = useCallback((updated: Readonly<Record<string, number>>) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = setTimeout(() => {
-      vscode.postMessage({ type: 'variableOverrides', overrides: updated });
-      debounceRef.current = null;
-    }, OVERRIDE_DEBOUNCE_MS);
+  const postVariables = useCallback((updated: VariableDefinitions) => {
+    vscode.postMessage({ type: 'settingsChange', variables: updated });
   }, []);
 
-  const handleSaveOverride = useCallback(
+  const handleSave = useCallback(
     (key: string, value: number) => {
-      const updated = { ...overrides, [key]: value };
-      onOverridesChange(updated);
-      postOverrides(updated);
+      const updated = { ...settingsVariables, [key]: value };
+      postVariables(updated);
     },
-    [overrides, onOverridesChange, postOverrides]
+    [settingsVariables, postVariables]
   );
 
-  const handleRemoveOverride = useCallback(
+  const handleRemove = useCallback(
     (key: string) => {
-      const updated = Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== key));
-      onOverridesChange(updated);
-      postOverrides(updated);
+      const { [key]: _, ...rest } = settingsVariables;
+      postVariables(rest);
     },
-    [overrides, onOverridesChange, postOverrides]
+    [settingsVariables, postVariables]
   );
 
   const handleAdd = useCallback(() => {
     const trimmedKey = newKey.trim();
     if (!trimmedKey) return;
 
-    if (!VALID_VARIABLE_KEY_PATTERN.test(trimmedKey)) {
+    const canonical = canonicalizeKey(trimmedKey);
+    if (canonical === null) {
       setKeyError('Invalid variable key. Use #nnn, #<name>, or name.');
       return;
     }
@@ -311,10 +280,10 @@ export function VariablePanel({
     if (!Number.isFinite(parsed)) return;
 
     setKeyError('');
-    handleSaveOverride(trimmedKey, parsed);
+    handleSave(canonical, parsed);
     setNewKey('');
     setNewValue('');
-  }, [newKey, newValue, handleSaveOverride]);
+  }, [newKey, newValue, handleSave]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -326,18 +295,16 @@ export function VariablePanel({
   );
 
   const handleClearAll = useCallback(() => {
-    onOverridesChange({});
-    postOverrides({});
-  }, [onOverridesChange, postOverrides]);
+    postVariables({});
+  }, [postVariables]);
 
   const totalCount = useMemo(
     () =>
       new Set([
         ...entries.map((e) => e.key),
-        ...settingsEntries.map((e) => e.key),
         ...referencedVariables.map((v) => v.key),
       ]).size,
-    [entries, settingsEntries, referencedVariables]
+    [entries, referencedVariables]
   );
 
   return (
@@ -348,7 +315,7 @@ export function VariablePanel({
       </summary>
 
       <div className="variable-panel-content">
-        <VariableSection title="Overrides" count={entries.length}>
+        <VariableSection title="User variables" count={entries.length}>
           <div className="variable-row variable-add-row">
             <input
               type="text"
@@ -379,9 +346,9 @@ export function VariablePanel({
             <>
               <VariableList
                 entries={entries}
-                overrides={overrides}
-                onSave={handleSaveOverride}
-                onRemove={handleRemoveOverride}
+                overrides={settingsVariables}
+                onSave={handleSave}
+                onRemove={handleRemove}
                 allOverrides={true}
               />
               <button className="variable-clear-all" type="button" onClick={handleClearAll}>
@@ -391,24 +358,13 @@ export function VariablePanel({
           )}
         </VariableSection>
 
-        {settingsEntries.length > 0 && (
-          <VariableSection title="From settings" count={settingsEntries.length}>
-            <VariableList
-              entries={settingsEntries}
-              overrides={overrides}
-              onSave={handleSaveOverride}
-              onRemove={handleRemoveOverride}
-            />
-          </VariableSection>
-        )}
-
         {referencedVariables.length > 0 && (
           <VariableSection title="Referenced in program" count={referencedVariables.length}>
             <VariableList
               entries={referencedVariables}
-              overrides={overrides}
-              onSave={handleSaveOverride}
-              onRemove={handleRemoveOverride}
+              overrides={settingsVariables}
+              onSave={handleSave}
+              onRemove={handleRemove}
             />
           </VariableSection>
         )}
