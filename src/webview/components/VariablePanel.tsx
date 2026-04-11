@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VariableDefinitions } from '../../config/types';
-import { VariableResolutionService } from '../../visualizer/VariableResolutionService';
 import { ReferencedVariable } from '../../visualizer/types';
+import { canonicalizeVariableKey } from '../../visualizer/variableKeyUtils';
 import vscode from '../vscodeApi';
 
 /** A single variable entry displayed in the panel. */
@@ -21,9 +21,7 @@ interface VariablePanelProps {
 
 /** Canonicalizes a user-provided variable key to a deterministic display form,
  *  preventing duplicate representations of the same variable (e.g. `100` vs `#100`). */
-const canonicalizeKey = VariableResolutionService.canonicalizeVariableKey.bind(
-  VariableResolutionService
-);
+const canonicalizeKey = canonicalizeVariableKey;
 
 // ---------------------------------------------------------------------------
 // Foldable section
