@@ -14,6 +14,8 @@ import { AstTraverser } from '../parser/AstTraverser';
 import { ParserFactory } from '../parser/ParserFactory';
 import { WorkspaceSymbol, WorkspaceSymbolVisitor } from './WorkspaceSymbolVisitor';
 
+export const DEFAULT_MAX_SEARCH_RESULTS = 100;
+
 /**
  * In-memory index of workspace symbols.
  *
@@ -31,12 +33,18 @@ export class WorkspaceSymbolIndex {
   /** Maximum symbols to store across all files. */
   private maxSymbols: number;
 
-  constructor(maxSymbols: number = DEFAULT_GCODE_CONFIG.workspace.maxSymbols) {
+  constructor(
+    maxSymbols: number = DEFAULT_GCODE_CONFIG.workspace.maxSymbols,
+    private readonly logger?: (message: string) => void
+  ) {
     this.maxSymbols = maxSymbols;
   }
 
   /**
    * Update the maximum symbols limit.
+   *
+   * The new limit takes effect on the next `indexFile` call. Does not trim
+   * symbols already indexed — call `clear()` first if a hard cap is required.
    */
   setMaxSymbols(maxSymbols: number): void {
     this.maxSymbols = maxSymbols;
@@ -98,7 +106,7 @@ export class WorkspaceSymbolIndex {
    * @param maxResults - Maximum number of results to return
    * @returns Matching symbols, sorted by relevance (prefix > substring)
    */
-  search(query: string, maxResults = 100): readonly WorkspaceSymbol[] {
+  search(query: string, maxResults = DEFAULT_MAX_SEARCH_RESULTS): readonly WorkspaceSymbol[] {
     const normalizedQuery = query.toLowerCase();
     const matches: WorkspaceSymbol[] = [];
 
@@ -175,7 +183,10 @@ export class WorkspaceSymbolIndex {
       traverser.traverseProgram(ast);
 
       return visitor.getSymbols();
-    } catch {
+    } catch (error: unknown) {
+      this.logger?.(
+        `Failed to extract symbols from ${uri}: ${error instanceof Error ? error.message : String(error)}`
+      );
       return [];
     }
   }

@@ -69,7 +69,7 @@ export class WorkspaceSymbolVisitor extends BaseAstVisitor<void> {
   visitSubroutineLabel(node: SubroutineLabelNode): void {
     this.symbols.push({
       name: node.label,
-      kind: SymbolKind.Key,
+      kind: SymbolKind.Module,
       range: node.getRange(),
       fileUri: this.fileUri,
     });

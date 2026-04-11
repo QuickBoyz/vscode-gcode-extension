@@ -118,7 +118,9 @@ connection.onDidChangeConfiguration(() => {
   connection.console.log('Configuration changed - caches cleared');
 
   // Re-apply workspace settings after cache invalidation
-  void applyWorkspaceSettings();
+  applyWorkspaceSettings().catch((error: Error) => {
+    connection.console.error(`Failed to apply workspace settings: ${error.message}`);
+  });
 });
 
 /**
@@ -163,9 +165,9 @@ const formatterService = new FormatterService(),
   hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager),
   codeActionProvider = new CodeActionProvider(),
-  completionProvider = new CompletionProvider(documentStateManager);
-const workspaceSymbolIndex = new WorkspaceSymbolIndex();
-const workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex);
+  completionProvider = new CompletionProvider(documentStateManager),
+  workspaceSymbolIndex = new WorkspaceSymbolIndex(undefined, (msg) => connection.console.warn(msg)),
+  workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex);
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -441,7 +443,9 @@ connection.languages.diagnostics.on(async (params) => {
 
 connection.onInitialized(() => {
   connection.console.log('G-code Language Server initialized');
-  void applyWorkspaceSettings();
+  applyWorkspaceSettings().catch((error: Error) => {
+    connection.console.error(`Failed to apply workspace settings: ${error.message}`);
+  });
 });
 
 // Make the text document manager listen on the connection

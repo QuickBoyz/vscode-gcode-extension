@@ -4,6 +4,16 @@ import * as vscode from 'vscode';
 import { GCODE_LANGUAGE_ID } from '../constants';
 
 /**
+ * Thrown when a polling condition is not met within the timeout.
+ */
+export class WaitConditionTimeoutError extends Error {
+  constructor(timeout: number) {
+    super(`waitForCondition timed out after ${timeout}ms`);
+    this.name = 'WaitConditionTimeoutError';
+  }
+}
+
+/**
  * Helper utilities for VS Code e2e tests
  */
 export class TestUtils {
@@ -287,7 +297,7 @@ export class TestUtils {
     // Run one last time and check condition — throw if still not met
     const finalResult = await fn();
     if (!check(finalResult)) {
-      throw new Error(`waitForCondition timed out after ${timeout}ms`);
+      throw new WaitConditionTimeoutError(timeout);
     }
     return finalResult;
   }
@@ -295,7 +305,7 @@ export class TestUtils {
   /**
    * Wait for a specific amount of time
    */
-  private static async sleep(ms: number): Promise<void> {
+  static async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
