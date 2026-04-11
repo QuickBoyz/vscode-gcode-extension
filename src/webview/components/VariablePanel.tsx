@@ -35,8 +35,7 @@ const OVERRIDE_DEBOUNCE_MS = 400;
  * - `#<name>` — named variable with angle brackets
  * - `name` — bare named variable (letters, digits, underscores)
  */
-const VALID_VARIABLE_KEY_PATTERN =
-  /^(#?\d+|#<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
+const VALID_VARIABLE_KEY_PATTERN = /^(#?\d+|#<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
 
 // ---------------------------------------------------------------------------
 // Inline-editable variable row
@@ -103,7 +102,7 @@ function EditableVariableRow({
 
   if (editing) {
     return (
-      <div className="variable-row variable-row-editing">
+      <li className="variable-row variable-row-editing">
         <span className="variable-key" title={variableKey}>
           {variableKey}
         </span>
@@ -132,18 +131,18 @@ function EditableVariableRow({
         >
           {'\u2715'}
         </button>
-      </div>
+      </li>
     );
   }
 
   return (
-    <div className={`variable-row ${hasOverride ? 'variable-override-row' : 'variable-referenced-row'}`}>
+    <div
+      className={`variable-row ${hasOverride ? 'variable-override-row' : 'variable-referenced-row'}`}
+    >
       <span className="variable-key" title={variableKey}>
         {variableKey}
       </span>
-      <span className="variable-referenced-value">
-        {value !== null ? value : 'unset'}
-      </span>
+      <span className="variable-referenced-value">{value !== null ? value : 'unset'}</span>
       <button
         className="variable-action-btn variable-edit-btn"
         type="button"
@@ -298,9 +297,7 @@ export function VariablePanel({
             >
               <span className="toggle-icon">{overridesOpen ? '\u25BC' : '\u25B6'}</span>
               <span>Overrides</span>
-              {entries.length > 0 && (
-                <span className="variable-count">{entries.length}</span>
-              )}
+              {entries.length > 0 && <span className="variable-count">{entries.length}</span>}
             </button>
             {overridesOpen && (
               <>
@@ -337,7 +334,7 @@ export function VariablePanel({
                 {keyError && <div className="variable-key-error">{keyError}</div>}
                 {entries.length > 0 && (
                   <>
-                    <div className="variable-list">
+                    <ul className="variable-list">
                       {entries.map((entry) => (
                         <EditableVariableRow
                           key={entry.key}
@@ -348,7 +345,7 @@ export function VariablePanel({
                           onRemove={handleRemoveOverride}
                         />
                       ))}
-                    </div>
+                    </ul>
                     <button className="variable-clear-all" type="button" onClick={handleClearAll}>
                       Clear All
                     </button>
