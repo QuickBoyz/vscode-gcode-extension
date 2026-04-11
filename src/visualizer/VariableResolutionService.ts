@@ -24,9 +24,6 @@
 
 import { VariableDefinitions } from '../config/types';
 
-// Re-export so existing imports from this module continue to work.
-export type { VariableDefinitions } from '../config/types';
-
 /**
  * Options for constructing a {@link VariableResolutionService}.
  */
@@ -199,7 +196,7 @@ export class VariableResolutionService {
     pin: boolean
   ): void {
     for (const [rawKey, value] of Object.entries(definitions)) {
-      if (typeof value !== 'number') {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
         continue;
       }
       const normalizedKey = VariableResolutionService.normalizeVariableKey(rawKey);

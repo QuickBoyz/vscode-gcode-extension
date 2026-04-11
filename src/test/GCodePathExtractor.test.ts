@@ -733,5 +733,40 @@ G2 X20 Z0 I5 K0
       expect(data.segments).toHaveLength(1);
       expect(data.segments[0].points[1]).toEqual({ x: 10, y: 20, z: 30 });
     });
+
+    describe('referencedVariables', () => {
+      it('contains correct display keys for numeric and named variables', () => {
+        const variables = new Map<string | number, number>([
+          [100, 10],
+          ['tool_diameter', 5],
+        ]);
+        const data = extractWithVariables('G1 X#100 Y#<tool_diameter>', variables);
+        const keys = data.referencedVariables.map((v) => v.key);
+        expect(keys).toContain('#100');
+        expect(keys).toContain('#<tool_diameter>');
+      });
+
+      it('is sorted: named keys alphabetically first, then numeric keys by number', () => {
+        const variables = new Map<string | number, number>([
+          [200, 20],
+          [100, 10],
+          ['zebra', 1],
+          ['alpha', 2],
+        ]);
+        const data = extractWithVariables('G1 X#200 Y#100\nG1 X#<zebra> Y#<alpha>', variables);
+        const keys = data.referencedVariables.map((v) => v.key);
+        expect(keys).toEqual(['#<alpha>', '#<zebra>', '#100', '#200']);
+      });
+
+      it('value reflects the final resolved value after execution', () => {
+        const variables = new Map<string | number, number>([[100, 10]]);
+        // Program assigns #100 = 50 after initial use
+        const data = extractWithVariables('G1 X#100\n#100 = 50\nG1 Y#100', variables);
+        const ref = data.referencedVariables.find((v) => v.key === '#100');
+        expect(ref).toBeDefined();
+        // The final value after execution is 50, not the initial 10
+        expect(ref!.value).toBe(50);
+      });
+    });
   });
 });
