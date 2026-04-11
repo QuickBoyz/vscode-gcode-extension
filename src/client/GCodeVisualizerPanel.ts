@@ -47,9 +47,8 @@ type ExtensionToWebviewMessage =
  */
 type WebviewToExtensionMessage =
   | { type: 'ready' }
-  | { type: 'settingsChange'; settings: VisualizerConfig }
-  | { type: 'navigateToLine'; line: number }
-  | { type: 'variableOverrides'; overrides: VariableDefinitions };
+  | { type: 'settingsChange'; settings?: VisualizerConfig; variables?: VariableDefinitions }
+  | { type: 'navigateToLine'; line: number };
 
 /**
  * Callback invoked when the panel is disposed (closed).
@@ -62,18 +61,12 @@ type DisposeCallback = () => void;
 type NavigateCallback = (line: number) => void;
 
 /**
- * Callback invoked when the webview sends variable overrides.
- */
-type VariableOverrideCallback = (overrides: VariableDefinitions) => void;
-
-/**
  * Singleton panel wrapper for the 3D visualizer.
  */
 export class GCodeVisualizerPanel {
   private static instance: GCodeVisualizerPanel | undefined;
   private static disposeCallbacks: DisposeCallback[] = [];
   private static navigateCallbacks: NavigateCallback[] = [];
-  private static variableOverrideCallbacks: VariableOverrideCallback[] = [];
 
   private readonly panel: vscode.WebviewPanel;
   private readonly configProvider: ClientConfigProvider;
@@ -225,22 +218,6 @@ export class GCodeVisualizerPanel {
     };
   }
 
-  /**
-   * Registers a callback that fires when the webview sends variable overrides.
-   * Returns a {@link vscode.Disposable} that removes the callback.
-   */
-  static onVariableOverrides(callback: VariableOverrideCallback): vscode.Disposable {
-    GCodeVisualizerPanel.variableOverrideCallbacks.push(callback);
-    return {
-      dispose: () => {
-        const index = GCodeVisualizerPanel.variableOverrideCallbacks.indexOf(callback);
-        if (index !== -1) {
-          GCodeVisualizerPanel.variableOverrideCallbacks.splice(index, 1);
-        }
-      },
-    };
-  }
-
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
@@ -332,17 +309,15 @@ export class GCodeVisualizerPanel {
       return;
     }
 
-    if (msg.type === 'variableOverrides') {
-      for (const callback of GCodeVisualizerPanel.variableOverrideCallbacks) {
-        callback(msg.overrides);
-      }
-      return;
-    }
-
     if (msg.type !== 'settingsChange') return;
 
-    // Persist visualizer settings via the config provider.
-    void this.configProvider.updateConfig({ visualizer: msg.settings });
+    // Persist settings via the config provider.
+    if (msg.settings) {
+      void this.configProvider.updateConfig({ visualizer: msg.settings });
+    }
+    if (msg.variables) {
+      void this.configProvider.updateConfig({ variables: msg.variables });
+    }
   }
 
   private dispose(): void {
@@ -357,7 +332,6 @@ export class GCodeVisualizerPanel {
     const callbacks = [...GCodeVisualizerPanel.disposeCallbacks];
     GCodeVisualizerPanel.disposeCallbacks = [];
     GCodeVisualizerPanel.navigateCallbacks = [];
-    GCodeVisualizerPanel.variableOverrideCallbacks = [];
     for (const callback of callbacks) {
       callback();
     }

@@ -10,7 +10,6 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VariableDefinitions } from '../config/types';
 import { VisualizerConfig } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
 import { WorkerClient } from './WorkerClient';
@@ -45,12 +44,6 @@ export class CommandProvider {
 
   /** Navigation callback registration (disposed with the panel). */
   private navigationRegistration: vscode.Disposable | undefined;
-
-  /** Variable override callback registration (disposed with the panel). */
-  private variableOverrideRegistration: vscode.Disposable | undefined;
-
-  /** Runtime variable overrides set from the visualizer panel UI. */
-  private runtimeVariableOverrides: VariableDefinitions = {};
 
   constructor(configProvider: ClientConfigProvider) {
     this.configProvider = configProvider;
@@ -110,8 +103,7 @@ export class CommandProvider {
           documentText,
           config.dialect,
           undefined,
-          config.variables,
-          this.runtimeVariableOverrides
+          config.variables
         );
         const settings: VisualizerConfig = config.visualizer;
 
@@ -132,7 +124,6 @@ export class CommandProvider {
           config.variables
         );
         this.registerNavigationCallback();
-        this.registerVariableOverrideCallback();
         this.startDocumentChangeListener();
       }
     );
@@ -230,21 +221,6 @@ export class CommandProvider {
   }
 
   /**
-   * Registers a callback to handle variable override messages from the
-   * webview. When overrides change, the tool path is re-extracted with
-   * the updated values. Idempotent: does nothing if already registered.
-   */
-  private registerVariableOverrideCallback(): void {
-    if (this.variableOverrideRegistration) {
-      return;
-    }
-    this.variableOverrideRegistration = GCodeVisualizerPanel.onVariableOverrides((overrides) => {
-      this.runtimeVariableOverrides = overrides;
-      void this.refreshVisualizerWithCurrentDocument();
-    });
-  }
-
-  /**
    * Opens (or reveals) the source document and scrolls to the given line.
    */
   private async navigateToSourceLine(line: number): Promise<void> {
@@ -289,14 +265,6 @@ export class CommandProvider {
       this.navigationRegistration.dispose();
       this.navigationRegistration = undefined;
     }
-
-    if (this.variableOverrideRegistration) {
-      this.variableOverrideRegistration.dispose();
-      this.variableOverrideRegistration = undefined;
-    }
-
-    // Clear runtime overrides when the panel is closed.
-    this.runtimeVariableOverrides = {};
 
     if (this.panelDisposeRegistration) {
       this.panelDisposeRegistration.dispose();
@@ -343,8 +311,7 @@ export class CommandProvider {
         sourceText,
         config.dialect,
         undefined,
-        config.variables,
-        this.runtimeVariableOverrides
+        config.variables
       );
       const settings: VisualizerConfig = config.visualizer;
 

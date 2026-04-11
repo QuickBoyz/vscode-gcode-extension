@@ -24,11 +24,9 @@ parentPort?.on('message', (request: WorkerRequest) => {
   try {
     const startTime = Date.now();
 
-    // Resolve variables from settings and runtime overrides into a
-    // single VariableEnvironment that the interpreter uses directly.
+    // Resolve settings variables into a VariableEnvironment for the interpreter.
     const environment = new VariableResolutionService({
       settingsVariables: request.settingsVariables,
-      runtimeOverrides: request.runtimeOverrides,
     }).resolve();
 
     const result = service.extractToolPath(request.text, request.dialect, environment);
