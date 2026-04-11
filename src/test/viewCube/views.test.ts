@@ -15,12 +15,12 @@ describe('ViewCube view definitions', () => {
       expect(FACE_VIEWS.Back).toEqual({ theta: Math.PI, phi: 0 });
     });
 
-    it('defines Right view at theta=-PI/2, phi=0', () => {
-      expect(FACE_VIEWS.Right).toEqual({ theta: -Math.PI / 2, phi: 0 });
+    it('defines Right view at theta=PI/2, phi=0', () => {
+      expect(FACE_VIEWS.Right).toEqual({ theta: Math.PI / 2, phi: 0 });
     });
 
-    it('defines Left view at theta=PI/2, phi=0', () => {
-      expect(FACE_VIEWS.Left).toEqual({ theta: Math.PI / 2, phi: 0 });
+    it('defines Left view at theta=-PI/2, phi=0', () => {
+      expect(FACE_VIEWS.Left).toEqual({ theta: -Math.PI / 2, phi: 0 });
     });
 
     it('defines Top view at theta=0, phi near PI/2', () => {
@@ -48,12 +48,12 @@ describe('ViewCube view definitions', () => {
       expect(EDGE_VIEWS['Front-Top']).toEqual({ theta: 0, phi: Math.PI / 4 });
     });
 
-    it('defines Front-Right edge at theta=-PI/4, phi=0', () => {
-      expect(EDGE_VIEWS['Front-Right']).toEqual({ theta: -Math.PI / 4, phi: 0 });
+    it('defines Front-Right edge at theta=PI/4, phi=0', () => {
+      expect(EDGE_VIEWS['Front-Right']).toEqual({ theta: Math.PI / 4, phi: 0 });
     });
 
-    it('defines Back-Right edge at theta=-3PI/4, phi=0', () => {
-      expect(EDGE_VIEWS['Back-Right']).toEqual({ theta: (-3 * Math.PI) / 4, phi: 0 });
+    it('defines Back-Right edge at theta=3PI/4, phi=0', () => {
+      expect(EDGE_VIEWS['Back-Right']).toEqual({ theta: (3 * Math.PI) / 4, phi: 0 });
     });
 
     it('all edges have phi within gimbal-safe range', () => {

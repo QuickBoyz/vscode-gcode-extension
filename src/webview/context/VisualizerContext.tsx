@@ -36,6 +36,8 @@ interface VisualizerActionsValue {
   readonly registerCameraState: (camera: CameraState) => void;
   readonly registerAnimationCancel: (cancel: (() => void) | null) => void;
   readonly cancelAnimation: () => void;
+  readonly registerCameraChangeListener: (listener: () => void) => () => void;
+  readonly notifyCameraChange: () => void;
   readonly updateMousePosition: (clientX: number, clientY: number) => void;
   readonly tooltip: {
     readonly onHoverChange: (index: number | null) => void;
@@ -99,9 +101,25 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
     animationCancelRef.current = null;
   }, []);
 
+  const cameraChangeListenersRef = useRef<Set<() => void>>(new Set());
+
+  const registerCameraChangeListener = useCallback((listener: () => void): (() => void) => {
+    cameraChangeListenersRef.current.add(listener);
+    return () => {
+      cameraChangeListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const notifyCameraChange = useCallback(() => {
+    for (const listener of cameraChangeListenersRef.current) {
+      listener();
+    }
+  }, []);
+
   const resetView = useCallback(() => {
     cameraControlsRef.current?.resetView(segmentsRef.current, boundsRef.current);
-  }, []);
+    notifyCameraChange();
+  }, [notifyCameraChange]);
 
   const scheduleRender = useCallback(() => {
     cameraControlsRef.current?.scheduleRender();
@@ -153,6 +171,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
               controls.clearProjectedCache();
               controls.fitView(msg.segments ?? [], msg.bounds ?? null);
               controls.scheduleRender();
+              notifyCameraChange();
             }
           });
           break;
@@ -171,7 +190,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
         }
       }
     },
-    [applyExternalSettings, hideTooltip]
+    [applyExternalSettings, hideTooltip, notifyCameraChange]
   );
 
   useExtensionMessages(handleMessage);
@@ -198,6 +217,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       registerCameraState,
       registerAnimationCancel,
       cancelAnimation,
+      registerCameraChangeListener,
+      notifyCameraChange,
       updateMousePosition,
       tooltip: {
         onHoverChange,
@@ -217,6 +238,8 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       registerCameraState,
       registerAnimationCancel,
       cancelAnimation,
+      registerCameraChangeListener,
+      notifyCameraChange,
       updateMousePosition,
       onHoverChange,
       onCursorMove,
@@ -323,4 +346,14 @@ export function useScheduleRender(): () => void {
 /** Render the canvas immediately (synchronous). Use from within rAF callbacks. */
 export function useRenderNow(): () => void {
   return useVisualizerActions().renderNow;
+}
+
+/** Register a listener called whenever the camera changes (e.g. canvas drag). Returns cleanup. */
+export function useRegisterCameraChangeListener(): (listener: () => void) => () => void {
+  return useVisualizerActions().registerCameraChangeListener;
+}
+
+/** Notify all registered camera-change listeners. */
+export function useNotifyCameraChange(): () => void {
+  return useVisualizerActions().notifyCameraChange;
 }
