@@ -88,11 +88,21 @@ export class ClientConfigProvider extends ConfigProvider {
 }
 
 /**
+ * Top-level keys whose values are stored as a single object setting
+ * rather than individual dot-separated sub-keys. These must not be
+ * recursed into during flattening.
+ */
+const OBJECT_VALUED_KEYS = new Set(['variables']);
+
+/**
  * Flattens a nested partial config object into dot-separated key-value
  * pairs suitable for `WorkspaceConfiguration.update()`.
  *
  * Example: `{ visualizer: { rapidColor: '#ff0000' } }` becomes
  * `[['visualizer.rapidColor', '#ff0000']]`.
+ *
+ * Keys listed in {@link OBJECT_VALUED_KEYS} are emitted as a single
+ * entry (the whole object) instead of being recursed into.
  */
 function flattenConfig(obj: Record<string, unknown>, prefix = ''): Array<[string, unknown]> {
   const entries: Array<[string, unknown]> = [];
@@ -100,7 +110,12 @@ function flattenConfig(obj: Record<string, unknown>, prefix = ''): Array<[string
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
 
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      !Array.isArray(value) &&
+      !OBJECT_VALUED_KEYS.has(fullKey)
+    ) {
       entries.push(...flattenConfig(value as Record<string, unknown>, fullKey));
     } else {
       entries.push([fullKey, value]);

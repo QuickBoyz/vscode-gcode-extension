@@ -81,22 +81,20 @@ export class WorkerClient {
    * @param dialect            G-code dialect for lexing and parsing
    * @param maxIterations      Maximum loop iterations for the interpreter
    * @param settingsVariables  Variables from VS Code settings (`gcode.variables`)
-   * @param runtimeOverrides   Runtime overrides from the visualizer panel UI
    * @returns                  A {@link VisualizerResult} discriminated union
    */
   parse(
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
     maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations,
-    settingsVariables?: VariableDefinitions,
-    runtimeOverrides?: VariableDefinitions
+    settingsVariables?: VariableDefinitions
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
     if (this.synchronousFallback) {
-      const env = this.buildEnvironment(settingsVariables, runtimeOverrides);
+      const env = this.buildEnvironment(settingsVariables);
       return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, env));
     }
 
@@ -110,7 +108,7 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      const env = this.buildEnvironment(settingsVariables, runtimeOverrides);
+      const env = this.buildEnvironment(settingsVariables);
       return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, env));
     }
 
@@ -121,7 +119,6 @@ export class WorkerClient {
       maxIterations,
       dialect,
       settingsVariables,
-      runtimeOverrides,
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {
@@ -250,14 +247,13 @@ export class WorkerClient {
   }
 
   /**
-   * Builds a VariableEnvironment from settings and runtime overrides.
+   * Builds a VariableEnvironment from settings variables.
    * Used by the synchronous fallback path.
    */
   private buildEnvironment(
-    settingsVariables?: VariableDefinitions,
-    runtimeOverrides?: VariableDefinitions
+    settingsVariables?: VariableDefinitions
   ): VariableEnvironment | undefined {
-    if (!settingsVariables && !runtimeOverrides) return undefined;
-    return new VariableResolutionService({ settingsVariables, runtimeOverrides }).resolve();
+    if (!settingsVariables) return undefined;
+    return new VariableResolutionService({ settingsVariables }).resolve();
   }
 }

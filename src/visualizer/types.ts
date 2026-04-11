@@ -180,8 +180,6 @@ export interface WorkerRequest {
   readonly dialect: DialectType;
   /** Variables defined in VS Code settings (`gcode.variables`). */
   readonly settingsVariables?: VariableDefinitions;
-  /** Runtime overrides set interactively in the visualizer panel. */
-  readonly runtimeOverrides?: VariableDefinitions;
 }
 
 /**

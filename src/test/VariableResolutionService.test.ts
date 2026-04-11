@@ -50,44 +50,6 @@ describe('VariableResolutionService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Runtime overrides
-  // ---------------------------------------------------------------------------
-
-  it('includes variables from runtime overrides', () => {
-    const service = new VariableResolutionService({
-      runtimeOverrides: { '#100': 50.0 },
-    });
-    const env = service.resolve();
-
-    expect(env.peek(100)).toBe(50.0);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Precedence: runtime override > settings > default (0)
-  // ---------------------------------------------------------------------------
-
-  it('runtime overrides take precedence over settings defaults', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4 },
-      runtimeOverrides: { '#100': 50.0 },
-    });
-    const env = service.resolve();
-
-    expect(env.peek(100)).toBe(50.0);
-  });
-
-  it('settings values are used when no runtime override exists', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4, '#200': 10.0 },
-      runtimeOverrides: { '#100': 50.0 },
-    });
-    const env = service.resolve();
-
-    expect(env.peek(100)).toBe(50.0);
-    expect(env.peek(200)).toBe(10.0);
-  });
-
-  // ---------------------------------------------------------------------------
   // Variable key normalization
   // ---------------------------------------------------------------------------
 
@@ -119,28 +81,12 @@ describe('VariableResolutionService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Merging settings and overrides
-  // ---------------------------------------------------------------------------
-
-  it('merges settings and runtime overrides for different variables', () => {
-    const service = new VariableResolutionService({
-      settingsVariables: { '#100': 25.4 },
-      runtimeOverrides: { '#<tool_diameter>': 6.35 },
-    });
-    const env = service.resolve();
-
-    expect(env.peek(100)).toBe(25.4);
-    expect(env.peek('tool_diameter')).toBe(6.35);
-  });
-
-  // ---------------------------------------------------------------------------
   // Edge cases
   // ---------------------------------------------------------------------------
 
-  it('handles empty settings and overrides', () => {
+  it('handles empty settings', () => {
     const service = new VariableResolutionService({
       settingsVariables: {},
-      runtimeOverrides: {},
     });
     const env = service.resolve();
 
@@ -215,6 +161,15 @@ describe('VariableResolutionService', () => {
 });
 
 describe('VariableEnvironment', () => {
+  it('set() overwrites an unpinned seeded value', () => {
+    const env = new VariableEnvironment();
+    env.seed(100, 25.4);
+
+    env.set(100, 99.9);
+
+    expect(env.peek(100)).toBe(99.9);
+  });
+
   it('set() on a pinned key is silently ignored', () => {
     const env = new VariableEnvironment();
     env.seed(100, 25.4, true);
@@ -224,19 +179,22 @@ describe('VariableEnvironment', () => {
     expect(env.peek(100)).toBe(25.4);
   });
 
-  it('set() on a non-pinned key works normally', () => {
-    const env = new VariableEnvironment();
-    env.seed(100, 25.4, false);
+  it('settings variables are pinned by resolve()', () => {
+    const service = new VariableResolutionService({
+      settingsVariables: { '#100': 25.4 },
+    });
+    const env = service.resolve();
 
+    // Program assignment should not overwrite the pinned settings value
     env.set(100, 99.9);
 
-    expect(env.peek(100)).toBe(99.9);
+    expect(env.peek(100)).toBe(25.4);
   });
 
   it('reset() restores initial snapshot values and clears access tracking', () => {
     const env = new VariableEnvironment();
-    env.seed(100, 25.4, false);
-    env.seed('feed', 500, false);
+    env.seed(100, 25.4);
+    env.seed('feed', 500);
 
     // Mutate via set and track via get
     env.set(100, 99.9);
@@ -255,21 +213,11 @@ describe('VariableEnvironment', () => {
     expect(env.referencedKeys.size).toBe(0);
   });
 
-  it('reset() preserves pinning after reset', () => {
-    const env = new VariableEnvironment();
-    env.seed(100, 25.4, true);
-
-    env.reset();
-    env.set(100, 99.9);
-
-    expect(env.peek(100)).toBe(25.4);
-  });
-
   it('referencedKeys tracks keys accessed via get() but not via peek()', () => {
     const env = new VariableEnvironment();
-    env.seed(100, 25.4, false);
-    env.seed(200, 50.0, false);
-    env.seed('feed', 500, false);
+    env.seed(100, 25.4);
+    env.seed(200, 50.0);
+    env.seed('feed', 500);
 
     env.get(100);
     env.get('feed');

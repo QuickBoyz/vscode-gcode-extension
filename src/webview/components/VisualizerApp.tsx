@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   VisualizerProvider,
   useDocumentState,
@@ -12,7 +12,7 @@ import {
   usePlaybackActions,
 } from '../context/PlaybackContext';
 import { PlaybackStatus } from '../playback/types';
-import { PathSegment, ReferencedVariable } from '../../visualizer/types';
+import { PathSegment } from '../../visualizer/types';
 import { Toolbar } from './Toolbar';
 import { ErrorBanner } from './ErrorBanner';
 import { CanvasArea } from './CanvasArea';
@@ -24,8 +24,6 @@ function VisualizerLayout() {
   const { resetView } = useCameraControls();
   const snapshot = usePlaybackSnapshot();
   const { play, exit } = usePlaybackActions();
-  const [variablePanelOpen, setVariablePanelOpen] = useState(false);
-  const [variableOverrides, setVariableOverrides] = useState<Readonly<Record<string, number>>>({});
 
   const isPlaybackActive = snapshot.status !== PlaybackStatus.IDLE;
 
@@ -37,10 +35,6 @@ function VisualizerLayout() {
     }
   }, [isPlaybackActive, play, exit]);
 
-  const handleVariablePanelToggle = useCallback(() => {
-    setVariablePanelOpen((prev) => !prev);
-  }, []);
-
   return (
     <div id="app">
       <Toolbar
@@ -51,10 +45,6 @@ function VisualizerLayout() {
         isPlaybackActive={isPlaybackActive}
       />
       <VariablePanel
-        isOpen={variablePanelOpen}
-        onToggle={handleVariablePanelToggle}
-        overrides={variableOverrides}
-        onOverridesChange={setVariableOverrides}
         referencedVariables={referencedVariables}
         settingsVariables={settingsVariables}
       />
