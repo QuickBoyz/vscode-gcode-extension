@@ -78,6 +78,10 @@ Four supported dialects defined in `DialectType` enum (`src/constants.ts`): `lin
 - Named constants for magic numbers/strings
 - **TDD for logic-heavy code** — write failing tests first for parsers, visitors, analyzers, formatters, services; skip TDD for pure boilerplate/wiring
 
+## Solution docs
+
+Check `.claude/docs/solutions/` for known patterns and architectural decisions before debugging or making design choices.
+
 ## Development principles
 
 - **Always do full, proper refactors** — never partial solutions, synthetic workarounds, or hacky shortcuts. When a change reveals that a deeper abstraction is needed, do the abstraction properly rather than bolting on a one-off hook.
