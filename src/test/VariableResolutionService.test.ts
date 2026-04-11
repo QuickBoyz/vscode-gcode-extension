@@ -1,7 +1,5 @@
-import {
-  VariableEnvironment,
-  VariableResolutionService,
-} from '../visualizer/VariableResolutionService';
+import { VariableResolutionService } from '../visualizer/VariableResolutionService';
+import { VariableEnvironment } from '../visualizer/VariableEnvironment';
 
 describe('VariableResolutionService', () => {
   // ---------------------------------------------------------------------------

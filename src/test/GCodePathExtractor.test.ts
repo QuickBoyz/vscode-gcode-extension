@@ -4,7 +4,7 @@ import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { MotionType, ToolPathData } from '../visualizer/types';
-import { VariableEnvironment } from '../visualizer/VariableResolutionService';
+import { VariableEnvironment } from '../visualizer/VariableEnvironment';
 
 describe('GCodePathExtractor', () => {
   /**
@@ -755,7 +755,7 @@ G2 X20 Z0 I5 K0
         ]);
         const data = extractWithVariables('G1 X#200 Y#100\nG1 X#<zebra> Y#<alpha>', variables);
         const keys = data.referencedVariables.map((v) => v.key);
-        expect(keys).toEqual(['#<alpha>', '#<zebra>', '#100', '#200']);
+        expect(keys).toEqual(['#100', '#200', '#<alpha>', '#<zebra>']);
       });
 
       it('value reflects the final resolved value after execution', () => {
@@ -765,7 +765,7 @@ G2 X20 Z0 I5 K0
         const ref = data.referencedVariables.find((v) => v.key === '#100');
         expect(ref).toBeDefined();
         // The final value after execution is 50, not the initial 10
-        expect(ref!.value).toBe(50);
+        expect(ref?.value).toBe(50);
       });
     });
   });

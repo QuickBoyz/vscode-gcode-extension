@@ -31,10 +31,10 @@ import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { MODAL_MOTION_COMMANDS } from '../constants/GCodeCommands';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 import { InterpreterConfig, MotionHandler } from './types';
-import { VariableEnvironment } from './VariableResolutionService';
+import { VariableEnvironment } from './VariableEnvironment';
 
 export class GCodeInterpreter {
-  private readonly environment: VariableEnvironment;
+  private readonly variableEnvironment: VariableEnvironment;
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
   private readonly options: InterpreterConfig;
   private totalIterations = 0;
@@ -51,11 +51,11 @@ export class GCodeInterpreter {
   constructor(
     private readonly motionHandler: MotionHandler,
     options?: Partial<InterpreterConfig>,
-    environment?: VariableEnvironment
+    variableEnvironment?: VariableEnvironment
   ) {
     this.options = { ...DEFAULT_GCODE_CONFIG.interpreter, ...options };
-    this.environment = environment ?? new VariableEnvironment();
-    this.expressionEvaluator = new GCodeExpressionEvaluator(this.environment);
+    this.variableEnvironment = variableEnvironment ?? new VariableEnvironment();
+    this.expressionEvaluator = new GCodeExpressionEvaluator(this.variableEnvironment);
   }
 
   /** Whether the interpreter hit the max iteration limit. */
@@ -68,7 +68,7 @@ export class GCodeInterpreter {
    * Only meaningful after {@link interpret} has been called.
    */
   get referencedVariables(): ReadonlySet<string | number> {
-    return this.environment.referencedKeys;
+    return this.variableEnvironment.referencedKeys;
   }
 
   /**
@@ -76,7 +76,7 @@ export class GCodeInterpreter {
    * if the variable was never assigned.
    */
   getVariableValue(name: string | number): number | null {
-    return this.environment.peek(name);
+    return this.variableEnvironment.peek(name);
   }
 
   /**
@@ -84,7 +84,7 @@ export class GCodeInterpreter {
    * same instance can be reused across multiple programs.
    */
   interpret(program: ProgramNode): void {
-    this.environment.reset();
+    this.variableEnvironment.reset();
     this.totalIterations = 0;
     this.iterationLimitReached = false;
     this.activeMotionCommand = null;
@@ -172,7 +172,7 @@ export class GCodeInterpreter {
   private interpretVariableAssignment(node: VariableAssignmentNode): void {
     const value = this.expressionEvaluator.evaluate(node.value);
     if (value !== null) {
-      this.environment.set(node.name, value);
+      this.variableEnvironment.set(node.name, value);
     }
   }
 

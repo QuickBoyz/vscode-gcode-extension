@@ -16,18 +16,14 @@ import { Worker } from 'worker_threads';
 
 import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { DialectType } from '../constants';
-import { VariableDefinitions } from '../config/types';
+import { VisualizerService } from './VisualizerService';
 import {
-  VariableEnvironment,
-  VariableResolutionService,
-} from '../visualizer/VariableResolutionService';
-import {
+  VariableDefinitions,
   VisualizerResult,
   WorkerErrorResponse,
   WorkerRequest,
   WorkerResponse,
 } from '../visualizer/types';
-import { VisualizerService } from './VisualizerService';
 
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse;
@@ -94,8 +90,9 @@ export class WorkerClient {
     }
 
     if (this.synchronousFallback) {
-      const env = this.buildEnvironment(settingsVariables);
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, env));
+      return Promise.resolve(
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+      );
     }
 
     this.generationCounter += 1;
@@ -108,8 +105,9 @@ export class WorkerClient {
     if (!worker) {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
-      const env = this.buildEnvironment(settingsVariables);
-      return Promise.resolve(this.fallbackService.extractToolPath(text, dialect, env));
+      return Promise.resolve(
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+      );
     }
 
     const request: WorkerRequest = {
@@ -244,16 +242,5 @@ export class WorkerClient {
       void this.worker.terminate();
       this.worker = undefined;
     }
-  }
-
-  /**
-   * Builds a VariableEnvironment from settings variables.
-   * Used by the synchronous fallback path.
-   */
-  private buildEnvironment(
-    settingsVariables?: VariableDefinitions
-  ): VariableEnvironment | undefined {
-    if (!settingsVariables) return undefined;
-    return new VariableResolutionService({ settingsVariables }).resolve();
   }
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReferencedVariable } from '../../visualizer/types';
-import { canonicalizeVariableKey } from '../../visualizer/variableKeyUtils';
+import { canonicalizeVariableKey } from '../../providers/RenameUtils';
 import vscode from '../vscodeApi';
 
 interface VariablePanelProps {

@@ -150,28 +150,6 @@ describe('VariableAnalysisService', () => {
     });
   });
 
-  describe('formatVariableName', () => {
-    it('should format numeric variable', () => {
-      const formatted = service.formatVariableName(123);
-      expect(formatted).toBe('#123');
-    });
-
-    it('should format named variable', () => {
-      const formatted = service.formatVariableName('foo');
-      expect(formatted).toBe('#<foo>');
-    });
-
-    it('should format single digit numeric', () => {
-      const formatted = service.formatVariableName(1);
-      expect(formatted).toBe('#1');
-    });
-
-    it('should format variable with underscores', () => {
-      const formatted = service.formatVariableName('my_var');
-      expect(formatted).toBe('#<my_var>');
-    });
-  });
-
   describe('validateVariableName', () => {
     describe('numeric variables', () => {
       it('should accept valid numeric variable', () => {

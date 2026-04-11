@@ -11,6 +11,7 @@ import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '
 import { GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
 import { VariableAnalysisService } from './VariableAnalysisService';
+import { formatVariableName } from './RenameUtils';
 
 /**
  * Rename Provider
@@ -72,12 +73,12 @@ export class RenameProvider extends BaseProvider {
     }
 
     // Check if renaming to a different type (numeric to named or vice versa)
-    if (isNumeric && typeof oldName === 'number') {
+    if (isNumeric) {
       const newNum = parseInt(newName, 10);
       if (isNaN(newNum)) {
         return null; // Cannot rename numeric to named
       }
-    } else if (!isNumeric && typeof oldName === 'string') {
+    } else {
       if (/^\d+$/.test(newName)) {
         return null; // Cannot rename named to numeric
       }
@@ -90,12 +91,10 @@ export class RenameProvider extends BaseProvider {
     }
 
     const allNodes: Array<VariableAssignmentNode | VariableReferenceNode> = [];
-    // Add all definitions
-    allNodes.push(...variableSymbol.definitions);
-    // Add all references
-    allNodes.push(...variableSymbol.references);
+    // Add all definitions and references
+    allNodes.push(...variableSymbol.definitions, ...variableSymbol.references);
 
-    if (allNodes.length === 0) {
+    if (!allNodes.length) {
       return null;
     }
 
@@ -114,7 +113,7 @@ export class RenameProvider extends BaseProvider {
     }
 
     // Create text edits
-    const edits = this.createTextEdits(allNodes, newName, isNumeric);
+    const edits = this.createTextEdits(allNodes, newName);
 
     return {
       changes: {
@@ -128,13 +127,10 @@ export class RenameProvider extends BaseProvider {
    */
   private createTextEdits(
     symbols: Array<VariableAssignmentNode | VariableReferenceNode>,
-    newName: string,
-    isNumeric: boolean
+    newName: string
   ): TextEdit[] {
     const edits: TextEdit[] = [],
-      formattedNewName = this.variableAnalysisService.formatVariableName(
-        isNumeric ? parseInt(newName, 10) : newName
-      );
+      formattedNewName = formatVariableName(newName);
 
     for (const symbol of symbols) {
       const range = this.variableAnalysisService.getVariableNameRange(symbol);
