@@ -22,6 +22,7 @@
  */
 
 import { VariableDefinitions } from '../config/types';
+import { normalizeVariableKey } from './variableKeyUtils';
 
 /**
  * Options for constructing a {@link VariableResolutionService}.
@@ -157,15 +158,6 @@ export class VariableEnvironment {
  * single {@link VariableEnvironment} for the interpreter.
  */
 export class VariableResolutionService {
-  /** Pattern matching a numeric variable key: #123 or just 123 */
-  private static readonly NUMERIC_VARIABLE_PATTERN = /^#?(\d+)$/;
-
-  /** Pattern matching a named variable key: #<name> */
-  private static readonly NAMED_VARIABLE_PATTERN = /^#<([a-zA-Z_][a-zA-Z0-9_]*)>$/;
-
-  /** Pattern matching a bare named variable key (no delimiters): name */
-  private static readonly BARE_NAMED_VARIABLE_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
   private readonly settingsVariables: VariableDefinitions;
 
   constructor(options?: VariableResolutionOptions) {
@@ -200,51 +192,10 @@ export class VariableResolutionService {
       if (typeof value !== 'number' || !Number.isFinite(value)) {
         continue;
       }
-      const normalizedKey = VariableResolutionService.normalizeVariableKey(rawKey);
+      const normalizedKey = normalizeVariableKey(rawKey);
       if (normalizedKey !== null) {
         environment.seed(normalizedKey, value, pin);
       }
     }
-  }
-
-  /**
-   * Normalizes a user-provided variable key to the internal format
-   * used by the interpreter's variable environment.
-   *
-   * @returns A numeric key for numbered variables, a lowercase string
-   *          key for named variables, or `null` if the key is invalid.
-   */
-  /**
-   * Converts a normalized internal key back to its canonical display form.
-   *
-   * @returns `#123` for numeric keys, `#<name>` for named keys, or `null`
-   *          if the raw key is invalid.
-   */
-  static canonicalizeVariableKey(key: string): string | null {
-    const normalized = VariableResolutionService.normalizeVariableKey(key);
-    if (normalized === null) return null;
-    if (typeof normalized === 'number') return `#${normalized}`;
-    return `#<${normalized}>`;
-  }
-
-  static normalizeVariableKey(key: string): string | number | null {
-    // Try numeric pattern: #123 or 123
-    const numericMatch = VariableResolutionService.NUMERIC_VARIABLE_PATTERN.exec(key);
-    if (numericMatch) {
-      return parseInt(numericMatch[1], 10);
-    }
-
-    // Try named pattern: #<name>
-    const namedMatch = VariableResolutionService.NAMED_VARIABLE_PATTERN.exec(key);
-    if (namedMatch) {
-      return namedMatch[1].toLowerCase();
-    }
-
-    // Try bare named pattern: name
-    if (VariableResolutionService.BARE_NAMED_VARIABLE_PATTERN.test(key)) {
-      return key.toLowerCase();
-    }
-
-    return null;
   }
 }
