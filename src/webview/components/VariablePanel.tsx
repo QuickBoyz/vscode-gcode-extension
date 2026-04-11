@@ -12,10 +12,6 @@ interface VariableEntry {
 }
 
 interface VariablePanelProps {
-  /** Whether the panel is expanded. */
-  readonly isOpen: boolean;
-  /** Toggle the panel open/closed. */
-  readonly onToggle: () => void;
   /** Current variable overrides (key -> value). */
   readonly overrides: Readonly<Record<string, number>>;
   /** Called when overrides change. */
@@ -36,6 +32,32 @@ const OVERRIDE_DEBOUNCE_MS = 400;
  * - `name` — bare named variable (letters, digits, underscores)
  */
 const VALID_VARIABLE_KEY_PATTERN = /^(#?\d+|#<[a-zA-Z_][a-zA-Z0-9_]*>|[a-zA-Z_][a-zA-Z0-9_]*)$/;
+
+// ---------------------------------------------------------------------------
+// Foldable section
+// ---------------------------------------------------------------------------
+
+interface VariableSectionProps {
+  /** The section title displayed in the summary. */
+  readonly title: string;
+  /** The count badge value. Hidden when zero. */
+  readonly count: number;
+  /** Section content rendered below the summary. */
+  readonly children: React.ReactNode;
+}
+
+/** Collapsible section using a native `<details>` element. */
+function VariableSection({ title, count, children }: VariableSectionProps) {
+  return (
+    <details className="variable-section">
+      <summary className="variable-section-toggle">
+        <span>{title}</span>
+        {count > 0 && <span className="variable-count">{count}</span>}
+      </summary>
+      {children}
+    </details>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Inline-editable variable row
@@ -136,7 +158,7 @@ function EditableVariableRow({
   }
 
   return (
-    <div
+    <li
       className={`variable-row ${hasOverride ? 'variable-override-row' : 'variable-referenced-row'}`}
     >
       <span className="variable-key" title={variableKey}>
@@ -161,7 +183,51 @@ function EditableVariableRow({
           {'\u2715'}
         </button>
       )}
-    </div>
+    </li>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Variable list
+// ---------------------------------------------------------------------------
+
+/** Common shape for entries rendered in a VariableList. */
+interface VariableListEntry {
+  readonly key: string;
+  readonly value: number | null;
+}
+
+interface VariableListProps {
+  /** The entries to render. */
+  readonly entries: readonly VariableListEntry[];
+  /** Current variable overrides, used to determine override status per entry. */
+  readonly overrides: Readonly<Record<string, number>>;
+  /** Called when the user saves an edited value. */
+  readonly onSave: (key: string, value: number) => void;
+  /** Called when the user removes an override. */
+  readonly onRemove: (key: string) => void;
+  /** When true, all entries are treated as overrides. Defaults to checking `overrides`. */
+  readonly allOverrides?: boolean;
+}
+
+/** Renders a `<ul>` of editable variable rows. */
+function VariableList({ entries, overrides, onSave, onRemove, allOverrides }: VariableListProps) {
+  return (
+    <ul className="variable-list">
+      {entries.map((entry) => {
+        const hasOverride = allOverrides ?? entry.key in overrides;
+        return (
+          <EditableVariableRow
+            key={entry.key}
+            variableKey={entry.key}
+            value={entry.value}
+            hasOverride={hasOverride}
+            onSave={onSave}
+            onRemove={hasOverride ? onRemove : undefined}
+          />
+        );
+      })}
+    </ul>
   );
 }
 
@@ -177,8 +243,6 @@ function EditableVariableRow({
  * triggering a tool-path re-extraction.
  */
 export function VariablePanel({
-  isOpen,
-  onToggle,
   overrides,
   onOverridesChange,
   referencedVariables,
@@ -187,9 +251,6 @@ export function VariablePanel({
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [keyError, setKeyError] = useState('');
-  const [overridesOpen, setOverridesOpen] = useState(true);
-  const [settingsOpen, setSettingsOpen] = useState(true);
-  const [referencedOpen, setReferencedOpen] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear the debounce timer on unmount.
@@ -280,138 +341,78 @@ export function VariablePanel({
   );
 
   return (
-    <div className={`variable-panel ${isOpen ? 'open' : ''}`}>
-      <button className="variable-panel-toggle" type="button" onClick={onToggle}>
-        <span className="toggle-icon">{isOpen ? '\u25BC' : '\u25B6'}</span>
+    <details className="variable-panel">
+      <summary className="variable-panel-toggle">
         <span>Variables</span>
         {totalCount > 0 && <span className="variable-count">{totalCount}</span>}
-      </button>
+      </summary>
 
-      {isOpen && (
-        <div className="variable-panel-content">
-          <div className="variable-section">
-            <button
-              className="variable-section-toggle"
-              type="button"
-              onClick={() => setOverridesOpen((prev) => !prev)}
-            >
-              <span className="toggle-icon">{overridesOpen ? '\u25BC' : '\u25B6'}</span>
-              <span>Overrides</span>
-              {entries.length > 0 && <span className="variable-count">{entries.length}</span>}
+      <div className="variable-panel-content">
+        <VariableSection title="Overrides" count={entries.length}>
+          <div className="variable-row variable-add-row">
+            <input
+              type="text"
+              className={`variable-key-input${keyError ? ' variable-key-invalid' : ''}`}
+              placeholder="#100 or #<name>"
+              value={newKey}
+              onChange={(event) => {
+                setNewKey(event.target.value);
+                if (keyError) setKeyError('');
+              }}
+              onKeyDown={handleKeyDown}
+            />
+            <input
+              type="number"
+              className="variable-value-input"
+              placeholder="Value"
+              step="any"
+              value={newValue}
+              onChange={(event) => setNewValue(event.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button className="variable-add" type="button" title="Add variable" onClick={handleAdd}>
+              +
             </button>
-            {overridesOpen && (
-              <>
-                <div className="variable-add-row">
-                  <input
-                    type="text"
-                    className={`variable-key-input${keyError ? ' variable-key-invalid' : ''}`}
-                    placeholder="#100 or #<name>"
-                    value={newKey}
-                    onChange={(event) => {
-                      setNewKey(event.target.value);
-                      if (keyError) setKeyError('');
-                    }}
-                    onKeyDown={handleKeyDown}
-                  />
-                  <input
-                    type="number"
-                    className="variable-value-input"
-                    placeholder="Value"
-                    step="any"
-                    value={newValue}
-                    onChange={(event) => setNewValue(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
-                  <button
-                    className="variable-add"
-                    type="button"
-                    title="Add variable"
-                    onClick={handleAdd}
-                  >
-                    +
-                  </button>
-                </div>
-                {keyError && <div className="variable-key-error">{keyError}</div>}
-                {entries.length > 0 && (
-                  <>
-                    <ul className="variable-list">
-                      {entries.map((entry) => (
-                        <EditableVariableRow
-                          key={entry.key}
-                          variableKey={entry.key}
-                          value={entry.value}
-                          hasOverride={true}
-                          onSave={handleSaveOverride}
-                          onRemove={handleRemoveOverride}
-                        />
-                      ))}
-                    </ul>
-                    <button className="variable-clear-all" type="button" onClick={handleClearAll}>
-                      Clear All
-                    </button>
-                  </>
-                )}
-              </>
-            )}
           </div>
-
-          {settingsEntries.length > 0 && (
-            <div className="variable-section">
-              <button
-                className="variable-section-toggle"
-                type="button"
-                onClick={() => setSettingsOpen((prev) => !prev)}
-              >
-                <span className="toggle-icon">{settingsOpen ? '\u25BC' : '\u25B6'}</span>
-                <span>From settings</span>
-                <span className="variable-count">{settingsEntries.length}</span>
+          {keyError && <div className="variable-key-error">{keyError}</div>}
+          {entries.length > 0 && (
+            <>
+              <VariableList
+                entries={entries}
+                overrides={overrides}
+                onSave={handleSaveOverride}
+                onRemove={handleRemoveOverride}
+                allOverrides={true}
+              />
+              <button className="variable-clear-all" type="button" onClick={handleClearAll}>
+                Clear All
               </button>
-              {settingsOpen && (
-                <div className="variable-list">
-                  {settingsEntries.map((entry) => (
-                    <EditableVariableRow
-                      key={entry.key}
-                      variableKey={entry.key}
-                      value={entry.value}
-                      hasOverride={entry.key in overrides}
-                      onSave={handleSaveOverride}
-                      onRemove={entry.key in overrides ? handleRemoveOverride : undefined}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            </>
           )}
+        </VariableSection>
 
-          {referencedVariables.length > 0 && (
-            <div className="variable-section">
-              <button
-                className="variable-section-toggle"
-                type="button"
-                onClick={() => setReferencedOpen((prev) => !prev)}
-              >
-                <span className="toggle-icon">{referencedOpen ? '\u25BC' : '\u25B6'}</span>
-                <span>Referenced in program</span>
-                <span className="variable-count">{referencedVariables.length}</span>
-              </button>
-              {referencedOpen && (
-                <div className="variable-list">
-                  {referencedVariables.map((variable) => (
-                    <EditableVariableRow
-                      key={variable.key}
-                      variableKey={variable.key}
-                      value={variable.value}
-                      hasOverride={variable.key in overrides}
-                      onSave={handleSaveOverride}
-                      onRemove={variable.key in overrides ? handleRemoveOverride : undefined}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        {settingsEntries.length > 0 && (
+          <VariableSection title="From settings" count={settingsEntries.length}>
+            <VariableList
+              entries={settingsEntries}
+              overrides={overrides}
+              onSave={handleSaveOverride}
+              onRemove={handleRemoveOverride}
+            />
+          </VariableSection>
+        )}
+
+        {referencedVariables.length > 0 && (
+          <VariableSection title="Referenced in program" count={referencedVariables.length}>
+            <VariableList
+              entries={referencedVariables}
+              overrides={overrides}
+              onSave={handleSaveOverride}
+              onRemove={handleRemoveOverride}
+            />
+          </VariableSection>
+        )}
+      </div>
+    </details>
   );
 }

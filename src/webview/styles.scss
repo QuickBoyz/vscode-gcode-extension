@@ -403,48 +403,33 @@ $font-size: var(--vscode-editor-font-size, 12px);
 // ── Variable panel ─────────────────────────────────────────────────
 
 .variable-panel {
-  background: var(--vscode-sideBar-background, #252526);
-  border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
   flex-shrink: 0;
   position: relative;
-}
-
-.toggle-icon {
-  font-size: calc(var(--vscode-editor-font-size, 12px) - 2px);
-  width: 12px;
-  text-align: center;
 }
 
 .variable-count {
   background: var(--vscode-badge-background, #4d4d4d);
   color: var(--vscode-badge-foreground, #cccccc);
   border-radius: 8px;
-  padding: 0 6px;
-  font-size: calc(var(--vscode-editor-font-size, 12px) - 2px);
+  padding-inline: 6px;
+  margin-inline: 6px;
   min-width: 16px;
   text-align: center;
-  line-height: 16px;
+}
+
+.variable-panel,
+.variable-panel-content {
+  background: var(--vscode-sideBar-background, #252526);
+  border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
 }
 
 .variable-panel-content {
-  padding: 6px 14px 10px;
+  padding: 4px 8px;
   position: absolute;
-  background: var(--vscode-sideBar-background, #252526);
-  border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c);
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.variable-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  z-index: 10;
 }
 
 .variable-row {
@@ -457,8 +442,7 @@ $font-size: var(--vscode-editor-font-size, 12px);
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vscode-editor-font-size, 12px);
   color: var(--vscode-editor-foreground, #cccccc);
-  min-width: 100px;
-  max-width: 160px;
+  min-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -560,17 +544,11 @@ $font-size: var(--vscode-editor-font-size, 12px);
 }
 
 .variable-section {
-  padding-block: 8px;
   border-top: 1px solid var(--vscode-panel-border, #3c3c3c);
 }
 
 .variable-panel-toggle,
 .variable-section-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px 8px;
   background: transparent;
   border: none;
   color: var(--vscode-button-secondaryForeground, #cccccc);
@@ -581,6 +559,12 @@ $font-size: var(--vscode-editor-font-size, 12px);
   &:hover {
     background: var(--vscode-list-hoverBackground, #2a2d2e);
   }
+}
+
+.variable-panel-toggle,
+.variable-section-toggle,
+.variable-row {
+  padding: 4px 8px;
 }
 
 .variable-referenced-row {
