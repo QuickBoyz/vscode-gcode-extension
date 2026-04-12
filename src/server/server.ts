@@ -29,6 +29,7 @@ import { CompletionProvider } from '../providers/CompletionProvider';
 import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 import { GCodeConfig } from '../config/types';
 import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
+import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 import { WorkspaceSymbolIndex } from '../providers/WorkspaceSymbolIndex';
 import { WorkspaceSymbolProvider } from '../providers/WorkspaceSymbolProvider';
 
@@ -156,11 +157,17 @@ function toGCodeSettings(config: GCodeConfig): GCodeSettings {
 const formatterService = new FormatterService(),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
+  // Shared stateless service — one instance reused across the four providers
+  // that resolve variable symbols at a cursor position.
+  variableAnalysisService = new VariableAnalysisService(),
   documentFormatter = new DocumentFormattingProvider(formatterService, documentStateManager),
-  definitionProvider = new DefinitionProvider(documentStateManager),
-  referencesProvider = new ReferencesProvider(documentStateManager),
-  renameProvider = new RenameProvider(documentStateManager),
-  documentHighlightProvider = new DocumentHighlightProvider(documentStateManager),
+  definitionProvider = new DefinitionProvider(documentStateManager, variableAnalysisService),
+  referencesProvider = new ReferencesProvider(documentStateManager, variableAnalysisService),
+  renameProvider = new RenameProvider(documentStateManager, variableAnalysisService),
+  documentHighlightProvider = new DocumentHighlightProvider(
+    documentStateManager,
+    variableAnalysisService
+  ),
   documentSymbolProvider = new DocumentSymbolProvider(documentStateManager),
   hoverProvider = new HoverProvider(documentStateManager),
   diagnosticsProvider = new DiagnosticsProvider(documentStateManager),

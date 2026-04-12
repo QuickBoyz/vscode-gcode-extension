@@ -130,7 +130,7 @@ export class HoverProvider extends BaseProvider {
     let analysis: AnalysisResults | undefined;
     if (node instanceof VariableAssignmentNode || node instanceof VariableReferenceNode) {
       if (!state.analysis) {
-        state.analysis = this.documentStateManager['analysisService'].analyze(state.ast);
+        state.analysis = this.documentStateManager.analyzeAst(state.ast);
       }
       analysis = state.analysis;
     }

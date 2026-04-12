@@ -8,6 +8,7 @@ import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
 import { Position } from '../../parser/nodes';
 import { DefinitionProvider } from '../../providers/DefinitionProvider';
 import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
+import { VariableAnalysisService } from '../../providers/VariableAnalysisService';
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_GCODE_CONFIG.formatter,
@@ -18,7 +19,7 @@ describe('DefinitionProvider', () => {
 
   beforeEach(() => {
     stateManager = new DocumentStateManager();
-    provider = new DefinitionProvider(stateManager);
+    provider = new DefinitionProvider(stateManager, new VariableAnalysisService());
   });
 
   describe('provideDefinition', () => {

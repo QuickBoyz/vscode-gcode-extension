@@ -10,6 +10,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from '../parser/nodes';
 import { GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { VariableAnalysisService } from './VariableAnalysisService';
 
 /**
@@ -20,7 +21,12 @@ import { VariableAnalysisService } from './VariableAnalysisService';
  * at the cursor position.
  */
 export class DefinitionProvider extends BaseProvider {
-  private readonly variableAnalysisService = new VariableAnalysisService();
+  constructor(
+    documentStateManager: IDocumentStateManager,
+    private readonly variableAnalysisService: VariableAnalysisService
+  ) {
+    super(documentStateManager);
+  }
 
   /**
    * Provide the definition location for a variable at the given position

@@ -8,6 +8,7 @@ import { DEFAULT_GCODE_CONFIG } from '../../config/defaults';
 import { Position } from '../../parser/nodes';
 import { ReferencesProvider } from '../../providers/ReferencesProvider';
 import { DocumentStateManager, GCodeSettings } from '../../providers/DocumentStateManager';
+import { VariableAnalysisService } from '../../providers/VariableAnalysisService';
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_GCODE_CONFIG.formatter,
@@ -18,7 +19,7 @@ describe('ReferencesProvider', () => {
 
   beforeEach(() => {
     stateManager = new DocumentStateManager();
-    provider = new ReferencesProvider(stateManager);
+    provider = new ReferencesProvider(stateManager, new VariableAnalysisService());
   });
 
   describe('provideReferences', () => {

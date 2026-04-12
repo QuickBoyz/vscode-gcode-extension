@@ -10,6 +10,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from '../parser/nodes';
 import { GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { VariableAnalysisService } from './VariableAnalysisService';
 
 /**
@@ -18,7 +19,12 @@ import { VariableAnalysisService } from './VariableAnalysisService';
  * Highlights all occurrences of a variable at the cursor position.
  */
 export class DocumentHighlightProvider extends BaseProvider {
-  private readonly variableAnalysisService = new VariableAnalysisService();
+  constructor(
+    documentStateManager: IDocumentStateManager,
+    private readonly variableAnalysisService: VariableAnalysisService
+  ) {
+    super(documentStateManager);
+  }
 
   /**
    * Provide document highlights for a variable at the given position

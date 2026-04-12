@@ -8,13 +8,14 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver/node';
 
-import { DocumentStateManager, GCodeSettings } from '../DocumentStateManager';
+import { GCodeSettings } from '../DocumentStateManager';
+import { IDocumentStateManager } from '../IDocumentStateManager';
 import { ContextInfo } from '../CompletionContextDetector';
 import { formatVariableName } from '../RenameUtils';
 import { CompletionStrategy } from './CompletionStrategy';
 
 export class VariableCompletionStrategy implements CompletionStrategy {
-  constructor(private readonly documentStateManager: DocumentStateManager) {}
+  constructor(private readonly documentStateManager: IDocumentStateManager) {}
 
   provide(
     document: TextDocument,

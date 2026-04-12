@@ -9,6 +9,7 @@ import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { Position } from '../parser/nodes';
 import { DocumentHighlightProvider } from '../providers/DocumentHighlightProvider';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
+import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_GCODE_CONFIG.formatter,
@@ -19,7 +20,7 @@ describe('DocumentHighlightProvider', () => {
 
   beforeEach(() => {
     stateManager = new DocumentStateManager();
-    provider = new DocumentHighlightProvider(stateManager);
+    provider = new DocumentHighlightProvider(stateManager, new VariableAnalysisService());
   });
 
   describe('provideDocumentHighlights', () => {

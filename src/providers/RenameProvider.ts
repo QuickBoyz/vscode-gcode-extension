@@ -10,6 +10,7 @@ import { TextEdit, WorkspaceEdit } from 'vscode-languageserver/node';
 import { Position, Range, VariableAssignmentNode, VariableReferenceNode } from '../parser/nodes';
 import { GCodeSettings } from './DocumentStateManager';
 import { BaseProvider } from './BaseProvider';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { VariableAnalysisService } from './VariableAnalysisService';
 import { formatVariableName } from './RenameUtils';
 
@@ -19,7 +20,12 @@ import { formatVariableName } from './RenameUtils';
  * Handles variable renaming requests from the language server.
  */
 export class RenameProvider extends BaseProvider {
-  private readonly variableAnalysisService = new VariableAnalysisService();
+  constructor(
+    documentStateManager: IDocumentStateManager,
+    private readonly variableAnalysisService: VariableAnalysisService
+  ) {
+    super(documentStateManager);
+  }
 
   /**
    * Prepare rename - check if position is on a variable and return range/placeholder

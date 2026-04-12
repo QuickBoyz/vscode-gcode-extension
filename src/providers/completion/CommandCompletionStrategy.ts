@@ -15,12 +15,13 @@ import {
   MAX_SNIPPET_PARAMETERS,
 } from '../../constants';
 import { GROUP_SORT_ORDER, DEFAULT_GROUP_SORT_PREFIX } from '../../databases/types';
-import { DocumentStateManager, GCodeSettings } from '../DocumentStateManager';
+import { GCodeSettings } from '../DocumentStateManager';
+import { IDocumentStateManager } from '../IDocumentStateManager';
 import { ContextInfo } from '../CompletionContextDetector';
 import { CompletionStrategy } from './CompletionStrategy';
 
 export class CommandCompletionStrategy implements CompletionStrategy {
-  constructor(private readonly documentStateManager: DocumentStateManager) {}
+  constructor(private readonly documentStateManager: IDocumentStateManager) {}
 
   provide(
     _document: TextDocument,

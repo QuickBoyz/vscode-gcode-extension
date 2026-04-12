@@ -15,7 +15,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompletionItem, Position } from 'vscode-languageserver/node';
 
 import { CompletionItemTypes, DialectType } from '../constants';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { DocumentationBuilder } from './DocumentationBuilder';
 import { BaseProvider } from './BaseProvider';
 import { CompletionContext, CompletionContextDetector } from './CompletionContextDetector';
@@ -47,7 +48,7 @@ export class CompletionProvider extends BaseProvider {
   private readonly documentationBuilder = new DocumentationBuilder();
   private readonly strategies: ReadonlyMap<CompletionContext, CompletionStrategy>;
 
-  constructor(documentStateManager: DocumentStateManager) {
+  constructor(documentStateManager: IDocumentStateManager) {
     super(documentStateManager);
     this.contextDetector = new CompletionContextDetector(documentStateManager);
     this.strategies = new Map<CompletionContext, CompletionStrategy>([
