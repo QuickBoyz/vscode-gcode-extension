@@ -154,12 +154,13 @@ function toGCodeSettings(config: GCodeConfig): GCodeSettings {
   };
 }
 
+// Shared stateless service — one instance reused across the four providers
+// that resolve variable symbols at a cursor position.
+const variableAnalysisService = new VariableAnalysisService();
+
 const formatterService = new FormatterService(),
   // Create document state manager and providers
   documentStateManager = new DocumentStateManager(),
-  // Shared stateless service — one instance reused across the four providers
-  // that resolve variable symbols at a cursor position.
-  variableAnalysisService = new VariableAnalysisService(),
   documentFormatter = new DocumentFormattingProvider(formatterService, documentStateManager),
   definitionProvider = new DefinitionProvider(documentStateManager, variableAnalysisService),
   referencesProvider = new ReferencesProvider(documentStateManager, variableAnalysisService),

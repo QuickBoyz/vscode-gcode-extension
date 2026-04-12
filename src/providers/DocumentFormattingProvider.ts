@@ -17,7 +17,7 @@ import { FormatterConfig } from '../formatter/types';
 export class DocumentFormattingProvider {
   constructor(
     private formatter: FormatterService,
-    private stateManager?: IDocumentStateManager
+    private documentStateManager?: IDocumentStateManager
   ) {}
 
   /**
@@ -69,10 +69,13 @@ export class DocumentFormattingProvider {
     settings: FormatterConfig,
     dialect?: DialectType
   ): ProgramNode | undefined {
-    if (!this.stateManager) return undefined;
+    if (!this.documentStateManager) return undefined;
 
     const gcodeSettings: GCodeSettings = { formatter: settings, dialect };
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, gcodeSettings);
+    const state = this.documentStateManager.getOrParseDocumentFromTextDocument(
+      document,
+      gcodeSettings
+    );
     return state.ast;
   }
 }

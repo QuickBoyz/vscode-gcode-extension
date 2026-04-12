@@ -30,10 +30,10 @@ export const SEMANTIC_TOKENS_LEGEND: SemanticTokensLegend = {
 export class SemanticTokensProvider {
   static provide(
     document: TextDocument,
-    stateManager: IDocumentStateManager,
+    documentStateManager: IDocumentStateManager,
     settings: GCodeSettings
   ): SemanticTokens {
-    const analysis = stateManager.getAnalysisFromTextDocument(document, settings, {
+    const analysis = documentStateManager.getAnalysisFromTextDocument(document, settings, {
       includeTokens: true,
     });
     return { data: analysis.tokens?.data ?? [] };

@@ -225,9 +225,10 @@ export class DocumentStateManager implements IDocumentStateManager {
 
   /**
    * Run AST-level analysis (variables, errors, optional semantic tokens) on
-   * a pre-parsed program. Unlike {@link getAnalysis}, this does not touch the
-   * document cache or run semantic analysis — it is a direct, uncached pass
-   * suitable for callers that already hold a {@link DocumentState}.
+   * a pre-parsed program. Unlike {@link getAnalysisFromTextDocument}, this
+   * does not touch the document cache or run semantic analysis — it is a
+   * direct, uncached pass suitable for callers that already hold a
+   * {@link DocumentState}.
    */
   analyzeAst(ast: ProgramNode, options: AnalysisOptions = {}): AnalysisResults {
     return this.analysisService.analyze(ast, options);

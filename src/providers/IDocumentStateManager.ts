@@ -8,13 +8,13 @@
  * require a real provider-side consumer, not speculative future use.
  */
 
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DialectType } from '../constants';
-import { ProgramNode } from '../parser/nodes';
-import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
-import { DocumentState, GCodeSettings } from './DocumentStateManager';
-import { IDataProvider } from './IDataProvider';
+import type { DialectType } from '../constants';
+import type { ProgramNode } from '../parser/nodes';
+import type { AnalysisOptions, AnalysisResults } from './AnalysisResults';
+import type { DocumentState, GCodeSettings } from './DocumentStateManager';
+import type { IDataProvider } from './IDataProvider';
 
 export interface IDocumentStateManager {
   /**
