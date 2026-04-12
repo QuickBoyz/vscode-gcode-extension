@@ -8,6 +8,7 @@
 
 import { DialectType } from '../constants';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
+import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 
 /**
@@ -218,6 +219,18 @@ export interface MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): void;
+}
+
+/**
+ * Minimal contract the path extractor needs from a program interpreter.
+ * Implemented by {@link GCodeInterpreter}. Exists so the extractor can be
+ * decoupled from the concrete interpreter — the composition root
+ * ({@link VisualizerService}) owns construction and wires both together.
+ */
+export interface ProgramInterpreter {
+  interpret(program: ProgramNode): void;
+  readonly referencedVariables: ReadonlySet<string | number>;
+  getVariableValue(name: string | number): number | null;
 }
 
 /**
