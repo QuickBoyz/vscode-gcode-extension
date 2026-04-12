@@ -32,8 +32,6 @@ import {
 } from '../constants/GCodeCommands';
 import { ARC_PLANE_CONFIGS, ArcPlane, ArcPlaneConfig } from './ArcPlane';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
-import { GCodeInterpreter } from './GCodeInterpreter';
-import { VariableEnvironment } from './VariableEnvironment';
 import {
   MotionContext,
   MotionHandler,
@@ -41,6 +39,7 @@ import {
   PathBounds,
   PathPoint,
   PathSegment,
+  ProgramInterpreter,
   ReferencedVariable,
   ToolPathData,
 } from './types';
@@ -234,10 +233,10 @@ export class GCodePathExtractor implements MotionHandler {
    * can be reused across multiple documents.
    *
    * @param program     - Parsed G-code program AST
-   * @param variableEnvironment - Optional pre-configured variable environment
-   *                      (from {@link VariableResolutionService})
+   * @param interpreter - Program interpreter that will walk the AST and
+   *                      dispatch motion commands back to this extractor
    */
-  extract(program: ProgramNode, variableEnvironment?: VariableEnvironment): ToolPathData {
+  extract(program: ProgramNode, interpreter: ProgramInterpreter): ToolPathData {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
@@ -245,7 +244,6 @@ export class GCodePathExtractor implements MotionHandler {
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
 
-    const interpreter = new GCodeInterpreter(this, undefined, variableEnvironment);
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
     const referencedVariables = this.buildReferencedVariables(interpreter);
@@ -256,7 +254,7 @@ export class GCodePathExtractor implements MotionHandler {
    * Builds the list of referenced variables from the interpreter's
    * tracking data, including their final resolved values after execution.
    */
-  private buildReferencedVariables(interpreter: GCodeInterpreter): readonly ReferencedVariable[] {
+  private buildReferencedVariables(interpreter: ProgramInterpreter): readonly ReferencedVariable[] {
     const named: ReferencedVariable[] = [];
 
     for (const key of interpreter.referencedVariables) {

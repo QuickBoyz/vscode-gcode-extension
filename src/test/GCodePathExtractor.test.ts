@@ -2,21 +2,32 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
+import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { MotionType, ToolPathData } from '../visualizer/types';
 import { VariableEnvironment } from '../visualizer/VariableEnvironment';
 
 describe('GCodePathExtractor', () => {
   /**
-   * Helper: tokenise, parse, and extract path data from a G-code string.
+   * Helper: tokenise, parse, and construct an extractor + interpreter
+   * pipeline ready to run against the extractor's `extract` method.
    */
-  function extract(input: string): ToolPathData {
+  function buildPipeline(input: string, env?: VariableEnvironment) {
     const lexer = new GCodeLexer();
     const tokens = lexer.tokenize(input);
     const parser = new LinuxCNCParser(tokens, input);
     const ast = parser.parseProgram();
     const extractor = new GCodePathExtractor();
-    return extractor.extract(ast);
+    const interpreter = new GCodeInterpreter(extractor, undefined, env);
+    return { ast, extractor, interpreter };
+  }
+
+  /**
+   * Helper: tokenise, parse, and extract path data from a G-code string.
+   */
+  function extract(input: string): ToolPathData {
+    const { ast, extractor, interpreter } = buildPipeline(input);
+    return extractor.extract(ast, interpreter);
   }
 
   // ---------------------------------------------------------------------------
@@ -665,12 +676,11 @@ G2 X20 Z0 I5 K0
       input: string,
       variables: ReadonlyMap<string | number, number>
     ): ToolPathData {
-      const lexer = new GCodeLexer();
-      const tokens = lexer.tokenize(input);
-      const parser = new LinuxCNCParser(tokens, input);
-      const ast = parser.parseProgram();
-      const extractor = new GCodePathExtractor();
-      return extractor.extract(ast, VariableEnvironment.fromEntries(variables));
+      const { ast, extractor, interpreter } = buildPipeline(
+        input,
+        VariableEnvironment.fromEntries(variables)
+      );
+      return extractor.extract(ast, interpreter);
     }
 
     it('uses initial variables for numbered variable references', () => {

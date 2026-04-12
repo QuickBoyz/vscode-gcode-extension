@@ -30,10 +30,10 @@ import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { normalizeCommand } from '../utils/GCodeNormalizer';
 import { MODAL_MOTION_COMMANDS } from '../constants/GCodeCommands';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
-import { InterpreterConfig, MotionHandler } from './types';
+import { InterpreterConfig, MotionHandler, ProgramInterpreter } from './types';
 import { VariableEnvironment } from './VariableEnvironment';
 
-export class GCodeInterpreter {
+export class GCodeInterpreter implements ProgramInterpreter {
   private readonly variableEnvironment: VariableEnvironment;
   private readonly expressionEvaluator: GCodeExpressionEvaluator;
   private readonly options: InterpreterConfig;

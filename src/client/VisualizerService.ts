@@ -10,17 +10,12 @@
 import { DialectType } from '../constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
+import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { VariableResolutionService } from '../visualizer/VariableResolutionService';
 import { VariableDefinitions, VisualizerResult } from '../visualizer/types';
 
 export class VisualizerService {
-  private readonly extractor: GCodePathExtractor;
-
-  constructor() {
-    this.extractor = new GCodePathExtractor();
-  }
-
   /**
    * Parses `text` and extracts the complete tool path.
    *
@@ -43,7 +38,9 @@ export class VisualizerService {
       const parser = ParserFactory.create(dialect, tokens, text);
       const ast = parser.parseProgram();
       const environment = new VariableResolutionService({ settingsVariables }).resolve();
-      const data = this.extractor.extract(ast, environment);
+      const extractor = new GCodePathExtractor();
+      const interpreter = new GCodeInterpreter(extractor, undefined, environment);
+      const data = extractor.extract(ast, interpreter);
       return { success: true, data };
     } catch (error: unknown) {
       const errorMessage =
