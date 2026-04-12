@@ -11,6 +11,12 @@ import {
 export const GCODE_LANGUAGE_ID = 'gcode';
 
 /**
+ * File extensions (without leading dot) that the workspace indexing
+ * service treats as G-code source files.
+ */
+export const GCODE_INDEX_EXTENSIONS: readonly string[] = ['nc', 'gcode', 'tap', 'ngc', 'cnc'];
+
+/**
  * G-code dialect types supported by the extension
  */
 export enum DialectType {
