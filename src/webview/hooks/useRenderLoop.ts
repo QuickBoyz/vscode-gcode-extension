@@ -57,6 +57,8 @@ export function useRenderLoop(
 ): UseRenderLoopResult {
   const animationFrameIdRef = useRef<number | null>(null);
   const projectedCacheRef = useRef<ProjectedSegmentData[]>([]);
+  const hoveredIndexRef = useRef<number | null>(null);
+  const renderOverlayRef = useRef<(hoveredIndex: number | null) => void>(() => {});
   const backgroundColorRef = useRef<string>(
     getComputedStyle(document.documentElement)
       .getPropertyValue('--vscode-editor-background')
@@ -231,6 +233,10 @@ export function useRenderLoop(
         projectionMode
       );
     }
+
+    // Keep the highlight overlay in sync with the freshly-rebuilt projection
+    // cache so it tracks its 3D segment during camera orbit/pan/zoom (#136).
+    renderOverlayRef.current(hoveredIndexRef.current);
   }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef, playbackRef]);
 
   const scheduleRender = useCallback(() => {
@@ -241,6 +247,7 @@ export function useRenderLoop(
 
   const renderOverlay = useCallback(
     (hoveredIndex: number | null) => {
+      hoveredIndexRef.current = hoveredIndex;
       const overlay = overlayRef.current;
       const ctx = overlay?.getContext('2d');
       if (!overlay || !ctx) return;
@@ -278,6 +285,8 @@ export function useRenderLoop(
     },
     [overlayRef, segmentsRef, settingsRef]
   );
+
+  renderOverlayRef.current = renderOverlay;
 
   const getProjectedCache = useCallback(() => projectedCacheRef.current, []);
   const clearProjectedCache = useCallback(() => {
