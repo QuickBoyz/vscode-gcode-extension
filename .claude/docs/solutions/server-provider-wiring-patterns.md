@@ -23,19 +23,6 @@ When adding new providers to `src/server/server.ts`, several conventions must be
 
 ## Guidance
 
-### Declaration style
-
-All providers are declared in a single comma-chained `const` block:
-
-```typescript
-const formatterService = new FormatterService(...),
-  documentStateManager = new DocumentStateManager(...),
-  // ...
-  newProvider = new NewProvider(...);  // ← add at end
-```
-
-Do NOT create separate `const` statements — it breaks the visual grouping.
-
 ### Async config functions
 
 Config-reading functions like `applyWorkspaceSettings()` return Promises. Always use `.catch()`:
