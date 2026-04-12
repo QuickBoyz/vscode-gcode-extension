@@ -9,25 +9,47 @@
  * The service is intentionally decoupled from the LSP `Connection` — it
  * accepts dependencies via {@link WorkspaceIndexingDependencies} so it can
  * be unit-tested against real temp directories without an LSP host.
+ *
+ * Two enumeration paths are supported:
+ *
+ * 1. **Client enumeration** (preferred). When `flags.supportsListIndexFiles`
+ *    is true, the service issues a `workspace/gcodeListIndexFiles` request
+ *    via the injected `requestFiles` callback so the VSCode client can use
+ *    `vscode.workspace.findFiles` and honor user-configured `files.exclude`
+ *    / `search.exclude`.
+ * 2. **Fallback walker.** When the client does not advertise the capability
+ *    (non-VSCode hosts), the service falls back to a `fs.readdir` walker.
+ *    The walker's skip list is intentionally minimal — only `node_modules`
+ *    is excluded, since non-VSCode clients have no equivalent of
+ *    `files.exclude` to lean on but `node_modules` walks are catastrophic
+ *    on a typical project.
+ *
+ * Each `scanRoots()` invocation increments a monotonic generation counter
+ * and creates a fresh `CancellationTokenSource`. Late responses whose
+ * `scanGeneration` does not match the current generation are dropped
+ * silently. The indexing loop also re-checks the generation between
+ * batches so a config-driven rescan can pre-empt an in-flight pass.
  */
 import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
+
 import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
+import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
+import { ClientFeatureFlags } from './ClientFeatureFlags';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
 const SCAN_BATCH_SIZE = 50;
 const DEFAULT_DEBOUNCE_MS = 300;
 
-const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set([
-  'node_modules',
-  '.git',
-  'dist',
-  'out',
-  '.vscode-test',
-]);
+const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set(['node_modules']);
+
+const DEFAULT_CLIENT_FEATURE_FLAGS: ClientFeatureFlags = {
+  supportsListIndexFiles: false,
+};
 
 /** LSP `FileChangeType` values, replicated to keep this module dependency-light. */
 export enum WorkspaceFileChangeType {
@@ -49,13 +71,33 @@ export interface ProgressReporter {
   done(): void;
 }
 
+/**
+ * DI boundary for the `workspace/gcodeListIndexFiles` request. Implemented
+ * by the server bootstrap as a thin wrapper around
+ * `connection.sendRequest`. The token is cancelled when the service starts
+ * a newer scan or when indexing is disabled.
+ */
+export type RequestFilesCallback = (
+  params: GCodeListIndexFilesParams,
+  token: CancellationToken
+) => Promise<GCodeListIndexFilesResult>;
+
 export interface WorkspaceIndexingDependencies {
   readonly symbolIndex: WorkspaceSymbolIndex;
   readonly getDialect: () => DialectType | Promise<DialectType>;
   readonly logger?: (message: string) => void;
   readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
   readonly debounceMs?: number;
+  readonly flags?: ClientFeatureFlags;
+  readonly requestFiles?: RequestFilesCallback;
 }
+
+/**
+ * Brace-expanded include glob the server forwards to the client. Mirrors
+ * {@link GCODE_INDEX_EXTENSIONS} so the client and the walker stay in
+ * lockstep on which extensions count as G-code source.
+ */
+const GCODE_INCLUDE_GLOB = `**/*.{${GCODE_INDEX_EXTENSIONS.join(',')}}`;
 
 export class WorkspaceIndexingService {
   private readonly symbolIndex: WorkspaceSymbolIndex;
@@ -63,6 +105,8 @@ export class WorkspaceIndexingService {
   private readonly logger?: (message: string) => void;
   private readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
   private readonly debounceMs: number;
+  private readonly flags: ClientFeatureFlags;
+  private readonly requestFiles?: RequestFilesCallback;
 
   private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly pendingChanges = new Map<string, WorkspaceFileChangeType>();
@@ -70,12 +114,17 @@ export class WorkspaceIndexingService {
   private enabled = true;
   private lastRoots: readonly string[] = [];
 
+  private currentScanGeneration = 0;
+  private currentScanCts: CancellationTokenSource | undefined;
+
   constructor(deps: WorkspaceIndexingDependencies) {
     this.symbolIndex = deps.symbolIndex;
     this.getDialect = deps.getDialect;
     this.logger = deps.logger;
     this.progressFactory = deps.progressFactory;
     this.debounceMs = deps.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+    this.flags = deps.flags ?? DEFAULT_CLIENT_FEATURE_FLAGS;
+    this.requestFiles = deps.requestFiles;
   }
 
   isEnabled(): boolean {
@@ -85,8 +134,9 @@ export class WorkspaceIndexingService {
   /**
    * Enable or disable workspace indexing.
    *
-   * Disabling clears all timers and the symbol index. Re-enabling triggers
-   * a fresh scan of the most recently scanned roots, if any.
+   * Disabling clears all timers, cancels any in-flight scan, and clears the
+   * symbol index. Re-enabling triggers a fresh scan of the most recently
+   * scanned roots, if any.
    */
   setEnabled(enabled: boolean): Promise<void> {
     if (this.enabled === enabled) {
@@ -94,6 +144,7 @@ export class WorkspaceIndexingService {
     }
     this.enabled = enabled;
     if (!enabled) {
+      this.cancelCurrentScan();
       this.clearTimers();
       this.symbolIndex.clear();
       return Promise.resolve();
@@ -109,47 +160,52 @@ export class WorkspaceIndexingService {
    *
    * Files are processed in batches of {@link SCAN_BATCH_SIZE} with a
    * `setImmediate` yield between batches so the event loop stays responsive.
+   * Re-entering this method while a scan is in flight cancels the previous
+   * scan via its CancellationTokenSource and bumps the generation counter
+   * so any late client responses are dropped.
    */
   async scanRoots(roots: readonly string[]): Promise<void> {
-    // Remember the roots even when indexing is currently disabled, so a later
-    // setEnabled(true) can rescan them without the caller re-passing them.
+    // Remember the roots even when indexing is currently disabled, so a
+    // later setEnabled(true) can rescan them without the caller re-passing
+    // them.
     this.lastRoots = [...roots];
     if (!this.enabled) return;
 
-    // Dialect is captured once for the whole scan; per-folder dialects would
-    // require resolving the dialect per file (or per workspace folder).
+    // Cancel any previous in-flight scan and start a new generation.
+    this.cancelCurrentScan();
+    const cts = new CancellationTokenSource();
+    this.currentScanCts = cts;
+    this.currentScanGeneration += 1;
+    const gen = this.currentScanGeneration;
+
+    // Dialect is captured once for the whole scan; per-folder dialects
+    // would require resolving the dialect per file (or per workspace folder).
     const dialect = await this.getDialect();
     const progress = (await this.progressFactory?.()) ?? undefined;
     progress?.begin('Indexing G-code files');
 
-    const allFiles: string[] = [];
-    for (const root of roots) {
-      const files = await this.collectFiles(root);
-      allFiles.push(...files);
-    }
-    const total = allFiles.length;
-
-    let processed = 0;
     try {
-      for (let i = 0; i < total; i += SCAN_BATCH_SIZE) {
-        if (!this.enabled) return;
-        const batch = allFiles.slice(i, i + SCAN_BATCH_SIZE);
-        for (const filePath of batch) {
-          await this.indexFile(filePath, dialect);
-          processed++;
-          const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
-          progress?.report(percentage, `Indexed ${processed} of ${total}`);
-        }
-        await yieldToEventLoop();
-      }
+      const fileUris = await this.collectScanTargets(roots, gen, cts.token);
+      if (gen !== this.currentScanGeneration) return;
+
+      await this.indexFromList(fileUris, dialect, gen, progress);
     } finally {
       progress?.done();
+      if (this.currentScanCts === cts) {
+        this.currentScanCts = undefined;
+      }
+      cts.dispose();
     }
   }
 
   /**
    * Apply a batch of file change notifications. Each URI is debounced
    * independently so bursts of edits coalesce into a single re-index.
+   *
+   * Watcher events are passed through unfiltered. The architecture design
+   * (§8 Q4) accepts a brief eventual-consistency window after exclude
+   * changes — the next bulk scan will overwrite stale entries via
+   * `indexFile`'s remove-then-add semantics.
    */
   handleFileEvents(changes: readonly WorkspaceFileEvent[]): void {
     if (!this.enabled) return;
@@ -178,6 +234,95 @@ export class WorkspaceIndexingService {
     }
   }
 
+  private cancelCurrentScan(): void {
+    if (this.currentScanCts) {
+      this.currentScanCts.cancel();
+      this.currentScanCts.dispose();
+      this.currentScanCts = undefined;
+    }
+    // Generation is bumped in scanRoots (the only producer of new
+    // generations). Disabling the service relies on this.enabled = false
+    // to break the indexing loop.
+  }
+
+  private async collectScanTargets(
+    roots: readonly string[],
+    gen: number,
+    token: CancellationToken
+  ): Promise<readonly string[]> {
+    if (this.flags.supportsListIndexFiles) {
+      return this.enumerateViaClient(roots, gen, token);
+    }
+
+    const collected: string[] = [];
+    for (const root of roots) {
+      const paths = await this.collectFiles(root);
+      for (const filePath of paths) {
+        collected.push(pathToFileURL(filePath).toString());
+      }
+    }
+    return collected;
+  }
+
+  private async enumerateViaClient(
+    roots: readonly string[],
+    gen: number,
+    token: CancellationToken
+  ): Promise<readonly string[]> {
+    if (!this.requestFiles) {
+      throw new WorkspaceIndexingConfigurationError(
+        'Client advertises listIndexFiles capability but no requestFiles callback was injected'
+      );
+    }
+
+    const params: GCodeListIndexFilesParams = {
+      folders: roots,
+      scanGeneration: gen,
+      includeGlob: GCODE_INCLUDE_GLOB,
+    };
+
+    const result = await this.requestFiles(params, token);
+
+    if (result.scanGeneration !== gen) {
+      this.logger?.(
+        `Dropping stale gcodeListIndexFiles response: expected gen ${gen.toString()}, got ${result.scanGeneration.toString()}`
+      );
+      return [];
+    }
+    if (result.truncated) {
+      this.logger?.(
+        `Client truncated gcodeListIndexFiles response (${result.files.length.toString()} files)`
+      );
+    }
+    return result.files;
+  }
+
+  private async indexFromList(
+    fileUris: readonly string[],
+    dialect: DialectType,
+    gen: number,
+    progress: ProgressReporter | undefined
+  ): Promise<void> {
+    const total = fileUris.length;
+    let processed = 0;
+
+    for (let i = 0; i < total; i += SCAN_BATCH_SIZE) {
+      if (!this.enabled) return;
+      // Re-check the generation between batches so a re-entered scan can
+      // pre-empt an in-flight indexing pass.
+      if (gen !== this.currentScanGeneration) return;
+
+      const batch = fileUris.slice(i, i + SCAN_BATCH_SIZE);
+      for (const uri of batch) {
+        await this.indexFile(uri, dialect);
+        processed++;
+        const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
+        progress?.report(percentage, `Indexed ${processed.toString()} of ${total.toString()}`);
+      }
+      await yieldToEventLoop();
+    }
+  }
+
   private async processChange(uri: string, type: WorkspaceFileChangeType): Promise<void> {
     if (!this.enabled) return;
 
@@ -186,24 +331,25 @@ export class WorkspaceIndexingService {
       return;
     }
 
-    const filePath = uriToFilePath(uri);
-    if (filePath === undefined) return;
-
     const dialect = await this.getDialect();
-    await this.indexFile(filePath, dialect);
+    await this.indexFile(uri, dialect);
   }
 
-  private async indexFile(filePath: string, dialect: DialectType): Promise<void> {
+  private async indexFile(uri: string, dialect: DialectType): Promise<void> {
+    const filePath = uriToFilePath(uri);
+    if (filePath === undefined) {
+      this.logger?.(`Skipping non-file URI ${uri}`);
+      return;
+    }
     try {
       const content = await fs.readFile(filePath, 'utf8');
-      // Re-check after the awaited read so a mid-scan disable can't write into
-      // an index that was just cleared by setEnabled(false).
+      // Re-check after the awaited read so a mid-scan disable can't write
+      // into an index that was just cleared by setEnabled(false).
       if (!this.enabled) return;
-      const uri = pathToFileURL(filePath).toString();
       this.symbolIndex.indexFile(uri, content, dialect);
     } catch (error: unknown) {
       this.logger?.(
-        `Failed to index ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to index ${uri}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -242,6 +388,19 @@ export class WorkspaceIndexingService {
     }
     this.debounceTimers.clear();
     this.pendingChanges.clear();
+  }
+}
+
+/**
+ * Thrown when the service is misconfigured — for example when the client
+ * advertises the listIndexFiles capability but no `requestFiles` callback
+ * was injected. Surfaces a clear failure mode instead of silently falling
+ * back to the walker, which would hide the misconfiguration.
+ */
+export class WorkspaceIndexingConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorkspaceIndexingConfigurationError';
   }
 }
 

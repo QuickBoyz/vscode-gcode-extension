@@ -3,9 +3,17 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { CancellationToken } from 'vscode-languageserver-protocol';
+
+import { ClientFeatureFlags } from '../../providers/ClientFeatureFlags';
 import { DialectType } from '../../constants';
 import {
+  GCodeListIndexFilesParams,
+  GCodeListIndexFilesResult,
+} from '../../lsp/gcodeListIndexFiles';
+import {
   ProgressReporter,
+  RequestFilesCallback,
   WorkspaceIndexingService,
 } from '../../providers/WorkspaceIndexingService';
 import { WorkspaceSymbolIndex } from '../../providers/WorkspaceSymbolIndex';
@@ -21,6 +29,8 @@ function createService(
     progress?: ProgressReporter;
     logger?: (message: string) => void;
     debounceMs?: number;
+    flags?: ClientFeatureFlags;
+    requestFiles?: RequestFilesCallback;
   } = {}
 ): WorkspaceIndexingService {
   const progress = options.progress;
@@ -30,6 +40,8 @@ function createService(
     logger: options.logger,
     progressFactory: progress ? () => Promise.resolve(progress) : undefined,
     debounceMs: options.debounceMs ?? TEST_DEBOUNCE_MS,
+    flags: options.flags,
+    requestFiles: options.requestFiles,
   });
 }
 
@@ -92,7 +104,13 @@ describe('WorkspaceIndexingService', () => {
       expect(index.getFileCount()).toBe(5);
     });
 
-    it('skips blacklisted directories', async () => {
+    it('skips only node_modules in the fallback walker', async () => {
+      // The fallback walker is used when the client does not advertise the
+      // listIndexFiles capability — its skip list was trimmed to {node_modules}
+      // because non-VSCode clients have no equivalent of files.exclude to
+      // lean on, and a node_modules walk is catastrophic on a typical
+      // project. All other directories (.git, dist, out, .vscode-test) are
+      // walked.
       await writeFile(tempDir, 'src/main.nc', SUBROUTINE_FILE);
       await writeFile(tempDir, 'node_modules/lib.nc', SUBROUTINE_FILE);
       await writeFile(tempDir, '.git/HEAD.nc', SUBROUTINE_FILE);
@@ -103,7 +121,7 @@ describe('WorkspaceIndexingService', () => {
       const service = createService(index);
       await service.scanRoots([tempDir]);
 
-      expect(index.getFileCount()).toBe(1);
+      expect(index.getFileCount()).toBe(5);
     });
 
     it('walks nested directories', async () => {
@@ -313,6 +331,203 @@ describe('WorkspaceIndexingService', () => {
       // 220 files / 50-file batches = 5 yield points; the interval should have
       // fired at least a few times, proving the scan released the event loop.
       expect(yieldCount).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('client enumeration path', () => {
+    const enabledFlags: ClientFeatureFlags = { supportsListIndexFiles: true };
+
+    it('forwards the workspace roots, glob, and a bumped scanGeneration to requestFiles', async () => {
+      const calls: GCodeListIndexFilesParams[] = [];
+      const requestFiles: RequestFilesCallback = (params) => {
+        calls.push(params);
+        return Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      };
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      await service.scanRoots(['/tmp/a', '/tmp/b']);
+      await service.scanRoots(['/tmp/a']);
+
+      expect(calls).toHaveLength(2);
+      expect(calls[0].folders).toEqual(['/tmp/a', '/tmp/b']);
+      expect(calls[1].folders).toEqual(['/tmp/a']);
+      expect(calls[0].includeGlob).toContain('nc');
+      expect(calls[0].includeGlob).toContain('gcode');
+      expect(calls[0].scanGeneration).toBe(1);
+      expect(calls[1].scanGeneration).toBe(2);
+    });
+
+    it('indexes the files returned by requestFiles', async () => {
+      const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
+      const requestFiles: RequestFilesCallback = (params) =>
+        Promise.resolve<GCodeListIndexFilesResult>({
+          files: [uriOf(ncPath)],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      await service.scanRoots([tempDir]);
+
+      expect(index.hasFile(uriOf(ncPath))).toBe(true);
+    });
+
+    it('does not invoke the fallback walker when client enumeration is enabled', async () => {
+      // If the service erroneously fell back to the walker, the on-disk file
+      // would be indexed. With requestFiles returning empty, the index must
+      // stay empty.
+      await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
+      const requestFiles: RequestFilesCallback = (params) =>
+        Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      await service.scanRoots([tempDir]);
+
+      expect(index.getFileCount()).toBe(0);
+    });
+
+    it('drops a response whose scanGeneration is stale', async () => {
+      const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
+      const requestFiles: RequestFilesCallback = () =>
+        Promise.resolve<GCodeListIndexFilesResult>({
+          files: [uriOf(ncPath)],
+          scanGeneration: 999,
+          truncated: false,
+        });
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      await service.scanRoots([tempDir]);
+
+      expect(index.getFileCount()).toBe(0);
+    });
+
+    it('cancels the in-flight scan token when setEnabled(false) is called', async () => {
+      let capturedToken: CancellationToken | undefined;
+      let resolver: () => void = () => {};
+      const requestFiles: RequestFilesCallback = (params, token) => {
+        capturedToken = token;
+        return new Promise<GCodeListIndexFilesResult>((resolve) => {
+          resolver = () =>
+            resolve({
+              files: [],
+              scanGeneration: params.scanGeneration,
+              truncated: false,
+            });
+        });
+      };
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      const scanPromise = service.scanRoots([tempDir]);
+      // Yield once so requestFiles has been invoked and the token captured.
+      await delay(5);
+
+      expect(capturedToken).toBeDefined();
+      expect(capturedToken!.isCancellationRequested).toBe(false);
+
+      const disablePromise = service.setEnabled(false);
+
+      expect(capturedToken!.isCancellationRequested).toBe(true);
+
+      // Let the in-flight request settle so the test cleans up.
+      resolver();
+      await Promise.all([scanPromise, disablePromise]);
+    });
+
+    it('bumps the generation and cancels the previous CTS on a re-entered scan', async () => {
+      const tokens: CancellationToken[] = [];
+      let resolveFirst: () => void = () => {};
+      let firstCallSeen = false;
+      const requestFiles: RequestFilesCallback = (params, token) => {
+        tokens.push(token);
+        if (!firstCallSeen) {
+          firstCallSeen = true;
+          return new Promise<GCodeListIndexFilesResult>((resolve) => {
+            resolveFirst = () =>
+              resolve({
+                files: [],
+                scanGeneration: params.scanGeneration,
+                truncated: false,
+              });
+          });
+        }
+        return Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      };
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      const firstScan = service.scanRoots([tempDir]);
+      await delay(5);
+      const secondScan = service.scanRoots([tempDir]);
+      // Second scan starts a fresh CTS synchronously (cancelling the first)
+      // but only reaches requestFiles after the awaited dialect/progress
+      // factory yields. Wait long enough for the second token to be captured.
+      await delay(5);
+
+      expect(tokens).toHaveLength(2);
+      expect(tokens[0].isCancellationRequested).toBe(true);
+      expect(tokens[1].isCancellationRequested).toBe(false);
+
+      resolveFirst();
+      await Promise.all([firstScan, secondScan]);
+    });
+
+    it('bails out of the indexing loop between batches when the generation flips', async () => {
+      // Build a returned URI list large enough to span multiple batches.
+      const filePaths: string[] = [];
+      for (let i = 0; i < 120; i++) {
+        filePaths.push(await writeFile(tempDir, `f${i}.nc`, SUBROUTINE_FILE));
+      }
+      const fileUris = filePaths.map(uriOf);
+
+      const requestFiles: RequestFilesCallback = (params) =>
+        Promise.resolve<GCodeListIndexFilesResult>({
+          files: fileUris,
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      const indexFileSpy = jest.spyOn(index, 'indexFile');
+
+      const firstScan = service.scanRoots([tempDir]);
+      // Bump the generation while the first scan's loop is still walking
+      // its batches.
+      const secondScan = service.scanRoots([tempDir]);
+      await Promise.all([firstScan, secondScan]);
+
+      // Two scans of 120 files each would yield 240 indexFile calls if
+      // neither bailed. The early bail keeps the total below that ceiling.
+      expect(indexFileSpy.mock.calls.length).toBeLessThan(120 * 2);
+      // The second scan still indexed the full set.
+      expect(index.getFileCount()).toBe(120);
+    });
+
+    it('propagates a requestFiles rejection without falling back to the walker', async () => {
+      // The on-disk file would be picked up by the walker. The service must
+      // surface the client error instead of silently switching modes.
+      await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
+      const requestFiles: RequestFilesCallback = () =>
+        Promise.reject(new Error('client enumeration failed'));
+      const logger = jest.fn();
+      const service = createService(index, {
+        flags: enabledFlags,
+        requestFiles,
+        logger,
+      });
+
+      await expect(service.scanRoots([tempDir])).rejects.toThrow('client enumeration failed');
+      expect(index.getFileCount()).toBe(0);
     });
   });
 });
