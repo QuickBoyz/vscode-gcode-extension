@@ -88,7 +88,13 @@ export interface WorkspaceIndexingDependencies {
   readonly logger?: (message: string) => void;
   readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
   readonly debounceMs?: number;
-  readonly flags?: ClientFeatureFlags;
+  /**
+   * Static client feature flags, or a getter that returns them lazily.
+   * The getter form lets the server bootstrap construct the service at
+   * module load (before `onInitialize` populates the flag values) and
+   * still see the resolved flags by the time a scan runs.
+   */
+  readonly flags?: ClientFeatureFlags | (() => ClientFeatureFlags);
   readonly requestFiles?: RequestFilesCallback;
 }
 
@@ -105,7 +111,7 @@ export class WorkspaceIndexingService {
   private readonly logger?: (message: string) => void;
   private readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
   private readonly debounceMs: number;
-  private readonly flags: ClientFeatureFlags;
+  private readonly flagsAccessor: () => ClientFeatureFlags;
   private readonly requestFiles?: RequestFilesCallback;
 
   private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -123,8 +129,13 @@ export class WorkspaceIndexingService {
     this.logger = deps.logger;
     this.progressFactory = deps.progressFactory;
     this.debounceMs = deps.debounceMs ?? DEFAULT_DEBOUNCE_MS;
-    this.flags = deps.flags ?? DEFAULT_CLIENT_FEATURE_FLAGS;
+    const flagsArg = deps.flags ?? DEFAULT_CLIENT_FEATURE_FLAGS;
+    this.flagsAccessor = typeof flagsArg === 'function' ? flagsArg : () => flagsArg;
     this.requestFiles = deps.requestFiles;
+  }
+
+  private get flags(): ClientFeatureFlags {
+    return this.flagsAccessor();
   }
 
   isEnabled(): boolean {
