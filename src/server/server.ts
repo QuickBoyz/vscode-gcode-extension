@@ -1,12 +1,17 @@
+import { fileURLToPath } from 'node:url';
+
 import {
   CodeActionKind,
   createConnection,
   DidChangeTextDocumentNotification,
+  DidChangeWatchedFilesNotification,
+  DidChangeWatchedFilesParams,
   InitializeParams,
   InitializeResult,
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
+  WorkspaceFolder,
 } from 'vscode-languageserver/node';
 import { DefinitionProvider } from '../providers/DefinitionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
@@ -30,6 +35,11 @@ import { FoldingRangeProvider } from '../providers/FoldingRangeProvider';
 import { GCodeConfig } from '../config/types';
 import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
 import { VariableAnalysisService } from '../providers/VariableAnalysisService';
+import {
+  ProgressReporter,
+  WorkspaceFileEvent,
+  WorkspaceIndexingService,
+} from '../providers/WorkspaceIndexingService';
 import { WorkspaceSymbolIndex } from '../providers/WorkspaceSymbolIndex';
 import { WorkspaceSymbolProvider } from '../providers/WorkspaceSymbolProvider';
 
@@ -38,9 +48,17 @@ const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 const configProvider = new ServerConfigProvider(connection);
 
+// Captured at onInitialize so onInitialized can register dynamic capabilities
+// against the workspace folders the client started with.
+let workspaceFolders: readonly WorkspaceFolder[] = [];
+let dynamicWatchedFilesSupported = false;
+
 // Server settings synced from the client
-connection.onInitialize((_params: InitializeParams): InitializeResult => {
+connection.onInitialize((params: InitializeParams): InitializeResult => {
   connection.console.log('G-code Language Server initializing...');
+  workspaceFolders = params.workspaceFolders ?? [];
+  dynamicWatchedFilesSupported =
+    params.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration === true;
 
   return {
     capabilities: {
@@ -125,12 +143,22 @@ connection.onDidChangeConfiguration(() => {
 });
 
 /**
- * Reads workspace-level settings from the config provider
- * and applies them to the workspace symbol index.
+ * Reads workspace-level settings from the config provider and propagates
+ * them to the workspace symbol index and indexing service. When indexing is
+ * enabled this also (re)scans the known workspace roots — `setEnabled` is a
+ * no-op when the value is unchanged, and `onDidChangeConfiguration` clears
+ * the in-memory index ahead of each call, so without an explicit rescan a
+ * config change would leave the workspace permanently empty.
  */
 async function applyWorkspaceSettings(): Promise<void> {
   const config = await configProvider.getConfig();
   workspaceSymbolIndex.setMaxSymbols(config.workspace.maxSymbols);
+  await workspaceIndexingService.setEnabled(config.workspace.indexingEnabled);
+  if (!config.workspace.indexingEnabled) return;
+
+  const roots = workspaceFoldersToPaths(workspaceFolders);
+  if (roots.length === 0) return;
+  await workspaceIndexingService.scanRoots(roots);
 }
 
 /**
@@ -175,7 +203,22 @@ const formatterService = new FormatterService(),
   codeActionProvider = new CodeActionProvider(),
   completionProvider = new CompletionProvider(documentStateManager),
   workspaceSymbolIndex = new WorkspaceSymbolIndex(undefined, (msg) => connection.console.warn(msg)),
-  workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex);
+  workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex),
+  workspaceIndexingService = new WorkspaceIndexingService({
+    symbolIndex: workspaceSymbolIndex,
+    getDialect: async () => {
+      const config = await configProvider.getConfig();
+      return config.dialect;
+    },
+    logger: (msg) => connection.console.warn(msg),
+    progressFactory: async (): Promise<ProgressReporter | undefined> => {
+      try {
+        return await connection.window.createWorkDoneProgress();
+      } catch {
+        return undefined;
+      }
+    },
+  });
 
 connection.onDocumentFormatting(async (params) => {
   const document = documents.get(params.textDocument.uri);
@@ -451,10 +494,63 @@ connection.languages.diagnostics.on(async (params) => {
 
 connection.onInitialized(() => {
   connection.console.log('G-code Language Server initialized');
+
+  if (dynamicWatchedFilesSupported) {
+    // Dynamically register a workspace file watcher so the client streams
+    // create/change/delete events for G-code files we don't have open.
+    // Register one RelativePattern per workspace folder rather than a bare
+    // string glob: vscode-languageclient maps RelativePattern → vscode
+    // RelativePattern, which uses VS Code's per-folder file watcher backend.
+    // The bare-string glob path goes through VS Code's global watcher,
+    // which has multi-second startup latency on Linux (parcel-watcher) and
+    // misses events for files created/deleted within that warm-up window.
+    const watchers = workspaceFolders.map((folder) => ({
+      globPattern: {
+        baseUri: folder.uri,
+        pattern: '**/*.{nc,gcode,tap,ngc,cnc}',
+      },
+    }));
+    connection.client
+      .register(DidChangeWatchedFilesNotification.type, { watchers })
+      .catch((error: Error) => {
+        connection.console.error(`Failed to register file watcher: ${error.message}`);
+      });
+  } else {
+    connection.console.warn(
+      'Client does not advertise didChangeWatchedFiles dynamic registration; ' +
+        'workspace file watching disabled.'
+    );
+  }
+
+  // applyWorkspaceSettings handles the initial scan when indexing is enabled.
   applyWorkspaceSettings().catch((error: Error) => {
     connection.console.error(`Failed to apply workspace settings: ${error.message}`);
   });
 });
+
+connection.onDidChangeWatchedFiles((params: DidChangeWatchedFilesParams) => {
+  const events: WorkspaceFileEvent[] = params.changes.map((change) => ({
+    uri: change.uri,
+    type: change.type,
+  }));
+  workspaceIndexingService.handleFileEvents(events);
+});
+
+function workspaceFoldersToPaths(folders: readonly WorkspaceFolder[]): string[] {
+  const paths: string[] = [];
+  for (const folder of folders) {
+    try {
+      paths.push(fileURLToPath(folder.uri));
+    } catch (error: unknown) {
+      connection.console.warn(
+        `Skipping non-file workspace folder ${folder.uri}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+  return paths;
+}
 
 // Make the text document manager listen on the connection
 documents.listen(connection);
