@@ -12,10 +12,16 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node';
+import { WorkDoneProgress } from 'vscode-languageserver-protocol';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { CommandProvider } from './CommandProvider';
+import { WorkspaceFileEnumerator } from './WorkspaceFileEnumerator';
 import { GCODE_LANGUAGE_ID } from '../constants';
+import {
+  GCODE_LIST_INDEX_FILES_CAPABILITY_VERSION,
+  GCodeListIndexFilesRequest,
+} from '../lsp/gcodeListIndexFiles';
 
 // Reads G-code file extensions from package.json contributes.languages configuration
 
@@ -55,6 +61,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       // Sync configuration section
       configurationSection: GCODE_LANGUAGE_ID,
     },
+    initializationOptions: {
+      experimental: {
+        gcode: {
+          listIndexFiles: { version: GCODE_LIST_INDEX_FILES_CAPABILITY_VERSION },
+        },
+      },
+    },
   };
 
   // Create the language client and start it
@@ -68,6 +81,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Start the client (which also launches the server)
   await client.start();
   context.subscriptions.push(client);
+
+  // Register the workspace enumeration request handler so the server can
+  // delegate file discovery to the client (honoring files.exclude /
+  // search.exclude). The handler is stateless per request.
+  const enumerator = new WorkspaceFileEnumerator({
+    findFiles: (include, exclude) => vscode.workspace.findFiles(include, exclude ?? null),
+    getExcludes: () => {
+      const config = vscode.workspace.getConfiguration();
+      return {
+        filesExclude: config.get<Record<string, boolean>>('files.exclude') ?? {},
+        searchExclude: config.get<Record<string, boolean>>('search.exclude') ?? {},
+      };
+    },
+    reportProgress: (token, value) => {
+      void client.sendProgress(WorkDoneProgress.type, token, value);
+    },
+  });
+  context.subscriptions.push(
+    client.onRequest(GCodeListIndexFilesRequest, (params) => enumerator.handle(params))
+  );
 
   // Register all commands
   const configProvider = new ClientConfigProvider();
