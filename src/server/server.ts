@@ -50,14 +50,15 @@ const configProvider = new ServerConfigProvider(connection);
 
 // Captured at onInitialize so onInitialized can register dynamic capabilities
 // against the workspace folders the client started with.
-let initializeParams: InitializeParams | undefined;
 let workspaceFolders: readonly WorkspaceFolder[] = [];
+let dynamicWatchedFilesSupported = false;
 
 // Server settings synced from the client
 connection.onInitialize((params: InitializeParams): InitializeResult => {
   connection.console.log('G-code Language Server initializing...');
-  initializeParams = params;
   workspaceFolders = params.workspaceFolders ?? [];
+  dynamicWatchedFilesSupported =
+    params.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration === true;
 
   return {
     capabilities: {
@@ -143,12 +144,21 @@ connection.onDidChangeConfiguration(() => {
 
 /**
  * Reads workspace-level settings from the config provider and propagates
- * them to the workspace symbol index and indexing service.
+ * them to the workspace symbol index and indexing service. When indexing is
+ * enabled this also (re)scans the known workspace roots — `setEnabled` is a
+ * no-op when the value is unchanged, and `onDidChangeConfiguration` clears
+ * the in-memory index ahead of each call, so without an explicit rescan a
+ * config change would leave the workspace permanently empty.
  */
 async function applyWorkspaceSettings(): Promise<void> {
   const config = await configProvider.getConfig();
   workspaceSymbolIndex.setMaxSymbols(config.workspace.maxSymbols);
   await workspaceIndexingService.setEnabled(config.workspace.indexingEnabled);
+  if (!config.workspace.indexingEnabled) return;
+
+  const roots = workspaceFoldersToPaths(workspaceFolders);
+  if (roots.length === 0) return;
+  await workspaceIndexingService.scanRoots(roots);
 }
 
 /**
@@ -485,38 +495,43 @@ connection.languages.diagnostics.on(async (params) => {
 connection.onInitialized(() => {
   connection.console.log('G-code Language Server initialized');
 
-  // Dynamically register a workspace file watcher so the client streams
-  // create/change/delete events for G-code files we don't have open.
-  connection.client
-    .register(DidChangeWatchedFilesNotification.type, {
-      watchers: [{ globPattern: '**/*.{nc,gcode,tap,ngc,cnc}' }],
-    })
-    .catch((error: Error) => {
-      connection.console.error(`Failed to register file watcher: ${error.message}`);
-    });
-
-  applyWorkspaceSettings()
-    .then(() => {
-      const roots = workspaceFoldersToPaths(workspaceFolders);
-      if (roots.length === 0) return;
-      // Fire-and-forget initial scan; errors are logged inside the service.
-      workspaceIndexingService.scanRoots(roots).catch((error: Error) => {
-        connection.console.error(`Workspace indexing scan failed: ${error.message}`);
+  if (dynamicWatchedFilesSupported) {
+    // Dynamically register a workspace file watcher so the client streams
+    // create/change/delete events for G-code files we don't have open.
+    // Register one RelativePattern per workspace folder rather than a bare
+    // string glob: vscode-languageclient maps RelativePattern → vscode
+    // RelativePattern, which uses VS Code's per-folder file watcher backend.
+    // The bare-string glob path goes through VS Code's global watcher,
+    // which has multi-second startup latency on Linux (parcel-watcher) and
+    // misses events for files created/deleted within that warm-up window.
+    const watchers = workspaceFolders.map((folder) => ({
+      globPattern: {
+        baseUri: folder.uri,
+        pattern: '**/*.{nc,gcode,tap,ngc,cnc}',
+      },
+    }));
+    connection.client
+      .register(DidChangeWatchedFilesNotification.type, { watchers })
+      .catch((error: Error) => {
+        connection.console.error(`Failed to register file watcher: ${error.message}`);
       });
-    })
-    .catch((error: Error) => {
-      connection.console.error(`Failed to apply workspace settings: ${error.message}`);
-    });
+  } else {
+    connection.console.warn(
+      'Client does not advertise didChangeWatchedFiles dynamic registration; ' +
+        'workspace file watching disabled.'
+    );
+  }
 
-  // Reference initializeParams so it isn't reported as unused — it's also
-  // captured for any future server features that need the original payload.
-  void initializeParams;
+  // applyWorkspaceSettings handles the initial scan when indexing is enabled.
+  applyWorkspaceSettings().catch((error: Error) => {
+    connection.console.error(`Failed to apply workspace settings: ${error.message}`);
+  });
 });
 
 connection.onDidChangeWatchedFiles((params: DidChangeWatchedFilesParams) => {
   const events: WorkspaceFileEvent[] = params.changes.map((change) => ({
     uri: change.uri,
-    type: change.type as 1 | 2 | 3,
+    type: change.type,
   }));
   workspaceIndexingService.handleFileEvents(events);
 });

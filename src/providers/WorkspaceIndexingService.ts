@@ -39,7 +39,7 @@ export enum WorkspaceFileChangeType {
 /** Subset of LSP `FileEvent` consumed by the service. */
 export interface WorkspaceFileEvent {
   readonly uri: string;
-  readonly type: WorkspaceFileChangeType | 1 | 2 | 3;
+  readonly type: WorkspaceFileChangeType;
 }
 
 /** Minimal progress reporter shape compatible with LSP `WorkDoneProgressReporter`. */
@@ -111,27 +111,36 @@ export class WorkspaceIndexingService {
    * `setImmediate` yield between batches so the event loop stays responsive.
    */
   async scanRoots(roots: readonly string[]): Promise<void> {
-    if (!this.enabled) return;
+    // Remember the roots even when indexing is currently disabled, so a later
+    // setEnabled(true) can rescan them without the caller re-passing them.
     this.lastRoots = [...roots];
+    if (!this.enabled) return;
 
+    // Dialect is captured once for the whole scan; per-folder dialects would
+    // require resolving the dialect per file (or per workspace folder).
     const dialect = await this.getDialect();
     const progress = (await this.progressFactory?.()) ?? undefined;
     progress?.begin('Indexing G-code files');
 
+    const allFiles: string[] = [];
+    for (const root of roots) {
+      const files = await this.collectFiles(root);
+      allFiles.push(...files);
+    }
+    const total = allFiles.length;
+
     let processed = 0;
     try {
-      for (const root of roots) {
-        const files = await this.collectFiles(root);
-        for (let i = 0; i < files.length; i += SCAN_BATCH_SIZE) {
-          if (!this.enabled) return;
-          const batch = files.slice(i, i + SCAN_BATCH_SIZE);
-          for (const filePath of batch) {
-            await this.indexFile(filePath, dialect);
-            processed++;
-            progress?.report(0, `Indexed ${processed} file${processed === 1 ? '' : 's'}`);
-          }
-          await yieldToEventLoop();
+      for (let i = 0; i < total; i += SCAN_BATCH_SIZE) {
+        if (!this.enabled) return;
+        const batch = allFiles.slice(i, i + SCAN_BATCH_SIZE);
+        for (const filePath of batch) {
+          await this.indexFile(filePath, dialect);
+          processed++;
+          const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
+          progress?.report(percentage, `Indexed ${processed} of ${total}`);
         }
+        await yieldToEventLoop();
       }
     } finally {
       progress?.done();
@@ -147,7 +156,7 @@ export class WorkspaceIndexingService {
 
     for (const change of changes) {
       const uri = change.uri;
-      this.pendingChanges.set(uri, change.type as WorkspaceFileChangeType);
+      this.pendingChanges.set(uri, change.type);
 
       const existing = this.debounceTimers.get(uri);
       if (existing) clearTimeout(existing);
@@ -187,6 +196,9 @@ export class WorkspaceIndexingService {
   private async indexFile(filePath: string, dialect: DialectType): Promise<void> {
     try {
       const content = await fs.readFile(filePath, 'utf8');
+      // Re-check after the awaited read so a mid-scan disable can't write into
+      // an index that was just cleared by setEnabled(false).
+      if (!this.enabled) return;
       const uri = pathToFileURL(filePath).toString();
       this.symbolIndex.indexFile(uri, content, dialect);
     } catch (error: unknown) {
@@ -205,7 +217,7 @@ export class WorkspaceIndexingService {
   private async walkDirectory(dir: string, collected: string[]): Promise<void> {
     let entries: Dirent[];
     try {
-      entries = (await fs.readdir(dir, { withFileTypes: true })) as unknown as Dirent[];
+      entries = await fs.readdir(dir, { withFileTypes: true, encoding: 'utf8' });
     } catch (error: unknown) {
       this.logger?.(
         `Failed to read directory ${dir}: ${error instanceof Error ? error.message : String(error)}`

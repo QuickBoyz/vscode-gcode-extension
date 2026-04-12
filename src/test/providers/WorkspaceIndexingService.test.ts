@@ -254,5 +254,65 @@ describe('WorkspaceIndexingService', () => {
 
       expect(index.hasFile(uriOf(ncPath))).toBe(true);
     });
+
+    it('remembers roots passed while disabled so a later enable can scan them', async () => {
+      const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
+      const service = createService(index);
+
+      // Cold start with indexing turned off — scanRoots should still capture
+      // the roots even though it indexes nothing.
+      await service.setEnabled(false);
+      await service.scanRoots([tempDir]);
+      expect(index.getFileCount()).toBe(0);
+
+      await service.setEnabled(true);
+
+      expect(index.hasFile(uriOf(ncPath))).toBe(true);
+    });
+
+    it('does not write into a cleared index when disabled mid-scan', async () => {
+      // Create enough files that the scan straddles multiple awaited reads.
+      const filePaths: string[] = [];
+      for (let i = 0; i < 60; i++) {
+        filePaths.push(await writeFile(tempDir, `f${i}.nc`, SUBROUTINE_FILE));
+      }
+      const service = createService(index);
+
+      const scanPromise = service.scanRoots([tempDir]);
+      // Disable on the next microtask so some readFile calls are already in flight.
+      setImmediate(() => {
+        void service.setEnabled(false);
+      });
+      await scanPromise;
+
+      expect(index.getFileCount()).toBe(0);
+    });
+  });
+
+  describe('performance / event-loop yielding', () => {
+    it('yields to the event loop between batches and indexes every file', async () => {
+      const fileCount = 220;
+      for (let i = 0; i < fileCount; i++) {
+        await writeFile(tempDir, `f${i}.nc`, SUBROUTINE_FILE);
+      }
+
+      const service = createService(index);
+
+      let yieldCount = 0;
+      const scanPromise = service.scanRoots([tempDir]);
+      const interval = setInterval(() => {
+        yieldCount++;
+      }, 0);
+      try {
+        await scanPromise;
+      } finally {
+        clearInterval(interval);
+      }
+
+      expect(index.getFileCount()).toBe(fileCount);
+      // 220 files / 50-file batches = 5 yield points; the interval should have
+      // fired at least a few times, proving the scan released the event loop.
+      expect(yieldCount).toBeGreaterThanOrEqual(3);
+    });
   });
 });
