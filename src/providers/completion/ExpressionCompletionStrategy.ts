@@ -9,7 +9,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompletionItem, CompletionItemKind } from 'vscode-languageserver/node';
 
 import { CompletionItemTypes, OPERATORS_SORT_PREFIX, DialectType } from '../../constants';
-import { DocumentStateManager, GCodeSettings } from '../DocumentStateManager';
+import { GCodeSettings } from '../DocumentStateManager';
+import { IDocumentStateManager } from '../IDocumentStateManager';
 import { ContextInfo } from '../CompletionContextDetector';
 import { CompletionStrategy } from './CompletionStrategy';
 import { VariableCompletionStrategy } from './VariableCompletionStrategy';
@@ -19,7 +20,7 @@ export class ExpressionCompletionStrategy implements CompletionStrategy {
   private readonly variableStrategy: VariableCompletionStrategy;
   private readonly functionStrategy: FunctionCompletionStrategy;
 
-  constructor(private readonly documentStateManager: DocumentStateManager) {
+  constructor(private readonly documentStateManager: IDocumentStateManager) {
     this.variableStrategy = new VariableCompletionStrategy(documentStateManager);
     this.functionStrategy = new FunctionCompletionStrategy(documentStateManager);
   }

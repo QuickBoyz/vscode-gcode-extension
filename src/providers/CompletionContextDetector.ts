@@ -8,7 +8,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver/node';
 
 import { GCodeSymbols } from '../constants';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { CompletionUtils } from './CompletionUtils';
 
 /**
@@ -43,7 +44,7 @@ export interface ContextInfo {
  * completion should be provided.
  */
 export class CompletionContextDetector {
-  constructor(private readonly documentStateManager: DocumentStateManager) {}
+  constructor(private readonly documentStateManager: IDocumentStateManager) {}
 
   /**
    * Detect completion context from cursor position

@@ -1,7 +1,8 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 
 import { FormatterService } from './FormatterService';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { DialectType } from '../constants';
 import { ProgramNode, Range } from '../parser/nodes';
 import { FormatterConfig } from '../formatter/types';
@@ -16,7 +17,7 @@ import { FormatterConfig } from '../formatter/types';
 export class DocumentFormattingProvider {
   constructor(
     private formatter: FormatterService,
-    private stateManager?: DocumentStateManager
+    private documentStateManager?: IDocumentStateManager
   ) {}
 
   /**
@@ -68,10 +69,13 @@ export class DocumentFormattingProvider {
     settings: FormatterConfig,
     dialect?: DialectType
   ): ProgramNode | undefined {
-    if (!this.stateManager) return undefined;
+    if (!this.documentStateManager) return undefined;
 
     const gcodeSettings: GCodeSettings = { formatter: settings, dialect };
-    const state = this.stateManager.getOrParseDocumentFromTextDocument(document, gcodeSettings);
+    const state = this.documentStateManager.getOrParseDocumentFromTextDocument(
+      document,
+      gcodeSettings
+    );
     return state.ast;
   }
 }

@@ -23,6 +23,7 @@ import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
 import { AstAnalysisService } from './AstAnalysisService';
 import { SemanticAnalyzer } from './SemanticAnalyzer';
 import { IDataProvider } from './IDataProvider';
+import { IDocumentStateManager } from './IDocumentStateManager';
 import { DataProviderFactory } from './DataProviderFactory';
 import { FormatterConfig } from '../formatter/types';
 
@@ -55,7 +56,7 @@ export interface DocumentState {
  * Manages cached document states to avoid redundant parsing.
  * Invalidates cache when documents change.
  */
-export class DocumentStateManager {
+export class DocumentStateManager implements IDocumentStateManager {
   private documentStates = new Map<string, DocumentState>();
   private documentVersions = new Map<string, number>();
   private dataProviderCache = new Map<string, IDataProvider>();
@@ -220,6 +221,17 @@ export class DocumentStateManager {
       state.analysis = undefined;
       state.needsReparse = true;
     }
+  }
+
+  /**
+   * Run AST-level analysis (variables, errors, optional semantic tokens) on
+   * a pre-parsed program. Unlike {@link getAnalysisFromTextDocument}, this
+   * does not touch the document cache or run semantic analysis — it is a
+   * direct, uncached pass suitable for callers that already hold a
+   * {@link DocumentState}.
+   */
+  analyzeAst(ast: ProgramNode, options: AnalysisOptions = {}): AnalysisResults {
+    return this.analysisService.analyze(ast, options);
   }
 
   /**

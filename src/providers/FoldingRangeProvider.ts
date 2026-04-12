@@ -4,7 +4,8 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseAstVisitor } from '../parser/BaseAstVisitor';
 import { AstTraverser } from '../parser/AstTraverser';
 import { IfStatementNode, SubroutineLabelNode, WhileStatementNode } from '../parser/nodes';
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
+import { IDocumentStateManager } from './IDocumentStateManager';
 
 /**
  * Provides code folding ranges for G-code control structures.
@@ -79,7 +80,7 @@ export class FoldingRangeProvider extends BaseAstVisitor<void> {
    */
   provideFoldingRanges(
     document: TextDocument,
-    documentStateManager: DocumentStateManager,
+    documentStateManager: IDocumentStateManager,
     settings: GCodeSettings
   ): FoldingRange[] {
     this.foldingRanges = [];

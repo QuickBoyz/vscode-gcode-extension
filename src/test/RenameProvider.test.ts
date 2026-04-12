@@ -8,6 +8,7 @@ import { DEFAULT_GCODE_CONFIG } from '../config/defaults';
 import { Position } from '../parser/nodes';
 import { DocumentStateManager, GCodeSettings } from '../providers/DocumentStateManager';
 import { RenameProvider } from '../providers/RenameProvider';
+import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 
 const TEST_SETTINGS: GCodeSettings = {
   formatter: DEFAULT_GCODE_CONFIG.formatter,
@@ -18,7 +19,7 @@ describe('RenameProvider', () => {
 
   beforeEach(() => {
     stateManager = new DocumentStateManager();
-    provider = new RenameProvider(stateManager);
+    provider = new RenameProvider(stateManager, new VariableAnalysisService());
   });
 
   describe('prepareRename', () => {

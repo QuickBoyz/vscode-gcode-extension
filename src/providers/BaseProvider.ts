@@ -8,8 +8,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { DialectType } from '../constants';
 import { AnalysisOptions, AnalysisResults } from './AnalysisResults';
-import { DocumentState, DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { DocumentState, GCodeSettings } from './DocumentStateManager';
 import { IDataProvider } from './IDataProvider';
+import { IDocumentStateManager } from './IDocumentStateManager';
 
 /**
  * Abstract base provider class
@@ -20,7 +21,7 @@ import { IDataProvider } from './IDataProvider';
  * - Dialect-specific data providers
  */
 export abstract class BaseProvider {
-  constructor(protected readonly documentStateManager: DocumentStateManager) {}
+  constructor(protected readonly documentStateManager: IDocumentStateManager) {}
 
   /**
    * Get or parse document state for a given text document

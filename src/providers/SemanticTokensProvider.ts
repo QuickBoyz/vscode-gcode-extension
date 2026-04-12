@@ -1,7 +1,8 @@
 import { SemanticTokens, SemanticTokensLegend } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import { DocumentStateManager, GCodeSettings } from './DocumentStateManager';
+import { GCodeSettings } from './DocumentStateManager';
+import { IDocumentStateManager } from './IDocumentStateManager';
 
 export enum SemanticTokenTypes {
   Keyword = 'keyword',
@@ -29,10 +30,10 @@ export const SEMANTIC_TOKENS_LEGEND: SemanticTokensLegend = {
 export class SemanticTokensProvider {
   static provide(
     document: TextDocument,
-    stateManager: DocumentStateManager,
+    documentStateManager: IDocumentStateManager,
     settings: GCodeSettings
   ): SemanticTokens {
-    const analysis = stateManager.getAnalysisFromTextDocument(document, settings, {
+    const analysis = documentStateManager.getAnalysisFromTextDocument(document, settings, {
       includeTokens: true,
     });
     return { data: analysis.tokens?.data ?? [] };
