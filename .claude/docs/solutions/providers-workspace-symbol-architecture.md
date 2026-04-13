@@ -1,12 +1,13 @@
 ---
 problem_type: pattern
 module: providers
-component: WorkspaceSymbolIndex, WorkspaceSymbolVisitor, WorkspaceSymbolProvider
+component: WorkspaceSymbolIndex, WorkspaceSymbolVisitor, WorkspaceSymbolProvider, WorkspaceIndexingService
 symptoms:
   - workspace symbol search not finding symbols
   - Ctrl+T returning wrong symbol kinds or missing results
   - index not respecting maxSymbols limit
-root_cause: workspace symbol feature has a three-layer architecture (visitor → index → provider) with specific wiring requirements
+  - cold workspace Ctrl+T returns nothing until files are opened
+root_cause: workspace symbol feature has a four-layer architecture (visitor → index → indexing service → provider) with specific wiring requirements
 tags:
   - architecture
   - lsp
@@ -19,10 +20,11 @@ date: 2026-04-12
 
 ## Context
 
-The workspace symbol feature (Ctrl+T) uses three components in `src/providers/`:
+The workspace symbol feature (Ctrl+T) uses four components in `src/providers/`:
 
 - **WorkspaceSymbolVisitor** — AST visitor extracting symbols (subroutines, labels, line numbers, first variable assignments)
 - **WorkspaceSymbolIndex** — in-memory index with per-file storage, global capacity limit, and fuzzy search
+- **WorkspaceIndexingService** — walks workspace roots at startup and reacts to `workspace/didChangeWatchedFiles` events; drives the index for non-open files
 - **WorkspaceSymbolProvider** — LSP handler converting index results to `SymbolInformation[]`
 
 ## Guidance
@@ -38,10 +40,13 @@ The workspace symbol feature (Ctrl+T) uses three components in `src/providers/`:
 
 ### Index lifecycle
 
-- `indexFile(uri, content, dialect)` is called from `documents.onDidOpen` and `documents.onDidChangeContent` in server.ts, guarded by `config.workspace.indexingEnabled`
+- `indexFile(uri, content, dialect)` is called from three paths in server.ts, all guarded by `config.workspace.indexingEnabled`:
+  1. `documents.onDidOpen` / `documents.onDidChangeContent` (open-editor path)
+  2. `WorkspaceIndexingService.scanRoots()` at startup (cold-workspace path)
+  3. `WorkspaceIndexingService.handleFileEvents()` via `onDidChangeWatchedFiles` (external-change path, debounced 300 ms per URI)
 - Symbols are intentionally kept after `onDidClose` so workspace search finds previously-opened files
 - `setMaxSymbols(n)` is deferred — only affects the next `indexFile` call; call `clear()` first for immediate enforcement
-- `applyWorkspaceSettings()` reads config and calls `setMaxSymbols()` — invoked from both `onInitialized` and `onDidChangeConfiguration`
+- `applyWorkspaceSettings()` reads config and calls `setMaxSymbols()` + `workspaceIndexingService.setEnabled()` — invoked from both `onInitialized` and `onDidChangeConfiguration`. After `onDidChangeConfiguration` clears the index, `applyWorkspaceSettings()` must explicitly rescan `lastRoots` (because `setEnabled` is a no-op when the value is unchanged)
 
 ### Error handling
 
@@ -61,7 +66,13 @@ The three-layer split keeps concerns separate: the visitor knows AST structure, 
 - Adding new symbol types to workspace search → extend `WorkspaceSymbolVisitor`
 - Changing search behavior (ranking, filtering) → modify `WorkspaceSymbolIndex.search()`
 - Adjusting LSP response format → modify `WorkspaceSymbolProvider`
+- Changing how files are discovered or watched → modify `WorkspaceIndexingService`
 
-## Known Limitation
+## Known Limitations
 
-The index only covers opened documents — no file watcher scans the workspace at startup. The `package.json` description says "across open G-code files" to set accurate expectations.
+- Dialect is captured once per scan (workspace-level setting). Per-folder dialect support in multi-root workspaces would require restructuring `scanRoots`.
+- Initial scan batches pre-collect all file paths before yielding — a brief synchronous-ish walk phase on very large monorepos. Acceptable for v1; streaming collection is a future optimization.
+
+## See Also
+
+- [server-lsp-file-watcher-linux.md](server-lsp-file-watcher-linux.md) — why the watcher uses per-folder `RelativePattern` instead of a bare-string glob

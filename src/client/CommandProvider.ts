@@ -10,9 +10,9 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VisualizerConfig } from '../visualizer/types';
+import { VisualizerConfig, VisualizerErrorKind, VisualizerPhase } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
-import { WorkerClient } from './WorkerClient';
+import { SupersededParseError, WorkerClient } from './WorkerClient';
 
 /** Debounce delay in milliseconds for document change events. */
 const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
@@ -88,43 +88,74 @@ export class CommandProvider {
     return vscode.commands.registerCommand(
       'gcode.openVisualizer',
       async (uri?: vscode.Uri): Promise<void> => {
-        const documentText = await this.resolveDocumentText(uri);
-        if (documentText === null) {
+        const resolved = await this.resolveDocument(uri);
+        if (resolved === null) {
           vscode.window.showWarningMessage(
             'Open a G-Code file first, then run "G-Code: Open 3D Visualizer".'
           );
           return;
         }
 
+        // Track the source document URI for navigation
+        this.activeDocumentUri = resolved.uri;
+        const filename = resolved.uri ? path.basename(resolved.uri.fsPath) : null;
+
+        // Open the panel immediately so the user sees the loading state
+        // within the first frame — before the (potentially multi-second)
+        // parse starts. The register calls go next so panel-close cleanup
+        // is wired up even if the parse later fails.
+        GCodeVisualizerPanel.createOrShowLoading(context, this.configProvider, filename);
+        this.registerNavigationCallback();
+        this.startDocumentChangeListener();
+
         const workerClient = this.ensureWorkerClient(context);
         const config = await this.configProvider.getConfig();
 
-        const result = await workerClient.parse(
-          documentText,
-          config.dialect,
-          undefined,
-          config.variables
-        );
-        const settings: VisualizerConfig = config.visualizer;
-
-        if (!result.success) {
-          vscode.window.showErrorMessage(`G-Code visualizer error: ${result.errorMessage}`);
+        let result;
+        try {
+          result = await workerClient.parse(
+            resolved.text,
+            config.dialect,
+            undefined,
+            config.variables,
+            (phase) => GCodeVisualizerPanel.showProgress(phase)
+          );
+        } catch (error: unknown) {
+          // A superseded parse means the user triggered a newer request
+          // that is already in flight — swallow it silently so the
+          // overlay isn't replaced by a misleading "Failed to parse"
+          // message between the two live parses.
+          if (error instanceof SupersededParseError) {
+            return;
+          }
+          const message =
+            error instanceof Error ? error.message : 'The visualizer worker failed unexpectedly.';
+          GCodeVisualizerPanel.showError(
+            `Failed to parse G-code: ${message}`,
+            VisualizerErrorKind.WORKER_CRASH
+          );
           return;
         }
 
-        // Track the source document URI for navigation
-        this.activeDocumentUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+        const settings: VisualizerConfig = config.visualizer;
 
+        if (!result.success) {
+          GCodeVisualizerPanel.showError(
+            `G-code parse failed: ${result.errorMessage}`,
+            VisualizerErrorKind.PARSE_FAILURE
+          );
+          return;
+        }
+
+        GCodeVisualizerPanel.showProgress(VisualizerPhase.RENDERING);
         GCodeVisualizerPanel.createOrShow(
           context,
           result.data,
           settings,
-          documentText,
+          resolved.text,
           this.configProvider,
           config.variables
         );
-        this.registerNavigationCallback();
-        this.startDocumentChangeListener();
       }
     );
   }
@@ -147,20 +178,22 @@ export class CommandProvider {
   }
 
   /**
-   * Resolves the G-code text content from a URI (explorer context menu)
-   * or the active text editor. Returns null if no valid G-code source is found.
+   * Resolves the G-code source from a URI (explorer context menu) or the
+   * active text editor. Returns null if no valid G-code source is found.
    */
-  private async resolveDocumentText(uri?: vscode.Uri): Promise<string | null> {
+  private async resolveDocument(
+    uri?: vscode.Uri
+  ): Promise<{ readonly uri: vscode.Uri; readonly text: string } | null> {
     if (uri) {
       const document = await vscode.workspace.openTextDocument(uri);
-      return document.getText();
+      return { uri, text: document.getText() };
     }
 
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== GCODE_LANGUAGE_ID) {
       return null;
     }
-    return editor.document.getText();
+    return { uri: editor.document.uri, text: editor.document.getText() };
   }
 
   // ---------------------------------------------------------------------------
@@ -302,7 +335,8 @@ export class CommandProvider {
       return;
     }
 
-    GCodeVisualizerPanel.showLoading();
+    const filename = path.basename(document.uri.fsPath);
+    GCodeVisualizerPanel.showLoading(filename);
 
     try {
       const sourceText = document.getText();
@@ -311,21 +345,32 @@ export class CommandProvider {
         sourceText,
         config.dialect,
         undefined,
-        config.variables
+        config.variables,
+        (phase) => GCodeVisualizerPanel.showProgress(phase)
       );
       const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
+        GCodeVisualizerPanel.showProgress(VisualizerPhase.RENDERING);
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText, config.variables);
       } else {
-        GCodeVisualizerPanel.showError(result.errorMessage);
+        GCodeVisualizerPanel.showError(
+          `G-code parse failed: ${result.errorMessage}`,
+          VisualizerErrorKind.PARSE_FAILURE
+        );
       }
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof SupersededParseError) {
+        return;
+      }
       vscode.window.showErrorMessage(
         'Failed to refresh visualizer from document change. ' +
           'This may occur in unsupported environments (e.g. Electron without nodeIntegration).'
       );
-      GCodeVisualizerPanel.showError('Failed to refresh visualizer due to an internal error.');
+      GCodeVisualizerPanel.showError(
+        'Failed to refresh visualizer due to an internal error.',
+        VisualizerErrorKind.WORKER_CRASH
+      );
     }
   }
 

@@ -8,11 +8,15 @@ import { useDwellTooltip } from '../hooks/useDwellTooltip';
 import { CameraControls } from '../components/ToolPathCanvas';
 import {
   DocumentState,
+  ErrorKind,
   INITIAL_DOCUMENT_STATE,
   SourceTokens,
   WebviewMessage,
   documentReducer,
 } from './documentReducer';
+
+export { DocumentStatusKind, ErrorKind, LoadingPhase } from './documentReducer';
+export type { DocumentStatus } from './documentReducer';
 
 // ── Context value types ─────────────────────────────────────────────
 
@@ -183,11 +187,15 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
           break;
         }
         case 'error': {
-          dispatch({ type: 'error', message: msg.message || DEFAULT_ERROR_MESSAGE });
+          dispatch({
+            type: 'error',
+            errorKind: msg.errorKind ?? ErrorKind.UNKNOWN,
+            message: msg.message || DEFAULT_ERROR_MESSAGE,
+          });
           break;
         }
         case 'loading': {
-          dispatch({ type: 'loading' });
+          dispatch({ type: 'loading', phase: msg.phase, filename: msg.filename });
           break;
         }
       }

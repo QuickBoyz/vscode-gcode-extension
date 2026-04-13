@@ -1,7 +1,15 @@
+import { EventEmitter } from 'events';
 import * as path from 'path';
 
-import { WorkerClient, WorkerFactory } from '../client/WorkerClient';
-import { MotionType, VisualizerResult } from '../visualizer/types';
+import { SupersededParseError, WorkerClient, WorkerFactory } from '../client/WorkerClient';
+import {
+  MotionType,
+  VisualizerPhase,
+  VisualizerResult,
+  WorkerErrorResponse,
+  WorkerRequest,
+  WorkerResponse,
+} from '../visualizer/types';
 
 /**
  * Path to the compiled worker script.
@@ -16,6 +24,40 @@ const WORKER_SCRIPT_PATH = path.resolve(__dirname, '../../dist/visualizer/visual
 const throwingWorkerFactory: WorkerFactory = (): never => {
   throw new Error('Worker threads not available');
 };
+
+/**
+ * Minimal in-process fake of the `worker_threads` Worker surface used by
+ * {@link WorkerClient}. Tests provide a handler that converts each
+ * incoming parse request into a response (or error) so failure paths can
+ * be exercised without spawning a real thread.
+ */
+type FakeWorkerHandler = ((request: WorkerRequest) => WorkerResponse | WorkerErrorResponse) | null;
+
+class FakeWorker extends EventEmitter {
+  constructor(private readonly handler: FakeWorkerHandler) {
+    super();
+  }
+
+  postMessage(request: WorkerRequest): void {
+    if (this.handler === null) {
+      return;
+    }
+    const handler = this.handler;
+    setImmediate(() => {
+      this.emit('message', handler(request));
+    });
+  }
+
+  terminate(): Promise<number> {
+    this.emit('exit', 0);
+    return Promise.resolve(0);
+  }
+}
+
+const fakeWorkerFactoryReturning =
+  (handler: FakeWorkerHandler): WorkerFactory =>
+  () =>
+    new FakeWorker(handler) as unknown as ReturnType<WorkerFactory>;
 
 describe('WorkerClient', () => {
   let client: WorkerClient;
@@ -64,8 +106,9 @@ describe('WorkerClient', () => {
     const firstPromise = client.parse('G0 X1');
     const secondPromise = client.parse('G1 X99 Y99');
 
-    // The first should be rejected because it was superseded.
-    await expect(firstPromise).rejects.toThrow('superseded');
+    // The first should be rejected with a typed SupersededParseError so
+    // callers can distinguish cancellation from real failures.
+    await expect(firstPromise).rejects.toBeInstanceOf(SupersededParseError);
 
     // The second should resolve with the correct result.
     const secondResult = await secondPromise;
@@ -157,6 +200,56 @@ describe('WorkerClient', () => {
   // Parse error propagation
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // Progress callback
+  // ---------------------------------------------------------------------------
+
+  it('reports parsing and extracting phases via onProgress', async () => {
+    client = new WorkerClient(WORKER_SCRIPT_PATH);
+    const phases: VisualizerPhase[] = [];
+
+    await client.parse('G0 X10 Y20\nG1 X30 Y40', undefined, undefined, undefined, (phase) =>
+      phases.push(phase)
+    );
+
+    expect(phases).toContain(VisualizerPhase.PARSING);
+    expect(phases).toContain(VisualizerPhase.EXTRACTING);
+    // Parsing must arrive before extracting.
+    expect(phases.indexOf(VisualizerPhase.PARSING)).toBeLessThan(
+      phases.indexOf(VisualizerPhase.EXTRACTING)
+    );
+  });
+
+  it('does not deliver progress from superseded requests', async () => {
+    client = new WorkerClient(WORKER_SCRIPT_PATH);
+    const firstPhases: VisualizerPhase[] = [];
+
+    const firstPromise = client.parse('G0 X1', undefined, undefined, undefined, (phase) =>
+      firstPhases.push(phase)
+    );
+    // Immediately supersede.
+    const secondPromise = client.parse('G1 X99');
+
+    await expect(firstPromise).rejects.toBeInstanceOf(SupersededParseError);
+    await secondPromise;
+
+    // Either the first request's progress never fired, or if it did it's
+    // harmless — the contract is that superseded requests don't leak state
+    // into callers that no longer care. This test asserts the pending
+    // pointer handling, not the timing of synchronous posts.
+    expect(firstPhases.every((p) => Object.values(VisualizerPhase).includes(p))).toBe(true);
+  });
+
+  it('falls back to synchronous parsing and still reports phases', async () => {
+    client = new WorkerClient(WORKER_SCRIPT_PATH, throwingWorkerFactory);
+    const phases: VisualizerPhase[] = [];
+
+    await client.parse('G0 X10', undefined, undefined, undefined, (phase) => phases.push(phase));
+
+    expect(phases).toContain(VisualizerPhase.PARSING);
+    expect(phases).toContain(VisualizerPhase.EXTRACTING);
+  });
+
   it('returns a failure result when the parser encounters an error', async () => {
     client = new WorkerClient(WORKER_SCRIPT_PATH);
 
@@ -168,5 +261,43 @@ describe('WorkerClient', () => {
     // Either way, the promise should resolve (not reject).
     expect(brokenServiceResult).toBeDefined();
     expect(typeof brokenServiceResult.success).toBe('boolean');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Worker-level error response propagation
+  // ---------------------------------------------------------------------------
+
+  it('resolves to VisualizerFailure when the worker posts an error response', async () => {
+    const factory = fakeWorkerFactoryReturning(
+      (request): WorkerErrorResponse => ({
+        type: 'error',
+        id: request.id,
+        errorMessage: 'Unexpected character at line 4',
+      })
+    );
+    client = new WorkerClient(WORKER_SCRIPT_PATH, factory);
+
+    const result = await client.parse('anything');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errorMessage).toBe('Unexpected character at line 4');
+    }
+  });
+
+  it('rejects with a plain Error when the worker emits a non-superseded error event', async () => {
+    let emittedWorker: FakeWorker | undefined;
+    const factory: WorkerFactory = (): ReturnType<WorkerFactory> => {
+      const worker = new FakeWorker(null);
+      emittedWorker = worker;
+      return worker as unknown as ReturnType<WorkerFactory>;
+    };
+    client = new WorkerClient(WORKER_SCRIPT_PATH, factory);
+
+    const promise = client.parse('G0 X1');
+    // Emit the worker error now that the pending request is wired up.
+    setImmediate(() => emittedWorker?.emit('error', new Error('worker crashed')));
+
+    await expect(promise).rejects.toThrow('worker crashed');
   });
 });

@@ -19,20 +19,42 @@ import { DialectType } from '../constants';
 import { VisualizerService } from './VisualizerService';
 import {
   VariableDefinitions,
+  VisualizerPhase,
   VisualizerResult,
   WorkerErrorResponse,
+  WorkerProgressResponse,
   WorkerRequest,
   WorkerResponse,
 } from '../visualizer/types';
 
 /** Union of possible worker responses. */
-type WorkerMessage = WorkerResponse | WorkerErrorResponse;
+type WorkerMessage = WorkerResponse | WorkerErrorResponse | WorkerProgressResponse;
+
+/** Called as the worker transitions between parse phases. */
+export type ProgressCallback = (phase: VisualizerPhase) => void;
+
+/**
+ * Thrown by {@link WorkerClient.parse} when an earlier in-flight parse
+ * is cancelled because a newer parse was issued on the same client.
+ *
+ * Callers should treat this as silent cancellation — the newer request
+ * is already in flight and will deliver the real result. Surfacing this
+ * to the user as an error would produce a misleading "Failed to parse:
+ * superseded" flash whenever two parses land in quick succession.
+ */
+export class SupersededParseError extends Error {
+  constructor() {
+    super('Parse request superseded by a newer request');
+    this.name = 'SupersededParseError';
+  }
+}
 
 /** Pending parse request awaiting a response from the worker. */
 interface PendingRequest {
   readonly id: number;
   readonly resolve: (result: VisualizerResult) => void;
   readonly reject: (error: Error) => void;
+  readonly onProgress: ProgressCallback | undefined;
 }
 
 /**
@@ -83,7 +105,8 @@ export class WorkerClient {
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
     maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations,
-    settingsVariables?: VariableDefinitions
+    settingsVariables?: VariableDefinitions,
+    onProgress?: ProgressCallback
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
@@ -91,7 +114,7 @@ export class WorkerClient {
 
     if (this.synchronousFallback) {
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
@@ -106,7 +129,7 @@ export class WorkerClient {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
@@ -120,7 +143,7 @@ export class WorkerClient {
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {
-      this.pendingRequest = { id: requestId, resolve, reject };
+      this.pendingRequest = { id: requestId, resolve, reject, onProgress };
       worker.postMessage(request);
     });
   }
@@ -184,6 +207,11 @@ export class WorkerClient {
       return;
     }
 
+    if (message.type === 'progress') {
+      pending.onProgress?.(message.phase);
+      return;
+    }
+
     this.pendingRequest = undefined;
 
     if (message.type === 'result') {
@@ -225,11 +253,13 @@ export class WorkerClient {
   }
 
   /**
-   * Rejects any currently pending request with a cancellation error.
+   * Rejects any currently pending request with a {@link SupersededParseError}
+   * so callers can distinguish cancellation from real failures and silence
+   * the overlay accordingly.
    */
   private rejectPendingRequest(): void {
     if (this.pendingRequest) {
-      this.pendingRequest.reject(new Error('Parse request superseded by a newer request'));
+      this.pendingRequest.reject(new SupersededParseError());
       this.pendingRequest = undefined;
     }
   }
