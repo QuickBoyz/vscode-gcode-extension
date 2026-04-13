@@ -22,7 +22,7 @@ import {
   GCodeListIndexFilesResult,
 } from '../lsp/gcodeListIndexFiles';
 import { ClientFeatureFlags } from '../providers/ClientFeatureFlags';
-import { TrailingDebouncer } from './trailingDebounce';
+import { TrailingDebouncer } from './TrailingDebouncer';
 import { DefinitionProvider } from '../providers/DefinitionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';

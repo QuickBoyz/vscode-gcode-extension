@@ -3,7 +3,7 @@
  * bursts of `onDidChangeConfiguration` events into a single
  * `applyWorkspaceSettings` invocation.
  */
-import { TrailingDebouncer } from '../../server/trailingDebounce';
+import { TrailingDebouncer } from '../../server/TrailingDebouncer';
 
 const DEBOUNCE_MS = 200;
 
