@@ -361,6 +361,111 @@ describe('WorkspaceIndexingService', () => {
       expect(calls[1].scanGeneration).toBe(2);
     });
 
+    it('forwards the reporter.token to requestFiles as workDoneToken', async () => {
+      const calls: GCodeListIndexFilesParams[] = [];
+      const requestFiles: RequestFilesCallback = (params) => {
+        calls.push(params);
+        return Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      };
+      const progress: ProgressReporter = {
+        token: 'progress-token-abc',
+        begin: jest.fn(),
+        report: jest.fn(),
+        done: jest.fn(),
+      };
+      const service = createService(index, {
+        flags: enabledFlags,
+        requestFiles,
+        progress,
+      });
+
+      await service.scanRoots(['/tmp/a']);
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0].workDoneToken).toBe('progress-token-abc');
+    });
+
+    it('leaves workDoneToken undefined when the progress factory returns a reporter without a token', async () => {
+      const calls: GCodeListIndexFilesParams[] = [];
+      const requestFiles: RequestFilesCallback = (params) => {
+        calls.push(params);
+        return Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      };
+      const progress: ProgressReporter = {
+        begin: jest.fn(),
+        report: jest.fn(),
+        done: jest.fn(),
+      };
+      const service = createService(index, {
+        flags: enabledFlags,
+        requestFiles,
+        progress,
+      });
+
+      await service.scanRoots(['/tmp/a']);
+
+      expect(calls[0].workDoneToken).toBeUndefined();
+    });
+
+    it('defers the indexing-phase begin until after requestFiles resolves', async () => {
+      // The finding phase (begin under the forwarded workDoneToken) is
+      // emitted by the client. The server-side reporter must only open its
+      // own "Indexing…" phase once requestFiles has returned.
+      const events: string[] = [];
+      let resolveRequest: () => void = () => {};
+      const requestFiles: RequestFilesCallback = (params) => {
+        events.push('requestFiles:start');
+        return new Promise<GCodeListIndexFilesResult>((resolve) => {
+          resolveRequest = () => {
+            events.push('requestFiles:end');
+            resolve({
+              files: [],
+              scanGeneration: params.scanGeneration,
+              truncated: false,
+            });
+          };
+        });
+      };
+      const progress: ProgressReporter = {
+        token: 'tok',
+        begin: (title) => {
+          events.push(`begin:${title}`);
+        },
+        report: jest.fn(),
+        done: () => {
+          events.push('done');
+        },
+      };
+      const service = createService(index, {
+        flags: enabledFlags,
+        requestFiles,
+        progress,
+      });
+
+      const scanPromise = service.scanRoots(['/tmp/a']);
+      await delay(5);
+      // No server-side begin yet — the enumeration phase is still in flight.
+      expect(events).toEqual(['requestFiles:start']);
+
+      resolveRequest();
+      await scanPromise;
+
+      expect(events).toEqual([
+        'requestFiles:start',
+        'requestFiles:end',
+        'begin:Indexing G-code files',
+        'done',
+      ]);
+    });
+
     it('indexes the files returned by requestFiles', async () => {
       const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
       const requestFiles: RequestFilesCallback = (params) =>

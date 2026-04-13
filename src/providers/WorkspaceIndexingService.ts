@@ -35,7 +35,11 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
+import {
+  CancellationToken,
+  CancellationTokenSource,
+  ProgressToken,
+} from 'vscode-languageserver-protocol';
 
 import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
@@ -64,8 +68,17 @@ export interface WorkspaceFileEvent {
   readonly type: WorkspaceFileChangeType;
 }
 
-/** Minimal progress reporter shape compatible with LSP `WorkDoneProgressReporter`. */
+/**
+ * Minimal progress reporter shape compatible with LSP `WorkDoneProgressReporter`.
+ *
+ * The optional `token` exposes the server-allocated `WorkDoneProgress`
+ * identifier so the indexing service can forward it to the client in
+ * `GCodeListIndexFilesParams.workDoneToken`. Both sides then emit progress
+ * against the same token, giving the user one UI element that morphs through
+ * the "Finding…" and "Indexing…" phases.
+ */
 export interface ProgressReporter {
+  readonly token?: ProgressToken;
   begin(title: string, percentage?: number, message?: string): void;
   report(percentage: number, message?: string): void;
   done(): void;
@@ -193,16 +206,21 @@ export class WorkspaceIndexingService {
     // would require resolving the dialect per file (or per workspace folder).
     const dialect = await this.getDialect();
     const progress = (await this.progressFactory?.()) ?? undefined;
-    progress?.begin('Indexing G-code files');
 
     try {
       const fileUris = await this.collectScanTargets(
         roots,
         scanGeneration,
-        cancellationTokenSource.token
+        cancellationTokenSource.token,
+        progress
       );
       if (scanGeneration !== this.currentScanGeneration) return;
 
+      // Open the "Indexing…" phase only after enumeration returns so the
+      // client's "Finding…" phase (emitted under the same workDoneToken in
+      // the client enumeration branch) is visible first. The server opens
+      // one progress element and the UI morphs through both phases.
+      progress?.begin('Indexing G-code files');
       await this.indexFromList(fileUris, dialect, scanGeneration, progress);
     } finally {
       progress?.done();
@@ -266,10 +284,11 @@ export class WorkspaceIndexingService {
   private async collectScanTargets(
     roots: readonly string[],
     scanGeneration: number,
-    token: CancellationToken
+    token: CancellationToken,
+    progress: ProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (this.flags.supportsListIndexFiles) {
-      return this.enumerateViaClient(roots, scanGeneration, token);
+      return this.enumerateViaClient(roots, scanGeneration, token, progress);
     }
 
     const collected: string[] = [];
@@ -285,7 +304,8 @@ export class WorkspaceIndexingService {
   private async enumerateViaClient(
     roots: readonly string[],
     scanGeneration: number,
-    token: CancellationToken
+    token: CancellationToken,
+    progress: ProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (!this.requestFiles) {
       throw new WorkspaceIndexingConfigurationError(
@@ -297,6 +317,10 @@ export class WorkspaceIndexingService {
       folders: roots,
       scanGeneration,
       includeGlob: GCODE_INCLUDE_GLOB,
+      // Forward the server-allocated WorkDoneProgress identifier so the
+      // client reports the "Finding…" phase under the same progress token
+      // the server then resumes for "Indexing N/M…".
+      workDoneToken: progress?.token,
     };
 
     const result = await this.requestFiles(params, token);

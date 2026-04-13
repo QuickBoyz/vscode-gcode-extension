@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -12,6 +13,7 @@ import {
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
+  WorkDoneProgressCreateRequest,
   WorkspaceFolder,
 } from 'vscode-languageserver/node';
 import {
@@ -259,9 +261,35 @@ const formatterService = new FormatterService(),
       return config.dialect;
     },
     logger: (msg) => connection.console.warn(msg),
+    // Allocate the WorkDoneProgress token ourselves (rather than going
+    // through `connection.window.createWorkDoneProgress()`) so we can
+    // forward the identifier to the client in
+    // `GCodeListIndexFilesParams.workDoneToken`. The client then reports the
+    // "Finding…" phase under the same token the server later resumes for
+    // "Indexing N/M…", giving the user one morphing progress element.
     progressFactory: async (): Promise<ProgressReporter | undefined> => {
       try {
-        return await connection.window.createWorkDoneProgress();
+        const progressToken = randomUUID();
+        await connection.sendRequest(WorkDoneProgressCreateRequest.type, {
+          token: progressToken,
+        });
+        const reporter = connection.window.attachWorkDoneProgress(progressToken);
+        return {
+          token: progressToken,
+          begin: (title, percentage, message) => {
+            reporter.begin(title, percentage, message);
+          },
+          report: (percentage, message) => {
+            if (message === undefined) {
+              reporter.report(percentage);
+            } else {
+              reporter.report(percentage, message);
+            }
+          },
+          done: () => {
+            reporter.done();
+          },
+        };
       } catch {
         return undefined;
       }
