@@ -1,0 +1,6 @@
+O1001 SUB
+#<radius> = 10
+G0 X0 Y0
+G1 X[#<radius>] F100
+O1001 ENDSUB
+M30
