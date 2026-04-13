@@ -70,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     },
   };
 
-  // Create the language client and start it
+  // Create the language client
   client = new LanguageClient(
     'gcodeLanguageServer',
     'G-code Language Server',
@@ -78,13 +78,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     clientOptions
   );
 
-  // Start the client (which also launches the server)
-  await client.start();
-  context.subscriptions.push(client);
-
-  // Register the workspace enumeration request handler so the server can
-  // delegate file discovery to the client (honoring files.exclude /
-  // search.exclude). The handler is stateless per request.
+  // Register the workspace enumeration request handler BEFORE starting the
+  // client so the handler is guaranteed to be active by the time the server
+  // sends its first `workspace/gcodeListIndexFiles` request. vscode-languageclient
+  // queues request handlers attached before `start()` and wires them into the
+  // connection during the LSP handshake — relying on post-`start()` registration
+  // would make correctness depend on event-loop scheduling between the
+  // resolved `start()` promise and the server's `onInitialized` chain.
   const enumerator = new WorkspaceFileEnumerator({
     findFiles: (include, exclude) => vscode.workspace.findFiles(include, exclude ?? null),
     getExcludes: () => {
@@ -101,6 +101,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     client.onRequest(GCodeListIndexFilesRequest, (params) => enumerator.handle(params))
   );
+
+  // Start the client (which also launches the server)
+  await client.start();
+  context.subscriptions.push(client);
 
   // Register all commands
   const configProvider = new ClientConfigProvider();
