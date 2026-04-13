@@ -1,10 +1,5 @@
 import { useCallback, useRef } from 'react';
-import {
-  PathBounds,
-  PathPoint,
-  PathSegment,
-  VisualizerConfig,
-} from '../../visualizer/types';
+import { PathBounds, PathPoint, PathSegment, VisualizerConfig } from '../../visualizer/types';
 import { CameraState } from '../types';
 import { projectBatch } from '../projection';
 import { drawAxes } from '../axes';
@@ -12,13 +7,8 @@ import { drawGrid } from '../grid';
 import { drawToolMarkerBody, drawToolMarkerTip } from '../toolMarker';
 import { ProjectedFrame } from '../hitTesting';
 import { PlaybackStatus } from '../playback/types';
-import {
-  DEPTH_QUANT_MAX,
-  FrameScratch,
-  GeometryCache,
-  SORT_IDX_BITS,
-  SORT_IDX_MASK,
-} from '../geometryCache';
+import { DEPTH_QUANT_MAX, FrameScratch, SORT_IDX_BITS, SORT_IDX_MASK } from '../FrameScratch';
+import { GeometryCache } from '../GeometryCache';
 import { StyleBucket } from '../renderBuckets';
 import {
   DEFAULT_BACKGROUND_COLOR,
@@ -247,11 +237,7 @@ export function useRenderLoop(
     // flush it whenever the next segment's state key differs. In the
     // common case where the painter's sort keeps same-bucket segments
     // adjacent, this collapses to ~3-10 strokes per frame.
-    const bucketColors = [
-      settings.feedColor,
-      settings.rapidColor,
-      settings.arcColor,
-    ];
+    const bucketColors = [settings.feedColor, settings.rapidColor, settings.arcColor];
     const bucketThickness = [thickness, rapidThickness, thickness];
 
     context.lineCap = 'round';
@@ -404,8 +390,8 @@ export function useRenderLoop(
         bucket === StyleBucket.RAPID
           ? settings.rapidColor
           : bucket === StyleBucket.ARC
-          ? settings.arcColor
-          : settings.feedColor;
+            ? settings.arcColor
+            : settings.feedColor;
 
       const thickness = Math.max(MINIMUM_THICKNESS, settings.lineThickness);
       const start = geometry.segmentStart[hoveredIndex];

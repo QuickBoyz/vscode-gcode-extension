@@ -4,7 +4,7 @@ import {
   MAX_SORTABLE_SEGMENTS,
   SORT_IDX_BITS,
   SORT_IDX_MASK,
-} from '../webview/geometryCache';
+} from '../webview/FrameScratch';
 
 /**
  * Pack a (depth, idx) pair exactly the way `useRenderLoop` does, so

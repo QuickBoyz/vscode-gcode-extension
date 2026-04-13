@@ -1,6 +1,6 @@
 import { MotionType, PathSegment, ProjectionMode } from '../visualizer/types';
 import { project, projectBatch, createCameraState } from '../webview/projection';
-import { GeometryCache } from '../webview/geometryCache';
+import { GeometryCache } from '../webview/GeometryCache';
 
 function buildSingleSegmentCache(
   points: readonly { x: number; y: number; z: number }[]

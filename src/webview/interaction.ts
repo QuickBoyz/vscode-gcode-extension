@@ -72,10 +72,8 @@ export function setupInteraction(
   onDragStart?: () => void,
   scheduler?: InteractionSchedulerHooks
 ): InteractionState {
-  const raf =
-    scheduler?.requestAnimationFrame ?? window.requestAnimationFrame.bind(window);
-  const caf =
-    scheduler?.cancelAnimationFrame ?? window.cancelAnimationFrame.bind(window);
+  const raf = scheduler?.requestAnimationFrame ?? window.requestAnimationFrame.bind(window);
+  const caf = scheduler?.cancelAnimationFrame ?? window.cancelAnimationFrame.bind(window);
 
   let dragMode: DragMode | null = null;
   let lastMouseX = 0;
