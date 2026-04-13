@@ -91,9 +91,7 @@ describe('radix-style depth sort key', () => {
     keys.sort();
     const radixOrder = Array.from(keys, (k) => k & SORT_IDX_MASK);
 
-    const refOrder = Array.from({ length: N }, (_, i) => i).sort(
-      (a, b) => depths[b] - depths[a]
-    );
+    const refOrder = Array.from({ length: N }, (_, i) => i).sort((a, b) => depths[b] - depths[a]);
 
     // With 8192 quantization levels across 100 units of depth the bucket
     // width is ~0.012, far smaller than anything the eye or painter's

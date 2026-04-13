@@ -56,38 +56,57 @@ const DRAGGING_CLASS = 'dragging';
  *                         trigger a re-render
  * @returns An {@link InteractionState} with drag-state query and cleanup
  */
+/**
+ * Optional injection seam for tests — lets a spec replace rAF/cAF with
+ * synchronous stand-ins so the coalescing behavior is observable.
+ */
+export interface InteractionSchedulerHooks {
+  readonly requestAnimationFrame?: (cb: FrameRequestCallback) => number;
+  readonly cancelAnimationFrame?: (handle: number) => void;
+}
+
 export function setupInteraction(
   canvas: HTMLCanvasElement,
   camera: CameraState,
   onCameraChange: () => void,
-  onDragStart?: () => void
+  onDragStart?: () => void,
+  scheduler?: InteractionSchedulerHooks
 ): InteractionState {
+  const raf =
+    scheduler?.requestAnimationFrame ?? window.requestAnimationFrame.bind(window);
+  const caf =
+    scheduler?.cancelAnimationFrame ?? window.cancelAnimationFrame.bind(window);
+
   let dragMode: DragMode | null = null;
   let lastMouseX = 0;
   let lastMouseY = 0;
 
-  function handleMouseDown(event: MouseEvent): void {
-    if (event.button === 0) {
-      dragMode = event.shiftKey ? DragMode.PAN : DragMode.ORBIT;
-    } else if (event.button === 1 || event.button === 2) {
-      dragMode = DragMode.PAN;
-    }
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
-    canvas.classList.add(DRAGGING_CLASS);
-    onDragStart?.();
-    event.preventDefault();
-  }
+  // Coalesced pointer delta. Mousemove events can arrive at 120–500 Hz
+  // and VSCode's input plumbing charges ~3–7 ms of _markUserActivity /
+  // IPC to each one. If every event also mutated the camera and fired
+  // onCameraChange, mid-frame mousemove bursts would preempt the
+  // render loop and blow the p99 tail (trace-before.json.gz shows
+  // FireAnimationFrame p99 = 1263 ms on surface-finish.ngc). Instead
+  // we buffer the delta and apply it on the next rAF tick, so any
+  // burst of N mousemoves collapses to ONE camera update per frame.
+  let pendingDeltaX = 0;
+  let pendingDeltaY = 0;
+  let pendingRafHandle: number | null = null;
 
-  function handleMouseMove(event: MouseEvent): void {
+  function flushPendingDelta(): void {
+    pendingRafHandle = null;
     if (!dragMode) {
+      pendingDeltaX = 0;
+      pendingDeltaY = 0;
       return;
     }
-    const deltaX = event.clientX - lastMouseX;
-    const deltaY = event.clientY - lastMouseY;
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
-
+    const deltaX = pendingDeltaX;
+    const deltaY = pendingDeltaY;
+    pendingDeltaX = 0;
+    pendingDeltaY = 0;
+    if (deltaX === 0 && deltaY === 0) {
+      return;
+    }
     if (dragMode === DragMode.ORBIT) {
       camera.theta -= deltaX * ORBIT_SENSITIVITY;
       camera.phi = Math.max(
@@ -101,9 +120,48 @@ export function setupInteraction(
     onCameraChange();
   }
 
+  function scheduleFlush(): void {
+    if (pendingRafHandle !== null) {
+      return;
+    }
+    pendingRafHandle = raf(flushPendingDelta);
+  }
+
+  function handleMouseDown(event: MouseEvent): void {
+    if (event.button === 0) {
+      dragMode = event.shiftKey ? DragMode.PAN : DragMode.ORBIT;
+    } else if (event.button === 1 || event.button === 2) {
+      dragMode = DragMode.PAN;
+    }
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+    pendingDeltaX = 0;
+    pendingDeltaY = 0;
+    canvas.classList.add(DRAGGING_CLASS);
+    onDragStart?.();
+    event.preventDefault();
+  }
+
+  function handleMouseMove(event: MouseEvent): void {
+    if (!dragMode) {
+      return;
+    }
+    pendingDeltaX += event.clientX - lastMouseX;
+    pendingDeltaY += event.clientY - lastMouseY;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+    scheduleFlush();
+  }
+
   function handleMouseUp(): void {
     dragMode = null;
     canvas.classList.remove(DRAGGING_CLASS);
+    if (pendingRafHandle !== null) {
+      caf(pendingRafHandle);
+      pendingRafHandle = null;
+    }
+    pendingDeltaX = 0;
+    pendingDeltaY = 0;
   }
 
   function handleWheel(event: WheelEvent): void {
@@ -133,6 +191,10 @@ export function setupInteraction(
       window.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('wheel', handleWheel);
       canvas.removeEventListener('contextmenu', handleContextMenu);
+      if (pendingRafHandle !== null) {
+        caf(pendingRafHandle);
+        pendingRafHandle = null;
+      }
     },
   };
 }
