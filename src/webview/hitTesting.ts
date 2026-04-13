@@ -10,12 +10,25 @@
 // ---------------------------------------------------------------------------
 
 /**
- * A projected path segment stored during the render pass.
- * Maps a segment index to its screen-space polyline.
+ * Flat typed-array view over the projected screen buffer built by the
+ * render loop. Avoids per-frame wrapper-object allocation, so hit
+ * testing during orbit is zero-allocation.
+ *
+ * `screen` is interleaved [x0,y0, x1,y1, …]. For segment index s, the
+ * first point is at `screen[2 * segmentStart[s]]` and there are
+ * `segmentLength[s]` consecutive points. Behind-camera points are
+ * encoded as `NaN` — consumers must break the polyline at NaN.
+ *
+ * `drawnSegments[0 .. drawnCount-1]` enumerates the segments that were
+ * actually drawn in the last frame (respecting playback visibility and
+ * `showRapidMoves`). Hit testing iterates only these.
  */
-export interface ProjectedSegmentData {
-  readonly segmentIndex: number;
-  readonly points: readonly { readonly x: number; readonly y: number }[];
+export interface ProjectedFrame {
+  readonly screen: Float32Array;
+  readonly segmentStart: Uint32Array;
+  readonly segmentLength: Uint32Array;
+  readonly drawnSegments: Uint32Array;
+  readonly drawnCount: number;
 }
 
 /**
@@ -82,47 +95,55 @@ export function pointToSegmentDistance(
 // ---------------------------------------------------------------------------
 
 /**
- * Finds the closest projected segment to the mouse position.
+ * Finds the closest drawn segment to the mouse position by reading the
+ * flat typed-array view produced by the render loop. Returns the
+ * closest drawn segment within `tolerance`, or null. Reads screen
+ * coordinates directly out of the `Float32Array` with no per-segment
+ * object allocation.
  *
- * Iterates every projected segment, computes the minimum distance
- * from the mouse to each consecutive point-pair in the polyline,
- * and returns the segment whose minimum distance is the smallest —
- * provided it is within `tolerance` pixels.
+ * Segments in `frame.drawnSegments[0 .. frame.drawnCount-1]` are the
+ * only ones considered — so playback-hidden, filtered-out, and
+ * fully-behind-camera segments cannot be hit-tested, matching the
+ * old behaviour where they were absent from the projected cache.
  *
- * @param mouseX             - Cursor X in canvas coordinates
- * @param mouseY             - Cursor Y in canvas coordinates
- * @param projectedSegments  - Projected polylines from the last render pass
- * @param tolerance          - Maximum distance in pixels to count as a hit
- * @returns The closest segment within tolerance, or `null` if none qualifies
+ * Sub-segments (polyline edges) that touch a `NaN` endpoint (behind
+ * camera) are skipped, matching the old behaviour where the path was
+ * broken at invalid points.
  */
-export function hitTestSegments(
+export function hitTestProjectedFrame(
   mouseX: number,
   mouseY: number,
-  projectedSegments: readonly ProjectedSegmentData[],
+  frame: ProjectedFrame,
   tolerance: number
 ): HitTestResult | null {
+  const { screen, segmentStart, segmentLength, drawnSegments, drawnCount } = frame;
+
   let bestSegmentIndex: number | null = null;
   let bestDistance = Infinity;
 
-  for (const segment of projectedSegments) {
-    const points = segment.points;
-    if (points.length < 2) {
+  for (let d = 0; d < drawnCount; d++) {
+    const segIdx = drawnSegments[d];
+    const length = segmentLength[segIdx];
+    if (length < 2) {
       continue;
     }
+    const startPoint = segmentStart[segIdx];
 
     let minimumSegmentDistance = Infinity;
+    for (let j = 0; j < length - 1; j++) {
+      const aBase = (startPoint + j) * 2;
+      const bBase = (startPoint + j + 1) * 2;
+      const ax = screen[aBase];
+      const ay = screen[aBase + 1];
+      const bx = screen[bBase];
+      const by = screen[bBase + 1];
 
-    for (let pointIndex = 0; pointIndex < points.length - 1; pointIndex++) {
-      const startPoint = points[pointIndex];
-      const endPoint = points[pointIndex + 1];
-      const distance = pointToSegmentDistance(
-        mouseX,
-        mouseY,
-        startPoint.x,
-        startPoint.y,
-        endPoint.x,
-        endPoint.y
-      );
+      // Skip edges that touch a behind-camera point.
+      if (Number.isNaN(ax) || Number.isNaN(bx)) {
+        continue;
+      }
+
+      const distance = pointToSegmentDistance(mouseX, mouseY, ax, ay, bx, by);
       if (distance < minimumSegmentDistance) {
         minimumSegmentDistance = distance;
       }
@@ -130,13 +151,12 @@ export function hitTestSegments(
 
     if (minimumSegmentDistance < bestDistance && minimumSegmentDistance <= tolerance) {
       bestDistance = minimumSegmentDistance;
-      bestSegmentIndex = segment.segmentIndex;
+      bestSegmentIndex = segIdx;
     }
   }
 
   if (bestSegmentIndex === null) {
     return null;
   }
-
   return { segmentIndex: bestSegmentIndex, distance: bestDistance };
 }

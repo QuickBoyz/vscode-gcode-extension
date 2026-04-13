@@ -68,7 +68,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
     [playbackRefs.statusRef, playbackRefs.currentIndexRef, playbackRefs.toolPositionRef]
   );
 
-  const { scheduleRender, renderNow, renderOverlay, getProjectedCache, clearProjectedCache } =
+  const { scheduleRender, renderNow, renderOverlay, getProjectedFrame, clearProjectedCache } =
     useRenderLoop(
       canvasRef,
       overlayRef,
@@ -107,7 +107,7 @@ export function ToolPathCanvas({ wrapperRef }: ToolPathCanvasProps) {
     [onHoverChange, renderOverlay]
   );
 
-  const { scheduleHitTest } = useHitTesting(getProjectedCache, onHitTestResult);
+  const { scheduleHitTest } = useHitTesting(getProjectedFrame, onHitTestResult);
 
   // Expose camera controls and camera state to provider
   useEffect(() => {

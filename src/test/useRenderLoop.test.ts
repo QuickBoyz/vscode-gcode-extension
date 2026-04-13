@@ -24,6 +24,24 @@ jest.mock('../webview/projection', () => ({
     y: y + 300,
     depth: z,
   }),
+  projectBatch: (
+    worldPoints: Float32Array,
+    pointCount: number,
+    _camera: unknown,
+    _canvasWidth: number,
+    _canvasHeight: number,
+    _mode: unknown,
+    outScreen: Float32Array,
+    outDepth: Float32Array
+  ) => {
+    for (let i = 0; i < pointCount; i++) {
+      const wb = i * 3;
+      const sb = i * 2;
+      outScreen[sb] = worldPoints[wb] + 400;
+      outScreen[sb + 1] = worldPoints[wb + 1] + 300;
+      outDepth[i] = worldPoints[wb + 2];
+    }
+  },
 }));
 
 jest.mock('../webview/axes', () => ({ drawAxes: jest.fn() }));
@@ -40,6 +58,11 @@ jest.mock('../webview/toolMarker', () => ({
 (global as unknown as { getComputedStyle: unknown }).getComputedStyle = () => ({
   getPropertyValue: () => '',
 });
+class MockPath2D {
+  moveTo(): void {}
+  lineTo(): void {}
+}
+(global as unknown as { Path2D: unknown }).Path2D = MockPath2D;
 
 import { useRenderLoop } from '../webview/hooks/useRenderLoop';
 import {

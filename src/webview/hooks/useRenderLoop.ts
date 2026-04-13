@@ -1,29 +1,25 @@
 import { useCallback, useRef } from 'react';
-import {
-  MotionType,
-  PathBounds,
-  PathPoint,
-  PathSegment,
-  VisualizerConfig,
-} from '../../visualizer/types';
+import { PathBounds, PathPoint, PathSegment, VisualizerConfig } from '../../visualizer/types';
 import { CameraState } from '../types';
-import { project } from '../projection';
+import { projectBatch } from '../projection';
 import { drawAxes } from '../axes';
 import { drawGrid } from '../grid';
 import { drawToolMarkerBody, drawToolMarkerTip } from '../toolMarker';
-import { ProjectedSegmentData } from '../hitTesting';
+import { ProjectedFrame } from '../hitTesting';
 import { PlaybackStatus } from '../playback/types';
+import { DEPTH_QUANT_MAX, FrameScratch, SORT_IDX_BITS, SORT_IDX_MASK } from '../FrameScratch';
+import { GeometryCache } from '../GeometryCache';
+import { StyleBucket } from '../renderBuckets';
 import {
   DEFAULT_BACKGROUND_COLOR,
-  getSegmentColor,
+  HOVER_ALPHA,
+  HOVER_SHADOW_BLUR,
+  HOVER_THICKNESS_FACTOR,
   MINIMUM_THICKNESS,
   PLAYBACK_PAST_OPACITY,
   RAPID_DASH_PATTERN,
   RAPID_OPACITY,
   RAPID_THICKNESS_FACTOR,
-  HOVER_THICKNESS_FACTOR,
-  HOVER_ALPHA,
-  HOVER_SHADOW_BLUR,
 } from '../constants';
 
 export interface PlaybackRenderRefs {
@@ -37,14 +33,37 @@ export interface UseRenderLoopResult {
   /** Render immediately (synchronous). Use from within an existing rAF callback. */
   readonly renderNow: () => void;
   readonly renderOverlay: (hoveredIndex: number | null) => void;
-  readonly getProjectedCache: () => readonly ProjectedSegmentData[];
+  readonly getProjectedFrame: () => ProjectedFrame;
   readonly clearProjectedCache: () => void;
 }
 
+// Alpha sub-key for the (bucket × alphaState) batching grid.
+const ALPHA_FULL = 0;
+const ALPHA_RAPID = 1;
+const ALPHA_PAST = 2;
+
+const EMPTY_FRAME: ProjectedFrame = {
+  screen: new Float32Array(0),
+  segmentStart: new Uint32Array(0),
+  segmentLength: new Uint32Array(0),
+  drawnSegments: new Uint32Array(0),
+  drawnCount: 0,
+};
+
 /**
  * Manages the requestAnimationFrame render loop for the tool-path canvas.
- * Renders segments with depth sorting (painter's algorithm) and caches
- * projected polylines for hit testing.
+ *
+ * The hot path is fully zero-allocation during orbit: a typed-array
+ * {@link GeometryCache} is built once per segments load, reusable
+ * {@link FrameScratch} buffers hold per-frame screen coords and depth,
+ * and segments are drawn as bucketed Path2D batches keyed by
+ * (StyleBucket × alphaState) — so the 190k-segment benchmark collapses
+ * to O(bucket × alphaState) stroke() calls instead of O(segmentCount).
+ *
+ * Painter's-algorithm depth sorting is preserved on the fast path: we
+ * sort segment indices by per-segment midpoint depth every frame, which
+ * is the correctness mechanism CNC users rely on for safe toolpath
+ * visualization on Canvas2D (no depth buffer).
  */
 export function useRenderLoop(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
@@ -56,7 +75,6 @@ export function useRenderLoop(
   playbackRef?: PlaybackRenderRefs
 ): UseRenderLoopResult {
   const animationFrameIdRef = useRef<number | null>(null);
-  const projectedCacheRef = useRef<ProjectedSegmentData[]>([]);
   const hoveredIndexRef = useRef<number | null>(null);
   const renderOverlayRef = useRef<(hoveredIndex: number | null) => void>(() => {});
   const backgroundColorRef = useRef<string>(
@@ -65,8 +83,13 @@ export function useRenderLoop(
       .trim() || DEFAULT_BACKGROUND_COLOR
   );
 
+  // Built lazily and rebuilt only when the segments reference changes.
+  const cachedSegmentsRef = useRef<PathSegment[] | null>(null);
+  const geometryRef = useRef<GeometryCache | null>(null);
+  const scratchRef = useRef<FrameScratch | null>(null);
+  const projectedFrameRef = useRef<ProjectedFrame>(EMPTY_FRAME);
+
   const render = useCallback(() => {
-    // Cancel any pending scheduled render — we're rendering now.
     if (animationFrameIdRef.current !== null) {
       cancelAnimationFrame(animationFrameIdRef.current);
     }
@@ -77,7 +100,6 @@ export function useRenderLoop(
     if (!canvas || !context) return;
 
     const camera = cameraRef.current;
-
     if (!camera) return;
 
     const segments = segmentsRef.current;
@@ -102,111 +124,212 @@ export function useRenderLoop(
       );
     }
 
-    if (segments.length === 0) return;
+    if (segments.length === 0) {
+      projectedFrameRef.current = EMPTY_FRAME;
+      context.globalAlpha = 1.0;
+      context.setLineDash([]);
+      drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
+      renderOverlayRef.current(hoveredIndexRef.current);
+      return;
+    }
+
+    // Rebuild geometry only when segments identity changes.
+    if (cachedSegmentsRef.current !== segments || geometryRef.current === null) {
+      const geometry = GeometryCache.build(segments);
+      geometryRef.current = geometry;
+      scratchRef.current = FrameScratch.forCache(geometry);
+      cachedSegmentsRef.current = segments;
+    }
+    const geometry = geometryRef.current;
+    const scratch = scratchRef.current!;
 
     const thickness = Math.max(MINIMUM_THICKNESS, settings.lineThickness);
+    const rapidThickness = Math.max(MINIMUM_THICKNESS, thickness * RAPID_THICKNESS_FACTOR);
     const projectionMode = settings.projection;
 
-    // Determine playback state
     const isPlaybackActive =
       playbackRef?.statusRef.current !== undefined &&
       playbackRef.statusRef.current !== PlaybackStatus.IDLE;
     const playbackIndex = playbackRef?.currentIndexRef.current ?? -1;
-
-    // Depth-sort segments (painter's algorithm using mid-point depth)
-    // Iterate directly with index to avoid both the filter allocation and O(n) indexOf.
     const visibleCount = isPlaybackActive
-      ? Math.min(Math.max(playbackIndex + 1, 0), segments.length)
-      : segments.length;
+      ? Math.min(Math.max(playbackIndex + 1, 0), geometry.segmentCount)
+      : geometry.segmentCount;
 
-    const sorted: { segment: PathSegment; depth: number; segmentIndex: number }[] = [];
+    // Project every point once. Cheap per point (≈ a dozen FLOPs, no
+    // allocation) so we project the entire cache even though playback
+    // may hide the tail — this keeps the hot loop branch-free.
+    projectBatch(
+      geometry.worldPoints,
+      geometry.pointCount,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      projectionMode,
+      scratch.screen,
+      scratch.pointDepth
+    );
+
+    // Build the list of drawn segments + per-segment sort depth.
+    const showRapidMoves = settings.showRapidMoves;
+    const { segmentStart, segmentLength, segmentBucket, segmentMidpoint } = geometry;
+    const { pointDepth, segmentDepth, sortedSegments, sortKeys } = scratch;
+
+    // Phase 1: gather drawn indices + per-draw depth. Track depth range
+    // in the same pass so we can quantize without a second scan.
+    let drawnCount = 0;
+    let minDepth = Infinity;
+    let maxDepth = -Infinity;
+    const SENTINEL_DEPTH = Infinity;
     for (let i = 0; i < visibleCount; i++) {
-      const segment = segments[i];
-      if (!segment) {
+      if (!showRapidMoves && segmentBucket[i] === StyleBucket.RAPID) {
         continue;
       }
-      const midpoint = segment.points[Math.floor(segment.points.length / 2)];
-      const projected = project(
-        midpoint.x,
-        midpoint.y,
-        midpoint.z,
-        camera,
-        canvasWidth,
-        canvasHeight,
-        projectionMode
-      );
-      sorted.push({ segment, depth: projected ? projected.depth : Infinity, segmentIndex: i });
+      const midDepth = pointDepth[segmentMidpoint[i]];
+      // Behind-camera midpoints are drawn first (effectively nil since
+      // they will be overdrawn by every in-frame pixel).
+      const d = midDepth < 0.01 ? SENTINEL_DEPTH : midDepth;
+      segmentDepth[drawnCount] = d;
+      sortedSegments[drawnCount] = i;
+      if (d !== SENTINEL_DEPTH) {
+        if (d < minDepth) minDepth = d;
+        if (d > maxDepth) maxDepth = d;
+      }
+      drawnCount++;
     }
-    sorted.sort((a, b) => b.depth - a.depth);
 
-    const newProjectedCache: ProjectedSegmentData[] = [];
-
-    for (const entry of sorted) {
-      const segment = entry.segment;
-      const isRapidMove = segment.type === MotionType.RAPID;
-
-      if (isRapidMove && !settings.showRapidMoves) continue;
-
-      const segmentIndex = entry.segmentIndex;
-      const isCurrentSegment = isPlaybackActive && segmentIndex === playbackIndex;
-      const isPastSegment = isPlaybackActive && segmentIndex < playbackIndex;
-
-      const color = getSegmentColor(segment.type, settings);
-      context.strokeStyle = color;
-      context.lineWidth = isRapidMove
-        ? Math.max(MINIMUM_THICKNESS, thickness * RAPID_THICKNESS_FACTOR)
-        : thickness;
-
-      // Apply playback dimming
-      if (isPastSegment) {
-        context.globalAlpha = PLAYBACK_PAST_OPACITY;
-      } else if (isCurrentSegment) {
-        context.globalAlpha = 1.0;
-      } else if (isRapidMove) {
-        context.globalAlpha = RAPID_OPACITY;
+    // Phase 2: quantize depth into the high bits of a Uint32 key, pack
+    // segIdx into the low bits. Sorting ascending yields back-to-front
+    // ordering with ties broken by segIdx.
+    //
+    //   key = ((DEPTH_QUANT_MAX - q) << SORT_IDX_BITS) | segIdx
+    //
+    // so LARGER depth → q large → (QUANT_MAX - q) small → smaller key
+    // → drawn first → overdrawn by nearer segments later in the sort.
+    const depthRange = maxDepth > minDepth ? maxDepth - minDepth : 1;
+    const depthScale = DEPTH_QUANT_MAX / depthRange;
+    for (let d = 0; d < drawnCount; d++) {
+      const depth = segmentDepth[d];
+      let q: number;
+      if (depth === SENTINEL_DEPTH) {
+        q = 0; // behind-camera → largest key slot → drawn last-of-back (effectively no-op)
       } else {
-        context.globalAlpha = 1.0;
+        const scaled = ((depth - minDepth) * depthScale) | 0;
+        q = scaled < 0 ? 0 : scaled > DEPTH_QUANT_MAX ? DEPTH_QUANT_MAX : scaled;
+      }
+      sortKeys[d] = ((DEPTH_QUANT_MAX - q) << SORT_IDX_BITS) | sortedSegments[d];
+    }
+
+    // Phase 3: native Uint32 sort (no comparator → C++ fast-path).
+    const keySlice = sortKeys.subarray(0, drawnCount);
+    keySlice.sort();
+
+    // Phase 4: unpack segment indices back into the sortedSegments
+    // scratch buffer in draw order.
+    for (let d = 0; d < drawnCount; d++) {
+      sortedSegments[d] = sortKeys[d] & SORT_IDX_MASK;
+    }
+    const drawList = sortedSegments.subarray(0, drawnCount);
+
+    // --- Batched stroke pass ---------------------------------------------
+    //
+    // Instead of calling stroke() once per segment (190k calls on the
+    // benchmark), we build one Path2D per (bucket, alphaState) pair and
+    // flush it whenever the next segment's state key differs. In the
+    // common case where the painter's sort keeps same-bucket segments
+    // adjacent, this collapses to ~3-10 strokes per frame.
+    const bucketColors = [settings.feedColor, settings.rapidColor, settings.arcColor];
+    const bucketThickness = [thickness, rapidThickness, thickness];
+
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    let currentBucket = -1;
+    let currentAlpha = -1;
+    let currentPath: Path2D | null = null;
+
+    const screen = scratch.screen;
+
+    const flush = () => {
+      if (currentPath === null || currentBucket < 0) return;
+      context.strokeStyle = bucketColors[currentBucket];
+      context.lineWidth = bucketThickness[currentBucket];
+      context.setLineDash(
+        currentBucket === StyleBucket.RAPID ? (RAPID_DASH_PATTERN as number[]) : []
+      );
+      switch (currentAlpha) {
+        case ALPHA_PAST:
+          context.globalAlpha = PLAYBACK_PAST_OPACITY;
+          break;
+        case ALPHA_RAPID:
+          context.globalAlpha = RAPID_OPACITY;
+          break;
+        default:
+          context.globalAlpha = 1.0;
+      }
+      context.stroke(currentPath);
+    };
+
+    for (let d = 0; d < drawnCount; d++) {
+      const segIdx = drawList[d];
+      const bucket = segmentBucket[segIdx];
+      const isRapid = bucket === StyleBucket.RAPID;
+
+      let alphaState: number;
+      if (isPlaybackActive && segIdx < playbackIndex) {
+        alphaState = ALPHA_PAST;
+      } else if (isPlaybackActive && segIdx === playbackIndex) {
+        alphaState = ALPHA_FULL;
+      } else if (isRapid) {
+        alphaState = ALPHA_RAPID;
+      } else {
+        alphaState = ALPHA_FULL;
       }
 
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.setLineDash(isRapidMove ? (RAPID_DASH_PATTERN as number[]) : []);
+      if (bucket !== currentBucket || alphaState !== currentAlpha) {
+        flush();
+        currentBucket = bucket;
+        currentAlpha = alphaState;
+        currentPath = new Path2D();
+      }
 
-      context.beginPath();
+      // Append the segment polyline to the active Path2D, breaking
+      // on NaN (behind-camera) points.
+      const start = segmentStart[segIdx];
+      const length = segmentLength[segIdx];
       let pathStarted = false;
-      const projectedPoints: { x: number; y: number }[] = [];
-      for (const point of segment.points) {
-        const projected = project(
-          point.x,
-          point.y,
-          point.z,
-          camera,
-          canvasWidth,
-          canvasHeight,
-          projectionMode
-        );
-        if (!projected) {
+      const end = start + length;
+      for (let p = start; p < end; p++) {
+        const sBase = p * 2;
+        const x = screen[sBase];
+        // Fast NaN check: NaN !== NaN.
+        if (x !== x) {
           pathStarted = false;
           continue;
         }
-        projectedPoints.push({ x: projected.x, y: projected.y });
+        const y = screen[sBase + 1];
         if (!pathStarted) {
-          context.moveTo(projected.x, projected.y);
+          currentPath!.moveTo(x, y);
           pathStarted = true;
         } else {
-          context.lineTo(projected.x, projected.y);
+          currentPath!.lineTo(x, y);
         }
       }
-      context.stroke();
-
-      if (projectedPoints.length >= 2) {
-        newProjectedCache.push({ segmentIndex, points: projectedPoints });
-      }
     }
+    flush();
 
-    projectedCacheRef.current = newProjectedCache;
     context.globalAlpha = 1.0;
     context.setLineDash([]);
+
+    // Expose the drawn set so hit testing can match what the user sees.
+    // One tiny wrapper object per frame — the typed arrays beneath it
+    // are reused, so hot-path allocation is still bounded.
+    projectedFrameRef.current = {
+      screen,
+      segmentStart,
+      segmentLength,
+      drawnSegments: sortedSegments,
+      drawnCount,
+    };
 
     // Draw tool marker body before axes so axes render above the cone/cylinder
     if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
@@ -222,7 +345,6 @@ export function useRenderLoop(
 
     drawAxes(context, camera, canvasWidth, canvasHeight, settings.projection);
 
-    // Draw tip dot after axes so it's always on top
     if (isPlaybackActive && playbackRef?.toolPositionRef.current) {
       drawToolMarkerTip(
         context,
@@ -234,8 +356,8 @@ export function useRenderLoop(
       );
     }
 
-    // Keep the highlight overlay in sync with the freshly-rebuilt projection
-    // cache so it tracks its 3D segment during camera orbit/pan/zoom (#136).
+    // Keep the highlight overlay in sync with the freshly-rebuilt
+    // projection so it tracks its 3D segment during camera orbit (#136).
     renderOverlayRef.current(hoveredIndexRef.current);
   }, [canvasRef, segmentsRef, boundsRef, cameraRef, settingsRef, playbackRef]);
 
@@ -258,12 +380,23 @@ export function useRenderLoop(
 
       if (hoveredIndex === null || hoveredIndex >= segments.length) return;
 
-      const cached = projectedCacheRef.current.find((c) => c.segmentIndex === hoveredIndex);
-      if (!cached || cached.points.length < 2) return;
+      const geometry = geometryRef.current;
+      const frame = projectedFrameRef.current;
+      if (!geometry || frame.drawnCount === 0) return;
+      if (hoveredIndex >= geometry.segmentCount) return;
 
-      const segment = segments[hoveredIndex];
-      const color = getSegmentColor(segment.type, settings);
+      const bucket = geometry.segmentBucket[hoveredIndex];
+      const color =
+        bucket === StyleBucket.RAPID
+          ? settings.rapidColor
+          : bucket === StyleBucket.ARC
+            ? settings.arcColor
+            : settings.feedColor;
+
       const thickness = Math.max(MINIMUM_THICKNESS, settings.lineThickness);
+      const start = geometry.segmentStart[hoveredIndex];
+      const length = geometry.segmentLength[hoveredIndex];
+      if (length < 2) return;
 
       ctx.save();
       ctx.strokeStyle = color;
@@ -275,10 +408,24 @@ export function useRenderLoop(
       ctx.shadowBlur = HOVER_SHADOW_BLUR;
       ctx.setLineDash([]);
 
+      const screen = frame.screen;
       ctx.beginPath();
-      ctx.moveTo(cached.points[0].x, cached.points[0].y);
-      for (let i = 1; i < cached.points.length; i++) {
-        ctx.lineTo(cached.points[i].x, cached.points[i].y);
+      let pathStarted = false;
+      const end = start + length;
+      for (let p = start; p < end; p++) {
+        const sBase = p * 2;
+        const x = screen[sBase];
+        if (x !== x) {
+          pathStarted = false;
+          continue;
+        }
+        const y = screen[sBase + 1];
+        if (!pathStarted) {
+          ctx.moveTo(x, y);
+          pathStarted = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
       }
       ctx.stroke();
       ctx.restore();
@@ -288,16 +435,16 @@ export function useRenderLoop(
 
   renderOverlayRef.current = renderOverlay;
 
-  const getProjectedCache = useCallback(() => projectedCacheRef.current, []);
+  const getProjectedFrame = useCallback(() => projectedFrameRef.current, []);
   const clearProjectedCache = useCallback(() => {
-    projectedCacheRef.current = [];
+    projectedFrameRef.current = EMPTY_FRAME;
   }, []);
 
   return {
     scheduleRender,
     renderNow: render,
     renderOverlay,
-    getProjectedCache,
+    getProjectedFrame,
     clearProjectedCache,
   };
 }

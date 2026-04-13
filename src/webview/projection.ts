@@ -137,3 +137,83 @@ export function project(
     depth,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Batch projection
+// ---------------------------------------------------------------------------
+
+/**
+ * Projects a flat buffer of world-space points into a flat buffer of
+ * screen-space coordinates and a per-point depth buffer in one tight
+ * loop. This is the hot path for the per-frame render on large files.
+ *
+ * Trigonometric constants (`cos/sin theta`, `cos/sin phi`), the FOV
+ * scalar, and the canvas centre are computed once *before* the loop,
+ * not per point — this is the single largest win over calling `project()`
+ * in a loop, because per-point overhead drops to ~a dozen FLOPs with
+ * zero object allocation.
+ *
+ * Invalid (behind-camera) points are encoded as `NaN` in `outScreen`;
+ * the raw depth is still written to `outDepth` so painter's-algorithm
+ * midpoint sorting can substitute its own sentinel at the segment level.
+ *
+ * @param worldPoints    Flat world-space buffer: [x,y,z, x,y,z, …]. Length must be >= 3*pointCount.
+ * @param pointCount     Number of points to project.
+ * @param camera         Current camera state.
+ * @param canvasWidth    Canvas width in pixels.
+ * @param canvasHeight   Canvas height in pixels.
+ * @param projectionMode Perspective or orthographic.
+ * @param outScreen      Output: interleaved [x,y, x,y, …]. Length must be >= 2*pointCount.
+ * @param outDepth       Output: per-point raw depth. Length must be >= pointCount.
+ */
+export function projectBatch(
+  worldPoints: Float32Array,
+  pointCount: number,
+  camera: CameraState,
+  canvasWidth: number,
+  canvasHeight: number,
+  projectionMode: ProjectionMode,
+  outScreen: Float32Array,
+  outDepth: Float32Array
+): void {
+  const cosTheta = Math.cos(camera.theta);
+  const sinTheta = Math.sin(camera.theta);
+  const cosPhi = Math.cos(camera.phi);
+  const sinPhi = Math.sin(camera.phi);
+  const targetX = camera.target.x;
+  const targetY = camera.target.y;
+  const targetZ = camera.target.z;
+  const radius = camera.radius;
+  const cx0 = canvasWidth / 2 + camera.panX;
+  const cy0 = canvasHeight / 2 + camera.panY;
+  const fieldOfView = Math.min(canvasWidth, canvasHeight) * FOV_MULTIPLIER;
+  const isOrthographic = projectionMode === ProjectionMode.ORTHOGRAPHIC;
+  const orthographicScale = fieldOfView / radius;
+
+  for (let i = 0; i < pointCount; i++) {
+    const base = i * 3;
+    const deltaX = worldPoints[base] - targetX;
+    const deltaY = worldPoints[base + 1] - targetY;
+    const deltaZ = worldPoints[base + 2] - targetZ;
+
+    const rotatedX = deltaX * cosTheta + deltaY * sinTheta;
+    const rotatedY1 = -deltaX * sinTheta + deltaY * cosTheta;
+
+    const depthAxis = rotatedY1 * cosPhi - deltaZ * sinPhi;
+    const verticalAxis = rotatedY1 * sinPhi + deltaZ * cosPhi;
+
+    const depth = radius + depthAxis;
+    outDepth[i] = depth;
+
+    const s = i * 2;
+    if (depth < MINIMUM_DEPTH) {
+      outScreen[s] = NaN;
+      outScreen[s + 1] = NaN;
+      continue;
+    }
+
+    const scale = isOrthographic ? orthographicScale : fieldOfView / depth;
+    outScreen[s] = cx0 + rotatedX * scale;
+    outScreen[s + 1] = cy0 - verticalAxis * scale;
+  }
+}

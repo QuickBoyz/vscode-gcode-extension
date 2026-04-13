@@ -49,6 +49,7 @@
     "test:watch": "jest --watch",
     "test:e2e": "npm run build:e2e && rm -rf .vscode-test/user-data; vscode-test",
     "test:all": "npm run test && npm run test:e2e",
+    "bench:render": "node_modules/.bin/ts-node --transpile-only --project tsconfig.build.json scripts/bench-render.ts",
     "package": "npm run build && vsce package",
     "package:pre": "npm run build && vsce package --pre-release",
     "prepare": "husky"
