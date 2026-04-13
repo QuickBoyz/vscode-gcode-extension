@@ -25,7 +25,7 @@ A Visual Studio Code extension providing comprehensive G-Code language support w
   - Operator and function documentation
   - Axis parameter meanings
 - **Symbol Navigation**: Hierarchical document outline — symbols grouped by subroutine with IF/WHILE blocks as children
-- **Workspace Symbol Search**: Find G/M commands, variables, subroutines, and labels across open files (Ctrl+T)
+- **Workspace Symbol Search**: Find G/M commands, variables, subroutines, and labels across the whole workspace (Ctrl+T). Indexing honours `files.exclude` and `search.exclude` so build and cache directories are omitted.
 - **Code Folding**: Fold IF/WHILE/subroutine blocks
 - **Variable Renaming**: Rename variables across entire document
 - **Document Highlights**: Highlight all occurrences of a variable
@@ -189,8 +189,25 @@ This extension contributes the following settings:
 | `gcode.visualizer.playback.defaultFeedRate`  | `1000`          | Fallback feed rate in mm/min when no F value is set                          |
 | `gcode.visualizer.playback.followSourceLine` | `false`         | Auto-scroll editor to current source line during playback                    |
 | `gcode.variables`                            | `{}`            | Global variable values pre-loaded before program execution                   |
-| `gcode.workspace.indexingEnabled`            | `true`          | Enable symbol indexing for Ctrl+T search across open files                   |
+| `gcode.workspace.indexingEnabled`            | `true`          | Enable workspace-wide symbol indexing for Ctrl+T search                      |
 | `gcode.workspace.maxSymbols`                 | `10000`         | Maximum number of symbols to index across all workspace files                |
+
+### Workspace symbol indexing
+
+When `gcode.workspace.indexingEnabled` is `true`, the extension scans the workspace at startup and keeps the index in sync with external edits so Ctrl+T finds symbols from files that have never been opened.
+
+File discovery runs on the client (via `vscode.workspace.findFiles`) so it automatically honours the two standard VS Code exclude settings:
+
+- **`files.exclude`** — directories hidden from the explorer (typical: `**/node_modules`, `**/build`, `**/dist`)
+- **`search.exclude`** — directories hidden from text search (typical: `**/cache`, `**/out`, `**/.tmp`)
+
+Anything matched by either glob set is skipped by the indexer. Changing these settings triggers a debounced rescan (≈200 ms), so moving a directory into or out of the exclude set reconciles on the next idle tick.
+
+**Known limitations**
+
+- **Eventual consistency on watcher events.** File-watcher events are applied unconditionally — a create/delete inside an excluded directory is briefly indexed before the next full-rescan trigger removes it. For typical build/cache paths this is invisible; if you need strict filtering at the watcher level, toggle the root setting off and on.
+- **Multi-root workspaces use a single dialect.** The dialect setting is read once per scan. Per-folder dialect support in multi-root workspaces is tracked separately (#141).
+- **`files.watcherExclude` is not consulted.** See the upstream VS Code limitation [microsoft/vscode#151211](https://github.com/microsoft/vscode/issues/151211) — watcher-exclude globs are not surfaced through the extension API.
 
 ## Architecture
 
