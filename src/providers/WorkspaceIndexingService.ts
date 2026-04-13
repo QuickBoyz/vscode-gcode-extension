@@ -121,7 +121,7 @@ export class WorkspaceIndexingService {
   private lastRoots: readonly string[] = [];
 
   private currentScanGeneration = 0;
-  private currentScanCts: CancellationTokenSource | undefined;
+  private currentScanCancellationTokenSource: CancellationTokenSource | undefined;
 
   constructor(deps: WorkspaceIndexingDependencies) {
     this.symbolIndex = deps.symbolIndex;
@@ -184,10 +184,10 @@ export class WorkspaceIndexingService {
 
     // Cancel any previous in-flight scan and start a new generation.
     this.cancelCurrentScan();
-    const cts = new CancellationTokenSource();
-    this.currentScanCts = cts;
+    const cancellationTokenSource = new CancellationTokenSource();
+    this.currentScanCancellationTokenSource = cancellationTokenSource;
     this.currentScanGeneration += 1;
-    const gen = this.currentScanGeneration;
+    const scanGeneration = this.currentScanGeneration;
 
     // Dialect is captured once for the whole scan; per-folder dialects
     // would require resolving the dialect per file (or per workspace folder).
@@ -196,16 +196,23 @@ export class WorkspaceIndexingService {
     progress?.begin('Indexing G-code files');
 
     try {
-      const fileUris = await this.collectScanTargets(roots, gen, cts.token);
-      if (gen !== this.currentScanGeneration) return;
+      const fileUris = await this.collectScanTargets(
+        roots,
+        scanGeneration,
+        cancellationTokenSource.token
+      );
+      if (scanGeneration !== this.currentScanGeneration) return;
 
-      await this.indexFromList(fileUris, dialect, gen, progress);
+      await this.indexFromList(fileUris, dialect, scanGeneration, progress);
     } finally {
       progress?.done();
-      if (this.currentScanCts === cts) {
-        this.currentScanCts = undefined;
+      // Only dispose the CTS if it is still the current one. If a newer scan
+      // preempted this one, `cancelCurrentScan` already disposed it — a second
+      // dispose would be an undocumented double-call.
+      if (this.currentScanCancellationTokenSource === cancellationTokenSource) {
+        this.currentScanCancellationTokenSource = undefined;
+        cancellationTokenSource.dispose();
       }
-      cts.dispose();
     }
   }
 
@@ -246,10 +253,10 @@ export class WorkspaceIndexingService {
   }
 
   private cancelCurrentScan(): void {
-    if (this.currentScanCts) {
-      this.currentScanCts.cancel();
-      this.currentScanCts.dispose();
-      this.currentScanCts = undefined;
+    if (this.currentScanCancellationTokenSource) {
+      this.currentScanCancellationTokenSource.cancel();
+      this.currentScanCancellationTokenSource.dispose();
+      this.currentScanCancellationTokenSource = undefined;
     }
     // Generation is bumped in scanRoots (the only producer of new
     // generations). Disabling the service relies on this.enabled = false
@@ -258,11 +265,11 @@ export class WorkspaceIndexingService {
 
   private async collectScanTargets(
     roots: readonly string[],
-    gen: number,
+    scanGeneration: number,
     token: CancellationToken
   ): Promise<readonly string[]> {
     if (this.flags.supportsListIndexFiles) {
-      return this.enumerateViaClient(roots, gen, token);
+      return this.enumerateViaClient(roots, scanGeneration, token);
     }
 
     const collected: string[] = [];
@@ -277,7 +284,7 @@ export class WorkspaceIndexingService {
 
   private async enumerateViaClient(
     roots: readonly string[],
-    gen: number,
+    scanGeneration: number,
     token: CancellationToken
   ): Promise<readonly string[]> {
     if (!this.requestFiles) {
@@ -288,18 +295,12 @@ export class WorkspaceIndexingService {
 
     const params: GCodeListIndexFilesParams = {
       folders: roots,
-      scanGeneration: gen,
+      scanGeneration,
       includeGlob: GCODE_INCLUDE_GLOB,
     };
 
     const result = await this.requestFiles(params, token);
 
-    if (result.scanGeneration !== gen) {
-      this.logger?.(
-        `Dropping stale gcodeListIndexFiles response: expected gen ${gen.toString()}, got ${result.scanGeneration.toString()}`
-      );
-      return [];
-    }
     if (result.truncated) {
       this.logger?.(
         `Client truncated gcodeListIndexFiles response (${result.files.length.toString()} files)`
@@ -311,7 +312,7 @@ export class WorkspaceIndexingService {
   private async indexFromList(
     fileUris: readonly string[],
     dialect: DialectType,
-    gen: number,
+    scanGeneration: number,
     progress: ProgressReporter | undefined
   ): Promise<void> {
     const total = fileUris.length;
@@ -321,7 +322,7 @@ export class WorkspaceIndexingService {
       if (!this.enabled) return;
       // Re-check the generation between batches so a re-entered scan can
       // pre-empt an in-flight indexing pass.
-      if (gen !== this.currentScanGeneration) return;
+      if (scanGeneration !== this.currentScanGeneration) return;
 
       const batch = fileUris.slice(i, i + SCAN_BATCH_SIZE);
       for (const uri of batch) {

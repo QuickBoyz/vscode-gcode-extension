@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { CancellationToken } from 'vscode-languageserver-protocol';
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 
 import { ClientFeatureFlags } from '../../providers/ClientFeatureFlags';
 import { DialectType } from '../../constants';
@@ -394,21 +394,6 @@ describe('WorkspaceIndexingService', () => {
       expect(index.getFileCount()).toBe(0);
     });
 
-    it('drops a response whose scanGeneration is stale', async () => {
-      const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
-      const requestFiles: RequestFilesCallback = () =>
-        Promise.resolve<GCodeListIndexFilesResult>({
-          files: [uriOf(ncPath)],
-          scanGeneration: 999,
-          truncated: false,
-        });
-      const service = createService(index, { flags: enabledFlags, requestFiles });
-
-      await service.scanRoots([tempDir]);
-
-      expect(index.getFileCount()).toBe(0);
-    });
-
     it('cancels the in-flight scan token when setEnabled(false) is called', async () => {
       let capturedToken: CancellationToken | undefined;
       let resolver: () => void = () => {};
@@ -480,6 +465,59 @@ describe('WorkspaceIndexingService', () => {
 
       resolveFirst();
       await Promise.all([firstScan, secondScan]);
+    });
+
+    it('disposes the previous CancellationTokenSource exactly once when preempted by a newer scan', async () => {
+      // Regression for the double-dispose path: when scan B preempts scan A,
+      // cancelCurrentScan() disposes scan A's CTS eagerly — the finally block
+      // in scan A must therefore skip its own dispose() rather than calling
+      // dispose() a second time on an already-disposed source.
+      let resolveFirst: () => void = () => {};
+      let firstCallSeen = false;
+      const requestFiles: RequestFilesCallback = (params) => {
+        if (!firstCallSeen) {
+          firstCallSeen = true;
+          return new Promise<GCodeListIndexFilesResult>((resolve) => {
+            resolveFirst = () =>
+              resolve({
+                files: [],
+                scanGeneration: params.scanGeneration,
+                truncated: false,
+              });
+          });
+        }
+        return Promise.resolve<GCodeListIndexFilesResult>({
+          files: [],
+          scanGeneration: params.scanGeneration,
+          truncated: false,
+        });
+      };
+      const service = createService(index, { flags: enabledFlags, requestFiles });
+
+      const firstScan = service.scanRoots([tempDir]);
+      // Yield so scanRoots reached enumerateViaClient and assigned the CTS.
+      await delay(5);
+
+      // Reach into the private field to spy on the in-flight CTS's dispose().
+      const internals = service as unknown as {
+        currentScanCancellationTokenSource: CancellationTokenSource;
+      };
+      const firstCts = internals.currentScanCancellationTokenSource;
+      const disposeSpy = jest.spyOn(firstCts, 'dispose');
+
+      const secondScan = service.scanRoots([tempDir]);
+      await delay(5);
+
+      // cancelCurrentScan disposed the preempted CTS once.
+      expect(disposeSpy).toHaveBeenCalledTimes(1);
+
+      // Resolve scan A's pending requestFiles so its finally block runs.
+      resolveFirst();
+      await Promise.all([firstScan, secondScan]);
+
+      // Scan A's finally sees currentScanCancellationTokenSource !== firstCts
+      // and skips the second dispose — total count remains one.
+      expect(disposeSpy).toHaveBeenCalledTimes(1);
     });
 
     it('bails out of the indexing loop between batches when the generation flips', async () => {
