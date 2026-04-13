@@ -1,5 +1,5 @@
 import { PathSegment } from '../visualizer/types';
-import { classifyBucket, StyleBucket } from './renderBuckets';
+import { classifyBucket } from './renderBuckets';
 
 /**
  * Immutable typed-array geometry cache built once per segments load.

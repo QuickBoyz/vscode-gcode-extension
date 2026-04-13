@@ -2,7 +2,9 @@ import { MotionType, PathSegment, ProjectionMode } from '../visualizer/types';
 import { project, projectBatch, createCameraState } from '../webview/projection';
 import { GeometryCache } from '../webview/geometryCache';
 
-function buildSingleSegmentCache(points: readonly { x: number; y: number; z: number }[]): GeometryCache {
+function buildSingleSegmentCache(
+  points: readonly { x: number; y: number; z: number }[]
+): GeometryCache {
   const segments: PathSegment[] = [{ type: MotionType.FEED, points }];
   return GeometryCache.build(segments);
 }
@@ -108,7 +110,15 @@ describe('projectBatch', () => {
       depth
     );
 
-    const reference = project(1, 2, 3, camera, canvasWidth, canvasHeight, ProjectionMode.PERSPECTIVE);
+    const reference = project(
+      1,
+      2,
+      3,
+      camera,
+      canvasWidth,
+      canvasHeight,
+      ProjectionMode.PERSPECTIVE
+    );
     expect(screen[0]).toBeCloseTo(reference!.x, 3);
     expect(screen[1]).toBeCloseTo(reference!.y, 3);
   });

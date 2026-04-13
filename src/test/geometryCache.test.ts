@@ -48,7 +48,7 @@ describe('GeometryCache', () => {
     expect(cache.worldPoints[11]).toBe(5);
   });
 
-  it('matches the pre-fix midpoint choice (floor(length/2)) for painter\'s sort', () => {
+  it("matches the pre-fix midpoint choice (floor(length/2)) for painter's sort", () => {
     const segments: PathSegment[] = [
       {
         type: MotionType.ARC_CW,
@@ -65,8 +65,20 @@ describe('GeometryCache', () => {
 
   it('classifies arc buckets for G2 and G3', () => {
     const segments: PathSegment[] = [
-      { type: MotionType.ARC_CW, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }] },
-      { type: MotionType.ARC_CCW, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }] },
+      {
+        type: MotionType.ARC_CW,
+        points: [
+          { x: 0, y: 0, z: 0 },
+          { x: 1, y: 0, z: 0 },
+        ],
+      },
+      {
+        type: MotionType.ARC_CCW,
+        points: [
+          { x: 0, y: 0, z: 0 },
+          { x: 1, y: 0, z: 0 },
+        ],
+      },
     ];
     const cache = GeometryCache.build(segments);
     expect(cache.segmentBucket[0]).toBe(StyleBucket.ARC);
