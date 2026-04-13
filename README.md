@@ -208,6 +208,7 @@ Anything matched by either glob set is skipped by the indexer. Changing these se
 - **Eventual consistency on watcher events.** File-watcher events are applied unconditionally — a create/delete inside an excluded directory is briefly indexed before the next full-rescan trigger removes it. For typical build/cache paths this is invisible; if you need strict filtering at the watcher level, toggle the root setting off and on.
 - **Multi-root workspaces use a single dialect.** The dialect setting is read once per scan. Per-folder dialect support in multi-root workspaces is tracked separately (#141).
 - **`files.watcherExclude` is not consulted.** See the upstream VS Code limitation [microsoft/vscode#151211](https://github.com/microsoft/vscode/issues/151211) — watcher-exclude globs are not surfaced through the extension API.
+- **`.gitignore` is not additionally honoured once an exclude is configured.** When `files.exclude` or `search.exclude` are non-empty, the workspace indexer passes a custom glob to `vscode.workspace.findFiles`, and VS Code's second argument uses replace semantics rather than augmenting the built-in defaults — so `.gitignore` / `search.useIgnoreFiles` are not consulted alongside the custom exclude. A workspace with zero configured excludes still gets the built-in defaults.
 
 ## Architecture
 

@@ -22,7 +22,7 @@ import {
   GCodeListIndexFilesResult,
 } from '../lsp/gcodeListIndexFiles';
 import { ClientFeatureFlags } from '../providers/ClientFeatureFlags';
-import { createTrailingDebouncer } from './trailingDebounce';
+import { TrailingDebouncer } from './trailingDebounce';
 import { DefinitionProvider } from '../providers/DefinitionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
@@ -170,7 +170,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 // only the call site below — onInitialized must still invoke
 // applyWorkspaceSettings synchronously so the initial scan is not delayed.
 const APPLY_SETTINGS_DEBOUNCE_MS = 200;
-const applySettingsDebouncer = createTrailingDebouncer({
+const applySettingsDebouncer = new TrailingDebouncer({
   delayMs: APPLY_SETTINGS_DEBOUNCE_MS,
   fn: () => applyWorkspaceSettings(),
   onError: (error: unknown) => {

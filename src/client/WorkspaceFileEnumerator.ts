@@ -60,7 +60,7 @@ export class WorkspaceFileEnumerator {
     try {
       const uris = await this.deps.findFiles(params.includeGlob, excludeGlob);
       return {
-        files: uris.map((u) => u.toString()),
+        files: uris.map((uri) => uri.toString()),
         scanGeneration: params.scanGeneration,
         truncated: false,
       };

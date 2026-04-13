@@ -1,10 +1,10 @@
 /**
- * Tiny trailing-edge debouncer used to collapse bursts of
+ * Trailing-edge debouncer used to collapse bursts of
  * `onDidChangeConfiguration` events into a single `applyWorkspaceSettings`
  * invocation. Lives in `src/server/` because the language server is its
  * only consumer; if a second use case appears, lift it to `src/util/`.
  *
- * The wrapper schedules `fn` to run `delayMs` after the last `trigger()`
+ * The debouncer schedules `fn` to run `delayMs` after the last `trigger()`
  * call. Earlier calls within the window are coalesced. Pending invocations
  * can be cancelled via `cancel()`.
  *
@@ -14,45 +14,48 @@
  * not become an unhandled rejection.
  */
 
-export interface TrailingDebouncer {
-  /** Schedule (or reschedule) the wrapped function to fire after `delayMs`. */
-  trigger(): void;
-  /** Drop any pending invocation. */
-  cancel(): void;
-}
-
 export interface TrailingDebounceOptions {
   readonly delayMs: number;
   readonly fn: () => Promise<void> | void;
   readonly onError?: (error: unknown) => void;
 }
 
-export function createTrailingDebouncer(options: TrailingDebounceOptions): TrailingDebouncer {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+export class TrailingDebouncer {
+  private readonly delayMs: number;
+  private readonly fn: () => Promise<void> | void;
+  private readonly onError?: (error: unknown) => void;
 
-  const cancel = (): void => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
-    }
-  };
+  private timer: ReturnType<typeof setTimeout> | undefined;
 
-  const trigger = (): void => {
-    cancel();
-    timer = setTimeout(() => {
-      timer = undefined;
+  constructor(options: TrailingDebounceOptions) {
+    this.delayMs = options.delayMs;
+    this.fn = options.fn;
+    this.onError = options.onError;
+  }
+
+  /** Schedule (or reschedule) the wrapped function to fire after `delayMs`. */
+  trigger(): void {
+    this.cancel();
+    this.timer = setTimeout(() => {
+      this.timer = undefined;
       try {
-        const result = options.fn();
+        const result = this.fn();
         if (result instanceof Promise) {
           result.catch((error: unknown) => {
-            options.onError?.(error);
+            this.onError?.(error);
           });
         }
       } catch (error: unknown) {
-        options.onError?.(error);
+        this.onError?.(error);
       }
-    }, options.delayMs);
-  };
+    }, this.delayMs);
+  }
 
-  return { trigger, cancel };
+  /** Drop any pending invocation. */
+  cancel(): void {
+    if (this.timer !== undefined) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
+  }
 }

@@ -19,6 +19,12 @@ import {
 import { WorkspaceSymbolIndex } from '../../providers/WorkspaceSymbolIndex';
 
 const TEST_DEBOUNCE_MS = 20;
+/**
+ * Small sleep used in the client-enumeration tests to yield the event loop
+ * so pending microtasks in the scan pipeline (dialect lookup, progress
+ * factory, requestFiles callback) settle before assertions run.
+ */
+const YIELD_MS = 5;
 const SUBROUTINE_FILE = 'O100 SUB\nO100 ENDSUB\n';
 const ALT_FILE = 'O200 SUB\nO200 ENDSUB\n';
 
@@ -451,7 +457,7 @@ describe('WorkspaceIndexingService', () => {
       });
 
       const scanPromise = service.scanRoots(['/tmp/a']);
-      await delay(5);
+      await delay(YIELD_MS);
       // No server-side begin yet — the enumeration phase is still in flight.
       expect(events).toEqual(['requestFiles:start']);
 
@@ -517,7 +523,7 @@ describe('WorkspaceIndexingService', () => {
 
       const scanPromise = service.scanRoots([tempDir]);
       // Yield once so requestFiles has been invoked and the token captured.
-      await delay(5);
+      await delay(YIELD_MS);
 
       expect(capturedToken).toBeDefined();
       expect(capturedToken!.isCancellationRequested).toBe(false);
@@ -557,12 +563,12 @@ describe('WorkspaceIndexingService', () => {
       const service = createService(index, { flags: enabledFlags, requestFiles });
 
       const firstScan = service.scanRoots([tempDir]);
-      await delay(5);
+      await delay(YIELD_MS);
       const secondScan = service.scanRoots([tempDir]);
       // Second scan starts a fresh CTS synchronously (cancelling the first)
       // but only reaches requestFiles after the awaited dialect/progress
       // factory yields. Wait long enough for the second token to be captured.
-      await delay(5);
+      await delay(YIELD_MS);
 
       expect(tokens).toHaveLength(2);
       expect(tokens[0].isCancellationRequested).toBe(true);
@@ -601,7 +607,7 @@ describe('WorkspaceIndexingService', () => {
 
       const firstScan = service.scanRoots([tempDir]);
       // Yield so scanRoots reached enumerateViaClient and assigned the CTS.
-      await delay(5);
+      await delay(YIELD_MS);
 
       // Reach into the private field to spy on the in-flight CTS's dispose().
       const internals = service as unknown as {
@@ -611,7 +617,7 @@ describe('WorkspaceIndexingService', () => {
       const disposeSpy = jest.spyOn(firstCts, 'dispose');
 
       const secondScan = service.scanRoots([tempDir]);
-      await delay(5);
+      await delay(YIELD_MS);
 
       // cancelCurrentScan disposed the preempted CTS once.
       expect(disposeSpy).toHaveBeenCalledTimes(1);

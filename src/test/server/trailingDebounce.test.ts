@@ -3,11 +3,11 @@
  * bursts of `onDidChangeConfiguration` events into a single
  * `applyWorkspaceSettings` invocation.
  */
-import { createTrailingDebouncer } from '../../server/trailingDebounce';
+import { TrailingDebouncer } from '../../server/trailingDebounce';
 
 const DEBOUNCE_MS = 200;
 
-describe('createTrailingDebouncer', () => {
+describe('TrailingDebouncer', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -19,7 +19,7 @@ describe('createTrailingDebouncer', () => {
 
   it('collapses a burst of triggers within the window into a single call', () => {
     const fn = jest.fn();
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
 
     // Five rapid triggers, each 10 ms apart — well within the 200 ms window.
     for (let i = 0; i < 5; i++) {
@@ -35,7 +35,7 @@ describe('createTrailingDebouncer', () => {
 
   it('fires once per separated trigger when the gap exceeds delayMs', () => {
     const fn = jest.fn();
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
 
     debouncer.trigger();
     jest.advanceTimersByTime(DEBOUNCE_MS + 50);
@@ -48,7 +48,7 @@ describe('createTrailingDebouncer', () => {
 
   it('cancels a pending invocation', () => {
     const fn = jest.fn();
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
 
     debouncer.trigger();
     debouncer.cancel();
@@ -63,7 +63,7 @@ describe('createTrailingDebouncer', () => {
       errors.push(error);
     };
     const fn = (): Promise<void> => Promise.reject(new Error('apply failed'));
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn, onError });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn, onError });
 
     debouncer.trigger();
     jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -80,7 +80,7 @@ describe('createTrailingDebouncer', () => {
     const fn = jest.fn(() => {
       throw new Error('sync boom');
     });
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn, onError });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn, onError });
 
     debouncer.trigger();
     jest.advanceTimersByTime(DEBOUNCE_MS);
@@ -90,7 +90,7 @@ describe('createTrailingDebouncer', () => {
 
   it('does not crash when async rejection has no onError handler', async () => {
     const fn = jest.fn().mockRejectedValue(new Error('silent'));
-    const debouncer = createTrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
+    const debouncer = new TrailingDebouncer({ delayMs: DEBOUNCE_MS, fn });
 
     debouncer.trigger();
     jest.advanceTimersByTime(DEBOUNCE_MS);
