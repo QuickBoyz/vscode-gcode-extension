@@ -92,6 +92,33 @@ suite('Visualizer E2E Tests', () => {
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   });
 
+  test('Visualizer command completes gracefully on a malformed file (#142 error path)', async () => {
+    // The parser is mostly recoverable and collects ErrorNodes rather
+    // than throwing, so the "malformed" fixture may end up as a valid
+    // (possibly empty) tool path instead of reaching the error state.
+    // The point of this test is not to prove which state we land in —
+    // it's to prove the worker -> WorkerClient -> panel -> webview
+    // pipe does not crash the extension host on structurally wrong
+    // input. The reducer unit tests cover the ERROR state itself;
+    // this test covers the integration that previously couldn't even
+    // open the panel on the user-reported repro.
+    await TestUtils.openGCodeDocument('malformed.nc');
+
+    await vscode.commands.executeCommand('gcode.openVisualizer');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Clean up
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  });
+
+  // Superseded-parse silencing is covered by unit tests: the reducer
+  // never sees a SupersededParseError (CommandProvider swallows it),
+  // and `WorkerClient.test.ts` asserts parse() rejects with a typed
+  // SupersededParseError. An e2e version of the same check is too
+  // race-prone to be useful (openGCodeDocument waits on active-editor
+  // state that the second open changes underneath it).
+
   test('Visualizer command completes on a large file (#142 repro)', async function () {
     // The fixture is ~190k lines / ~3.1 MB and takes several seconds to parse.
     // This test exercises the open-panel-before-parse flow end-to-end in a

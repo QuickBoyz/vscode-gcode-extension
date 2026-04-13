@@ -3,7 +3,15 @@ import {
   PathSegment,
   ReferencedVariable,
   VisualizerConfig,
+  VisualizerErrorKind,
 } from '../../visualizer/types';
+
+/**
+ * Re-export of {@link VisualizerErrorKind} under the webview-facing name
+ * `ErrorKind`. Consumers get the enum values at runtime and the type at
+ * compile time.
+ */
+export { VisualizerErrorKind as ErrorKind } from '../../visualizer/types';
 
 // ── Source token type (reused across the webview) ───────────────────
 
@@ -50,6 +58,7 @@ export type DocumentStatus =
   | { readonly kind: DocumentStatusKind.EMPTY; readonly filename: string | null }
   | {
       readonly kind: DocumentStatusKind.ERROR;
+      readonly errorKind: VisualizerErrorKind;
       readonly message: string;
       readonly filename: string | null;
     };
@@ -66,7 +75,7 @@ export type WebviewMessage =
       readonly settingsVariables: readonly ReferencedVariable[];
     }
   | { readonly type: 'updateSettings'; readonly settings: Partial<VisualizerConfig> }
-  | { readonly type: 'error'; readonly message: string }
+  | { readonly type: 'error'; readonly errorKind: VisualizerErrorKind; readonly message: string }
   | {
       readonly type: 'loading';
       readonly phase: LoadingPhase;
@@ -98,7 +107,7 @@ export type DocumentAction =
       readonly phase: LoadingPhase;
       readonly filename: string | null;
     }
-  | { readonly type: 'error'; readonly message: string };
+  | { readonly type: 'error'; readonly errorKind: VisualizerErrorKind; readonly message: string };
 
 export const INITIAL_DOCUMENT_STATE: DocumentState = {
   status: { kind: DocumentStatusKind.IDLE },
@@ -150,6 +159,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         ...state,
         status: {
           kind: DocumentStatusKind.ERROR,
+          errorKind: action.errorKind,
           message: action.message.length > 0 ? action.message : FALLBACK_ERROR_MESSAGE,
           filename: currentFilename(state),
         },

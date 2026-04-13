@@ -1,11 +1,20 @@
+import { ErrorKind } from '../context/documentReducer';
+
 type EmptyMessageProps =
   | { readonly variant: 'idle' }
   | { readonly variant: 'empty'; readonly filename: string | null }
   | {
       readonly variant: 'error';
+      readonly errorKind: ErrorKind;
       readonly filename: string | null;
       readonly message: string;
     };
+
+const ERROR_HEADERS: Record<ErrorKind, string> = {
+  [ErrorKind.PARSE_FAILURE]: 'G-code parse failed',
+  [ErrorKind.WORKER_CRASH]: 'Visualizer worker failed',
+  [ErrorKind.UNKNOWN]: 'Could not render tool path',
+};
 
 export function EmptyMessage(props: EmptyMessageProps) {
   if (props.variant === 'idle') {
@@ -29,14 +38,14 @@ export function EmptyMessage(props: EmptyMessageProps) {
         )}
         This program contains no motion commands.
         <br />
-        Add a G0/G1 move to see a tool path.
+        Add a move command to see a tool path.
       </div>
     );
   }
 
   return (
     <div id="empty-msg" className="empty-msg-error">
-      <strong>Could not render tool path</strong>
+      <strong>{ERROR_HEADERS[props.errorKind]}</strong>
       {props.filename && (
         <>
           <br />

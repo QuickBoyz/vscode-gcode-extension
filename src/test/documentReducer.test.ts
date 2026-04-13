@@ -1,5 +1,6 @@
 import {
   DocumentStatusKind,
+  ErrorKind,
   INITIAL_DOCUMENT_STATE,
   LoadingPhase,
   WebviewMessage,
@@ -73,6 +74,7 @@ describe('documentReducer', () => {
     it('clears any previous error when loading starts', () => {
       const errored = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
+        errorKind: ErrorKind.PARSE_FAILURE,
         message: 'parse failed',
       });
       const loading = documentReducer(errored, {
@@ -112,7 +114,7 @@ describe('documentReducer', () => {
   });
 
   describe('error action', () => {
-    it('transitions to error with the given message', () => {
+    it('transitions to error with the given message and errorKind', () => {
       const loading = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'loading',
         phase: LoadingPhase.PARSING,
@@ -120,24 +122,42 @@ describe('documentReducer', () => {
       });
       const next = documentReducer(loading, {
         type: 'error',
+        errorKind: ErrorKind.PARSE_FAILURE,
         message: 'Unexpected token at line 42',
       });
 
       expect(next.status.kind).toBe(DocumentStatusKind.ERROR);
       if (next.status.kind === DocumentStatusKind.ERROR) {
+        expect(next.status.errorKind).toBe(ErrorKind.PARSE_FAILURE);
         expect(next.status.message).toBe('Unexpected token at line 42');
         expect(next.status.filename).toBe('bad.ngc');
+      }
+    });
+
+    it('distinguishes worker crash from parse failure', () => {
+      const crash = documentReducer(INITIAL_DOCUMENT_STATE, {
+        type: 'error',
+        errorKind: ErrorKind.WORKER_CRASH,
+        message: 'Visualizer worker exited with code 1',
+      });
+
+      if (crash.status.kind === DocumentStatusKind.ERROR) {
+        expect(crash.status.errorKind).toBe(ErrorKind.WORKER_CRASH);
+      } else {
+        throw new Error('expected ERROR state');
       }
     });
 
     it('uses a generic message when none is supplied', () => {
       const next = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
+        errorKind: ErrorKind.UNKNOWN,
         message: '',
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
         expect(next.status.message.length).toBeGreaterThan(0);
+        expect(next.status.errorKind).toBe(ErrorKind.UNKNOWN);
       } else {
         throw new Error('expected ERROR state');
       }

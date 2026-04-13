@@ -33,7 +33,12 @@ export function CanvasArea() {
         <EmptyMessage variant="empty" filename={status.filename} />
       )}
       {status.kind === DocumentStatusKind.ERROR && (
-        <EmptyMessage variant="error" filename={status.filename} message={status.message} />
+        <EmptyMessage
+          variant="error"
+          errorKind={status.errorKind}
+          filename={status.filename}
+          message={status.message}
+        />
       )}
       {status.kind === DocumentStatusKind.LOADING && (
         <LoadingOverlay phase={status.phase} filename={status.filename} />

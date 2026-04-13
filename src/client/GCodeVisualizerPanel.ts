@@ -22,6 +22,7 @@ import {
   ToolPathData,
   VariableDefinitions,
   VisualizerConfig,
+  VisualizerErrorKind,
   VisualizerPhase,
 } from '../visualizer/types';
 import { generateNonce } from './nonce';
@@ -40,7 +41,7 @@ type ExtensionToWebviewMessage =
       settingsVariables: readonly ReferencedVariable[];
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
-  | { type: 'error'; message: string }
+  | { type: 'error'; errorKind: VisualizerErrorKind; message: string }
   | {
       type: 'loading';
       phase: VisualizerPhase;
@@ -210,9 +211,18 @@ export class GCodeVisualizerPanel {
   /**
    * Sends an error message to the webview for display.
    * Does nothing when the panel is not visible.
+   *
+   * @param message    Human-readable reason surfaced under the error header.
+   * @param errorKind  Failure class used by the webview to pick copy and
+   *                   (future) recovery actions. Callers should pass the
+   *                   most specific kind they know; {@link
+   *                   VisualizerErrorKind.UNKNOWN} is the safe default.
    */
-  static showError(message: string): void {
-    GCodeVisualizerPanel.instance?.enqueue({ type: 'error', message });
+  static showError(
+    message: string,
+    errorKind: VisualizerErrorKind = VisualizerErrorKind.UNKNOWN
+  ): void {
+    GCodeVisualizerPanel.instance?.enqueue({ type: 'error', errorKind, message });
   }
 
   /**

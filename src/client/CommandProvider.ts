@@ -10,9 +10,9 @@ import * as vscode from 'vscode';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { GCODE_LANGUAGE_ID } from '../constants';
-import { VisualizerConfig, VisualizerPhase } from '../visualizer/types';
+import { VisualizerConfig, VisualizerErrorKind, VisualizerPhase } from '../visualizer/types';
 import { GCodeVisualizerPanel } from './GCodeVisualizerPanel';
-import { WorkerClient } from './WorkerClient';
+import { SupersededParseError, WorkerClient } from './WorkerClient';
 
 /** Debounce delay in milliseconds for document change events. */
 const DOCUMENT_CHANGE_DEBOUNCE_MS = 500;
@@ -121,16 +121,29 @@ export class CommandProvider {
             (phase) => GCodeVisualizerPanel.showProgress(phase)
           );
         } catch (error: unknown) {
+          // A superseded parse means the user triggered a newer request
+          // that is already in flight — swallow it silently so the
+          // overlay isn't replaced by a misleading "Failed to parse"
+          // message between the two live parses.
+          if (error instanceof SupersededParseError) {
+            return;
+          }
           const message =
             error instanceof Error ? error.message : 'The visualizer worker failed unexpectedly.';
-          GCodeVisualizerPanel.showError(`Failed to parse G-code: ${message}`);
+          GCodeVisualizerPanel.showError(
+            `Failed to parse G-code: ${message}`,
+            VisualizerErrorKind.WORKER_CRASH
+          );
           return;
         }
 
         const settings: VisualizerConfig = config.visualizer;
 
         if (!result.success) {
-          GCodeVisualizerPanel.showError(`G-code parse failed: ${result.errorMessage}`);
+          GCodeVisualizerPanel.showError(
+            `G-code parse failed: ${result.errorMessage}`,
+            VisualizerErrorKind.PARSE_FAILURE
+          );
           return;
         }
 
@@ -341,14 +354,23 @@ export class CommandProvider {
         GCodeVisualizerPanel.showProgress(VisualizerPhase.RENDERING);
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText, config.variables);
       } else {
-        GCodeVisualizerPanel.showError(`G-code parse failed: ${result.errorMessage}`);
+        GCodeVisualizerPanel.showError(
+          `G-code parse failed: ${result.errorMessage}`,
+          VisualizerErrorKind.PARSE_FAILURE
+        );
       }
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof SupersededParseError) {
+        return;
+      }
       vscode.window.showErrorMessage(
         'Failed to refresh visualizer from document change. ' +
           'This may occur in unsupported environments (e.g. Electron without nodeIntegration).'
       );
-      GCodeVisualizerPanel.showError('Failed to refresh visualizer due to an internal error.');
+      GCodeVisualizerPanel.showError(
+        'Failed to refresh visualizer due to an internal error.',
+        VisualizerErrorKind.WORKER_CRASH
+      );
     }
   }
 

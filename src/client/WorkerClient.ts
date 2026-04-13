@@ -33,6 +33,22 @@ type WorkerMessage = WorkerResponse | WorkerErrorResponse | WorkerProgressRespon
 /** Called as the worker transitions between parse phases. */
 export type ProgressCallback = (phase: VisualizerPhase) => void;
 
+/**
+ * Thrown by {@link WorkerClient.parse} when an earlier in-flight parse
+ * is cancelled because a newer parse was issued on the same client.
+ *
+ * Callers should treat this as silent cancellation — the newer request
+ * is already in flight and will deliver the real result. Surfacing this
+ * to the user as an error would produce a misleading "Failed to parse:
+ * superseded" flash whenever two parses land in quick succession.
+ */
+export class SupersededParseError extends Error {
+  constructor() {
+    super('Parse request superseded by a newer request');
+    this.name = 'SupersededParseError';
+  }
+}
+
 /** Pending parse request awaiting a response from the worker. */
 interface PendingRequest {
   readonly id: number;
@@ -237,11 +253,13 @@ export class WorkerClient {
   }
 
   /**
-   * Rejects any currently pending request with a cancellation error.
+   * Rejects any currently pending request with a {@link SupersededParseError}
+   * so callers can distinguish cancellation from real failures and silence
+   * the overlay accordingly.
    */
   private rejectPendingRequest(): void {
     if (this.pendingRequest) {
-      this.pendingRequest.reject(new Error('Parse request superseded by a newer request'));
+      this.pendingRequest.reject(new SupersededParseError());
       this.pendingRequest = undefined;
     }
   }

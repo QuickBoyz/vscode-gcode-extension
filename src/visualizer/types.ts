@@ -225,6 +225,21 @@ export interface WorkerProgressResponse {
   readonly phase: VisualizerPhase;
 }
 
+/**
+ * Failure classes surfaced by the visualizer error overlay. Kept
+ * intentionally coarse — the error state machine shouldn't leak specific
+ * parser/worker internals, only enough signal for the UI to choose copy
+ * and (future) action buttons.
+ */
+export enum VisualizerErrorKind {
+  /** Lexer/parser/extractor reported a structured failure. */
+  PARSE_FAILURE = 'parse_failure',
+  /** Worker thread threw, exited, or otherwise became unusable. */
+  WORKER_CRASH = 'worker_crash',
+  /** Any other failure the visualizer couldn't classify. */
+  UNKNOWN = 'unknown',
+}
+
 // ---------------------------------------------------------------------------
 // Interpreter types
 // ---------------------------------------------------------------------------
