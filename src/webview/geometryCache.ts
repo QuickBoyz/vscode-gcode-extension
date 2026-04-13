@@ -110,15 +110,41 @@ export class FrameScratch {
   readonly segmentDepth: Float32Array;
   /** Segment indices to draw, sorted back-to-front. Reused every frame. */
   readonly sortedSegments: Uint32Array;
+  /**
+   * Packed (depthQuant, segIdx) sort keys. Sorted with a no-comparator
+   * `Uint32Array.prototype.sort()` call — native C++ integer sort, an
+   * order of magnitude faster than a JS comparator on 190k elements.
+   */
+  readonly sortKeys: Uint32Array;
 
   constructor(pointCount: number, segmentCount: number) {
     this.screen = new Float32Array(pointCount * 2);
     this.pointDepth = new Float32Array(pointCount);
     this.segmentDepth = new Float32Array(segmentCount);
     this.sortedSegments = new Uint32Array(segmentCount);
+    this.sortKeys = new Uint32Array(segmentCount);
   }
 
   static forCache(cache: GeometryCache): FrameScratch {
     return new FrameScratch(cache.pointCount, cache.segmentCount);
   }
 }
+
+/**
+ * Sort-key packing for the radix-style painter's-algorithm sort.
+ *
+ * Keys are 32-bit: high 13 bits = quantized depth (back-to-front, so
+ * LARGER depth produces SMALLER key → drawn first → overdrawn by
+ * nearer geometry), low 19 bits = segment index. 13 bits of depth
+ * resolution ≈ 8192 levels, which is far finer than painter's-sort
+ * depth collisions care about (and collisions are broken by the
+ * segment index naturally, since it's the low bits of the same key).
+ *
+ * 19 bits of segment index gives a max of 524,287 segments — well
+ * above any realistic G-code program.
+ */
+export const DEPTH_QUANT_BITS = 13;
+export const DEPTH_QUANT_MAX = (1 << DEPTH_QUANT_BITS) - 1;
+export const SORT_IDX_BITS = 32 - DEPTH_QUANT_BITS;
+export const SORT_IDX_MASK = (1 << SORT_IDX_BITS) - 1;
+export const MAX_SORTABLE_SEGMENTS = SORT_IDX_MASK + 1;

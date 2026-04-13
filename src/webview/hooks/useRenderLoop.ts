@@ -12,7 +12,13 @@ import { drawGrid } from '../grid';
 import { drawToolMarkerBody, drawToolMarkerTip } from '../toolMarker';
 import { ProjectedFrame } from '../hitTesting';
 import { PlaybackStatus } from '../playback/types';
-import { FrameScratch, GeometryCache } from '../geometryCache';
+import {
+  DEPTH_QUANT_MAX,
+  FrameScratch,
+  GeometryCache,
+  SORT_IDX_BITS,
+  SORT_IDX_MASK,
+} from '../geometryCache';
 import { StyleBucket } from '../renderBuckets';
 import {
   DEFAULT_BACKGROUND_COLOR,
@@ -176,24 +182,63 @@ export function useRenderLoop(
     // Build the list of drawn segments + per-segment sort depth.
     const showRapidMoves = settings.showRapidMoves;
     const { segmentStart, segmentLength, segmentBucket, segmentMidpoint } = geometry;
-    const { pointDepth, segmentDepth, sortedSegments } = scratch;
+    const { pointDepth, segmentDepth, sortedSegments, sortKeys } = scratch;
 
+    // Phase 1: gather drawn indices + per-draw depth. Track depth range
+    // in the same pass so we can quantize without a second scan.
     let drawnCount = 0;
+    let minDepth = Infinity;
+    let maxDepth = -Infinity;
+    const SENTINEL_DEPTH = Infinity;
     for (let i = 0; i < visibleCount; i++) {
       if (!showRapidMoves && segmentBucket[i] === StyleBucket.RAPID) {
         continue;
       }
       const midDepth = pointDepth[segmentMidpoint[i]];
-      // Behind-camera midpoints get pushed to the back of the sort so
-      // they don't overdraw foreground geometry if any sub-edge survives.
-      segmentDepth[i] = midDepth < 0.01 ? Infinity : midDepth;
-      sortedSegments[drawnCount++] = i;
+      // Behind-camera midpoints are drawn first (effectively nil since
+      // they will be overdrawn by every in-frame pixel).
+      const d = midDepth < 0.01 ? SENTINEL_DEPTH : midDepth;
+      segmentDepth[drawnCount] = d;
+      sortedSegments[drawnCount] = i;
+      if (d !== SENTINEL_DEPTH) {
+        if (d < minDepth) minDepth = d;
+        if (d > maxDepth) maxDepth = d;
+      }
+      drawnCount++;
     }
 
-    // Painter's sort: back-to-front (larger depth first). In-place on a
-    // typed Uint32Array via .subarray — no allocation beyond the view.
+    // Phase 2: quantize depth into the high bits of a Uint32 key, pack
+    // segIdx into the low bits. Sorting ascending yields back-to-front
+    // ordering with ties broken by segIdx.
+    //
+    //   key = ((DEPTH_QUANT_MAX - q) << SORT_IDX_BITS) | segIdx
+    //
+    // so LARGER depth → q large → (QUANT_MAX - q) small → smaller key
+    // → drawn first → overdrawn by nearer segments later in the sort.
+    const depthRange = maxDepth > minDepth ? maxDepth - minDepth : 1;
+    const depthScale = DEPTH_QUANT_MAX / depthRange;
+    for (let d = 0; d < drawnCount; d++) {
+      const depth = segmentDepth[d];
+      let q: number;
+      if (depth === SENTINEL_DEPTH) {
+        q = 0; // behind-camera → largest key slot → drawn last-of-back (effectively no-op)
+      } else {
+        const scaled = ((depth - minDepth) * depthScale) | 0;
+        q = scaled < 0 ? 0 : scaled > DEPTH_QUANT_MAX ? DEPTH_QUANT_MAX : scaled;
+      }
+      sortKeys[d] = ((DEPTH_QUANT_MAX - q) << SORT_IDX_BITS) | sortedSegments[d];
+    }
+
+    // Phase 3: native Uint32 sort (no comparator → C++ fast-path).
+    const keySlice = sortKeys.subarray(0, drawnCount);
+    keySlice.sort();
+
+    // Phase 4: unpack segment indices back into the sortedSegments
+    // scratch buffer in draw order.
+    for (let d = 0; d < drawnCount; d++) {
+      sortedSegments[d] = sortKeys[d] & SORT_IDX_MASK;
+    }
     const drawList = sortedSegments.subarray(0, drawnCount);
-    drawList.sort((a, b) => segmentDepth[b] - segmentDepth[a]);
 
     // --- Batched stroke pass ---------------------------------------------
     //

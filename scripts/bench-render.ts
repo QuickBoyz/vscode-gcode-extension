@@ -23,7 +23,13 @@ import { LinuxCNCParser } from '../src/parser/dialects/LinuxCNCParser';
 import { GCodeInterpreter } from '../src/visualizer/GCodeInterpreter';
 import { GCodePathExtractor } from '../src/visualizer/GCodePathExtractor';
 import { ProjectionMode } from '../src/visualizer/types';
-import { GeometryCache, FrameScratch } from '../src/webview/geometryCache';
+import {
+  DEPTH_QUANT_MAX,
+  FrameScratch,
+  GeometryCache,
+  SORT_IDX_BITS,
+  SORT_IDX_MASK,
+} from '../src/webview/geometryCache';
 import { projectBatch, createCameraState } from '../src/webview/projection';
 import { StyleBucket } from '../src/webview/renderBuckets';
 
@@ -116,13 +122,22 @@ function parseSegments(fixturePath: string) {
   return { segments: toolPath.segments, parseMs, source };
 }
 
+interface PhaseTimers {
+  project: number;
+  populate: number;
+  sort: number;
+  draw: number;
+}
+
 function renderFrame(
   geometry: GeometryCache,
   scratch: FrameScratch,
   theta: number,
-  ctx: ReturnType<typeof createMockCtx>
+  ctx: ReturnType<typeof createMockCtx>,
+  timers: PhaseTimers
 ): number {
   const camera = { ...createCameraState(), theta };
+  const tProject0 = performance.now();
   projectBatch(
     geometry.worldPoints,
     geometry.pointCount,
@@ -133,19 +148,51 @@ function renderFrame(
     scratch.screen,
     scratch.pointDepth
   );
+  timers.project += performance.now() - tProject0;
 
   const { segmentCount, segmentStart, segmentLength, segmentBucket, segmentMidpoint } = geometry;
-  const { pointDepth, segmentDepth, sortedSegments, screen } = scratch;
+  const { pointDepth, segmentDepth, sortedSegments, sortKeys, screen } = scratch;
 
+  const tPopulate0 = performance.now();
   let drawnCount = 0;
+  let minDepth = Infinity;
+  let maxDepth = -Infinity;
+  const SENTINEL = Infinity;
   for (let i = 0; i < segmentCount; i++) {
     const midDepth = pointDepth[segmentMidpoint[i]];
-    segmentDepth[i] = midDepth < 0.01 ? Infinity : midDepth;
-    sortedSegments[drawnCount++] = i;
+    const d = midDepth < 0.01 ? SENTINEL : midDepth;
+    segmentDepth[drawnCount] = d;
+    sortedSegments[drawnCount] = i;
+    if (d !== SENTINEL) {
+      if (d < minDepth) minDepth = d;
+      if (d > maxDepth) maxDepth = d;
+    }
+    drawnCount++;
   }
+  const depthRange = maxDepth > minDepth ? maxDepth - minDepth : 1;
+  const depthScale = DEPTH_QUANT_MAX / depthRange;
+  for (let d = 0; d < drawnCount; d++) {
+    const depth = segmentDepth[d];
+    let q: number;
+    if (depth === SENTINEL) {
+      q = 0;
+    } else {
+      const scaled = ((depth - minDepth) * depthScale) | 0;
+      q = scaled < 0 ? 0 : scaled > DEPTH_QUANT_MAX ? DEPTH_QUANT_MAX : scaled;
+    }
+    sortKeys[d] = ((DEPTH_QUANT_MAX - q) << SORT_IDX_BITS) | sortedSegments[d];
+  }
+  timers.populate += performance.now() - tPopulate0;
 
+  const tSort0 = performance.now();
+  sortKeys.subarray(0, drawnCount).sort();
+  for (let d = 0; d < drawnCount; d++) {
+    sortedSegments[d] = sortKeys[d] & SORT_IDX_MASK;
+  }
   const drawList = sortedSegments.subarray(0, drawnCount);
-  drawList.sort((a, b) => segmentDepth[b] - segmentDepth[a]);
+  timers.sort += performance.now() - tSort0;
+
+  const tDraw0 = performance.now();
 
   let currentBucket = -1;
   let currentAlpha = -1;
@@ -190,6 +237,7 @@ function renderFrame(
     }
   }
   flush();
+  timers.draw += performance.now() - tDraw0;
 
   return drawnCount;
 }
@@ -232,16 +280,21 @@ function main(): void {
   installPath2D(counters);
   const ctx = createMockCtx(counters);
 
-  // Warm-up frame: triggers JIT tiering + fills caches.
-  renderFrame(geometry, scratch, 0, ctx);
+  // Warm-up frames: trigger JIT tiering + fill caches. One is not
+  // enough for V8 to fully optimize the sort comparator.
+  const warmupTimers: PhaseTimers = { project: 0, populate: 0, sort: 0, draw: 0 };
+  for (let w = 0; w < 5; w++) {
+    renderFrame(geometry, scratch, w * 0.1, ctx, warmupTimers);
+  }
   const warmupStrokes = counters.strokeCalls;
 
   const frameTimes: number[] = [];
+  const phaseTimers: PhaseTimers = { project: 0, populate: 0, sort: 0, draw: 0 };
   const counterBefore = { ...counters };
   for (let f = 0; f < FRAMES; f++) {
     const theta = (f / FRAMES) * Math.PI * 2;
     const t0 = performance.now();
-    renderFrame(geometry, scratch, theta, ctx);
+    renderFrame(geometry, scratch, theta, ctx, phaseTimers);
     frameTimes.push(performance.now() - t0);
   }
 
@@ -272,6 +325,19 @@ function main(): void {
   console.log(`Stroke calls / frame: ${strokesPerFrame.toFixed(1)}`);
   // eslint-disable-next-line no-console
   console.log(`Path2D allocs / frame: ${path2dPerFrame.toFixed(1)}`);
+
+  // eslint-disable-next-line no-console
+  console.log('');
+  // eslint-disable-next-line no-console
+  console.log('--- Phase breakdown (mean ms/frame) ---');
+  // eslint-disable-next-line no-console
+  console.log(`  projectBatch : ${(phaseTimers.project / FRAMES).toFixed(2)} ms`);
+  // eslint-disable-next-line no-console
+  console.log(`  populate     : ${(phaseTimers.populate / FRAMES).toFixed(2)} ms`);
+  // eslint-disable-next-line no-console
+  console.log(`  sort         : ${(phaseTimers.sort / FRAMES).toFixed(2)} ms`);
+  // eslint-disable-next-line no-console
+  console.log(`  draw (mock)  : ${(phaseTimers.draw / FRAMES).toFixed(2)} ms`);
 }
 
 main();
