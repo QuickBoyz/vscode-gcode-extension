@@ -9,6 +9,51 @@ import {
 
 export type SourceTokens = readonly { readonly text: string; readonly type: string }[][];
 
+// ── Loading phases (mirrored on the extension side) ────────────────
+
+export enum LoadingPhase {
+  /** Tokenising and parsing the source text. */
+  PARSING = 'parsing',
+  /** Walking the AST and building geometry. */
+  EXTRACTING = 'extracting',
+  /** Handing data to the renderer for the first paint. */
+  RENDERING = 'rendering',
+}
+
+// ── Document status (discriminated union) ───────────────────────────
+//
+// status is the single source of truth for *what to show*. A value can
+// only be in one kind at a time, so the old "loading + empty at once"
+// bug is unrepresentable.
+
+export enum DocumentStatusKind {
+  /** Panel just mounted, no source assigned yet. */
+  IDLE = 'idle',
+  /** Parse/extract/render pipeline in progress. */
+  LOADING = 'loading',
+  /** Parse succeeded and produced at least one path segment. */
+  READY = 'ready',
+  /** Parse succeeded but the program contained no motion commands. */
+  EMPTY = 'empty',
+  /** Parse or extraction failed. */
+  ERROR = 'error',
+}
+
+export type DocumentStatus =
+  | { readonly kind: DocumentStatusKind.IDLE }
+  | {
+      readonly kind: DocumentStatusKind.LOADING;
+      readonly phase: LoadingPhase;
+      readonly filename: string | null;
+    }
+  | { readonly kind: DocumentStatusKind.READY }
+  | { readonly kind: DocumentStatusKind.EMPTY; readonly filename: string | null }
+  | {
+      readonly kind: DocumentStatusKind.ERROR;
+      readonly message: string;
+      readonly filename: string | null;
+    };
+
 // ── Webview message protocol ────────────────────────────────────────
 
 export type WebviewMessage =
@@ -22,18 +67,21 @@ export type WebviewMessage =
     }
   | { readonly type: 'updateSettings'; readonly settings: Partial<VisualizerConfig> }
   | { readonly type: 'error'; readonly message: string }
-  | { readonly type: 'loading' };
+  | {
+      readonly type: 'loading';
+      readonly phase: LoadingPhase;
+      readonly filename: string | null;
+    };
 
 // ── Document state & actions ────────────────────────────────────────
 
 export interface DocumentState {
+  readonly status: DocumentStatus;
   readonly segments: PathSegment[];
   readonly bounds: PathBounds | null;
   readonly sourceTokens: SourceTokens | undefined;
   readonly referencedVariables: readonly ReferencedVariable[];
   readonly settingsVariables: readonly ReferencedVariable[];
-  readonly error: string | null;
-  readonly loading: boolean;
 }
 
 export type DocumentAction =
@@ -45,34 +93,67 @@ export type DocumentAction =
       readonly referencedVariables: readonly ReferencedVariable[];
       readonly settingsVariables: readonly ReferencedVariable[];
     }
-  | { readonly type: 'error'; readonly message: string }
-  | { readonly type: 'loading' };
+  | {
+      readonly type: 'loading';
+      readonly phase: LoadingPhase;
+      readonly filename: string | null;
+    }
+  | { readonly type: 'error'; readonly message: string };
 
 export const INITIAL_DOCUMENT_STATE: DocumentState = {
+  status: { kind: DocumentStatusKind.IDLE },
   segments: [],
   bounds: null,
   sourceTokens: undefined,
   referencedVariables: [],
   settingsVariables: [],
-  error: null,
-  loading: false,
 };
+
+const FALLBACK_ERROR_MESSAGE = 'An unknown visualizer error occurred.';
+
+function currentFilename(state: DocumentState): string | null {
+  const s = state.status;
+  if (s.kind === DocumentStatusKind.LOADING) return s.filename;
+  if (s.kind === DocumentStatusKind.EMPTY) return s.filename;
+  if (s.kind === DocumentStatusKind.ERROR) return s.filename;
+  return null;
+}
 
 export function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
-    case 'update':
+    case 'update': {
+      const empty = action.segments.length === 0;
       return {
+        ...state,
+        status: empty
+          ? { kind: DocumentStatusKind.EMPTY, filename: currentFilename(state) }
+          : { kind: DocumentStatusKind.READY },
         segments: action.segments,
         bounds: action.bounds,
         sourceTokens: action.sourceTokens,
         referencedVariables: action.referencedVariables,
         settingsVariables: action.settingsVariables,
-        error: null,
-        loading: false,
       };
-    case 'error':
-      return { ...state, error: action.message, loading: false };
-    case 'loading':
-      return { ...state, loading: true };
+    }
+    case 'loading': {
+      return {
+        ...state,
+        status: {
+          kind: DocumentStatusKind.LOADING,
+          phase: action.phase,
+          filename: action.filename,
+        },
+      };
+    }
+    case 'error': {
+      return {
+        ...state,
+        status: {
+          kind: DocumentStatusKind.ERROR,
+          message: action.message.length > 0 ? action.message : FALLBACK_ERROR_MESSAGE,
+          filename: currentFilename(state),
+        },
+      };
+    }
   }
 }

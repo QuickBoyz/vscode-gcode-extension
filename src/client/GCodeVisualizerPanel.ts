@@ -22,6 +22,7 @@ import {
   ToolPathData,
   VariableDefinitions,
   VisualizerConfig,
+  VisualizerPhase,
 } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
@@ -40,7 +41,11 @@ type ExtensionToWebviewMessage =
     }
   | { type: 'updateSettings'; settings: VisualizerConfig }
   | { type: 'error'; message: string }
-  | { type: 'loading' };
+  | {
+      type: 'loading';
+      phase: VisualizerPhase;
+      filename: string | null;
+    };
 
 /**
  * Message types received from the webview.
@@ -73,9 +78,16 @@ export class GCodeVisualizerPanel {
   private readonly configProvider: ClientConfigProvider;
   private disposables: vscode.Disposable[] = [];
 
-  /** Pending initial message, sent once the webview signals `ready`. */
-  private pendingUpdate: ExtensionToWebviewMessage | null = null;
+  /**
+   * Queue of messages to send once the webview signals `ready`. A queue
+   * (instead of a single slot) is needed so an early `loading` message can
+   * be preserved even if an `update` follows while the webview is still
+   * booting.
+   */
+  private pendingMessages: ExtensionToWebviewMessage[] = [];
   private webviewReady = false;
+  /** Filename of the document currently being loaded, for error context. */
+  private currentFilename: string | null = null;
 
   private constructor(panel: vscode.WebviewPanel, configProvider: ClientConfigProvider) {
     this.panel = panel;
@@ -95,6 +107,45 @@ export class GCodeVisualizerPanel {
   // ---------------------------------------------------------------------------
 
   /**
+   * Opens (or reveals) the visualizer panel immediately and puts it into
+   * a loading state for the given file. Call this *before* starting the
+   * parse so the user sees "Parsing G-code… <filename>" within one frame,
+   * rather than nothing for the length of the parse.
+   *
+   * Subsequent calls to {@link showProgress}, {@link createOrShow}, or
+   * {@link showError} will take the panel through the rest of its states.
+   */
+  static createOrShowLoading(
+    context: vscode.ExtensionContext,
+    configProvider: ClientConfigProvider,
+    filename: string | null
+  ): void {
+    const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
+    instance.currentFilename = filename;
+    instance.panel.reveal(undefined, true);
+    instance.enqueue({
+      type: 'loading',
+      phase: VisualizerPhase.PARSING,
+      filename,
+    });
+  }
+
+  /**
+   * Updates the loading overlay with a new phase while a parse is in
+   * flight. Safe to call before the webview has posted `ready` — the
+   * message is queued along with any earlier loading message.
+   */
+  static showProgress(phase: VisualizerPhase): void {
+    const instance = GCodeVisualizerPanel.instance;
+    if (!instance) return;
+    instance.enqueue({
+      type: 'loading',
+      phase,
+      filename: instance.currentFilename,
+    });
+  }
+
+  /**
    * Creates the panel (if not already open) or reveals it, then sends the
    * given path data and settings to the webview for rendering.
    */
@@ -106,10 +157,21 @@ export class GCodeVisualizerPanel {
     configProvider: ClientConfigProvider,
     settingsVariables: VariableDefinitions = {}
   ): void {
+    const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
+    instance.panel.reveal(undefined, true);
+    instance.update(pathData, settings, sourceText, settingsVariables);
+  }
+
+  /**
+   * Ensures the singleton panel exists and returns it. Creates the panel
+   * (and wires up the webview content) on first use.
+   */
+  private static ensureInstance(
+    context: vscode.ExtensionContext,
+    configProvider: ClientConfigProvider
+  ): GCodeVisualizerPanel {
     if (GCodeVisualizerPanel.instance) {
-      GCodeVisualizerPanel.instance.panel.reveal();
-      GCodeVisualizerPanel.instance.update(pathData, settings, sourceText, settingsVariables);
-      return;
+      return GCodeVisualizerPanel.instance;
     }
 
     const extensionUri = context.extensionUri;
@@ -129,14 +191,7 @@ export class GCodeVisualizerPanel {
     const instance = new GCodeVisualizerPanel(panel, configProvider);
     GCodeVisualizerPanel.instance = instance;
     instance.initContent(extensionUri);
-    // Don't send data yet — the webview JS hasn't loaded.
-    // Store it as pending; it will be sent when the webview posts `ready`.
-    instance.pendingUpdate = instance.buildUpdateMessage(
-      pathData,
-      settings,
-      sourceText,
-      settingsVariables
-    );
+    return instance;
   }
 
   /**
@@ -157,15 +212,27 @@ export class GCodeVisualizerPanel {
    * Does nothing when the panel is not visible.
    */
   static showError(message: string): void {
-    GCodeVisualizerPanel.instance?.sendError(message);
+    GCodeVisualizerPanel.instance?.enqueue({ type: 'error', message });
   }
 
   /**
    * Shows a loading overlay in the webview while parsing is in progress.
    * Does nothing when the panel is not visible.
+   *
+   * @param filename  Optional file label shown under the spinner; falls
+   *                  back to the currently tracked filename.
    */
-  static showLoading(): void {
-    GCodeVisualizerPanel.instance?.sendLoading();
+  static showLoading(filename?: string | null): void {
+    const instance = GCodeVisualizerPanel.instance;
+    if (!instance) return;
+    if (filename !== undefined) {
+      instance.currentFilename = filename;
+    }
+    instance.enqueue({
+      type: 'loading',
+      phase: VisualizerPhase.PARSING,
+      filename: instance.currentFilename,
+    });
   }
 
   /**
@@ -272,33 +339,36 @@ export class GCodeVisualizerPanel {
     settingsVariables: VariableDefinitions = {}
   ): void {
     const msg = this.buildUpdateMessage(pathData, settings, sourceText, settingsVariables);
+    this.enqueue(msg);
+  }
+
+  /**
+   * Queue a message for delivery to the webview. If the webview has not
+   * yet posted `ready`, the message is held until it does; otherwise it
+   * is posted immediately. A successful `update` clears any earlier
+   * pending `loading` — the panel is about to paint real data.
+   */
+  private enqueue(msg: ExtensionToWebviewMessage): void {
     if (!this.webviewReady) {
-      // Webview not ready yet — store for later delivery.
-      this.pendingUpdate = msg;
+      if (msg.type === 'update') {
+        // An update supersedes any pending loading/error.
+        this.pendingMessages = this.pendingMessages.filter(
+          (m) => m.type !== 'loading' && m.type !== 'error'
+        );
+      }
+      this.pendingMessages.push(msg);
       return;
     }
-    this.panel.webview.postMessage(msg);
-  }
-
-  private sendError(message: string): void {
-    const msg: ExtensionToWebviewMessage = {
-      type: 'error',
-      message,
-    };
-    this.panel.webview.postMessage(msg);
-  }
-
-  private sendLoading(): void {
-    const msg: ExtensionToWebviewMessage = { type: 'loading' };
     this.panel.webview.postMessage(msg);
   }
 
   private handleMessage(msg: WebviewToExtensionMessage): void {
     if (msg.type === 'ready') {
       this.webviewReady = true;
-      if (this.pendingUpdate) {
-        this.panel.webview.postMessage(this.pendingUpdate);
-        this.pendingUpdate = null;
+      const queue = this.pendingMessages;
+      this.pendingMessages = [];
+      for (const pending of queue) {
+        this.panel.webview.postMessage(pending);
       }
       return;
     }

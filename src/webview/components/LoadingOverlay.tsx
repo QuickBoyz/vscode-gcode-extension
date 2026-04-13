@@ -1,8 +1,22 @@
-export function LoadingOverlay() {
+import { LoadingPhase } from '../context/documentReducer';
+
+interface LoadingOverlayProps {
+  readonly phase: LoadingPhase;
+  readonly filename: string | null;
+}
+
+const PHASE_LABELS: Readonly<Record<LoadingPhase, string>> = {
+  [LoadingPhase.PARSING]: 'Parsing G-code…',
+  [LoadingPhase.EXTRACTING]: 'Building geometry…',
+  [LoadingPhase.RENDERING]: 'Rendering…',
+};
+
+export function LoadingOverlay({ phase, filename }: LoadingOverlayProps) {
   return (
-    <div id="loading-overlay">
+    <div id="loading-overlay" role="status" aria-live="polite">
       <div className="spinner" />
-      <span className="loading-text">Parsing...</span>
+      <span className="loading-text">{PHASE_LABELS[phase]}</span>
+      {filename && <span className="loading-filename">{filename}</span>}
     </div>
   );
 }

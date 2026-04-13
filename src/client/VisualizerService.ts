@@ -13,7 +13,13 @@ import { ParserFactory } from '../parser/ParserFactory';
 import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
 import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { VariableResolutionService } from '../visualizer/VariableResolutionService';
-import { VariableDefinitions, VisualizerResult } from '../visualizer/types';
+import { VariableDefinitions, VisualizerPhase, VisualizerResult } from '../visualizer/types';
+
+/**
+ * Called by {@link VisualizerService} as it transitions between phases.
+ * Used by the worker to emit progress events for long-running parses.
+ */
+export type PhaseReporter = (phase: VisualizerPhase) => void;
 
 export class VisualizerService {
   /**
@@ -25,18 +31,24 @@ export class VisualizerService {
    * @param text               Raw G-code file content
    * @param dialect            G-code dialect for lexing and parsing
    * @param settingsVariables  Variables from VS Code settings (`gcode.variables`)
+   * @param onPhase            Optional callback fired synchronously at the
+   *                           start of each pipeline phase.
    * @returns                  A {@link VisualizerResult} indicating success with data or failure with a message
    */
   extractToolPath(
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
-    settingsVariables?: VariableDefinitions
+    settingsVariables?: VariableDefinitions,
+    onPhase?: PhaseReporter
   ): VisualizerResult {
     try {
+      onPhase?.(VisualizerPhase.PARSING);
       const lexer = LexerFactory.create(dialect);
       const tokens = lexer.tokenize(text);
       const parser = ParserFactory.create(dialect, tokens, text);
       const ast = parser.parseProgram();
+
+      onPhase?.(VisualizerPhase.EXTRACTING);
       const environment = new VariableResolutionService({ settingsVariables }).resolve();
       const extractor = new GCodePathExtractor();
       const interpreter = new GCodeInterpreter(extractor, undefined, environment);

@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import {
+  DocumentStatusKind,
   VisualizerProvider,
   useDocumentState,
   useVisualizerSettings,
@@ -19,7 +20,9 @@ import { CanvasArea } from './CanvasArea';
 import { VariablePanel } from './VariablePanel';
 
 function VisualizerLayout() {
-  const { error, referencedVariables, settingsVariables } = useDocumentState();
+  const { status, referencedVariables, settingsVariables } = useDocumentState();
+  const errorMessage =
+    status.kind === DocumentStatusKind.ERROR ? status.message : null;
   const { settings, updateSettings } = useVisualizerSettings();
   const { resetView } = useCameraControls();
   const snapshot = usePlaybackSnapshot();
@@ -48,7 +51,7 @@ function VisualizerLayout() {
         referencedVariables={referencedVariables}
         settingsVariables={settingsVariables}
       />
-      {error && <ErrorBanner message={error} />}
+      {errorMessage && <ErrorBanner message={errorMessage} />}
       <CanvasArea />
     </div>
   );

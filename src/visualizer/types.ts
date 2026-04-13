@@ -204,6 +204,27 @@ export interface WorkerErrorResponse {
   readonly errorMessage: string;
 }
 
+/**
+ * Phases reported by the visualizer worker while a parse is in flight,
+ * mirrored by the webview's LoadingPhase enum. Kept stringly-typed so it
+ * can travel cleanly across the worker ↔ extension ↔ webview boundaries.
+ */
+export enum VisualizerPhase {
+  PARSING = 'parsing',
+  EXTRACTING = 'extracting',
+  RENDERING = 'rendering',
+}
+
+/**
+ * Progress notification sent from the worker between phases so the UI can
+ * distinguish parsing from geometry building during long parses.
+ */
+export interface WorkerProgressResponse {
+  readonly type: 'progress';
+  readonly id: number;
+  readonly phase: VisualizerPhase;
+}
+
 // ---------------------------------------------------------------------------
 // Interpreter types
 // ---------------------------------------------------------------------------

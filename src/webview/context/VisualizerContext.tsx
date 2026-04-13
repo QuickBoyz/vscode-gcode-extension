@@ -14,6 +14,9 @@ import {
   documentReducer,
 } from './documentReducer';
 
+export { DocumentStatusKind, LoadingPhase } from './documentReducer';
+export type { DocumentStatus } from './documentReducer';
+
 // ── Context value types ─────────────────────────────────────────────
 
 interface VisualizerStateValue {
@@ -187,7 +190,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
           break;
         }
         case 'loading': {
-          dispatch({ type: 'loading' });
+          dispatch({ type: 'loading', phase: msg.phase, filename: msg.filename });
           break;
         }
       }

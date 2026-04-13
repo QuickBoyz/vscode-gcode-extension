@@ -6,12 +6,21 @@
  *
  * The worker imports {@link VisualizerService} (which is VS Code-free)
  * and listens for {@link WorkerRequest} messages. Results are posted
- * back as {@link WorkerResponse} or {@link WorkerErrorResponse}.
+ * back as {@link WorkerResponse} or {@link WorkerErrorResponse}. During
+ * long parses the worker also posts {@link WorkerProgressResponse}
+ * messages between phases so the UI can distinguish parsing from
+ * geometry building.
  */
 import { parentPort } from 'worker_threads';
 
 import { VisualizerService } from '../client/VisualizerService';
-import { WorkerErrorResponse, WorkerRequest, WorkerResponse } from './types';
+import {
+  VisualizerPhase,
+  WorkerErrorResponse,
+  WorkerProgressResponse,
+  WorkerRequest,
+  WorkerResponse,
+} from './types';
 
 const service = new VisualizerService();
 
@@ -25,7 +34,15 @@ parentPort?.on('message', (request: WorkerRequest) => {
     const result = service.extractToolPath(
       request.text,
       request.dialect,
-      request.settingsVariables
+      request.settingsVariables,
+      (phase: VisualizerPhase) => {
+        const progress: WorkerProgressResponse = {
+          type: 'progress',
+          id: request.id,
+          phase,
+        };
+        parentPort?.postMessage(progress);
+      }
     );
     const durationMs = Date.now() - startTime;
 

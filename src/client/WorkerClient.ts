@@ -19,20 +19,26 @@ import { DialectType } from '../constants';
 import { VisualizerService } from './VisualizerService';
 import {
   VariableDefinitions,
+  VisualizerPhase,
   VisualizerResult,
   WorkerErrorResponse,
+  WorkerProgressResponse,
   WorkerRequest,
   WorkerResponse,
 } from '../visualizer/types';
 
 /** Union of possible worker responses. */
-type WorkerMessage = WorkerResponse | WorkerErrorResponse;
+type WorkerMessage = WorkerResponse | WorkerErrorResponse | WorkerProgressResponse;
+
+/** Called as the worker transitions between parse phases. */
+export type ProgressCallback = (phase: VisualizerPhase) => void;
 
 /** Pending parse request awaiting a response from the worker. */
 interface PendingRequest {
   readonly id: number;
   readonly resolve: (result: VisualizerResult) => void;
   readonly reject: (error: Error) => void;
+  readonly onProgress: ProgressCallback | undefined;
 }
 
 /**
@@ -83,7 +89,8 @@ export class WorkerClient {
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
     maxIterations = DEFAULT_GCODE_CONFIG.interpreter.maxIterations,
-    settingsVariables?: VariableDefinitions
+    settingsVariables?: VariableDefinitions,
+    onProgress?: ProgressCallback
   ): Promise<VisualizerResult> {
     if (this.disposed) {
       return Promise.reject(new Error('WorkerClient has been disposed'));
@@ -91,7 +98,7 @@ export class WorkerClient {
 
     if (this.synchronousFallback) {
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
@@ -106,7 +113,7 @@ export class WorkerClient {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
@@ -120,7 +127,7 @@ export class WorkerClient {
     };
 
     return new Promise<VisualizerResult>((resolve, reject) => {
-      this.pendingRequest = { id: requestId, resolve, reject };
+      this.pendingRequest = { id: requestId, resolve, reject, onProgress };
       worker.postMessage(request);
     });
   }
@@ -181,6 +188,11 @@ export class WorkerClient {
     const pending = this.pendingRequest;
     if (!pending || pending.id !== message.id) {
       // Stale response — discard.
+      return;
+    }
+
+    if (message.type === 'progress') {
+      pending.onProgress?.(message.phase);
       return;
     }
 

@@ -156,7 +156,8 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
+  gap: 4px;
+  background: var(--vscode-editor-background, #1e1e1e);
   pointer-events: none;
   z-index: 10;
 }
@@ -178,8 +179,40 @@ select {
 
 .loading-text {
   margin-top: 10px;
+  color: var(--vscode-editor-foreground, #cccccc);
+  font-size: calc(var(--vscode-editor-font-size, 12px) + 1px);
+  font-weight: 500;
+}
+
+.loading-filename {
   color: var(--vscode-descriptionForeground, #999);
+  font-family: var(--vscode-editor-font-family, monospace);
   font-size: var(--vscode-editor-font-size, 12px);
+  max-width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#empty-msg.empty-msg-error {
+  color: var(--vscode-errorForeground, #f48771);
+
+  strong {
+    font-size: calc(var(--vscode-editor-font-size, 12px) + 1px);
+  }
+
+  .empty-msg-filename {
+    color: var(--vscode-descriptionForeground, #999);
+    font-family: var(--vscode-editor-font-family, monospace);
+  }
+
+  .empty-msg-reason {
+    color: var(--vscode-descriptionForeground, #999);
+    max-width: 80%;
+    display: inline-block;
+    word-break: break-word;
+    white-space: normal;
+  }
 }
 
 // ── Info panel (hover tooltip) ──────────────────────────────────────
