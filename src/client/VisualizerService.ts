@@ -57,11 +57,11 @@ export class VisualizerService {
       return { success: true, data };
     } catch (error: unknown) {
       if (error instanceof ParseError) {
-        return { success: false, errorMessage: error.message, location: error.location };
+        return { success: false, errorMessage: error.message, range: error.range };
       }
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred during G-code parsing';
-      return { success: false, errorMessage, location: null };
+      return { success: false, errorMessage, range: null };
     }
   }
 }

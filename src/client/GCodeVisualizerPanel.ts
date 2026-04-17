@@ -17,8 +17,8 @@ import * as vscode from 'vscode';
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { tokenizeSourceLines, TokenSpan } from '../visualizer/sourceTokenizer';
 import {
-  ErrorLocation,
   PathBounds,
+  Range,
   ReferencedVariable,
   ToolPathData,
   VariableDefinitions,
@@ -46,7 +46,7 @@ type ExtensionToWebviewMessage =
       type: 'error';
       errorKind: VisualizerErrorKind;
       message: string;
-      location: ErrorLocation | null;
+      range: Range | null;
     }
   | {
       type: 'loading';
@@ -227,9 +227,9 @@ export class GCodeVisualizerPanel {
   static showError(
     message: string,
     errorKind: VisualizerErrorKind = VisualizerErrorKind.UNKNOWN,
-    location: ErrorLocation | null = null
+    range: Range | null = null
   ): void {
-    GCodeVisualizerPanel.instance?.enqueue({ type: 'error', errorKind, message, location });
+    GCodeVisualizerPanel.instance?.enqueue({ type: 'error', errorKind, message, range });
   }
 
   /**

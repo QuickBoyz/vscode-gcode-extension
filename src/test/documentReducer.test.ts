@@ -1,13 +1,13 @@
 import {
   DocumentStatusKind,
   ErrorKind,
-  ErrorLocation,
   INITIAL_DOCUMENT_STATE,
   LoadingPhase,
   WebviewMessage,
   documentReducer,
 } from '../webview/context/documentReducer';
 import { MotionType, PathBounds, PathSegment } from '../visualizer/types';
+import { Range } from '../parser/nodes/Range';
 
 const segment: PathSegment = {
   type: MotionType.FEED,
@@ -77,7 +77,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'parse failed',
-        location: null,
+        range: null,
       });
       const loading = documentReducer(errored, {
         type: 'loading',
@@ -126,7 +126,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'Unexpected token at line 42',
-        location: null,
+        range: null,
       });
 
       expect(next.status.kind).toBe(DocumentStatusKind.ERROR);
@@ -142,7 +142,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.WORKER_CRASH,
         message: 'Visualizer worker exited with code 1',
-        location: null,
+        range: null,
       });
 
       if (crash.status.kind === DocumentStatusKind.ERROR) {
@@ -157,7 +157,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.UNKNOWN,
         message: '',
-        location: null,
+        range: null,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
@@ -168,64 +168,64 @@ describe('documentReducer', () => {
       }
     });
 
-    it('carries location through to ERROR status for PARSE_FAILURE', () => {
-      const location: ErrorLocation = { line: 4, column: 12 };
+    it('carries range through to ERROR status for PARSE_FAILURE', () => {
+      const range = Range.create(3, 11, 3, 15);
       const next = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'Unexpected character',
-        location,
+        range,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
-        expect(next.status.location).toEqual({ line: 4, column: 12 });
+        expect(next.status.range).toEqual(range);
       } else {
         throw new Error('expected ERROR state');
       }
     });
 
-    it('preserves location: null in ERROR status for PARSE_FAILURE when not provided', () => {
+    it('preserves range: null in ERROR status for PARSE_FAILURE when not provided', () => {
       const next = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'Parse error',
-        location: null,
+        range: null,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
-        expect(next.status.location).toBeNull();
+        expect(next.status.range).toBeNull();
       } else {
         throw new Error('expected ERROR state');
       }
     });
 
-    it('invariant: location is null for WORKER_CRASH even when action provides one', () => {
-      const location: ErrorLocation = { line: 1 };
+    it('invariant: range is null for WORKER_CRASH even when action provides one', () => {
+      const range = Range.create(0, 0, 0, 1);
       const next = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
         errorKind: ErrorKind.WORKER_CRASH,
         message: 'crash',
-        location,
+        range,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
-        expect(next.status.location).toBeNull();
+        expect(next.status.range).toBeNull();
       } else {
         throw new Error('expected ERROR state');
       }
     });
 
-    it('invariant: location is null for UNKNOWN even when action provides one', () => {
-      const location: ErrorLocation = { line: 2, column: 5 };
+    it('invariant: range is null for UNKNOWN even when action provides one', () => {
+      const range = Range.create(1, 4, 1, 5);
       const next = documentReducer(INITIAL_DOCUMENT_STATE, {
         type: 'error',
         errorKind: ErrorKind.UNKNOWN,
         message: 'unknown',
-        location,
+        range,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
-        expect(next.status.location).toBeNull();
+        expect(next.status.range).toBeNull();
       } else {
         throw new Error('expected ERROR state');
       }

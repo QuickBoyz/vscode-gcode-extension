@@ -1,6 +1,5 @@
 // Parser/factories/AstFactory.ts
 import { REGEX_PATTERNS } from '../constants';
-import { locationToRange } from '../errors/adapters';
 import { ParseError } from '../errors/ParseError';
 import { KeywordType } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
@@ -218,9 +217,10 @@ export class AstFactory {
   }
 
   errorFromParseError(err: ParseError, originalText?: string, parent?: AstNode): ErrorNode {
-    const range = err.location
-      ? locationToRange(err.location)
-      : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+    const range = err.range ?? {
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 0 },
+    };
     return new ErrorNode(
       range,
       err.message,

@@ -220,7 +220,7 @@ export class WorkerClient {
       pending.resolve({
         success: false,
         errorMessage: message.errorMessage,
-        location: message.location,
+        range: message.range,
       });
     }
   }

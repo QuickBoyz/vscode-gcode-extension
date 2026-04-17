@@ -8,8 +8,8 @@ import {
   ParserDiagnosticCode,
   StatementNode,
 } from '../nodes';
-import { createParseError } from '../../errors/createParseError';
 import { BaseParser } from '../BaseParser';
+import { ParseError } from '../../errors/ParseError';
 
 /**
  * M-code values that trigger subroutine call/return parsing.
@@ -109,7 +109,7 @@ export class FanucParser extends BaseParser {
         return this.parseLineNumber();
 
       default:
-        throw createParseError({
+        throw ParseError.createParseError({
           message: `Unexpected token ${token.category}`,
           token,
           code: ParserDiagnosticCode.UNEXPECTED_TOKEN,

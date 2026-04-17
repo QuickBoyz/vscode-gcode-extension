@@ -17,7 +17,6 @@ import {
 } from './nodes';
 import { TokenStream } from './TokenStream';
 import { ParseError } from '../errors/ParseError';
-import { createParseError } from '../errors/createParseError';
 
 /**
  * Error message for unterminated named variables (missing closing >).
@@ -161,7 +160,7 @@ export abstract class BaseParser {
           this.tokens.next(); // OSUB
           const elseifToken = this.tokens.next();
           if (!elseifToken) {
-            throw createParseError({
+            throw ParseError.createParseError({
               message: 'Unexpected EOF while parsing ELSEIF clause',
               token: elseifToken,
               code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -183,7 +182,7 @@ export abstract class BaseParser {
         if (this.tokens.matchKeyword(KeywordType.ELSEIF)) {
           const elseifToken = this.tokens.next();
           if (!elseifToken) {
-            throw createParseError({
+            throw ParseError.createParseError({
               message: 'Unexpected EOF while parsing ELSEIF clause',
               token: elseifToken,
               code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -214,7 +213,7 @@ export abstract class BaseParser {
         this.tokens.next(); // OSUB
         const elseToken = this.tokens.next();
         if (!elseToken) {
-          throw createParseError({
+          throw ParseError.createParseError({
             message: 'Unexpected EOF while parsing ELSE clause',
             token: elseToken,
             code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -228,7 +227,7 @@ export abstract class BaseParser {
       if (this.tokens.matchKeyword(KeywordType.ELSE)) {
         const elseToken = this.tokens.next();
         if (!elseToken) {
-          throw createParseError({
+          throw ParseError.createParseError({
             message: 'Unexpected EOF while parsing ELSE clause',
             token: elseToken,
             code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -242,7 +241,7 @@ export abstract class BaseParser {
     // Expect ENDIF - with OSUB only if there's a label
     if (label) {
       if (!this.tokens.matchCategory(TokenCategory.OSUB)) {
-        throw createParseError({
+        throw ParseError.createParseError({
           message: 'Expected ENDIF with label',
           token: ifToken,
           code: ParserDiagnosticCode.EXPECTED_ENDIF_WITH_LABEL,
@@ -253,7 +252,7 @@ export abstract class BaseParser {
 
     // Check if we have ENDIF before calling expect to provide better error positioning
     if (!this.tokens.matchKeyword(KeywordType.ENDIF)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Expected ENDIF',
         token: ifToken,
         code: ParserDiagnosticCode.EXPECTED_ENDIF,
@@ -337,7 +336,7 @@ export abstract class BaseParser {
 
     // Check if we have END or ENDWHILE before calling expect to provide better error positioning
     if (!this.tokens.matchKeyword(KeywordType.END, KeywordType.ENDWHILE)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Expected END or ENDWHILE',
         token: whileToken,
         code: ParserDiagnosticCode.EXPECTED_END_OR_ENDWHILE,
@@ -473,7 +472,7 @@ export abstract class BaseParser {
     while (this.tokens.matchCategory(TokenCategory.PLUS, TokenCategory.MINUS)) {
       const op = this.tokens.next();
       if (!op)
-        throw createParseError({
+        throw ParseError.createParseError({
           message: 'Unexpected EOF while parsing additive expression',
           token: op,
           code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -499,7 +498,7 @@ export abstract class BaseParser {
     ) {
       const op = this.tokens.next();
       if (!op)
-        throw createParseError({
+        throw ParseError.createParseError({
           message: 'Unexpected EOF while parsing multiplicative expression',
           token: op,
           code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -515,7 +514,7 @@ export abstract class BaseParser {
     if (this.tokens.matchCategory(TokenCategory.MINUS)) {
       const op = this.tokens.next();
       if (!op)
-        throw createParseError({
+        throw ParseError.createParseError({
           message: 'Unexpected EOF while parsing unary expression',
           token: op,
           code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -529,7 +528,7 @@ export abstract class BaseParser {
   private parsePrimary(): ExpressionNode {
     const token = this.tokens.peek();
     if (!token || this.tokens.eof()) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Unexpected EOF',
         token,
         code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -545,7 +544,7 @@ export abstract class BaseParser {
       case TokenCategory.NUMBER: {
         const numberToken = this.tokens.next();
         if (!numberToken)
-          throw createParseError({
+          throw ParseError.createParseError({
             message: 'Unexpected EOF while parsing number',
             token: numberToken,
             code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -556,13 +555,13 @@ export abstract class BaseParser {
       case TokenCategory.VARIABLE: {
         const varToken = this.tokens.next();
         if (!varToken)
-          throw createParseError({
+          throw ParseError.createParseError({
             message: 'Unexpected EOF while parsing variable reference',
             token: varToken,
             code: ParserDiagnosticCode.UNEXPECTED_EOF,
           });
         if (varToken.unterminated) {
-          throw createParseError({
+          throw ParseError.createParseError({
             message: UNTERMINATED_VARIABLE_MESSAGE,
             token: varToken,
             code: ParserDiagnosticCode.UNTERMINATED_VARIABLE,
@@ -579,7 +578,7 @@ export abstract class BaseParser {
       }
 
       default:
-        throw createParseError({
+        throw ParseError.createParseError({
           message: `Unexpected token in expression: ${token.category}`,
           token,
           code: ParserDiagnosticCode.UNEXPECTED_TOKEN,
@@ -594,7 +593,7 @@ export abstract class BaseParser {
   private parseFunctionCall(): ExpressionNode {
     const func = this.tokens.next();
     if (!func || func.keyword === null || !this.isFunctionKeyword(func.keyword)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Expected function name',
         token: func,
         code: ParserDiagnosticCode.EXPECTED_FUNCTION_NAME,
@@ -659,7 +658,7 @@ export abstract class BaseParser {
   protected parseComment(): StatementNode {
     const token = this.tokens.next();
     if (!token)
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Unexpected EOF while parsing comment',
         token,
         code: ParserDiagnosticCode.UNEXPECTED_EOF,
@@ -698,7 +697,7 @@ export abstract class BaseParser {
   protected parseLineNumber(): StatementNode {
     const token = this.tokens.next();
     if (!token)
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Unexpected EOF while parsing line number',
         token,
         code: ParserDiagnosticCode.UNEXPECTED_EOF,

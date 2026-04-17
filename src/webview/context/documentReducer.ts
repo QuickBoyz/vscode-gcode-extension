@@ -1,13 +1,13 @@
 import {
-  ErrorLocation,
   PathBounds,
   PathSegment,
+  Range,
   ReferencedVariable,
   VisualizerConfig,
   VisualizerErrorKind,
 } from '../../visualizer/types';
 
-export type { ErrorLocation };
+export type { Range };
 
 /**
  * Re-export of {@link VisualizerErrorKind} under the webview-facing name
@@ -65,7 +65,7 @@ export type DocumentStatus =
       readonly message: string;
       readonly filename: string | null;
       /** Populated for PARSE_FAILURE; null for WORKER_CRASH / UNKNOWN. */
-      readonly location: ErrorLocation | null;
+      readonly range: Range | null;
     };
 
 // ── Webview message protocol ────────────────────────────────────────
@@ -84,7 +84,7 @@ export type WebviewMessage =
       readonly type: 'error';
       readonly errorKind: VisualizerErrorKind;
       readonly message: string;
-      readonly location: ErrorLocation | null;
+      readonly range: Range | null;
     }
   | {
       readonly type: 'loading';
@@ -121,7 +121,7 @@ export type DocumentAction =
       readonly type: 'error';
       readonly errorKind: VisualizerErrorKind;
       readonly message: string;
-      readonly location: ErrorLocation | null;
+      readonly range: Range | null;
     };
 
 export const INITIAL_DOCUMENT_STATE: DocumentState = {
@@ -170,9 +170,8 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       };
     }
     case 'error': {
-      // Invariant: location is non-null only for PARSE_FAILURE.
-      const location =
-        action.errorKind === VisualizerErrorKind.PARSE_FAILURE ? action.location : null;
+      // Invariant: range is non-null only for PARSE_FAILURE.
+      const range = action.errorKind === VisualizerErrorKind.PARSE_FAILURE ? action.range : null;
       return {
         ...state,
         status: {
@@ -180,7 +179,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
           errorKind: action.errorKind,
           message: action.message.length > 0 ? action.message : FALLBACK_ERROR_MESSAGE,
           filename: currentFilename(state),
-          location,
+          range,
         },
       };
     }

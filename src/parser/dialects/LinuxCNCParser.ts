@@ -1,8 +1,8 @@
 import { KeywordType, TokenCategory } from '../../lexer/types';
 import { LexerToken } from '../../lexer/LexerToken';
 import { ExpressionNode, ParserDiagnosticCode, StatementNode } from '../nodes';
-import { createParseError } from '../../errors/createParseError';
 import { BaseParser } from '../BaseParser';
+import { ParseError } from '../../errors/ParseError';
 
 /**
  * LinuxCNC dialect parser.
@@ -53,7 +53,7 @@ export class LinuxCNCParser extends BaseParser {
         return this.parseLineNumber();
 
       default:
-        throw createParseError({
+        throw ParseError.createParseError({
           message: `Unexpected token ${token.category}`,
           token,
           code: ParserDiagnosticCode.UNEXPECTED_TOKEN,
@@ -106,7 +106,7 @@ export class LinuxCNCParser extends BaseParser {
 
     // Consume the matching OSUB label
     if (!this.tokens.matchCategory(TokenCategory.OSUB)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Expected matching label before ENDSUB',
         token: subToken,
         code: ParserDiagnosticCode.EXPECTED_MATCHING_LABEL_ENDSUB,
@@ -116,7 +116,7 @@ export class LinuxCNCParser extends BaseParser {
 
     // Consume the ENDSUB keyword
     if (!this.tokens.matchKeyword(KeywordType.ENDSUB)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: 'Expected ENDSUB',
         token: subToken,
         code: ParserDiagnosticCode.EXPECTED_ENDSUB,

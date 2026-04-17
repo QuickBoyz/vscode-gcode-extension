@@ -1,8 +1,7 @@
 import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
 import { ParserDiagnosticCode } from './nodes/ErrorNode';
-
-import { createParseError } from '../errors/createParseError';
+import { ParseError } from '../errors/ParseError';
 
 /**
  * Token stream that provides lookahead and matching over a LexerToken array.
@@ -104,7 +103,7 @@ export class TokenStream {
   expectCategory(...categories: TokenCategory[]): LexerToken {
     const token = this.next();
     if (!token || !token.hasCategory(...categories)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: `Expected ${categories.join(' or ')}`,
         token,
         code: ParserDiagnosticCode.EXPECTED_TOKEN,
@@ -119,7 +118,7 @@ export class TokenStream {
   expectKeyword(...keywords: KeywordType[]): LexerToken {
     const token = this.next();
     if (!token || !token.hasKeyword(...keywords)) {
-      throw createParseError({
+      throw ParseError.createParseError({
         message: `Expected ${keywords.join(' or ')}`,
         token,
         code: ParserDiagnosticCode.EXPECTED_TOKEN,

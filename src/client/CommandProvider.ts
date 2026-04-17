@@ -143,7 +143,7 @@ export class CommandProvider {
           GCodeVisualizerPanel.showError(
             result.errorMessage,
             VisualizerErrorKind.PARSE_FAILURE,
-            result.location
+            result.range
           );
           return;
         }
@@ -358,7 +358,7 @@ export class CommandProvider {
         GCodeVisualizerPanel.showError(
           result.errorMessage,
           VisualizerErrorKind.PARSE_FAILURE,
-          result.location
+          result.range
         );
       }
     } catch (error: unknown) {

@@ -191,7 +191,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
             type: 'error',
             errorKind: msg.errorKind ?? ErrorKind.UNKNOWN,
             message: msg.message || DEFAULT_ERROR_MESSAGE,
-            location: msg.location ?? null,
+            range: msg.range ?? null,
           });
           break;
         }
