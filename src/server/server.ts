@@ -17,6 +17,7 @@ import {
   WorkspaceFolder,
 } from 'vscode-languageserver/node';
 import {
+  GCodeListIndexFilesCapability,
   GCodeListIndexFilesParams,
   GCodeListIndexFilesRequest,
   GCodeListIndexFilesResult,
@@ -82,7 +83,10 @@ function readClientFeatureFlags(params: InitializeParams): ClientFeatureFlags {
   const experimental = params.initializationOptions as
     | { readonly experimental?: ExperimentalCapabilities }
     | undefined;
-  const supportsListIndexFiles = experimental?.experimental?.gcode?.listIndexFiles !== undefined;
+  const capability = experimental?.experimental?.gcode?.listIndexFiles as
+    | GCodeListIndexFilesCapability
+    | undefined;
+  const supportsListIndexFiles = capability !== undefined && capability.version >= 1;
   return { supportsListIndexFiles };
 }
 
