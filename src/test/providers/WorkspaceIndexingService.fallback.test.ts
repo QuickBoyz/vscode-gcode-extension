@@ -53,7 +53,7 @@ describe('WorkspaceIndexingService fallback walker', () => {
 
     const service = new WorkspaceIndexingService({
       symbolIndex: index,
-      getDialect: () => DialectType.LINUXCNC,
+      getDialect: (_folderUri: string) => DialectType.LINUXCNC,
       flags,
     });
 
@@ -72,7 +72,7 @@ describe('WorkspaceIndexingService fallback walker', () => {
 
     const service = new WorkspaceIndexingService({
       symbolIndex: index,
-      getDialect: () => DialectType.LINUXCNC,
+      getDialect: (_folderUri: string) => DialectType.LINUXCNC,
       flags,
       requestFiles,
     });
@@ -93,7 +93,7 @@ describe('WorkspaceIndexingService fallback walker', () => {
 
     const service = new WorkspaceIndexingService({
       symbolIndex: index,
-      getDialect: () => DialectType.LINUXCNC,
+      getDialect: (_folderUri: string) => DialectType.LINUXCNC,
       flags,
     });
 
@@ -113,7 +113,7 @@ describe('WorkspaceIndexingService fallback walker', () => {
     const ncPath = await writeFile(tempDir, 'a.nc', SUBROUTINE_FILE);
     const service = new WorkspaceIndexingService({
       symbolIndex: index,
-      getDialect: () => DialectType.LINUXCNC,
+      getDialect: (_folderUri: string) => DialectType.LINUXCNC,
     });
 
     await service.scanRoots([tempDir]);

@@ -2,11 +2,13 @@
  * WorkspaceFileEnumerator — handles the server-initiated
  * `workspace/gcodeListIndexFiles` request on the client side.
  *
- * Reads the user's `files.exclude` and `search.exclude` settings, merges
- * them, calls `vscode.workspace.findFiles`, and returns the resulting URIs
- * to the server. Optionally emits two-phase WorkDone progress under a
- * server-allocated token so the same progress UI element can morph into
- * the subsequent server-side indexing phase.
+ * Reads the user's `files.exclude` and `search.exclude` settings **per
+ * workspace folder**, merges them, calls `vscode.workspace.findFiles`
+ * scoped to that folder, and returns the union of all results to the
+ * server. This gives each folder in a multi-root workspace its own
+ * exclude configuration. Optionally emits two-phase WorkDone progress
+ * under a server-allocated token so the same progress UI element can
+ * morph into the subsequent server-side indexing phase.
  *
  * Dependencies (vscode + the language client) are injected via the
  * constructor so the class can be unit-tested without a VSCode runtime.
@@ -29,11 +31,27 @@ export interface ExcludeSettings {
 }
 
 export interface WorkspaceFileEnumeratorDeps {
+  /**
+   * Enumerate G-code files within the given workspace folder.
+   *
+   * `folderUri` is the `file://` URI of the workspace folder (as sent in
+   * `GCodeListIndexFilesParams.folders`). When `folderUri` is an empty
+   * string the implementation should fall back to a whole-workspace search
+   * (backward-compatible path for callers that send no folders).
+   */
   readonly findFiles: (
     include: string,
-    exclude: string | undefined
+    exclude: string | undefined,
+    folderUri: string
   ) => Thenable<readonly UriLike[]>;
-  readonly getExcludes: () => ExcludeSettings;
+  /**
+   * Read the effective `files.exclude` / `search.exclude` configuration
+   * for the given workspace folder URI. Implementations should use
+   * `vscode.workspace.getConfiguration(undefined, vscode.Uri.parse(folderUri))`
+   * to get folder-scoped settings in multi-root workspaces. When
+   * `folderUri` is an empty string, fall back to workspace-level config.
+   */
+  readonly getExcludes: (folderUri: string) => ExcludeSettings;
   readonly reportProgress: (
     token: ProgressToken,
     value: WorkDoneProgressBegin | WorkDoneProgressEnd
@@ -50,10 +68,6 @@ export class WorkspaceFileEnumerator {
   }
 
   public async handle(params: GCodeListIndexFilesParams): Promise<GCodeListIndexFilesResult> {
-    // params.folders is received but intentionally not used for scoping.
-    // v1 always enumerates the whole workspace via findFiles; per-folder
-    // scoping is a future optimization.
-    const excludeGlob = this.buildExcludeGlob(this.deps.getExcludes());
     const token = params.workDoneToken;
 
     if (token !== undefined) {
@@ -61,9 +75,26 @@ export class WorkspaceFileEnumerator {
     }
 
     try {
-      const uris = await this.deps.findFiles(params.includeGlob, excludeGlob);
+      // When the server sends folder URIs, enumerate each folder
+      // independently with that folder's exclude settings. This gives
+      // each workspace folder in a multi-root workspace its own
+      // files.exclude / search.exclude configuration.
+      //
+      // Fall back to a single whole-workspace search when no folders are
+      // provided (non-VSCode clients / legacy callers).
+      const folders = params.folders.length > 0 ? params.folders : [''];
+      const allFiles: string[] = [];
+
+      for (const folderUri of folders) {
+        const excludeGlob = this.buildExcludeGlob(this.deps.getExcludes(folderUri));
+        const uris = await this.deps.findFiles(params.includeGlob, excludeGlob, folderUri);
+        for (const uri of uris) {
+          allFiles.push(uri.toString());
+        }
+      }
+
       return {
-        files: uris.map((uri) => uri.toString()),
+        files: allFiles,
         scanGeneration: params.scanGeneration,
         truncated: false,
       };

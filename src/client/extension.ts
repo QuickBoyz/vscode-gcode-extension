@@ -86,9 +86,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // would make correctness depend on event-loop scheduling between the
   // resolved `start()` promise and the server's `onInitialized` chain.
   const enumerator = new WorkspaceFileEnumerator({
-    findFiles: (include, exclude) => vscode.workspace.findFiles(include, exclude ?? null),
-    getExcludes: () => {
-      const config = vscode.workspace.getConfiguration();
+    findFiles: (include, exclude, folderUri) => {
+      if (folderUri) {
+        const pattern = new vscode.RelativePattern(vscode.Uri.parse(folderUri), include);
+        return vscode.workspace.findFiles(pattern, exclude ?? null);
+      }
+      return vscode.workspace.findFiles(include, exclude ?? null);
+    },
+    getExcludes: (folderUri) => {
+      const scope = folderUri ? vscode.Uri.parse(folderUri) : undefined;
+      const config = vscode.workspace.getConfiguration(undefined, scope);
       return {
         filesExclude: config.get<Record<string, unknown>>('files.exclude') ?? {},
         searchExclude: config.get<Record<string, unknown>>('search.exclude') ?? {},

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- New features and improvements -->
 - Visualizer overlay shows live segment-count progress during the EXTRACTING phase for large files — overlay no longer freezes on "Building geometry…" (#139)
 - Shared `ProgressReporter` interface (`src/utils/ProgressReporter.ts`) unifies progress reporting across LSP and webview transports (#139)
+- Multi-root workspaces: workspace symbol indexing now reads `gcode.dialect` and `files.exclude`/`search.exclude` per workspace folder, so folders with different dialects and exclude rules are indexed correctly (#141)
 
 ### Changed
 <!-- Updates and modifications -->

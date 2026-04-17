@@ -15,8 +15,8 @@
  * 1. **Client enumeration** (preferred). When `flags.supportsListIndexFiles`
  *    is true, the service issues a `workspace/gcodeListIndexFiles` request
  *    via the injected `requestFiles` callback so the VSCode client can use
- *    `vscode.workspace.findFiles` and honor user-configured `files.exclude`
- *    / `search.exclude`.
+ *    `vscode.workspace.findFiles` per folder and honor each folder's
+ *    `files.exclude` / `search.exclude` settings.
  * 2. **Fallback walker.** When the client does not advertise the capability
  *    (non-VSCode hosts), the service falls back to a `fs.readdir` walker.
  *    The walker's skip list is intentionally minimal — only `node_modules`
@@ -29,6 +29,10 @@
  * `scanGeneration` does not match the current generation are dropped
  * silently. The indexing loop also re-checks the generation between
  * batches so a config-driven rescan can pre-empt an in-flight pass.
+ *
+ * Both `gcode.dialect` and `files.exclude`/`search.exclude` are resolved
+ * per workspace folder so multi-root workspaces with differing per-folder
+ * configurations are handled correctly.
  */
 import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
@@ -78,7 +82,15 @@ export type RequestFilesCallback = (
 
 export interface WorkspaceIndexingDependencies {
   readonly symbolIndex: WorkspaceSymbolIndex;
-  readonly getDialect: () => DialectType | Promise<DialectType>;
+  /**
+   * Returns the G-code dialect for the given workspace-folder URI.
+   * Called once per folder at the start of each scan and once per
+   * file-watcher event (to resolve the dialect of the containing folder).
+   * The `folderUri` is a `file://` URI string (e.g. `"file:///home/user/project"`).
+   * Pass an empty string when no folder can be determined — implementations
+   * should fall back to the global/workspace-level setting in that case.
+   */
+  readonly getDialect: (folderUri: string) => DialectType | Promise<DialectType>;
   readonly logger?: (message: string) => void;
   readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   readonly debounceMs?: number;
@@ -101,7 +113,7 @@ const GCODE_INCLUDE_GLOB = `**/*.{${GCODE_INDEX_EXTENSIONS.join(',')}}`;
 
 export class WorkspaceIndexingService {
   private readonly symbolIndex: WorkspaceSymbolIndex;
-  private readonly getDialect: () => DialectType | Promise<DialectType>;
+  private readonly getDialect: (folderUri: string) => DialectType | Promise<DialectType>;
   private readonly logger?: (message: string) => void;
   private readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   private readonly debounceMs: number;
@@ -163,11 +175,13 @@ export class WorkspaceIndexingService {
   /**
    * Walk the given workspace roots and index every G-code file found.
    *
+   * The dialect is resolved **per folder** before the scan so that files
+   * under each root are indexed with that folder's configured dialect.
    * Files are processed in batches of {@link SCAN_BATCH_SIZE} with a
-   * `setImmediate` yield between batches so the event loop stays responsive.
-   * Re-entering this method while a scan is in flight cancels the previous
-   * scan via its CancellationTokenSource and bumps the generation counter
-   * so any late client responses are dropped.
+   * `setImmediate` yield between batches so the event loop stays
+   * responsive. Re-entering this method while a scan is in flight cancels
+   * the previous scan via its CancellationTokenSource and bumps the
+   * generation counter so any late client responses are dropped.
    */
   async scanRoots(roots: readonly string[]): Promise<void> {
     // Remember the roots even when indexing is currently disabled, so a
@@ -183,9 +197,14 @@ export class WorkspaceIndexingService {
     this.currentScanGeneration += 1;
     const scanGeneration = this.currentScanGeneration;
 
-    // Dialect is captured once for the whole scan; per-folder dialects
-    // would require resolving the dialect per file (or per workspace folder).
-    const dialect = await this.getDialect();
+    // Resolve dialect once per folder so multi-root workspaces with
+    // differing per-folder dialect settings are handled correctly.
+    const folderDialects = new Map<string, DialectType>();
+    for (const root of roots) {
+      const rootUri = pathToFileURL(root).toString();
+      folderDialects.set(root, await this.getDialect(rootUri));
+    }
+
     const progress = (await this.progressFactory?.()) ?? undefined;
 
     try {
@@ -203,7 +222,7 @@ export class WorkspaceIndexingService {
       // the client enumeration branch) is visible first. The server opens
       // one progress element and the UI morphs through both phases.
       progress?.begin('Indexing G-code files');
-      await this.indexFromList(fileUris, dialect, scanGeneration, progress);
+      await this.indexFromList(fileUris, folderDialects, roots, scanGeneration, progress);
     } finally {
       progress?.done();
       // Only dispose the CTS if it is still the current one. If a newer scan
@@ -295,9 +314,13 @@ export class WorkspaceIndexingService {
       );
     }
 
+    // Convert filesystem paths to file:// URIs so the client can use them
+    // with vscode.workspace.getConfiguration and vscode.RelativePattern for
+    // per-folder exclude resolution and scoped findFiles calls.
+    const folderUris = roots.map((root) => pathToFileURL(root).toString());
+
     const params: GCodeListIndexFilesParams = {
-      // filesystem paths; client currently ignores this field
-      folders: roots,
+      folders: folderUris,
       scanGeneration,
       includeGlob: GCODE_INCLUDE_GLOB,
       // Forward the server-allocated WorkDoneProgress identifier so the
@@ -325,7 +348,8 @@ export class WorkspaceIndexingService {
 
   private async indexFromList(
     fileUris: readonly string[],
-    dialect: DialectType,
+    folderDialects: ReadonlyMap<string, DialectType>,
+    roots: readonly string[],
     scanGeneration: number,
     progress: ProgressReporter | undefined
   ): Promise<void> {
@@ -340,6 +364,7 @@ export class WorkspaceIndexingService {
 
       const batch = fileUris.slice(i, i + SCAN_BATCH_SIZE);
       for (const uri of batch) {
+        const dialect = resolveDialectForUri(uri, folderDialects, roots);
         await this.indexFile(uri, dialect);
         processed++;
         const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
@@ -357,7 +382,9 @@ export class WorkspaceIndexingService {
       return;
     }
 
-    const dialect = await this.getDialect();
+    // Resolve the folder containing this URI so we can apply its dialect.
+    const folderUri = resolveFolderUriForChangedFile(uri, this.lastRoots);
+    const dialect = await this.getDialect(folderUri);
     await this.indexFile(uri, dialect);
   }
 
@@ -428,6 +455,62 @@ export class WorkspaceIndexingConfigurationError extends Error {
     super(message);
     this.name = 'WorkspaceIndexingConfigurationError';
   }
+}
+
+/**
+ * Find the dialect for a given file URI by longest-prefix matching against
+ * the known workspace roots. Longest-prefix (not first-match) so that a
+ * file under a nested root (e.g. `/repo/sub/f.nc` with roots
+ * `['/repo', '/repo/sub']`) resolves to the most specific folder's dialect.
+ * Falls back to the first entry in `folderDialects` (single-root) or
+ * `DialectType.LINUXCNC` (no roots).
+ */
+function resolveDialectForUri(
+  uri: string,
+  folderDialects: ReadonlyMap<string, DialectType>,
+  roots: readonly string[]
+): DialectType {
+  const match = findLongestMatchingRoot(uri, roots);
+  if (match !== undefined) {
+    const dialect = folderDialects.get(match);
+    if (dialect !== undefined) return dialect;
+  }
+  const first = folderDialects.values().next();
+  return first.done === false ? first.value : DialectType.LINUXCNC;
+}
+
+/**
+ * Find the `file://` URI of the workspace folder that contains the given
+ * file URI. Used to scope the dialect lookup in file-watcher events.
+ * Uses longest-prefix matching so nested roots resolve to the most
+ * specific folder. Returns an empty string when no known root matches
+ * (the `getDialect` callback should fall back to workspace-level settings
+ * in that case).
+ */
+function resolveFolderUriForChangedFile(uri: string, roots: readonly string[]): string {
+  const match = findLongestMatchingRoot(uri, roots);
+  return match === undefined ? '' : pathToFileURL(match).toString();
+}
+
+function findLongestMatchingRoot(uri: string, roots: readonly string[]): string | undefined {
+  const filePath = uriToFilePath(uri);
+  if (filePath === undefined) return undefined;
+  let bestMatch: string | undefined;
+  for (const root of roots) {
+    if (
+      pathIsUnder(filePath, root) &&
+      (bestMatch === undefined || root.length > bestMatch.length)
+    ) {
+      bestMatch = root;
+    }
+  }
+  return bestMatch;
+}
+
+/** True when `filePath` is exactly `folder` or is a direct/indirect child of it. */
+function pathIsUnder(filePath: string, folder: string): boolean {
+  const withSep = folder.endsWith(path.sep) ? folder : folder + path.sep;
+  return filePath.startsWith(withSep) || filePath === folder;
 }
 
 function hasIndexedExtension(name: string): boolean {

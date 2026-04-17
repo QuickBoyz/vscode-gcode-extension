@@ -13,6 +13,7 @@ import {
 } from '../../lsp/gcodeListIndexFiles';
 import {
   RequestFilesCallback,
+  WorkspaceFileChangeType,
   WorkspaceIndexingService,
 } from '../../providers/WorkspaceIndexingService';
 import { LspBoundProgressReporter } from '../../utils/ProgressReporter';
@@ -32,6 +33,7 @@ function createService(
   index: WorkspaceSymbolIndex,
   options: {
     dialect?: DialectType;
+    getDialect?: (folderUri: string) => DialectType | Promise<DialectType>;
     progress?: LspBoundProgressReporter;
     logger?: (message: string) => void;
     debounceMs?: number;
@@ -42,7 +44,7 @@ function createService(
   const progress = options.progress;
   return new WorkspaceIndexingService({
     symbolIndex: index,
-    getDialect: () => options.dialect ?? DialectType.LINUXCNC,
+    getDialect: options.getDialect ?? (() => options.dialect ?? DialectType.LINUXCNC),
     logger: options.logger,
     progressFactory: progress ? () => Promise.resolve(progress) : undefined,
     debounceMs: options.debounceMs ?? TEST_DEBOUNCE_MS,
@@ -343,7 +345,7 @@ describe('WorkspaceIndexingService', () => {
   describe('client enumeration path', () => {
     const enabledFlags: ClientFeatureFlags = { supportsListIndexFiles: true };
 
-    it('forwards the workspace roots, glob, and a bumped scanGeneration to requestFiles', async () => {
+    it('forwards folder URIs (not paths), glob, and a bumped scanGeneration to requestFiles', async () => {
       const calls: GCodeListIndexFilesParams[] = [];
       const requestFiles: RequestFilesCallback = (params) => {
         calls.push(params);
@@ -359,8 +361,10 @@ describe('WorkspaceIndexingService', () => {
       await service.scanRoots(['/tmp/a']);
 
       expect(calls).toHaveLength(2);
-      expect(calls[0].folders).toEqual(['/tmp/a', '/tmp/b']);
-      expect(calls[1].folders).toEqual(['/tmp/a']);
+      // folders are now file:// URIs so the client can use them with
+      // vscode.workspace.getConfiguration and vscode.RelativePattern
+      expect(calls[0].folders).toEqual(['file:///tmp/a', 'file:///tmp/b']);
+      expect(calls[1].folders).toEqual(['file:///tmp/a']);
       expect(calls[0].includeGlob).toContain('nc');
       expect(calls[0].includeGlob).toContain('gcode');
       expect(calls[0].scanGeneration).toBe(1);
@@ -671,6 +675,163 @@ describe('WorkspaceIndexingService', () => {
 
       await expect(service.scanRoots([tempDir])).rejects.toThrow('client enumeration failed');
       expect(index.getFileCount()).toBe(0);
+    });
+  });
+
+  describe('per-folder dialect', () => {
+    it('calls getDialect with the folder URI for each root', async () => {
+      const dialectCalls: string[] = [];
+      const getDialect = (folderUri: string): DialectType => {
+        dialectCalls.push(folderUri);
+        return DialectType.LINUXCNC;
+      };
+      const service = createService(index, { getDialect });
+
+      const rootA = tempDir;
+      const rootB = await makeTempDir();
+      try {
+        await service.scanRoots([rootA, rootB]);
+      } finally {
+        await fs.rm(rootB, { recursive: true, force: true });
+      }
+
+      expect(dialectCalls).toHaveLength(2);
+      expect(dialectCalls[0]).toBe(pathToFileURL(rootA).toString());
+      expect(dialectCalls[1]).toBe(pathToFileURL(rootB).toString());
+    });
+
+    it("indexes files from each root with that root's dialect (fallback walker)", async () => {
+      const rootA = tempDir;
+      const rootB = await makeTempDir();
+
+      try {
+        const fileA = await writeFile(rootA, 'a.nc', SUBROUTINE_FILE);
+        const fileB = await writeFile(rootB, 'b.nc', ALT_FILE);
+
+        const dialectPerFolder = new Map<string, DialectType>([
+          [pathToFileURL(rootA).toString(), DialectType.LINUXCNC],
+          [pathToFileURL(rootB).toString(), DialectType.FANUC],
+        ]);
+        const indexFileCalls: Array<{ uri: string; dialect: DialectType }> = [];
+        const spyIndex = {
+          indexFile: (uri: string, _content: string, dialect: DialectType) => {
+            indexFileCalls.push({ uri, dialect });
+            index.indexFile(uri, _content, dialect);
+          },
+          removeFile: index.removeFile.bind(index),
+          hasFile: index.hasFile.bind(index),
+          getFileCount: index.getFileCount.bind(index),
+          getSymbolCount: index.getSymbolCount.bind(index),
+          getFileSymbols: index.getFileSymbols.bind(index),
+          search: index.search.bind(index),
+          clear: index.clear.bind(index),
+          setMaxSymbols: index.setMaxSymbols.bind(index),
+        } as unknown as WorkspaceSymbolIndex;
+
+        const service = new WorkspaceIndexingService({
+          symbolIndex: spyIndex,
+          getDialect: (folderUri: string) =>
+            dialectPerFolder.get(folderUri) ?? DialectType.LINUXCNC,
+        });
+
+        await service.scanRoots([rootA, rootB]);
+
+        const callA = indexFileCalls.find((c) => c.uri === uriOf(fileA));
+        const callB = indexFileCalls.find((c) => c.uri === uriOf(fileB));
+        expect(callA?.dialect).toBe(DialectType.LINUXCNC);
+        expect(callB?.dialect).toBe(DialectType.FANUC);
+      } finally {
+        await fs.rm(rootB, { recursive: true, force: true });
+      }
+    });
+
+    it('uses longest-prefix match when roots overlap (nested roots)', async () => {
+      const outer = tempDir;
+      const inner = path.join(outer, 'nested');
+      await fs.mkdir(inner, { recursive: true });
+      const fileInNested = await writeFile(inner, 'x.nc', ALT_FILE);
+
+      const dialectPerFolder = new Map<string, DialectType>([
+        [pathToFileURL(outer).toString(), DialectType.LINUXCNC],
+        [pathToFileURL(inner).toString(), DialectType.FANUC],
+      ]);
+
+      const indexFileCalls: Array<{ uri: string; dialect: DialectType }> = [];
+      const spyIndex = {
+        indexFile: (uri: string, _content: string, dialect: DialectType) => {
+          indexFileCalls.push({ uri, dialect });
+          index.indexFile(uri, _content, dialect);
+        },
+        removeFile: index.removeFile.bind(index),
+        hasFile: index.hasFile.bind(index),
+        getFileCount: index.getFileCount.bind(index),
+        getSymbolCount: index.getSymbolCount.bind(index),
+        getFileSymbols: index.getFileSymbols.bind(index),
+        search: index.search.bind(index),
+        clear: index.clear.bind(index),
+        setMaxSymbols: index.setMaxSymbols.bind(index),
+      } as unknown as WorkspaceSymbolIndex;
+
+      // Intentionally list outer before inner to exercise longest-prefix
+      // (not first-match) selection.
+      const service = new WorkspaceIndexingService({
+        symbolIndex: spyIndex,
+        getDialect: (folderUri: string) => dialectPerFolder.get(folderUri) ?? DialectType.LINUXCNC,
+      });
+
+      await service.scanRoots([outer, inner]);
+
+      const call = indexFileCalls.find((c) => c.uri === uriOf(fileInNested));
+      expect(call?.dialect).toBe(DialectType.FANUC);
+    });
+
+    it('resolves dialect from containing folder URI on file-watcher events', async () => {
+      const rootA = tempDir;
+      const rootB = await makeTempDir();
+
+      try {
+        const fileB = await writeFile(rootB, 'b.nc', ALT_FILE);
+        const dialectPerFolder = new Map<string, DialectType>([
+          [pathToFileURL(rootA).toString(), DialectType.LINUXCNC],
+          [pathToFileURL(rootB).toString(), DialectType.FANUC],
+        ]);
+
+        const indexFileCalls: Array<{ uri: string; dialect: DialectType }> = [];
+        const spyIndex = {
+          indexFile: (uri: string, _content: string, dialect: DialectType) => {
+            indexFileCalls.push({ uri, dialect });
+            index.indexFile(uri, _content, dialect);
+          },
+          removeFile: index.removeFile.bind(index),
+          hasFile: index.hasFile.bind(index),
+          getFileCount: index.getFileCount.bind(index),
+          getSymbolCount: index.getSymbolCount.bind(index),
+          getFileSymbols: index.getFileSymbols.bind(index),
+          search: index.search.bind(index),
+          clear: index.clear.bind(index),
+          setMaxSymbols: index.setMaxSymbols.bind(index),
+        } as unknown as WorkspaceSymbolIndex;
+
+        const service = new WorkspaceIndexingService({
+          symbolIndex: spyIndex,
+          getDialect: (folderUri: string) =>
+            dialectPerFolder.get(folderUri) ?? DialectType.LINUXCNC,
+          debounceMs: TEST_DEBOUNCE_MS,
+        });
+
+        // Prime lastRoots so the service knows which folders exist.
+        await service.scanRoots([rootA, rootB]);
+        indexFileCalls.length = 0;
+
+        // Simulate a watcher event for a file in rootB.
+        service.handleFileEvents([{ uri: uriOf(fileB), type: WorkspaceFileChangeType.Created }]);
+        await delay(TEST_DEBOUNCE_MS * 3);
+
+        const callB = indexFileCalls.find((c) => c.uri === uriOf(fileB));
+        expect(callB?.dialect).toBe(DialectType.FANUC);
+      } finally {
+        await fs.rm(rootB, { recursive: true, force: true });
+      }
     });
   });
 });

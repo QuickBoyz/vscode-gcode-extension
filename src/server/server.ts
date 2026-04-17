@@ -260,8 +260,8 @@ const formatterService = new FormatterService(),
   workspaceSymbolProvider = new WorkspaceSymbolProvider(workspaceSymbolIndex),
   workspaceIndexingService = new WorkspaceIndexingService({
     symbolIndex: workspaceSymbolIndex,
-    getDialect: async () => {
-      const config = await configProvider.getConfig();
+    getDialect: async (folderUri: string) => {
+      const config = await configProvider.getConfig(folderUri || undefined);
       return config.dialect;
     },
     logger: (msg) => connection.console.warn(msg),
