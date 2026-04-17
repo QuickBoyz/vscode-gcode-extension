@@ -1,23 +1,27 @@
 # Changelog
 
-## [v2.4.0] - 2026-04-11
-
-### Added
-- New features and improvements
-
-### Changed
-- Updates and modifications
-
-### Fixed
-- Bug fixes
-
-
 All notable changes to the "G-Code Language Support" extension will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.5.0] - 2026-04-17
+
+### Added
+- Workspace-wide symbol indexing — scan all workspace files on startup and keep the index in sync with external file changes (#126, #140)
+- Workspace symbol indexing honours `files.exclude` and `search.exclude`, with client-side file enumeration via `vscode.workspace.findFiles` (#145)
+- Structured parse-error locations in the 3D visualizer error card — clickable line/column references that navigate to the source (#146, #148)
+
+### Changed
+- Tightened provider dependency injection and layer boundaries across the LSP service layer (#133, #135)
+- `GCodePathExtractor` now receives `ProgramInterpreter` via constructor injection instead of instantiating it internally (#131, #134)
+
+### Fixed
+- 3D visualizer highlight overlay now redraws correctly on camera changes (#136, #137)
+- Loading-state race condition when opening large G-code files in the visualizer (#142, #144)
+- Visualizer rendering performance — batched Canvas2D strokes and typed-array geometry cache reduce per-frame overhead (#143, #147)
+
+## [v2.4.0] - 2026-04-11
 
 ### Added
 - Tool-path animation and playback in the 3D visualizer — play, pause, step, and speed controls with real-time tool marker (#52, #120)
