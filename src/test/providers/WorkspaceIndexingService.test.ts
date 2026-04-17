@@ -15,7 +15,7 @@ import {
   RequestFilesCallback,
   WorkspaceIndexingService,
 } from '../../providers/WorkspaceIndexingService';
-import { LspBoundProgressReporter, ProgressReporter } from '../../utils/ProgressReporter';
+import { LspBoundProgressReporter } from '../../utils/ProgressReporter';
 import { WorkspaceSymbolIndex } from '../../providers/WorkspaceSymbolIndex';
 
 const TEST_DEBOUNCE_MS = 20;
@@ -32,7 +32,7 @@ function createService(
   index: WorkspaceSymbolIndex,
   options: {
     dialect?: DialectType;
-    progress?: ProgressReporter;
+    progress?: LspBoundProgressReporter;
     logger?: (message: string) => void;
     debounceMs?: number;
     flags?: ClientFeatureFlags;
@@ -148,7 +148,7 @@ describe('WorkspaceIndexingService', () => {
       const begin = jest.fn();
       const report = jest.fn();
       const done = jest.fn();
-      const progress: ProgressReporter = { begin, report, done };
+      const progress: LspBoundProgressReporter = { token: 'tok', begin, report, done };
       const service = createService(index, { progress });
       await service.scanRoots([tempDir]);
 
@@ -395,7 +395,7 @@ describe('WorkspaceIndexingService', () => {
       expect(calls[0].workDoneToken).toBe('progress-token-abc');
     });
 
-    it('leaves workDoneToken undefined when the progress factory returns a reporter without a token', async () => {
+    it('leaves workDoneToken undefined when no progress factory is configured', async () => {
       const calls: GCodeListIndexFilesParams[] = [];
       const requestFiles: RequestFilesCallback = (params) => {
         calls.push(params);
@@ -405,15 +405,9 @@ describe('WorkspaceIndexingService', () => {
           truncated: false,
         });
       };
-      const progress: ProgressReporter = {
-        begin: jest.fn(),
-        report: jest.fn(),
-        done: jest.fn(),
-      };
       const service = createService(index, {
         flags: enabledFlags,
         requestFiles,
-        progress,
       });
 
       await service.scanRoots(['/tmp/a']);

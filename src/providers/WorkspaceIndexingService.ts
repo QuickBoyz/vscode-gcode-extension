@@ -80,7 +80,7 @@ export interface WorkspaceIndexingDependencies {
   readonly symbolIndex: WorkspaceSymbolIndex;
   readonly getDialect: () => DialectType | Promise<DialectType>;
   readonly logger?: (message: string) => void;
-  readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
+  readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   readonly debounceMs?: number;
   /**
    * Static client feature flags, or a getter that returns them lazily.
@@ -103,7 +103,7 @@ export class WorkspaceIndexingService {
   private readonly symbolIndex: WorkspaceSymbolIndex;
   private readonly getDialect: () => DialectType | Promise<DialectType>;
   private readonly logger?: (message: string) => void;
-  private readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
+  private readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   private readonly debounceMs: number;
   private readonly flagsAccessor: () => ClientFeatureFlags;
   private readonly requestFiles?: RequestFilesCallback;
@@ -267,7 +267,7 @@ export class WorkspaceIndexingService {
     roots: readonly string[],
     scanGeneration: number,
     token: CancellationToken,
-    progress: ProgressReporter | undefined
+    progress: LspBoundProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (this.flags.supportsListIndexFiles) {
       return this.enumerateViaClient(roots, scanGeneration, token, progress);
@@ -287,7 +287,7 @@ export class WorkspaceIndexingService {
     roots: readonly string[],
     scanGeneration: number,
     token: CancellationToken,
-    progress: ProgressReporter | undefined
+    progress: LspBoundProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (!this.requestFiles) {
       throw new WorkspaceIndexingConfigurationError(
@@ -303,8 +303,7 @@ export class WorkspaceIndexingService {
       // Forward the server-allocated WorkDoneProgress identifier so the
       // client reports the "Finding…" phase under the same progress token
       // the server then resumes for "Indexing N/M…".
-      workDoneToken:
-        progress && 'token' in progress ? (progress as LspBoundProgressReporter).token : undefined,
+      workDoneToken: progress?.token,
     };
 
     const result = await this.requestFiles(params, token);

@@ -45,14 +45,16 @@ import {
   VisualizerPhase,
 } from './types';
 
-/** Minimum wall-clock interval between intra-phase progress notifications. */
+// 100ms is the threshold where sequential DOM updates feel smooth but
+// do not overload the event loop on 60 Hz displays.
 const PROGRESS_INTERVAL_MS = 100;
 
-/** Callback shape for intra-phase progress updates from the extractor. */
-export type ExtractorProgressCallback = (update: {
-  phase: VisualizerPhase;
-  message?: string;
-}) => void;
+export interface ExtractorProgressUpdate {
+  readonly phase: VisualizerPhase;
+  readonly message?: string;
+}
+
+export type ExtractorProgressCallback = (update: ExtractorProgressUpdate) => void;
 
 /** Number of interpolation segments used to approximate a full circle. */
 const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
@@ -237,9 +239,7 @@ export class GCodePathExtractor implements MotionHandler {
   /** Modal spindle speed (S value), updated when S appears on any motion line. */
   private modalSpindleSpeed: number | null = null;
 
-  /** Intra-phase progress callback, active only during extraction. */
-  private extractorOnProgress: ExtractorProgressCallback | undefined;
-  /** Wall-clock timestamp of last intra-phase progress notification. */
+  private onProgress: ExtractorProgressCallback | undefined;
   private lastProgressAt = 0;
 
   /**
@@ -264,7 +264,7 @@ export class GCodePathExtractor implements MotionHandler {
     this.currentArcPlane = ArcPlane.XY;
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
-    this.extractorOnProgress = onProgress;
+    this.onProgress = onProgress;
     this.lastProgressAt = 0;
 
     interpreter.interpret(program);
@@ -502,10 +502,10 @@ export class GCodePathExtractor implements MotionHandler {
     if (points.length < 2) return;
     this.segments.push({ type, points, context });
 
-    if (this.extractorOnProgress) {
+    if (this.onProgress) {
       const now = Date.now();
       if (now - this.lastProgressAt >= PROGRESS_INTERVAL_MS) {
-        this.extractorOnProgress({
+        this.onProgress({
           phase: VisualizerPhase.EXTRACTING,
           message: `Extracted ${this.segments.length} segments`,
         });

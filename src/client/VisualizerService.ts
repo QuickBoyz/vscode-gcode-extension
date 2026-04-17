@@ -16,15 +16,6 @@ import { ExtractorProgressCallback, GCodePathExtractor } from '../visualizer/GCo
 import { VariableResolutionService } from '../visualizer/VariableResolutionService';
 import { VariableDefinitions, VisualizerPhase, VisualizerResult } from '../visualizer/types';
 
-/**
- * Callback fired at each pipeline phase boundary and for intra-phase
- * progress updates during the EXTRACTING phase.
- *
- * Phase-boundary calls carry only `phase`; intra-phase calls also carry
- * a human-readable `message` (e.g. "Extracted 500 segments").
- */
-export type PhaseReporter = ExtractorProgressCallback;
-
 export class VisualizerService {
   /**
    * Parses `text` and extracts the complete tool path.
@@ -43,7 +34,7 @@ export class VisualizerService {
     text: string,
     dialect: DialectType = DialectType.LINUXCNC,
     settingsVariables?: VariableDefinitions,
-    onProgress?: PhaseReporter
+    onProgress?: ExtractorProgressCallback
   ): VisualizerResult {
     try {
       onProgress?.({ phase: VisualizerPhase.PARSING });

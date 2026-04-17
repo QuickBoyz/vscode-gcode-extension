@@ -2,9 +2,20 @@
 
 ## Progress reporting
 
+### Two roles: orchestrator vs. producer
+
+Progress work has **two distinct roles**, each with its own abstraction. Picking the wrong one for a new operation is the main failure mode — start here.
+
+| Role                                                         | Abstraction                                                          | Lifecycle                               | Example                                                              |
+| ------------------------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| **Orchestrator** — owns the progress UI lifecycle            | `ProgressReporter` (`src/utils/ProgressReporter.ts`)                 | stateful: `begin` → `report` → `done`   | `WorkspaceIndexingService` driving the "Indexing…" UI                |
+| **Producer** — emits events from a hot loop, does not own UI | `ExtractorProgressCallback` (`src/visualizer/GCodePathExtractor.ts`) | stateless: per-event `(update) => void` | `GCodePathExtractor` firing segment-count updates from `pushSegment` |
+
+A producer never implements `ProgressReporter` directly — it would have to invent a fake `begin`/`done` pair that nobody calls. Instead, the orchestrator holds the `ProgressReporter` and translates producer events into `report(...)` calls if it wants to surface them. Both roles are first-class; neither is a new bespoke protocol, and future long-running ops should pick one.
+
 ### `ProgressReporter` interface (`src/utils/ProgressReporter.ts`)
 
-Transport-neutral contract for reporting progress to the user. All long-running operations should depend on this interface, not on concrete reporters.
+Transport-neutral contract used by **orchestrators**. All long-running orchestrators should depend on this interface, not on concrete reporters.
 
 ```ts
 interface ProgressReporter {
@@ -48,12 +59,14 @@ Appropriate for: worker-thread operations with a natural per-segment hook (visua
 
 ### Adding a new long-running operation
 
-1. Decide which tier:
-   - Background, yields event loop → Tier A (`LspBoundProgressReporter`)
-   - Worker-thread with per-unit hook → Tier B (`ExtractorProgressCallback` → `WorkerProgressResponse`)
-   - Synchronous LSP handler → out of scope (no yield point)
+1. Decide the **role**:
+   - Are you writing the code that controls the UI spinner's lifecycle? → **Orchestrator** — implement `ProgressReporter` (or `LspBoundProgressReporter` if token forwarding is needed).
+   - Are you writing the code inside a hot loop that emits events as work happens? → **Producer** — accept an `ExtractorProgressCallback`-shaped callback (one function per unit-of-work type is fine; don't unify with `ProgressReporter`).
 
-2. Implement `ProgressReporter` (or `LspBoundProgressReporter` if token forwarding is needed).
+2. Decide the **tier** (orchestrator only):
+   - Background, yields event loop → Tier A (`LspBoundProgressReporter`)
+   - Worker-thread message → Tier B (webview overlay)
+   - Synchronous LSP handler → out of scope (no yield point)
 
 3. Inject via dependency (DI boundary), not as a static import. Follow `WorkspaceIndexingDependencies.progressFactory` pattern.
 

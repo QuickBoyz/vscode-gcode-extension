@@ -834,19 +834,15 @@ G2 X20 Z0 I5 K0
     });
 
     it('all updates carry the EXTRACTING phase', () => {
-      jest.spyOn(Date, 'now').mockImplementation(() => 0); // always trigger throttle on first, then never
-      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
-      const onProgress: ExtractorProgressCallback = (u) => updates.push(u);
-
-      // Reset so first call triggers
       let t = 0;
       jest.spyOn(Date, 'now').mockImplementation(() => {
         t += 200;
         return t;
       });
 
+      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
       const { ast, extractor, interpreter } = buildPipeline(makeGCode(1_000));
-      extractor.extract(ast, interpreter, onProgress);
+      extractor.extract(ast, interpreter, (u) => updates.push(u));
 
       expect(updates.length).toBeGreaterThan(0);
       for (const u of updates) {
@@ -873,20 +869,18 @@ G2 X20 Z0 I5 K0
       jest.restoreAllMocks();
     });
 
-    it('throttles to at most one update per 100ms under real timing', () => {
+    it('throttles to at most one update when wall-clock does not advance', () => {
+      // Pin wall-clock: every pushSegment sees the same now, so after the
+      // first fire (lastProgressAt=0 → now-0 >= 100 is true) the throttle
+      // gate blocks every subsequent call.
+      jest.spyOn(Date, 'now').mockReturnValue(1000);
       let callCount = 0;
-      const onProgress: ExtractorProgressCallback = () => callCount++;
 
       const { ast, extractor, interpreter } = buildPipeline(makeGCode(500));
-      const startMs = Date.now();
-      extractor.extract(ast, interpreter, onProgress);
-      const elapsedMs = Date.now() - startMs;
+      extractor.extract(ast, interpreter, () => callCount++);
 
-      // With 100ms throttle and synchronous execution (< 100ms total),
-      // at most 1 update should fire (the first one, at t=0 → now-0 >= 100 is false,
-      // so actually 0 unless 100ms passes). In CI this is usually 0 or 1.
-      const maxExpected = Math.floor(elapsedMs / 100) + 1;
-      expect(callCount).toBeLessThanOrEqual(maxExpected);
+      expect(callCount).toBe(1);
+      jest.restoreAllMocks();
     });
   });
 });
