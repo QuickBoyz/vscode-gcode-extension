@@ -273,6 +273,7 @@ describe('WorkerClient', () => {
         type: 'error',
         id: request.id,
         errorMessage: 'Unexpected character at line 4',
+        location: null,
       })
     );
     client = new WorkerClient(WORKER_SCRIPT_PATH, factory);

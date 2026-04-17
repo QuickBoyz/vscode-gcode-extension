@@ -15,7 +15,8 @@ import {
   StatementNode,
   WhileStatementNode,
 } from './nodes';
-import { ParseError, TokenStream } from './TokenStream';
+import { TokenStream } from './TokenStream';
+import { ParseError } from '../errors/ParseError';
 
 /**
  * Error message for unterminated named variables (missing closing >).

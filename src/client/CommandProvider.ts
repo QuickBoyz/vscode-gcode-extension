@@ -141,8 +141,9 @@ export class CommandProvider {
 
         if (!result.success) {
           GCodeVisualizerPanel.showError(
-            `G-code parse failed: ${result.errorMessage}`,
-            VisualizerErrorKind.PARSE_FAILURE
+            result.errorMessage,
+            VisualizerErrorKind.PARSE_FAILURE,
+            result.location
           );
           return;
         }
@@ -355,8 +356,9 @@ export class CommandProvider {
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText, config.variables);
       } else {
         GCodeVisualizerPanel.showError(
-          `G-code parse failed: ${result.errorMessage}`,
-          VisualizerErrorKind.PARSE_FAILURE
+          result.errorMessage,
+          VisualizerErrorKind.PARSE_FAILURE,
+          result.location
         );
       }
     } catch (error: unknown) {

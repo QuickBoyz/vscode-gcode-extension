@@ -2,6 +2,8 @@ import { KeywordType, TokenCategory } from '../lexer/types';
 import { LexerToken } from '../lexer/LexerToken';
 import { ParserDiagnosticCode } from './nodes/ErrorNode';
 
+import { ParseError } from '../errors/ParseError';
+
 /**
  * Token stream that provides lookahead and matching over a LexerToken array.
  *
@@ -124,16 +126,5 @@ export class TokenStream {
       );
     }
     return token;
-  }
-}
-
-export class ParseError extends Error {
-  constructor(
-    message: string,
-    public readonly token?: LexerToken,
-    public readonly code?: ParserDiagnosticCode
-  ) {
-    super(message);
-    this.name = 'ParseError';
   }
 }

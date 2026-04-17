@@ -8,7 +8,7 @@ import {
   ParserDiagnosticCode,
   StatementNode,
 } from '../nodes';
-import { ParseError } from '../TokenStream';
+import { ParseError } from '../../errors/ParseError';
 import { BaseParser } from '../BaseParser';
 
 /**

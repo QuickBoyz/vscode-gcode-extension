@@ -11,6 +11,10 @@ import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
 
+import { ErrorLocation } from '../errors/ErrorLocation';
+
+export type { ErrorLocation };
+
 /**
  * Projection mode for the 3D visualizer camera.
  */
@@ -157,6 +161,8 @@ export interface VisualizerSuccess {
 export interface VisualizerFailure {
   readonly success: false;
   readonly errorMessage: string;
+  /** Structured location from the underlying ParseError, or null for non-parse failures. */
+  readonly location: ErrorLocation | null;
 }
 
 /**
@@ -202,6 +208,8 @@ export interface WorkerErrorResponse {
   readonly type: 'error';
   readonly id: number;
   readonly errorMessage: string;
+  /** Populated when the worker reports a structured parse failure; null otherwise. */
+  readonly location: ErrorLocation | null;
 }
 
 /**
