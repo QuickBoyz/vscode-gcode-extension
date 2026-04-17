@@ -35,14 +35,11 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import {
-  CancellationToken,
-  CancellationTokenSource,
-  ProgressToken,
-} from 'vscode-languageserver-protocol';
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 
 import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
+import { LspBoundProgressReporter, ProgressReporter } from '../utils/ProgressReporter';
 import { ClientFeatureFlags } from './ClientFeatureFlags';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
@@ -66,22 +63,6 @@ export enum WorkspaceFileChangeType {
 export interface WorkspaceFileEvent {
   readonly uri: string;
   readonly type: WorkspaceFileChangeType;
-}
-
-/**
- * Minimal progress reporter shape compatible with LSP `WorkDoneProgressReporter`.
- *
- * The optional `token` exposes the server-allocated `WorkDoneProgress`
- * identifier so the indexing service can forward it to the client in
- * `GCodeListIndexFilesParams.workDoneToken`. Both sides then emit progress
- * against the same token, giving the user one UI element that morphs through
- * the "Finding…" and "Indexing…" phases.
- */
-export interface ProgressReporter {
-  readonly token?: ProgressToken;
-  begin(title: string, percentage?: number, message?: string): void;
-  report(percentage: number, message?: string): void;
-  done(): void;
 }
 
 /**
@@ -322,7 +303,8 @@ export class WorkspaceIndexingService {
       // Forward the server-allocated WorkDoneProgress identifier so the
       // client reports the "Finding…" phase under the same progress token
       // the server then resumes for "Indexing N/M…".
-      workDoneToken: progress?.token,
+      workDoneToken:
+        progress && 'token' in progress ? (progress as LspBoundProgressReporter).token : undefined,
     };
 
     const result = await this.requestFiles(params, token);

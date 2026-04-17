@@ -12,10 +12,10 @@ import {
   GCodeListIndexFilesResult,
 } from '../../lsp/gcodeListIndexFiles';
 import {
-  ProgressReporter,
   RequestFilesCallback,
   WorkspaceIndexingService,
 } from '../../providers/WorkspaceIndexingService';
+import { LspBoundProgressReporter, ProgressReporter } from '../../utils/ProgressReporter';
 import { WorkspaceSymbolIndex } from '../../providers/WorkspaceSymbolIndex';
 
 const TEST_DEBOUNCE_MS = 20;
@@ -377,7 +377,7 @@ describe('WorkspaceIndexingService', () => {
           truncated: false,
         });
       };
-      const progress: ProgressReporter = {
+      const progress: LspBoundProgressReporter = {
         token: 'progress-token-abc',
         begin: jest.fn(),
         report: jest.fn(),
@@ -440,7 +440,7 @@ describe('WorkspaceIndexingService', () => {
           };
         });
       };
-      const progress: ProgressReporter = {
+      const progress: LspBoundProgressReporter = {
         token: 'tok',
         begin: (title) => {
           events.push(`begin:${title}`);
