@@ -42,7 +42,7 @@ The workspace symbol feature (Ctrl+T) uses four components in `src/providers/`:
 
 - `indexFile(uri, content, dialect)` is called from three paths in server.ts, all guarded by `config.workspace.indexingEnabled`:
   1. `documents.onDidOpen` / `documents.onDidChangeContent` (open-editor path)
-  2. `WorkspaceIndexingService.scanRoots()` at startup (cold-workspace path)
+  2. `WorkspaceIndexingService.scanRoots()` at startup (cold-workspace path — enumerates via the client's `findFiles` when the client supports it, else falls back to a server-side walker that skips only `node_modules`)
   3. `WorkspaceIndexingService.handleFileEvents()` via `onDidChangeWatchedFiles` (external-change path, debounced 300 ms per URI)
 - Symbols are intentionally kept after `onDidClose` so workspace search finds previously-opened files
 - `setMaxSymbols(n)` is deferred — only affects the next `indexFile` call; call `clear()` first for immediate enforcement
@@ -75,4 +75,5 @@ The three-layer split keeps concerns separate: the visitor knows AST structure, 
 
 ## See Also
 
+- [providers-client-side-enumeration-pattern.md](providers-client-side-enumeration-pattern.md) — how `scanRoots` honors `files.exclude`/`search.exclude` via a server→client custom LSP request
 - [server-lsp-file-watcher-linux.md](server-lsp-file-watcher-linux.md) — why the watcher uses per-folder `RelativePattern` instead of a bare-string glob
