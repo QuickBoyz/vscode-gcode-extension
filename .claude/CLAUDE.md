@@ -78,6 +78,10 @@ Four supported dialects defined in `DialectType` enum (`src/constants.ts`): `lin
 - Named constants for magic numbers/strings
 - **TDD for logic-heavy code** — write failing tests first for parsers, visitors, analyzers, formatters, services; skip TDD for pure boilerplate/wiring
 
+## Changelog
+
+Keep `CHANGELOG.md` up to date as part of development. For every user-visible change (feature, behavior change, bug fix), add a bullet under the appropriate subsection (`Added` / `Changed` / `Fixed`) of the `## [Unreleased]` section (between the `<!-- #unreleased -->` and `<!-- #released -->` anchors). The `.github/workflows/release.yml` release job promotes this section to the new version heading on release, then reopens a fresh empty `[Unreleased]` — so do **not** manually add version headings or touch released entries.
+
 ## Solution docs
 
 Check project obsidian wiki for known patterns and architectural decisions before debugging or making design choices.

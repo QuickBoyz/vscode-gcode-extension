@@ -56,38 +56,30 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
 
-      - name: Update CHANGELOG
+      - name: Promote [Unreleased] to new version in CHANGELOG
         run: |
           VERSION="${{ steps.bump_version.outputs.new_version }}"
           DATE=$(date +%Y-%m-%d)
 
-          # Create changelog entry if CHANGELOG.md exists
-          if [ -f CHANGELOG.md ]; then
-            # Create temporary file with new entry
-            {
-              head -n 1 CHANGELOG.md
-              echo ""
-              echo "## [$VERSION] - $DATE"
-              echo ""
-              echo "### Added"
-              echo "- New features and improvements"
-              echo ""
-              echo "### Changed"
-              echo "- Updates and modifications"
-              echo ""
-              echo "### Fixed"
-              echo "- Bug fixes"
-              echo ""
-              tail -n +2 CHANGELOG.md
-            } > CHANGELOG.md.tmp
-            mv CHANGELOG.md.tmp CHANGELOG.md
+          if [ ! -f CHANGELOG.md ]; then
+            echo "::error::CHANGELOG.md not found"
+            exit 1
           fi
+          if ! grep -q '^## \[Unreleased\]$' CHANGELOG.md; then
+            echo "::error::CHANGELOG.md missing [Unreleased] section"
+            exit 1
+          fi
+
+          # Drop the #unreleased anchor (will be re-added later with the new Unreleased section)
+          sed -i '/^<!-- #unreleased -->$/d' CHANGELOG.md
+          # Rename the [Unreleased] heading to the released version + date
+          sed -i "0,/^## \[Unreleased\]$/s//## [$VERSION] - $DATE/" CHANGELOG.md
 
       - name: Commit version bump
         run: |
           VERSION="${{ steps.bump_version.outputs.new_version }}"
           git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore: bump version to $VERSION"
+          git commit -m "chore: release $VERSION"
           git tag -a "$VERSION" -m "Release $VERSION"
 
       - name: Push changes
@@ -133,6 +125,36 @@ jobs:
             echo "⚠️ VSCE_PAT secret not set. Skipping marketplace publication."
             echo "To publish to the marketplace, add VSCE_PAT to repository secrets."
           fi
+
+      - name: Reopen [Unreleased] section in CHANGELOG
+        run: |
+          VERSION="${{ steps.bump_version.outputs.new_version }}"
+
+          awk '
+            BEGIN { inserted = 0 }
+            /^<!-- #released -->$/ { next }
+            /^## \[/ && !inserted {
+              print "<!-- #unreleased -->"
+              print "## [Unreleased]"
+              print ""
+              print "### Added"
+              print "<!-- New features and improvements -->"
+              print ""
+              print "### Changed"
+              print "<!-- Updates and modifications -->"
+              print ""
+              print "### Fixed"
+              print "<!-- Bug fixes -->"
+              print ""
+              print "<!-- #released -->"
+              inserted = 1
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+
+          git add CHANGELOG.md
+          git commit -m "chore: reopen [Unreleased] section after $VERSION"
+          git push origin main
 
       - name: Upload artifacts
         if: always()
