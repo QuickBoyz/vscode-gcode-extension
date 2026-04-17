@@ -30,8 +30,12 @@ import {
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse | WorkerProgressResponse;
 
-/** Called as the worker transitions between parse phases. */
-export type ProgressCallback = (phase: VisualizerPhase) => void;
+/** Called as the worker transitions between phases or emits intra-phase updates. */
+export type ProgressCallback = (update: {
+  phase: VisualizerPhase;
+  percentage?: number;
+  message?: string;
+}) => void;
 
 /**
  * Thrown by {@link WorkerClient.parse} when an earlier in-flight parse
@@ -112,9 +116,13 @@ export class WorkerClient {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
+    const phaseReporter = onProgress
+      ? (phase: VisualizerPhase) => onProgress({ phase })
+      : undefined;
+
     if (this.synchronousFallback) {
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, phaseReporter)
       );
     }
 
@@ -129,7 +137,7 @@ export class WorkerClient {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, phaseReporter)
       );
     }
 
@@ -208,7 +216,11 @@ export class WorkerClient {
     }
 
     if (message.type === 'progress') {
-      pending.onProgress?.(message.phase);
+      pending.onProgress?.({
+        phase: message.phase,
+        percentage: message.percentage,
+        message: message.message,
+      });
       return;
     }
 

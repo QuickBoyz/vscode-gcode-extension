@@ -52,6 +52,7 @@ type ExtensionToWebviewMessage =
       type: 'loading';
       phase: VisualizerPhase;
       filename: string | null;
+      message?: string;
     };
 
 /**
@@ -138,17 +139,18 @@ export class GCodeVisualizerPanel {
   }
 
   /**
-   * Updates the loading overlay with a new phase while a parse is in
-   * flight. Safe to call before the webview has posted `ready` — the
-   * message is queued along with any earlier loading message.
+   * Updates the loading overlay while a parse is in flight.
+   * Safe to call before the webview has posted `ready` — the message is
+   * queued along with any earlier loading message.
    */
-  static showProgress(phase: VisualizerPhase): void {
+  static showProgress(update: { phase: VisualizerPhase; message?: string }): void {
     const instance = GCodeVisualizerPanel.instance;
     if (!instance) return;
     instance.enqueue({
       type: 'loading',
-      phase,
+      phase: update.phase,
       filename: instance.currentFilename,
+      message: update.message,
     });
   }
 

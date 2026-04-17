@@ -196,7 +196,7 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
           break;
         }
         case 'loading': {
-          dispatch({ type: 'loading', phase: msg.phase, filename: msg.filename });
+          dispatch({ type: 'loading', phase: msg.phase, filename: msg.filename, message: msg.message });
           break;
         }
       }

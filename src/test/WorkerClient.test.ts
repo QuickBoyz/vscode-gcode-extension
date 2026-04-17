@@ -208,8 +208,8 @@ describe('WorkerClient', () => {
     client = new WorkerClient(WORKER_SCRIPT_PATH);
     const phases: VisualizerPhase[] = [];
 
-    await client.parse('G0 X10 Y20\nG1 X30 Y40', undefined, undefined, undefined, (phase) =>
-      phases.push(phase)
+    await client.parse('G0 X10 Y20\nG1 X30 Y40', undefined, undefined, undefined, (update) =>
+      phases.push(update.phase)
     );
 
     expect(phases).toContain(VisualizerPhase.PARSING);
@@ -224,8 +224,8 @@ describe('WorkerClient', () => {
     client = new WorkerClient(WORKER_SCRIPT_PATH);
     const firstPhases: VisualizerPhase[] = [];
 
-    const firstPromise = client.parse('G0 X1', undefined, undefined, undefined, (phase) =>
-      firstPhases.push(phase)
+    const firstPromise = client.parse('G0 X1', undefined, undefined, undefined, (update) =>
+      firstPhases.push(update.phase)
     );
     // Immediately supersede.
     const secondPromise = client.parse('G1 X99');
@@ -244,7 +244,9 @@ describe('WorkerClient', () => {
     client = new WorkerClient(WORKER_SCRIPT_PATH, throwingWorkerFactory);
     const phases: VisualizerPhase[] = [];
 
-    await client.parse('G0 X10', undefined, undefined, undefined, (phase) => phases.push(phase));
+    await client.parse('G0 X10', undefined, undefined, undefined, (update) =>
+      phases.push(update.phase)
+    );
 
     expect(phases).toContain(VisualizerPhase.PARSING);
     expect(phases).toContain(VisualizerPhase.EXTRACTING);
