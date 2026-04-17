@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import {
+  CancellationToken,
   CodeActionKind,
   createConnection,
   DidChangeTextDocumentNotification,
@@ -11,8 +13,17 @@ import {
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
+  WorkDoneProgressCreateRequest,
   WorkspaceFolder,
 } from 'vscode-languageserver/node';
+import {
+  GCodeListIndexFilesCapability,
+  GCodeListIndexFilesParams,
+  GCodeListIndexFilesRequest,
+  GCodeListIndexFilesResult,
+} from '../lsp/gcodeListIndexFiles';
+import { ClientFeatureFlags } from '../providers/ClientFeatureFlags';
+import { TrailingDebouncer } from './TrailingDebouncer';
 import { DefinitionProvider } from '../providers/DefinitionProvider';
 import { DiagnosticsProvider } from '../providers/DiagnosticsProvider';
 import { DocumentFormattingProvider } from '../providers/DocumentFormattingProvider';
@@ -53,12 +64,42 @@ const configProvider = new ServerConfigProvider(connection);
 let workspaceFolders: readonly WorkspaceFolder[] = [];
 let dynamicWatchedFilesSupported = false;
 
+// Mutable holder for the resolved feature flags so the WorkspaceIndexingService
+// constructor — which runs at module load — can read them via a stable
+// reference once `onInitialize` populates them.
+const clientFeatureFlags: { value: ClientFeatureFlags } = {
+  value: { supportsListIndexFiles: false },
+};
+
+interface ExperimentalGCodeCapabilities {
+  readonly listIndexFiles?: { readonly version?: number };
+}
+
+interface ExperimentalCapabilities {
+  readonly gcode?: ExperimentalGCodeCapabilities;
+}
+
+function readClientFeatureFlags(params: InitializeParams): ClientFeatureFlags {
+  const experimental = params.initializationOptions as
+    | { readonly experimental?: ExperimentalCapabilities }
+    | undefined;
+  const capability = experimental?.experimental?.gcode?.listIndexFiles as
+    | GCodeListIndexFilesCapability
+    | undefined;
+  const supportsListIndexFiles = capability !== undefined && capability.version >= 1;
+  return { supportsListIndexFiles };
+}
+
 // Server settings synced from the client
 connection.onInitialize((params: InitializeParams): InitializeResult => {
   connection.console.log('G-code Language Server initializing...');
   workspaceFolders = params.workspaceFolders ?? [];
   dynamicWatchedFilesSupported =
     params.capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration === true;
+  clientFeatureFlags.value = readClientFeatureFlags(params);
+  connection.console.log(
+    `Client feature flags: listIndexFiles=${String(clientFeatureFlags.value.supportsListIndexFiles)}`
+  );
 
   return {
     capabilities: {
@@ -128,6 +169,20 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
   };
 });
 
+// Trailing-edge debouncer that collapses bursts of onDidChangeConfiguration
+// events into a single applyWorkspaceSettings invocation. The debounce wraps
+// only the call site below — onInitialized must still invoke
+// applyWorkspaceSettings synchronously so the initial scan is not delayed.
+const APPLY_SETTINGS_DEBOUNCE_MS = 200;
+const applySettingsDebouncer = new TrailingDebouncer({
+  delayMs: APPLY_SETTINGS_DEBOUNCE_MS,
+  fn: () => applyWorkspaceSettings(),
+  onError: (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    connection.console.error(`Failed to apply workspace settings: ${message}`);
+  },
+});
+
 // Handle settings changes
 connection.onDidChangeConfiguration(() => {
   // Clear cached config and document states when configuration changes
@@ -136,10 +191,9 @@ connection.onDidChangeConfiguration(() => {
   workspaceSymbolIndex.clear();
   connection.console.log('Configuration changed - caches cleared');
 
-  // Re-apply workspace settings after cache invalidation
-  applyWorkspaceSettings().catch((error: Error) => {
-    connection.console.error(`Failed to apply workspace settings: ${error.message}`);
-  });
+  // Re-apply workspace settings after cache invalidation. Bursts of config
+  // events (e.g. from settings.json autosave) collapse into one apply.
+  applySettingsDebouncer.trigger();
 });
 
 /**
@@ -211,13 +265,48 @@ const formatterService = new FormatterService(),
       return config.dialect;
     },
     logger: (msg) => connection.console.warn(msg),
+    // Allocate the WorkDoneProgress token ourselves (rather than going
+    // through `connection.window.createWorkDoneProgress()`) so we can
+    // forward the identifier to the client in
+    // `GCodeListIndexFilesParams.workDoneToken`. The client then reports the
+    // "Finding…" phase under the same token the server later resumes for
+    // "Indexing N/M…", giving the user one morphing progress element.
     progressFactory: async (): Promise<ProgressReporter | undefined> => {
       try {
-        return await connection.window.createWorkDoneProgress();
+        const progressToken = randomUUID();
+        await connection.sendRequest(WorkDoneProgressCreateRequest.type, {
+          token: progressToken,
+        });
+        const reporter = connection.window.attachWorkDoneProgress(progressToken);
+        return {
+          token: progressToken,
+          begin: (title, percentage, message) => {
+            reporter.begin(title, percentage, message);
+          },
+          report: (percentage, message) => {
+            if (message === undefined) {
+              reporter.report(percentage);
+            } else {
+              reporter.report(percentage, message);
+            }
+          },
+          done: () => {
+            reporter.done();
+          },
+        };
       } catch {
         return undefined;
       }
     },
+    // Read flags lazily so the value captured at onInitialize is visible
+    // here even though this constructor runs at module load (before
+    // onInitialize fires).
+    flags: (): ClientFeatureFlags => clientFeatureFlags.value,
+    requestFiles: (
+      params: GCodeListIndexFilesParams,
+      token: CancellationToken
+    ): Promise<GCodeListIndexFilesResult> =>
+      connection.sendRequest(GCodeListIndexFilesRequest, params, token),
   });
 
 connection.onDocumentFormatting(async (params) => {

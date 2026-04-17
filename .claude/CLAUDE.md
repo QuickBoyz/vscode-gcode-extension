@@ -80,7 +80,7 @@ Four supported dialects defined in `DialectType` enum (`src/constants.ts`): `lin
 
 ## Solution docs
 
-Check `.claude/docs/solutions/` for known patterns and architectural decisions before debugging or making design choices.
+Check project obsidian wiki for known patterns and architectural decisions before debugging or making design choices.
 
 ## Development principles
 

@@ -1,0 +1,9 @@
+{
+  "gcode.workspace.indexingEnabled": true,
+  "files.exclude": {
+    "**/build": true
+  },
+  "search.exclude": {
+    "**/cache": true
+  }
+}
