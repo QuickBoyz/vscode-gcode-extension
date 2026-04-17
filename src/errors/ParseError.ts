@@ -3,14 +3,9 @@ import { ParserDiagnosticCode } from '../parser/nodes';
 
 import { ErrorLocation } from './ErrorLocation';
 
-/**
- * Thrown by the lexer/parser when the input cannot be parsed.
- *
- * `location` is always populated (1-based) — from an explicit override when
- * provided, or derived from `token.line` / `token.col` otherwise.
- */
+/** Thrown by the lexer/parser when the input cannot be parsed. */
 export class ParseError extends Error {
-  readonly location: ErrorLocation | undefined;
+  readonly location: ErrorLocation | null;
 
   constructor(
     message: string,
@@ -20,6 +15,6 @@ export class ParseError extends Error {
   ) {
     super(message);
     this.name = 'ParseError';
-    this.location = location ?? (token ? { line: token.line, column: token.col } : undefined);
+    this.location = location ?? (token ? { line: token.line, column: token.col } : null);
   }
 }
