@@ -1,5 +1,7 @@
 import { createParseError } from '../errors/createParseError';
 import { ParseError } from '../errors/ParseError';
+import { GCodeLexer } from '../lexer/GCodeLexer';
+import { DialectType } from '../constants';
 import { ParserDiagnosticCode } from '../parser/nodes';
 
 describe('createParseError', () => {
@@ -65,5 +67,17 @@ describe('createParseError', () => {
   it('sets error name to ParseError', () => {
     const err = createParseError({ line: 1, message: 'Err' });
     expect(err.name).toBe('ParseError');
+  });
+
+  it('derives full location span from a token including endLine and endColumn', () => {
+    const lexer = new GCodeLexer(DialectType.LINUXCNC);
+    const [token] = lexer.tokenize('G1234');
+    const err = createParseError({ message: 'Bad', token });
+    expect(err.location).toEqual({
+      line: token.line,
+      column: token.col,
+      endLine: token.line,
+      endColumn: token.col + token.value.length,
+    });
   });
 });

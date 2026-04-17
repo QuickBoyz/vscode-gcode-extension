@@ -23,7 +23,12 @@ export function createParseError(args: {
           ...(args.endColumn !== undefined && { endColumn: args.endColumn }),
         }
       : args.token
-        ? { line: args.token.line, column: args.token.col }
+        ? {
+            line: args.token.line,
+            column: args.token.col,
+            endLine: args.token.line,
+            endColumn: args.token.col + args.token.value.length,
+          }
         : undefined;
   return new ParseError(args.message, args.token, args.code, location);
 }
