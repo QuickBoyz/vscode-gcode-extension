@@ -223,13 +223,15 @@ export enum VisualizerPhase {
 }
 
 /**
- * Progress notification sent from the worker between phases so the UI can
- * distinguish parsing from geometry building during long parses.
+ * Progress notification sent from the worker between phases and during
+ * long phases. `message` carries intra-phase detail (e.g. segment count
+ * during EXTRACTING).
  */
 export interface WorkerProgressResponse {
   readonly type: 'progress';
   readonly id: number;
   readonly phase: VisualizerPhase;
+  readonly message?: string;
 }
 
 /**

@@ -42,7 +42,7 @@ export function CanvasArea() {
         />
       )}
       {status.kind === DocumentStatusKind.LOADING && (
-        <LoadingOverlay phase={status.phase} filename={status.filename} />
+        <LoadingOverlay phase={status.phase} filename={status.filename} message={status.message} />
       )}
       <SegmentStats count={segments.length} />
       <InfoPanel wrapperRef={wrapperRef} />

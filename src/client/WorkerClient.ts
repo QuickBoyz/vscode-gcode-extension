@@ -30,8 +30,13 @@ import {
 /** Union of possible worker responses. */
 type WorkerMessage = WorkerResponse | WorkerErrorResponse | WorkerProgressResponse;
 
-/** Called as the worker transitions between parse phases. */
-export type ProgressCallback = (phase: VisualizerPhase) => void;
+export interface ProgressUpdate {
+  readonly phase: VisualizerPhase;
+  readonly percentage?: number;
+  readonly message?: string;
+}
+
+export type ProgressCallback = (update: ProgressUpdate) => void;
 
 /**
  * Thrown by {@link WorkerClient.parse} when an earlier in-flight parse
@@ -208,7 +213,10 @@ export class WorkerClient {
     }
 
     if (message.type === 'progress') {
-      pending.onProgress?.(message.phase);
+      pending.onProgress?.({
+        phase: message.phase,
+        message: message.message,
+      });
       return;
     }
 

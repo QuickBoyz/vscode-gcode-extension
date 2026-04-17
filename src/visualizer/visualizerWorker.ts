@@ -15,7 +15,6 @@ import { parentPort } from 'worker_threads';
 
 import { VisualizerService } from '../client/VisualizerService';
 import {
-  VisualizerPhase,
   WorkerErrorResponse,
   WorkerProgressResponse,
   WorkerRequest,
@@ -35,11 +34,12 @@ parentPort?.on('message', (request: WorkerRequest) => {
       request.text,
       request.dialect,
       request.settingsVariables,
-      (phase: VisualizerPhase) => {
+      (update) => {
         const progress: WorkerProgressResponse = {
           type: 'progress',
           id: request.id,
-          phase,
+          phase: update.phase,
+          message: update.message,
         };
         parentPort?.postMessage(progress);
       }

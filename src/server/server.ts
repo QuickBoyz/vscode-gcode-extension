@@ -47,10 +47,10 @@ import { GCodeConfig } from '../config/types';
 import { ServerConfigProvider } from '../config/server-config-provider/ServerConfigProvider';
 import { VariableAnalysisService } from '../providers/VariableAnalysisService';
 import {
-  ProgressReporter,
   WorkspaceFileEvent,
   WorkspaceIndexingService,
 } from '../providers/WorkspaceIndexingService';
+import { LspBoundProgressReporter } from '../utils/ProgressReporter';
 import { WorkspaceSymbolIndex } from '../providers/WorkspaceSymbolIndex';
 import { WorkspaceSymbolProvider } from '../providers/WorkspaceSymbolProvider';
 
@@ -271,7 +271,7 @@ const formatterService = new FormatterService(),
     // `GCodeListIndexFilesParams.workDoneToken`. The client then reports the
     // "Finding…" phase under the same token the server later resumes for
     // "Indexing N/M…", giving the user one morphing progress element.
-    progressFactory: async (): Promise<ProgressReporter | undefined> => {
+    progressFactory: async (): Promise<LspBoundProgressReporter | undefined> => {
       try {
         const progressToken = randomUUID();
         await connection.sendRequest(WorkDoneProgressCreateRequest.type, {

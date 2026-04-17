@@ -56,6 +56,7 @@ export type DocumentStatus =
       readonly kind: DocumentStatusKind.LOADING;
       readonly phase: LoadingPhase;
       readonly filename: string | null;
+      readonly message?: string;
     }
   | { readonly kind: DocumentStatusKind.READY }
   | { readonly kind: DocumentStatusKind.EMPTY; readonly filename: string | null }
@@ -90,6 +91,7 @@ export type WebviewMessage =
       readonly type: 'loading';
       readonly phase: LoadingPhase;
       readonly filename: string | null;
+      readonly message?: string;
     };
 
 // ── Document state & actions ────────────────────────────────────────
@@ -116,6 +118,7 @@ export type DocumentAction =
       readonly type: 'loading';
       readonly phase: LoadingPhase;
       readonly filename: string | null;
+      readonly message?: string;
     }
   | {
       readonly type: 'error';
@@ -166,6 +169,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
           kind: DocumentStatusKind.LOADING,
           phase: action.phase,
           filename: action.filename,
+          message: action.message,
         },
       };
     }

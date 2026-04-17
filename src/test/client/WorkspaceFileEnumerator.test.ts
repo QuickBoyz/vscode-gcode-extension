@@ -140,7 +140,7 @@ describe('WorkspaceFileEnumerator', () => {
     expect(progressCalls[0].token).toBe('tok-9');
     expect(progressCalls[0].value).toMatchObject({
       kind: 'begin',
-      title: 'Finding G-code files…',
+      title: 'Finding G-code files',
     });
     expect(progressCalls[1].token).toBe('tok-9');
     expect(progressCalls[1].value).toEqual({ kind: 'end' });

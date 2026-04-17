@@ -3,6 +3,7 @@ import { LoadingPhase } from '../context/documentReducer';
 interface LoadingOverlayProps {
   readonly phase: LoadingPhase;
   readonly filename: string | null;
+  readonly message?: string;
 }
 
 const DEFAULT_LABEL = 'Loading…';
@@ -13,11 +14,12 @@ const PHASE_LABELS: Readonly<Record<LoadingPhase, string>> = {
   [LoadingPhase.RENDERING]: 'Rendering…',
 };
 
-export function LoadingOverlay({ phase, filename }: LoadingOverlayProps) {
+export function LoadingOverlay({ phase, filename, message }: LoadingOverlayProps) {
   return (
     <div id="loading-overlay" role="status" aria-live="polite">
       <div className="spinner" />
       <span className="loading-text">{PHASE_LABELS[phase] ?? DEFAULT_LABEL}</span>
+      {message && <span className="loading-message">{message}</span>}
       {filename && <span className="loading-filename">{filename}</span>}
     </div>
   );

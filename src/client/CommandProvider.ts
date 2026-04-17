@@ -118,7 +118,7 @@ export class CommandProvider {
             config.dialect,
             undefined,
             config.variables,
-            (phase) => GCodeVisualizerPanel.showProgress(phase)
+            (update) => GCodeVisualizerPanel.showProgress(update)
           );
         } catch (error: unknown) {
           // A superseded parse means the user triggered a newer request
@@ -148,7 +148,7 @@ export class CommandProvider {
           return;
         }
 
-        GCodeVisualizerPanel.showProgress(VisualizerPhase.RENDERING);
+        GCodeVisualizerPanel.showProgress({ phase: VisualizerPhase.RENDERING });
         GCodeVisualizerPanel.createOrShow(
           context,
           result.data,
@@ -347,12 +347,12 @@ export class CommandProvider {
         config.dialect,
         undefined,
         config.variables,
-        (phase) => GCodeVisualizerPanel.showProgress(phase)
+        (update) => GCodeVisualizerPanel.showProgress(update)
       );
       const settings: VisualizerConfig = config.visualizer;
 
       if (result.success) {
-        GCodeVisualizerPanel.showProgress(VisualizerPhase.RENDERING);
+        GCodeVisualizerPanel.showProgress({ phase: VisualizerPhase.RENDERING });
         GCodeVisualizerPanel.refresh(result.data, settings, sourceText, config.variables);
       } else {
         GCodeVisualizerPanel.showError(

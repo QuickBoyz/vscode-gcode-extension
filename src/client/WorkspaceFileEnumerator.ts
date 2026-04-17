@@ -40,7 +40,7 @@ export interface WorkspaceFileEnumeratorDeps {
   ) => void;
 }
 
-const PROGRESS_BEGIN_TITLE = 'Finding G-code files…';
+const PROGRESS_BEGIN_TITLE = 'Finding G-code files';
 
 export class WorkspaceFileEnumerator {
   private readonly deps: WorkspaceFileEnumeratorDeps;

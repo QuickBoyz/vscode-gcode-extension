@@ -35,14 +35,11 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import {
-  CancellationToken,
-  CancellationTokenSource,
-  ProgressToken,
-} from 'vscode-languageserver-protocol';
+import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 
 import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
+import { LspBoundProgressReporter, ProgressReporter } from '../utils/ProgressReporter';
 import { ClientFeatureFlags } from './ClientFeatureFlags';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
@@ -69,22 +66,6 @@ export interface WorkspaceFileEvent {
 }
 
 /**
- * Minimal progress reporter shape compatible with LSP `WorkDoneProgressReporter`.
- *
- * The optional `token` exposes the server-allocated `WorkDoneProgress`
- * identifier so the indexing service can forward it to the client in
- * `GCodeListIndexFilesParams.workDoneToken`. Both sides then emit progress
- * against the same token, giving the user one UI element that morphs through
- * the "Finding…" and "Indexing…" phases.
- */
-export interface ProgressReporter {
-  readonly token?: ProgressToken;
-  begin(title: string, percentage?: number, message?: string): void;
-  report(percentage: number, message?: string): void;
-  done(): void;
-}
-
-/**
  * DI boundary for the `workspace/gcodeListIndexFiles` request. Implemented
  * by the server bootstrap as a thin wrapper around
  * `connection.sendRequest`. The token is cancelled when the service starts
@@ -99,7 +80,7 @@ export interface WorkspaceIndexingDependencies {
   readonly symbolIndex: WorkspaceSymbolIndex;
   readonly getDialect: () => DialectType | Promise<DialectType>;
   readonly logger?: (message: string) => void;
-  readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
+  readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   readonly debounceMs?: number;
   /**
    * Static client feature flags, or a getter that returns them lazily.
@@ -122,7 +103,7 @@ export class WorkspaceIndexingService {
   private readonly symbolIndex: WorkspaceSymbolIndex;
   private readonly getDialect: () => DialectType | Promise<DialectType>;
   private readonly logger?: (message: string) => void;
-  private readonly progressFactory?: () => Promise<ProgressReporter | undefined>;
+  private readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   private readonly debounceMs: number;
   private readonly flagsAccessor: () => ClientFeatureFlags;
   private readonly requestFiles?: RequestFilesCallback;
@@ -286,7 +267,7 @@ export class WorkspaceIndexingService {
     roots: readonly string[],
     scanGeneration: number,
     token: CancellationToken,
-    progress: ProgressReporter | undefined
+    progress: LspBoundProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (this.flags.supportsListIndexFiles) {
       return this.enumerateViaClient(roots, scanGeneration, token, progress);
@@ -306,7 +287,7 @@ export class WorkspaceIndexingService {
     roots: readonly string[],
     scanGeneration: number,
     token: CancellationToken,
-    progress: ProgressReporter | undefined
+    progress: LspBoundProgressReporter | undefined
   ): Promise<readonly string[]> {
     if (!this.requestFiles) {
       throw new WorkspaceIndexingConfigurationError(

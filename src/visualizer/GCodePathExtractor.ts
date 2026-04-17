@@ -42,7 +42,19 @@ import {
   ProgramInterpreter,
   ReferencedVariable,
   ToolPathData,
+  VisualizerPhase,
 } from './types';
+
+// 100ms is the threshold where sequential DOM updates feel smooth but
+// do not overload the event loop on 60 Hz displays.
+const PROGRESS_INTERVAL_MS = 100;
+
+export interface ExtractorProgressUpdate {
+  readonly phase: VisualizerPhase;
+  readonly message?: string;
+}
+
+export type ExtractorProgressCallback = (update: ExtractorProgressUpdate) => void;
 
 /** Number of interpolation segments used to approximate a full circle. */
 const ARC_SEGMENTS_PER_FULL_CIRCLE = 72;
@@ -227,6 +239,9 @@ export class GCodePathExtractor implements MotionHandler {
   /** Modal spindle speed (S value), updated when S appears on any motion line. */
   private modalSpindleSpeed: number | null = null;
 
+  private onProgress: ExtractorProgressCallback | undefined;
+  private lastProgressAt = 0;
+
   /**
    * Entry point: interpret the program AST and return extracted path data.
    * Resets all internal state before each extraction so the same instance
@@ -235,14 +250,22 @@ export class GCodePathExtractor implements MotionHandler {
    * @param program     - Parsed G-code program AST
    * @param interpreter - Program interpreter that will walk the AST and
    *                      dispatch motion commands back to this extractor
+   * @param onProgress  - Optional callback fired during extraction with a
+   *                      live segment count, throttled to ~100ms intervals.
    */
-  extract(program: ProgramNode, interpreter: ProgramInterpreter): ToolPathData {
+  extract(
+    program: ProgramNode,
+    interpreter: ProgramInterpreter,
+    onProgress?: ExtractorProgressCallback
+  ): ToolPathData {
     this.segments = [];
     this.currentPosition = { x: 0, y: 0, z: 0 };
     this.isAbsoluteMode = true;
     this.currentArcPlane = ArcPlane.XY;
     this.modalFeedRate = null;
     this.modalSpindleSpeed = null;
+    this.onProgress = onProgress;
+    this.lastProgressAt = 0;
 
     interpreter.interpret(program);
     const bounds = computeBounds(this.segments);
@@ -478,5 +501,16 @@ export class GCodePathExtractor implements MotionHandler {
   private pushSegment(type: MotionType, points: PathPoint[], context: MotionContext): void {
     if (points.length < 2) return;
     this.segments.push({ type, points, context });
+
+    if (this.onProgress) {
+      const now = Date.now();
+      if (now - this.lastProgressAt >= PROGRESS_INTERVAL_MS) {
+        this.onProgress({
+          phase: VisualizerPhase.EXTRACTING,
+          message: `Extracted ${this.segments.length} segments`,
+        });
+        this.lastProgressAt = now;
+      }
+    }
   }
 }

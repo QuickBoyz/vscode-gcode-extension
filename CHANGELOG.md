@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 <!-- New features and improvements -->
+- Visualizer overlay shows live segment-count progress during the EXTRACTING phase for large files — overlay no longer freezes on "Building geometry…" (#139)
+- Shared `ProgressReporter` interface (`src/utils/ProgressReporter.ts`) unifies progress reporting across LSP and webview transports (#139)
 
 ### Changed
 <!-- Updates and modifications -->
+- `ProgressCallback` (WorkerClient) now receives `{ phase, percentage?, message? }` instead of a bare `VisualizerPhase`, enabling richer progress metadata (#139)
+- Progress title "Finding G-code files" no longer has a trailing ellipsis — consistent with the `"<Gerund> <artifact>"` convention (#139)
 
 ### Fixed
 <!-- Bug fixes -->
