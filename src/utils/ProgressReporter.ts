@@ -1,4 +1,4 @@
-/** Transport-neutral progress reporter — see `server-provider-wiring-patterns.md`. */
+/** Transport-neutral progress reporter. */
 export interface ProgressReporter {
   begin(title: string, percentage?: number, message?: string): void;
   report(percentage: number, message?: string): void;
