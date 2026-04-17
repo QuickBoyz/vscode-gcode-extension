@@ -1,81 +1,54 @@
 # Issue #146 — visualizer: parser errors should report file:line consistently
 
-## Status: IN PROGRESS
+## Status: CYCLE 3 COMPLETE — full factory/adapter compliance
 
-## Next action on resume
+## Commits
 
-Start with Track A: create src/errors/ module, then proceed to tracks in order.
+- 88573fe — feat: initial implementation (cycle 1)
+- 2f4464b — fix(errors): address review findings from cycle 1
+- (cycle 3) — refactor(errors): route all raise sites through factory, wire locationToRange into LSP path
 
-## Task list
+## AC status after cycle 3
 
-### Track A — Core errors module (sequential, all others depend on this)
+| AC                                       | Status | Notes                                                             |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------- |
+| #1 Factory exists                        | ✅     | src/errors/createParseError.ts (extended to accept token)         |
+| #2 Raise sites through factory           | ✅     | All 20+ `new ParseError` sites converted to `createParseError`    |
+| #3 Worker→webview location               | ✅     |                                                                   |
+| #4 Reducer ERROR carries location        | ✅     |                                                                   |
+| #5 ErrorCard clickable link              | ✅     |                                                                   |
+| #6 Pure message strings                  | ✅     |                                                                   |
+| #7 LSP diagnostics consume factory       | ✅     | AstFactory.errorFromParseError uses locationToRange(err.location) |
+| #8 Reducer invariant unit tests          | ✅     |                                                                   |
+| #9 E2E malformed fixture → location.line | ⚠️     | Documented infeasibility (webview sandboxed iframe)               |
+| #10 E2E navigate → cursor moves          | ⚠️     | Documented infeasibility (no webview automation)                  |
+| #11 typecheck/lint/unit/build pass       | ✅     | 1352/1352 tests, 0 errors                                         |
 
-- [ ] A1: Create src/errors/ErrorLocation.ts
-- [ ] A2: Create src/errors/ParseError.ts (move from TokenStream.ts)
-- [ ] A3: Create src/errors/createParseError.ts
-- [ ] A4: Create src/errors/adapters.ts
-- [ ] A5: Update src/parser/TokenStream.ts — remove ParseError class, import from errors/
-- [ ] A6: Update all ParseError importers (BaseParser, LinuxCNCParser, FanucParser, SiemensParser)
+## Cycle 3 changes
 
-### Track B — Visualizer pipeline (after A)
+### AC #2 strict compliance
 
-- [ ] B1: Update src/visualizer/types.ts — add ErrorLocation to VisualizerFailure + WorkerErrorResponse
-- [ ] B2: Update src/client/VisualizerService.ts — catch ParseError, preserve location
-- [ ] B3: Update src/visualizer/visualizerWorker.ts — serialize location into WorkerErrorResponse
-- [ ] B4: Update src/client/WorkerClient.ts — propagate location from WorkerErrorResponse
-- [ ] B5: Update src/client/GCodeVisualizerPanel.ts — add location to ExtensionToWebviewMessage + showError()
-- [ ] B6: Update src/webview/context/documentReducer.ts — add location to action/state
-- [ ] B7: Update src/webview/context/VisualizerContext.tsx — thread location through dispatch
-- [ ] B8: Update src/webview/components/EmptyMessage.tsx — render clickable location link
-- [ ] B9: Update src/webview/components/CanvasArea.tsx — pass location to EmptyMessage
+- `src/errors/createParseError.ts`: extended to accept `token: LexerToken` field; derives location from token if explicit line not given
+- `src/parser/TokenStream.ts`: 2 raise sites converted
+- `src/parser/BaseParser.ts`: 15 raise sites converted
+- `src/parser/dialects/FanucParser.ts`: 1 site
+- `src/parser/dialects/SiemensParser.ts`: 2 sites
+- `src/parser/dialects/LinuxCNCParser.ts`: 3 sites
+- Production `new ParseError` usage: only inside the factory itself
 
-### Track C — Tests (after A, B)
+### AC #7 strict compliance
 
-- [ ] C1: Create src/errors/createParseError.test.ts
-- [ ] C2: Create src/errors/adapters.test.ts
-- [ ] C3: Update src/test/documentReducer.test.ts — location invariant tests
-- [ ] C4: Update src/test/VisualizerService.test.ts — location in failure result
-- [ ] C5: Create src/webview/components/EmptyMessage.test.tsx
+- `src/parser/AstFactory.ts`: added `errorFromParseError(err, originalText?, parent?)` that uses `locationToRange(err.location)` for the ErrorNode range
+- `src/parser/BaseParser.ts`: `parseStatementSafe` and `parseVariableAssignment` catch paths route ParseError through the new method
+- LSP diagnostics chain: `createParseError → ParseError.location → locationToRange → ErrorNode.range → Diagnostic.range`
 
-### Track D — Verification
+### AC #9/#10 documentation
 
-- [ ] D1: npm run typecheck
-- [ ] D2: npm test
-- [ ] D3: npm run lint
+- `src/e2e/suite/visualizer.test.ts`: suite-level comment documents webview-sandbox infeasibility and points to unit-test coverage
 
-## Key design decisions
+## Verification chain results
 
-- ErrorLocation is 1-based at all payload boundaries
-- 0-based conversion only in: adapters.ts#locationToRange(), EmptyMessage click handler (location.line - 1)
-- location: null for WORKER_CRASH / UNKNOWN; location: ErrorLocation for PARSE_FAILURE
-- ParseError.location is auto-populated from token.line/token.col in constructor
-- Webview EmptyMessage calls vscode.postMessage directly (matches InfoPanel pattern)
-- ErrorLocation is re-exported from visualizer/types.ts for webview consumption
-- src/errors/ must not import from src/parser/, src/providers/, src/visualizer/, src/client/
-  EXCEPTION: may import from src/parser/nodes/ for ParserDiagnosticCode
-
-## Files to change
-
-1. NEW: src/errors/ErrorLocation.ts
-2. NEW: src/errors/ParseError.ts (moved from TokenStream)
-3. NEW: src/errors/createParseError.ts
-4. NEW: src/errors/adapters.ts
-5. MOD: src/parser/TokenStream.ts (remove ParseError)
-6. MOD: src/parser/BaseParser.ts (import path change)
-7. MOD: src/parser/dialects/LinuxCNCParser.ts (import path)
-8. MOD: src/parser/dialects/FanucParser.ts (import path)
-9. MOD: src/parser/dialects/SiemensParser.ts (import path)
-10. MOD: src/visualizer/types.ts (add ErrorLocation fields)
-11. MOD: src/client/VisualizerService.ts (catch ParseError, preserve location)
-12. MOD: src/visualizer/visualizerWorker.ts (serialize location)
-13. MOD: src/client/WorkerClient.ts (propagate location)
-14. MOD: src/client/GCodeVisualizerPanel.ts (add location to message + showError)
-15. MOD: src/webview/context/documentReducer.ts (add location to action/state)
-16. MOD: src/webview/context/VisualizerContext.tsx (thread location)
-17. MOD: src/webview/components/EmptyMessage.tsx (render location link)
-18. MOD: src/webview/components/CanvasArea.tsx (pass location prop)
-19. NEW: src/errors/createParseError.test.ts
-20. NEW: src/errors/adapters.test.ts
-21. MOD: src/test/documentReducer.test.ts
-22. MOD: src/test/VisualizerService.test.ts
-23. NEW: src/webview/components/EmptyMessage.test.tsx
+- typecheck: 0 errors
+- lint: 0 errors, 173 pre-existing warnings (none in diff)
+- unit tests: 1352/1352 passing
+- build: OK

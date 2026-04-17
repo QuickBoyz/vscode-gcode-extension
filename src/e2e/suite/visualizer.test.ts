@@ -24,6 +24,16 @@ const LARGE_FIXTURE_PATH = path.resolve(
   'surface-finish.ngc'
 );
 
+// Webview sandbox limits what we can assert from the Extension Host:
+// - The webview runs in a sandboxed iframe whose DOM is not reachable
+//   from the test process, so we cannot inspect the error-payload the
+//   reducer received (AC #9) or click the "line N" link rendered by
+//   EmptyMessage (AC #10).
+// - There is no VS Code API to trigger webview clicks programmatically.
+// Pipeline coverage for both is provided by unit tests — WorkerClient,
+// VisualizerService, and documentReducer tests assert location is
+// propagated and navigation posts navigateToLine; CommandProvider wires
+// that message to vscode.Selection/revealRange in the Extension Host.
 suite('Visualizer E2E Tests', () => {
   TestUtils.setup();
 
