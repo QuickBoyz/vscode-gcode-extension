@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GCodeLexer } from '../lexer/GCodeLexer';
 import { LinuxCNCParser } from '../parser/dialects/LinuxCNCParser';
+import { ExtractorProgressCallback, GCodePathExtractor } from '../visualizer/GCodePathExtractor';
 import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
-import { GCodePathExtractor } from '../visualizer/GCodePathExtractor';
-import { MotionType, ToolPathData } from '../visualizer/types';
+import { MotionType, ToolPathData, VisualizerPhase } from '../visualizer/types';
 import { VariableEnvironment } from '../visualizer/VariableEnvironment';
 
 describe('GCodePathExtractor', () => {
@@ -777,6 +777,116 @@ G2 X20 Z0 I5 K0
         // The final value after execution is 50, not the initial 10
         expect(ref?.value).toBe(50);
       });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Intra-phase progress reporting
+  // ---------------------------------------------------------------------------
+
+  describe('onProgress (intra-phase)', () => {
+    /**
+     * Generates a G-code string with `n` distinct G1 moves at unique X positions.
+     */
+    function makeGCode(n: number): string {
+      const lines: string[] = [];
+      for (let i = 1; i <= n; i++) {
+        lines.push(`G1 X${i}`);
+      }
+      return lines.join('\n');
+    }
+
+    it('does not fire onProgress when no callback is provided', () => {
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(100));
+      // Should not throw when onProgress is undefined
+      expect(() => extractor.extract(ast, interpreter)).not.toThrow();
+    });
+
+    it('fires at least one progress update for a large input (10k segments)', () => {
+      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
+      const onProgress: ExtractorProgressCallback = (u) => updates.push(u);
+
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(10_000));
+      extractor.extract(ast, interpreter, onProgress);
+
+      expect(updates.length).toBeGreaterThan(0);
+    });
+
+    it('fires more than 5 progress updates for a 10k-segment input', () => {
+      jest.useFakeTimers();
+      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
+      const onProgress: ExtractorProgressCallback = (u) => updates.push(u);
+
+      // Advance time by 100ms per segment to ensure throttle fires every segment
+      let callCount = 0;
+      jest.spyOn(Date, 'now').mockImplementation(() => {
+        callCount += 1;
+        return callCount * 100;
+      });
+
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(10_000));
+      extractor.extract(ast, interpreter, onProgress);
+
+      expect(updates.length).toBeGreaterThan(5);
+
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    it('all updates carry the EXTRACTING phase', () => {
+      jest.spyOn(Date, 'now').mockImplementation(() => 0); // always trigger throttle on first, then never
+      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
+      const onProgress: ExtractorProgressCallback = (u) => updates.push(u);
+
+      // Reset so first call triggers
+      let t = 0;
+      jest.spyOn(Date, 'now').mockImplementation(() => {
+        t += 200;
+        return t;
+      });
+
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(1_000));
+      extractor.extract(ast, interpreter, onProgress);
+
+      expect(updates.length).toBeGreaterThan(0);
+      for (const u of updates) {
+        expect(u.phase).toBe(VisualizerPhase.EXTRACTING);
+      }
+
+      jest.restoreAllMocks();
+    });
+
+    it('updates include a segment-count message', () => {
+      let t = 0;
+      jest.spyOn(Date, 'now').mockImplementation(() => {
+        t += 200;
+        return t;
+      });
+
+      const updates: Parameters<ExtractorProgressCallback>[0][] = [];
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(500));
+      extractor.extract(ast, interpreter, (u) => updates.push(u));
+
+      expect(updates.length).toBeGreaterThan(0);
+      expect(updates[0].message).toMatch(/\d+ segments/);
+
+      jest.restoreAllMocks();
+    });
+
+    it('throttles to at most one update per 100ms under real timing', () => {
+      let callCount = 0;
+      const onProgress: ExtractorProgressCallback = () => callCount++;
+
+      const { ast, extractor, interpreter } = buildPipeline(makeGCode(500));
+      const startMs = Date.now();
+      extractor.extract(ast, interpreter, onProgress);
+      const elapsedMs = Date.now() - startMs;
+
+      // With 100ms throttle and synchronous execution (< 100ms total),
+      // at most 1 update should fire (the first one, at t=0 → now-0 >= 100 is false,
+      // so actually 0 unless 100ms passes). In CI this is usually 0 or 1.
+      const maxExpected = Math.floor(elapsedMs / 100) + 1;
+      expect(callCount).toBeLessThanOrEqual(maxExpected);
     });
   });
 });

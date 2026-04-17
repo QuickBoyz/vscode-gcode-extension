@@ -116,13 +116,9 @@ export class WorkerClient {
       return Promise.reject(new Error('WorkerClient has been disposed'));
     }
 
-    const phaseReporter = onProgress
-      ? (phase: VisualizerPhase) => onProgress({ phase })
-      : undefined;
-
     if (this.synchronousFallback) {
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables, phaseReporter)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
@@ -137,7 +133,7 @@ export class WorkerClient {
       // Worker creation failed; use sync fallback for this and future calls.
       this.synchronousFallback = true;
       return Promise.resolve(
-        this.fallbackService.extractToolPath(text, dialect, settingsVariables, phaseReporter)
+        this.fallbackService.extractToolPath(text, dialect, settingsVariables, onProgress)
       );
     }
 
