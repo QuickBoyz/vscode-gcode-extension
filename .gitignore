@@ -5,3 +5,4 @@ dist
 out
 .vscode-test
 *.tsbuildinfo
+.claude/NOTES.md

@@ -1,4 +1,7 @@
-import { ErrorKind } from '../context/documentReducer';
+import { ErrorKind, Range } from '../context/documentReducer';
+import vscode from '../vscodeApi';
+
+const NAVIGATE_TO_LINE = 'navigateToLine' as const;
 
 type EmptyMessageProps =
   | { readonly variant: 'idle' }
@@ -8,6 +11,7 @@ type EmptyMessageProps =
       readonly errorKind: ErrorKind;
       readonly filename: string | null;
       readonly message: string;
+      readonly range: Range | null;
     };
 
 const ERROR_HEADERS: Record<ErrorKind, string> = {
@@ -43,6 +47,12 @@ export function EmptyMessage(props: EmptyMessageProps) {
     );
   }
 
+  const { range } = props;
+  const locationLabel =
+    range !== null
+      ? `line ${range.start.line + 1}:${range.start.character + 1}`
+      : null;
+
   return (
     <div id="empty-msg" className="empty-msg-error">
       <strong>{ERROR_HEADERS[props.errorKind]}</strong>
@@ -54,6 +64,24 @@ export function EmptyMessage(props: EmptyMessageProps) {
       )}
       <br />
       <span className="empty-msg-reason">{props.message}</span>
+      {range !== null && locationLabel !== null && (
+        <>
+          <br />
+          <span
+            className="empty-msg-location"
+            role="button"
+            tabIndex={0}
+            onClick={() => vscode.postMessage({ type: NAVIGATE_TO_LINE, line: range.start.line })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                vscode.postMessage({ type: NAVIGATE_TO_LINE, line: range.start.line });
+              }
+            }}
+          >
+            {locationLabel}
+          </span>
+        </>
+      )}
     </div>
   );
 }

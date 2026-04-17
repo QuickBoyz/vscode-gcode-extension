@@ -38,6 +38,7 @@ export function CanvasArea() {
           errorKind={status.errorKind}
           filename={status.filename}
           message={status.message}
+          range={status.range}
         />
       )}
       {status.kind === DocumentStatusKind.LOADING && (

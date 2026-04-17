@@ -9,7 +9,10 @@
 import { DialectType } from '../constants';
 import { AxisParameterNode } from '../parser/nodes/AxisParameterNode';
 import { ProgramNode } from '../parser/nodes/ProgramNode';
+import { Range } from '../parser/nodes/Range';
 import { GCodeExpressionEvaluator } from './GCodeExpressionEvaluator';
+
+export type { Range };
 
 /**
  * Projection mode for the 3D visualizer camera.
@@ -157,6 +160,8 @@ export interface VisualizerSuccess {
 export interface VisualizerFailure {
   readonly success: false;
   readonly errorMessage: string;
+  /** Source range from the underlying ParseError, or null for non-parse failures. */
+  readonly range: Range | null;
 }
 
 /**
@@ -202,6 +207,8 @@ export interface WorkerErrorResponse {
   readonly type: 'error';
   readonly id: number;
   readonly errorMessage: string;
+  /** Populated when the worker reports a structured parse failure; null otherwise. */
+  readonly range: Range | null;
 }
 
 /**

@@ -194,7 +194,7 @@ export class SemanticAnalysisVisitor extends BaseAstVisitor<void> {
     if (existing) {
       this.diagnostics.push({
         range: node.getRange(),
-        message: `Duplicate line number N${node.lineNumber} (first seen at line ${existing.start.line + 1})`,
+        message: `Duplicate line number N${node.lineNumber}`,
         category: DiagnosticCategory.Warning,
         code: SemanticDiagnosticCode.DUPLICATE_LINE_NUMBER,
       });

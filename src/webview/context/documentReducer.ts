@@ -1,10 +1,13 @@
 import {
   PathBounds,
   PathSegment,
+  Range,
   ReferencedVariable,
   VisualizerConfig,
   VisualizerErrorKind,
 } from '../../visualizer/types';
+
+export type { Range };
 
 /**
  * Re-export of {@link VisualizerErrorKind} under the webview-facing name
@@ -61,6 +64,8 @@ export type DocumentStatus =
       readonly errorKind: VisualizerErrorKind;
       readonly message: string;
       readonly filename: string | null;
+      /** Populated for PARSE_FAILURE; null for WORKER_CRASH / UNKNOWN. */
+      readonly range: Range | null;
     };
 
 // ── Webview message protocol ────────────────────────────────────────
@@ -75,7 +80,12 @@ export type WebviewMessage =
       readonly settingsVariables: readonly ReferencedVariable[];
     }
   | { readonly type: 'updateSettings'; readonly settings: Partial<VisualizerConfig> }
-  | { readonly type: 'error'; readonly errorKind: VisualizerErrorKind; readonly message: string }
+  | {
+      readonly type: 'error';
+      readonly errorKind: VisualizerErrorKind;
+      readonly message: string;
+      readonly range: Range | null;
+    }
   | {
       readonly type: 'loading';
       readonly phase: LoadingPhase;
@@ -107,7 +117,12 @@ export type DocumentAction =
       readonly phase: LoadingPhase;
       readonly filename: string | null;
     }
-  | { readonly type: 'error'; readonly errorKind: VisualizerErrorKind; readonly message: string };
+  | {
+      readonly type: 'error';
+      readonly errorKind: VisualizerErrorKind;
+      readonly message: string;
+      readonly range: Range | null;
+    };
 
 export const INITIAL_DOCUMENT_STATE: DocumentState = {
   status: { kind: DocumentStatusKind.IDLE },
@@ -155,6 +170,8 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       };
     }
     case 'error': {
+      // Invariant: range is non-null only for PARSE_FAILURE.
+      const range = action.errorKind === VisualizerErrorKind.PARSE_FAILURE ? action.range : null;
       return {
         ...state,
         status: {
@@ -162,6 +179,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
           errorKind: action.errorKind,
           message: action.message.length > 0 ? action.message : FALLBACK_ERROR_MESSAGE,
           filename: currentFilename(state),
+          range,
         },
       };
     }

@@ -217,7 +217,11 @@ export class WorkerClient {
     if (message.type === 'result') {
       pending.resolve(message.result);
     } else {
-      pending.resolve({ success: false, errorMessage: message.errorMessage });
+      pending.resolve({
+        success: false,
+        errorMessage: message.errorMessage,
+        range: message.range,
+      });
     }
   }
 

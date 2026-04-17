@@ -24,6 +24,9 @@ const LARGE_FIXTURE_PATH = path.resolve(
   'surface-finish.ngc'
 );
 
+// Webview DOM and click events are not reachable from the Extension Host,
+// so payload inspection and link-click behavior are covered by unit tests
+// (WorkerClient, documentReducer, CommandProvider) rather than here.
 suite('Visualizer E2E Tests', () => {
   TestUtils.setup();
 

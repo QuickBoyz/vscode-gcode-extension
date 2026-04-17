@@ -61,6 +61,7 @@ parentPort?.on('message', (request: WorkerRequest) => {
       type: 'error',
       id: request.id,
       errorMessage,
+      range: null,
     };
     parentPort?.postMessage(errorResponse);
   }

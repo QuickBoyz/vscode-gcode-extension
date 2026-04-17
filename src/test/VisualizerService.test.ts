@@ -1,5 +1,7 @@
 import { VisualizerService } from '../client/VisualizerService';
+import { ParseError } from '../errors/ParseError';
 import * as LexerFactoryModule from '../lexer/LexerFactory';
+import { Range } from '../parser/nodes/Range';
 import { MotionType } from '../visualizer/types';
 
 describe('VisualizerService', () => {
@@ -56,10 +58,11 @@ describe('VisualizerService', () => {
   // Error cases
   // ---------------------------------------------------------------------------
 
-  it('returns a failure result when the lexer throws', () => {
+  it('returns a failure result when the lexer throws a ParseError with a range', () => {
+    const range = Range.create(3, 2, 3, 3);
     jest.spyOn(LexerFactoryModule.LexerFactory, 'create').mockReturnValue({
       tokenize: () => {
-        throw new Error('Unexpected character at line 1');
+        throw new ParseError('Unexpected character', undefined, undefined, range);
       },
     } as unknown as ReturnType<typeof LexerFactoryModule.LexerFactory.create>);
 
@@ -67,7 +70,25 @@ describe('VisualizerService', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.errorMessage).toBe('Unexpected character at line 1');
+      expect(result.errorMessage).toBe('Unexpected character');
+      expect(result.range).toEqual(range);
+    }
+
+    jest.restoreAllMocks();
+  });
+
+  it('returns range: null when a generic Error is thrown', () => {
+    jest.spyOn(LexerFactoryModule.LexerFactory, 'create').mockReturnValue({
+      tokenize: () => {
+        throw new Error('Internal error');
+      },
+    } as unknown as ReturnType<typeof LexerFactoryModule.LexerFactory.create>);
+
+    const result = service.extractToolPath('anything');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.range).toBeNull();
     }
 
     jest.restoreAllMocks();
@@ -86,6 +107,7 @@ describe('VisualizerService', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.errorMessage).toBe('An unknown error occurred during G-code parsing');
+      expect(result.range).toBeNull();
     }
 
     jest.restoreAllMocks();

@@ -23,13 +23,13 @@ import { LinuxCNCParser } from '../src/parser/dialects/LinuxCNCParser';
 import { GCodeInterpreter } from '../src/visualizer/GCodeInterpreter';
 import { GCodePathExtractor } from '../src/visualizer/GCodePathExtractor';
 import { ProjectionMode } from '../src/visualizer/types';
+import { GeometryCache } from '../src/webview/GeometryCache';
 import {
   DEPTH_QUANT_MAX,
   FrameScratch,
-  GeometryCache,
   SORT_IDX_BITS,
   SORT_IDX_MASK,
-} from '../src/webview/geometryCache';
+} from '../src/webview/FrameScratch';
 import { projectBatch, createCameraState } from '../src/webview/projection';
 import { StyleBucket } from '../src/webview/renderBuckets';
 
@@ -196,7 +196,10 @@ function renderFrame(
 
   let currentBucket = -1;
   let currentAlpha = -1;
-  let currentPath: { moveTo(x: number, y: number): void; lineTo(x: number, y: number): void } | null = null;
+  let currentPath: {
+    moveTo(x: number, y: number): void;
+    lineTo(x: number, y: number): void;
+  } | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Path2DCtor = (globalThis as any).Path2D;
 

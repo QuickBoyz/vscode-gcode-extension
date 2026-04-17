@@ -8,6 +8,7 @@
  * the extension host.
  */
 import { DialectType } from '../constants';
+import { ParseError } from '../errors/ParseError';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
 import { GCodeInterpreter } from '../visualizer/GCodeInterpreter';
@@ -55,9 +56,12 @@ export class VisualizerService {
       const data = extractor.extract(ast, interpreter);
       return { success: true, data };
     } catch (error: unknown) {
+      if (error instanceof ParseError) {
+        return { success: false, errorMessage: error.message, range: error.range };
+      }
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred during G-code parsing';
-      return { success: false, errorMessage };
+      return { success: false, errorMessage, range: null };
     }
   }
 }

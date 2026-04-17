@@ -7,6 +7,7 @@ import {
   documentReducer,
 } from '../webview/context/documentReducer';
 import { MotionType, PathBounds, PathSegment } from '../visualizer/types';
+import { Range } from '../parser/nodes/Range';
 
 const segment: PathSegment = {
   type: MotionType.FEED,
@@ -76,6 +77,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'parse failed',
+        range: null,
       });
       const loading = documentReducer(errored, {
         type: 'loading',
@@ -124,6 +126,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.PARSE_FAILURE,
         message: 'Unexpected token at line 42',
+        range: null,
       });
 
       expect(next.status.kind).toBe(DocumentStatusKind.ERROR);
@@ -139,6 +142,7 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.WORKER_CRASH,
         message: 'Visualizer worker exited with code 1',
+        range: null,
       });
 
       if (crash.status.kind === DocumentStatusKind.ERROR) {
@@ -153,11 +157,75 @@ describe('documentReducer', () => {
         type: 'error',
         errorKind: ErrorKind.UNKNOWN,
         message: '',
+        range: null,
       });
 
       if (next.status.kind === DocumentStatusKind.ERROR) {
         expect(next.status.message.length).toBeGreaterThan(0);
         expect(next.status.errorKind).toBe(ErrorKind.UNKNOWN);
+      } else {
+        throw new Error('expected ERROR state');
+      }
+    });
+
+    it('carries range through to ERROR status for PARSE_FAILURE', () => {
+      const range = Range.create(3, 11, 3, 15);
+      const next = documentReducer(INITIAL_DOCUMENT_STATE, {
+        type: 'error',
+        errorKind: ErrorKind.PARSE_FAILURE,
+        message: 'Unexpected character',
+        range,
+      });
+
+      if (next.status.kind === DocumentStatusKind.ERROR) {
+        expect(next.status.range).toEqual(range);
+      } else {
+        throw new Error('expected ERROR state');
+      }
+    });
+
+    it('preserves range: null in ERROR status for PARSE_FAILURE when not provided', () => {
+      const next = documentReducer(INITIAL_DOCUMENT_STATE, {
+        type: 'error',
+        errorKind: ErrorKind.PARSE_FAILURE,
+        message: 'Parse error',
+        range: null,
+      });
+
+      if (next.status.kind === DocumentStatusKind.ERROR) {
+        expect(next.status.range).toBeNull();
+      } else {
+        throw new Error('expected ERROR state');
+      }
+    });
+
+    it('invariant: range is null for WORKER_CRASH even when action provides one', () => {
+      const range = Range.create(0, 0, 0, 1);
+      const next = documentReducer(INITIAL_DOCUMENT_STATE, {
+        type: 'error',
+        errorKind: ErrorKind.WORKER_CRASH,
+        message: 'crash',
+        range,
+      });
+
+      if (next.status.kind === DocumentStatusKind.ERROR) {
+        expect(next.status.range).toBeNull();
+      } else {
+        throw new Error('expected ERROR state');
+      }
+    });
+
+    it('invariant: range is null for UNKNOWN even when action provides one', () => {
+      const range = Range.create(1, 4, 1, 5);
+      const next = documentReducer(INITIAL_DOCUMENT_STATE, {
+        type: 'error',
+        errorKind: ErrorKind.UNKNOWN,
+        message: 'unknown',
+        range,
+      });
+
+      if (next.status.kind === DocumentStatusKind.ERROR) {
+        expect(next.status.range).toBeNull();
       } else {
         throw new Error('expected ERROR state');
       }
