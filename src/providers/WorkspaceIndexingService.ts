@@ -215,6 +215,7 @@ export class WorkspaceIndexingService {
         progress
       );
       if (scanGeneration !== this.currentScanGeneration) return;
+      if (!this.enabled) return;
 
       // Open the "Indexing…" phase only after enumeration returns so the
       // client's "Finding…" phase (emitted under the same workDoneToken in
@@ -314,6 +315,7 @@ export class WorkspaceIndexingService {
     }
 
     const params: GCodeListIndexFilesParams = {
+      // filesystem paths; client currently ignores this field
       folders: roots,
       scanGeneration,
       includeGlob: GCODE_INCLUDE_GLOB,
@@ -324,6 +326,13 @@ export class WorkspaceIndexingService {
     };
 
     const result = await this.requestFiles(params, token);
+
+    if (result.scanGeneration !== scanGeneration) {
+      this.logger?.(
+        `gcodeListIndexFiles response echoed generation ${String(result.scanGeneration)} but current is ${String(scanGeneration)}; discarding`
+      );
+      return [];
+    }
 
     if (result.truncated) {
       this.logger?.(

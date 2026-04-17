@@ -24,8 +24,8 @@ export interface UriLike {
 }
 
 export interface ExcludeSettings {
-  readonly filesExclude: Record<string, boolean>;
-  readonly searchExclude: Record<string, boolean>;
+  readonly filesExclude: Record<string, unknown>;
+  readonly searchExclude: Record<string, unknown>;
 }
 
 export interface WorkspaceFileEnumeratorDeps {
@@ -50,6 +50,9 @@ export class WorkspaceFileEnumerator {
   }
 
   public async handle(params: GCodeListIndexFilesParams): Promise<GCodeListIndexFilesResult> {
+    // params.folders is received but intentionally not used for scoping.
+    // v1 always enumerates the whole workspace via findFiles; per-folder
+    // scoping is a future optimization.
     const excludeGlob = this.buildExcludeGlob(this.deps.getExcludes());
     const token = params.workDoneToken;
 
@@ -74,12 +77,12 @@ export class WorkspaceFileEnumerator {
   private buildExcludeGlob(settings: ExcludeSettings): string | undefined {
     const patterns = new Set<string>();
     for (const [pattern, enabled] of Object.entries(settings.filesExclude)) {
-      if (enabled) {
+      if (enabled === true) {
         patterns.add(pattern);
       }
     }
     for (const [pattern, enabled] of Object.entries(settings.searchExclude)) {
-      if (enabled) {
+      if (enabled === true) {
         patterns.add(pattern);
       }
     }

@@ -90,8 +90,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     getExcludes: () => {
       const config = vscode.workspace.getConfiguration();
       return {
-        filesExclude: config.get<Record<string, boolean>>('files.exclude') ?? {},
-        searchExclude: config.get<Record<string, boolean>>('search.exclude') ?? {},
+        filesExclude: config.get<Record<string, unknown>>('files.exclude') ?? {},
+        searchExclude: config.get<Record<string, unknown>>('search.exclude') ?? {},
       };
     },
     reportProgress: (token, value) => {

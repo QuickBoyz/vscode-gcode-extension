@@ -40,11 +40,9 @@ export class TrailingDebouncer {
       this.timer = undefined;
       try {
         const result = this.fn();
-        if (result instanceof Promise) {
-          result.catch((error: unknown) => {
-            this.onError?.(error);
-          });
-        }
+        Promise.resolve(result).catch((error: unknown) => {
+          this.onError?.(error);
+        });
       } catch (error: unknown) {
         this.onError?.(error);
       }

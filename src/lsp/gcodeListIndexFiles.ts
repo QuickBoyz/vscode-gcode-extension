@@ -12,7 +12,9 @@
 import { ProgressToken, RequestType } from 'vscode-languageserver-protocol';
 
 export interface GCodeListIndexFilesParams {
-  /** Workspace folder URIs the server wants enumerated. Empty array = entire workspace. */
+  /** Workspace folder paths the server wants enumerated. Empty array = entire workspace.
+   *  Note: the current client implementation does not use this field for scoping —
+   *  it always enumerates the whole workspace via `vscode.workspace.findFiles`. */
   readonly folders: readonly string[];
 
   /** Server-allocated WorkDoneProgress token for the "Finding files…" phase. */
