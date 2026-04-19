@@ -90,9 +90,6 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build extension
-        run: npm run build
-
       - name: Generate screenshots (attempt 1)
         id: screenshots
         continue-on-error: true

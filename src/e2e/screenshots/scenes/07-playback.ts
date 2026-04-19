@@ -7,6 +7,7 @@ import { WebviewReadyWaiter } from '../lib/WebviewReadyWaiter';
 
 const VISUALIZER_OPEN_DELAY_MS = 2000;
 const SEEK_SETTLE_MS = 500;
+const FRAME_SWITCH_TIMEOUT_MS = 10_000;
 
 export class PlaybackScene extends Scene {
   readonly outputPath = 'images/screenshots/07-playback.png';
@@ -25,7 +26,7 @@ export class PlaybackScene extends Scene {
 
     // Post playback control messages directly to the webview window.
     const webview = new WebView();
-    await webview.switchToFrame();
+    await webview.switchToFrame(FRAME_SWITCH_TIMEOUT_MS);
     try {
       await driver.executeScript(
         `window.postMessage({ type: 'playbackControl', action: 'seekToSegment', index: ${seekIndex} }, '*')`
