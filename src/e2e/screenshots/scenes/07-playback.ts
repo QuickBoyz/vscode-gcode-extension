@@ -6,13 +6,19 @@ import { VISUALIZER_CROP } from '../lib/cropRegions';
 import { Scene } from '../lib/Scene';
 import { WebviewReadyWaiter } from '../lib/WebviewReadyWaiter';
 
-const VISUALIZER_OPEN_DELAY_MS = 3000;
+// See VisualizerComplexScene — surface-finish.ngc is large enough that the
+// Three.js build phase pushes past the 3 s delay we used for the small fixtures.
+const VISUALIZER_OPEN_DELAY_MS = 6000;
 const SEEK_SETTLE_MS = 500;
 const FRAME_SWITCH_TIMEOUT_MS = 10_000;
 
 export class PlaybackScene extends Scene {
   readonly outputPath = 'images/screenshots/07-playback.png';
-  readonly fixture = 'fixtures/screenshots/playback.nc';
+  // Use the same benchmark fixture as the complex visualizer scene so playback
+  // seek lands on a visually rich toolpath (completed trail + ghosted remainder
+  // at 60%). Relative-path escape shares the fixture with `src/test/fixtures`
+  // without duplicating the 3 MB file into `src/e2e/fixtures/screenshots/`.
+  readonly fixture = '../test/fixtures/surface-finish.ngc';
   readonly cropRegion = VISUALIZER_CROP;
 
   async interact(driver: WebDriver): Promise<void> {

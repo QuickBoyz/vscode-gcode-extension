@@ -47,6 +47,20 @@ export class SceneRunner {
   }
 
   private async prepareForScene(driver: WebDriver, scene: Scene): Promise<void> {
+    // Close any panel (Problems, Output, Terminal) that a prior scene may have
+    // opened. Without this, the Problems-panel state from `08-errors` leaks
+    // into `09-symbols` and the Outline capture shows 8 red diagnostics.
+    // `workbench.action.closePanel` is a no-op when no panel is visible, so
+    // it's safe to run unconditionally.
+    await CommandPaletteRunner.runCommand(driver, 'workbench.action.closePanel');
+
+    // Merge any lingering editor splits back into a single group. Visualizer
+    // scenes (#05–07, #11) open a second group; without joining, the leftmost
+    // group keeps a stale fixture tab that shows through in narrower crops
+    // (notably `OUTLINE_CROP` for #09). Visualizer scenes recreate their split
+    // during their own `interact` phase, so this does not fight them.
+    await CommandPaletteRunner.runCommand(driver, 'workbench.action.joinAllGroups');
+
     // Open the fixture via Quick Open. `code -r <path>` (VSBrowser.openResources)
     // fails silently against VS Code instances launched by ChromeDriver.
     // We use raw keyboard input (see CommandPaletteRunner) instead of the

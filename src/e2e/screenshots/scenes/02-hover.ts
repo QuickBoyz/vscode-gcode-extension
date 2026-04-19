@@ -12,11 +12,25 @@ export class HoverScene extends Scene {
   readonly cropRegion = EDITOR_CROP;
 
   async interact(driver: WebDriver): Promise<void> {
+    // Land the cursor on a G-code word that has rich hover docs. Line 2 of
+    // complex.nc is `G21 G90 G54`; positioning after column 1 places the cursor
+    // inside `G21` so the hover widget resolves to the G21 reference entry.
     const editor = new TextEditor();
-    // Move cursor to line 1 and hover over the first G-code word to trigger hover docs.
-    await editor.moveCursor(1, 1);
-    // Trigger hover via keyboard shortcut (Shift+F1 = show hover / editor.action.showHover).
-    await editor.getDriver().actions().sendKeys(Key.chord(Key.SHIFT, Key.F1)).perform();
+    await editor.moveCursor(2, 2);
+
+    // `editor.action.showHover` is bound to `Ctrl+K Ctrl+I` in VS Code. The
+    // previous `Shift+F1` binding is unrelated to hover — F1 alone opens the
+    // command palette, and the Shift modifier was dropped in Selenium's chord
+    // path, which is why prior captures showed the palette instead of a tooltip.
+    await driver
+      .actions()
+      .keyDown(Key.CONTROL)
+      .sendKeys('k')
+      .keyUp(Key.CONTROL)
+      .keyDown(Key.CONTROL)
+      .sendKeys('i')
+      .keyUp(Key.CONTROL)
+      .perform();
     await driver.sleep(HOVER_SETTLE_MS);
   }
 }

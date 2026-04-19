@@ -17,7 +17,11 @@ const QUICKPICK_SETTLE_MS = 1000;
  */
 export class SymbolsScene extends Scene {
   readonly outputPath = 'images/screenshots/09a-symbols-outline.png';
-  readonly fixture = 'fixtures/complex.nc';
+  // variables.nc is a clean, valid fixture with three named parameters
+  // (#<counter>, #<var>, #<result>) and a WHILE block — rich outline without
+  // the "ERROR: …" placeholder comments that complex.nc ships for the errors
+  // scene.
+  readonly fixture = 'fixtures/variables.nc';
   readonly cropRegion = OUTLINE_CROP;
 
   override async capture(driver: WebDriver): Promise<void> {
