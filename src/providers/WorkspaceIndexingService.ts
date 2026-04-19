@@ -46,7 +46,7 @@ import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gco
 import { LspBoundProgressReporter, ProgressReporter } from '../utils/ProgressReporter';
 import { ClientFeatureFlags } from './ClientFeatureFlags';
 import { FolderDialectResolver } from './FolderDialectResolver';
-import { WorkspaceIndexingConfigurationError } from './WorkspaceIndexingConfigurationError';
+import { WorkspaceIndexingConfigurationError } from '../errors/WorkspaceIndexingConfigurationError';
 import { WorkspacePath } from './WorkspacePath';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
