@@ -28,19 +28,16 @@ import {
 } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
-/**
- * Discriminated union for playback control messages.
- * Mirrors the PlaybackActions interface in the webview.
- */
+/** Mirrors PlaybackControlMessage in src/webview/playback/types.ts (separate compilation context). */
 type PlaybackControlMessage =
-  | { type: 'playbackControl'; action: 'play' }
-  | { type: 'playbackControl'; action: 'pause' }
-  | { type: 'playbackControl'; action: 'stop' }
-  | { type: 'playbackControl'; action: 'exit' }
-  | { type: 'playbackControl'; action: 'stepForward' }
-  | { type: 'playbackControl'; action: 'stepBack' }
-  | { type: 'playbackControl'; action: 'seekToSegment'; index: number }
-  | { type: 'playbackControl'; action: 'setSpeed'; multiplier: number };
+  | { readonly type: 'playbackControl'; readonly action: 'play' }
+  | { readonly type: 'playbackControl'; readonly action: 'pause' }
+  | { readonly type: 'playbackControl'; readonly action: 'stop' }
+  | { readonly type: 'playbackControl'; readonly action: 'exit' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepForward' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepBack' }
+  | { readonly type: 'playbackControl'; readonly action: 'seekToSegment'; readonly index: number }
+  | { readonly type: 'playbackControl'; readonly action: 'setSpeed'; readonly multiplier: number };
 
 /**
  * Message types sent from the extension to the webview.

@@ -1,9 +1,7 @@
 import { WebDriver } from 'selenium-webdriver';
 
-import { CropRegion, Scene } from '../lib/Scene';
-
-/** Editor pane: no sidebar, no chrome — richest token variety for theme showcase. */
-const EDITOR_CROP: CropRegion = { left: 48, top: 35, width: 1872, height: 1023 };
+import { EDITOR_CROP } from '../lib/cropRegions';
+import { Scene } from '../lib/Scene';
 
 export class SyntaxScene extends Scene {
   readonly outputPath = 'images/screenshots/01-syntax.png';

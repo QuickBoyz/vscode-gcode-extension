@@ -5,12 +5,8 @@ import { WebDriver } from 'selenium-webdriver';
 import { Workbench } from 'vscode-extension-tester';
 
 import { Capture } from '../lib/Capture';
-import { CropRegion, Scene } from '../lib/Scene';
-
-/** Outline sidebar + editor together. */
-const OUTLINE_CROP: CropRegion = { left: 0, top: 35, width: 500, height: 1023 };
-/** Editor with the Go-to-Symbol quick-pick overlay. */
-const QUICKPICK_CROP: CropRegion = { left: 48, top: 35, width: 1872, height: 1023 };
+import { EDITOR_CROP, OUTLINE_CROP } from '../lib/cropRegions';
+import { Scene } from '../lib/Scene';
 
 const OUTLINE_SETTLE_MS = 1000;
 const QUICKPICK_SETTLE_MS = 1000;
@@ -43,6 +39,6 @@ export class SymbolsScene extends Scene {
     const qpPng = await driver.takeScreenshot();
     const qpBuffer = Buffer.from(qpPng, 'base64');
     const qpAbs = path.resolve(this.repoRoot, 'images/screenshots/09b-symbols-quickpick.png');
-    await Capture.cropAndWrite(qpBuffer, QUICKPICK_CROP, qpAbs);
+    await Capture.cropAndWrite(qpBuffer, EDITOR_CROP, qpAbs);
   }
 }

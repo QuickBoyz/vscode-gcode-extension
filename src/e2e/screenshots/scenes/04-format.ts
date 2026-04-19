@@ -5,9 +5,8 @@ import { WebDriver } from 'selenium-webdriver';
 import { Workbench } from 'vscode-extension-tester';
 
 import { Capture } from '../lib/Capture';
-import { CropRegion, Scene } from '../lib/Scene';
-
-const EDITOR_CROP: CropRegion = { left: 48, top: 35, width: 1872, height: 1023 };
+import { EDITOR_CROP } from '../lib/cropRegions';
+import { Scene } from '../lib/Scene';
 
 const FORMAT_SETTLE_MS = 1500;
 

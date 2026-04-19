@@ -1,10 +1,8 @@
-import { Key } from 'selenium-webdriver';
+import { Key, WebDriver } from 'selenium-webdriver';
 import { TextEditor } from 'vscode-extension-tester';
-import { WebDriver } from 'selenium-webdriver';
 
-import { CropRegion, Scene } from '../lib/Scene';
-
-const EDITOR_CROP: CropRegion = { left: 48, top: 35, width: 1872, height: 1023 };
+import { EDITOR_CROP } from '../lib/cropRegions';
+import { Scene } from '../lib/Scene';
 
 const HOVER_SETTLE_MS = 1500;
 

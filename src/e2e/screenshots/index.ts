@@ -2,7 +2,7 @@ import * as path from 'path';
 
 import { VSCodeLauncher } from './lib/VSCodeLauncher';
 
-const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
 async function main(): Promise<void> {
   const launcher = new VSCodeLauncher(repoRoot);

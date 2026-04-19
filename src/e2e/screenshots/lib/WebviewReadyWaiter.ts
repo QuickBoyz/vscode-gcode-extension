@@ -34,9 +34,9 @@ export class WebviewReadyWaiter {
    * Switches to the visualizer webview, reads totalSegments from __gcodeVisualizerState,
    * then switches back.
    */
-  static async readTotalSegments(driver: WebDriver): Promise<number> {
+  static async readTotalSegments(driver: WebDriver, timeoutMs = 10_000): Promise<number> {
     const webview = new WebView();
-    await webview.switchToFrame();
+    await webview.switchToFrame(timeoutMs);
 
     try {
       const total = await driver.executeScript<number>(

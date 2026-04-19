@@ -7,7 +7,7 @@ import { createAllScenes } from './scenes/index';
 
 const SUITE_TIMEOUT_MS = 300_000;
 
-const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
 suite('Screenshot pipeline', function () {
   this.timeout(SUITE_TIMEOUT_MS);

@@ -20,9 +20,10 @@ export class VSCodeLauncher {
     const settingsPath = SettingsSeeder.createTempFile();
 
     const tester = new ExTester(path.join(this.repoRoot, '.vscode-test', 'screenshot-storage'));
+    const vsixFile = path.join(this.repoRoot, '.vscode-test', 'screenshot-extension.vsix');
 
     await tester.downloadCode('stable');
-    await tester.installVsix();
+    await tester.installVsix({ vsixFile });
 
     return tester.runTests(runnerPattern, {
       resources: [path.join(this.repoRoot, 'src', 'e2e', 'fixtures')],

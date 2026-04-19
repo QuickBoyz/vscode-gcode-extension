@@ -40,7 +40,7 @@
     "build:webview": "node scripts/build-webview.mjs",
     "watch:webview": "node scripts/build-webview.mjs --watch",
     "build:e2e": "npm run build && rm -rf out && tsc --project tsconfig.e2e.json",
-    "screenshots": "npm run build:e2e && node out/e2e/screenshots/index.js",
+    "screenshots": "npm run build:e2e && npx vsce package --out .vscode-test/screenshot-extension.vsix && node out/e2e/screenshots/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",

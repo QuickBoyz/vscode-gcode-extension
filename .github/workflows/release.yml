@@ -107,10 +107,10 @@ jobs:
       - name: Commit screenshots if changed
         if: steps.screenshots.outcome == 'success' || steps.screenshots_retry.outcome == 'success'
         run: |
-          if git diff --quiet images/screenshots/; then
+          git add images/screenshots/
+          if git diff --cached --quiet images/screenshots/; then
             echo "No screenshot changes — skipping commit"
           else
-            git add images/screenshots/
             git commit -m "chore: regenerate README screenshots for ${{ steps.bump_version.outputs.new_version }}"
             git push origin main
           fi
