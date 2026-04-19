@@ -29,6 +29,20 @@ import {
 import { generateNonce } from './nonce';
 
 /**
+ * Discriminated union for playback control messages.
+ * Mirrors the PlaybackActions interface in the webview.
+ */
+type PlaybackControlMessage =
+  | { type: 'playbackControl'; action: 'play' }
+  | { type: 'playbackControl'; action: 'pause' }
+  | { type: 'playbackControl'; action: 'stop' }
+  | { type: 'playbackControl'; action: 'exit' }
+  | { type: 'playbackControl'; action: 'stepForward' }
+  | { type: 'playbackControl'; action: 'stepBack' }
+  | { type: 'playbackControl'; action: 'seekToSegment'; index: number }
+  | { type: 'playbackControl'; action: 'setSpeed'; multiplier: number };
+
+/**
  * Message types sent from the extension to the webview.
  */
 type ExtensionToWebviewMessage =
@@ -53,7 +67,8 @@ type ExtensionToWebviewMessage =
       phase: VisualizerPhase;
       filename: string | null;
       message?: string;
-    };
+    }
+  | PlaybackControlMessage;
 
 /**
  * Message types received from the webview.

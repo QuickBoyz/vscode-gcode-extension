@@ -162,23 +162,29 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
       const msg = message as WebviewMessage;
       switch (msg.type) {
         case 'update': {
+          const segments = msg.segments ?? [];
           dispatch({
             type: 'update',
-            segments: msg.segments ?? [],
+            segments,
             bounds: msg.bounds ?? null,
             sourceTokens: msg.sourceTokens as SourceTokens | undefined,
             referencedVariables: msg.referencedVariables ?? [],
             settingsVariables: msg.settingsVariables ?? [],
           });
           hideTooltip();
+          window.__gcodeVisualizerState = { totalSegments: segments.length };
           requestAnimationFrame(() => {
             const controls = cameraControlsRef.current;
             if (controls) {
               controls.clearProjectedCache();
-              controls.fitView(msg.segments ?? [], msg.bounds ?? null);
+              controls.fitView(segments, msg.bounds ?? null);
               controls.scheduleRender();
               notifyCameraChange();
             }
+            // Double-rAF: signal ready after the canvas render frame has been queued.
+            requestAnimationFrame(() => {
+              window.__gcodeVisualizerReady = true;
+            });
           });
           break;
         }
