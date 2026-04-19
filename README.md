@@ -2,6 +2,26 @@
 
 A Visual Studio Code extension providing comprehensive G-Code language support with syntax highlighting, intelligent formatting, and Language Server Protocol (LSP) integration.
 
+## Screenshots
+
+![Hero — editor and 3D visualizer side by side](images/screenshots/11-hero.png)
+
+| Syntax highlighting                                      | Hover documentation                            | Completions                                          |
+| -------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| ![Syntax highlighting](images/screenshots/01-syntax.png) | ![Hover docs](images/screenshots/02-hover.png) | ![Completions](images/screenshots/03-completion.png) |
+
+| Formatter before                                               | Formatter after                                              | Diagnostics                                 |
+| -------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------- |
+| ![Before formatting](images/screenshots/04a-format-before.png) | ![After formatting](images/screenshots/04b-format-after.png) | ![Errors](images/screenshots/08-errors.png) |
+
+| Symbols outline                                        | Symbol quick-pick                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| ![Outline](images/screenshots/09a-symbols-outline.png) | ![Quick-pick](images/screenshots/09b-symbols-quickpick.png) |
+
+| Basic 3D visualizer                                             | Complex multi-tool path                                           | Playback at 60%                                 |
+| --------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| ![Basic visualizer](images/screenshots/05-visualizer-basic.png) | ![Complex toolpath](images/screenshots/06-visualizer-complex.png) | ![Playback](images/screenshots/07-playback.png) |
+
 ## Features
 
 - **3D Tool-Path Visualizer**: Interactive 3D view of cutting paths with orbit, pan, and zoom
