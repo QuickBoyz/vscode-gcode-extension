@@ -1,11 +1,12 @@
 import { WebDriver } from 'selenium-webdriver';
-import { WebView, Workbench } from 'vscode-extension-tester';
+import { WebView } from 'vscode-extension-tester';
 
+import { CommandPaletteRunner } from '../lib/CommandPaletteRunner';
 import { VISUALIZER_CROP } from '../lib/cropRegions';
 import { Scene } from '../lib/Scene';
 import { WebviewReadyWaiter } from '../lib/WebviewReadyWaiter';
 
-const VISUALIZER_OPEN_DELAY_MS = 2000;
+const VISUALIZER_OPEN_DELAY_MS = 3000;
 const SEEK_SETTLE_MS = 500;
 const FRAME_SWITCH_TIMEOUT_MS = 10_000;
 
@@ -15,8 +16,7 @@ export class PlaybackScene extends Scene {
   readonly cropRegion = VISUALIZER_CROP;
 
   async interact(driver: WebDriver): Promise<void> {
-    const bench = new Workbench();
-    await bench.executeCommand('gcode.openVisualizer');
+    await CommandPaletteRunner.runCommand(driver, 'gcode.openVisualizer');
     await driver.sleep(VISUALIZER_OPEN_DELAY_MS);
     await WebviewReadyWaiter.waitUntilReady(driver);
 

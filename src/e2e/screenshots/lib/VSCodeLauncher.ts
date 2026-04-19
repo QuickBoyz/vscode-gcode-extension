@@ -4,6 +4,15 @@ import { ExTester } from 'vscode-extension-tester';
 
 import { SettingsSeeder } from './SettingsSeeder';
 
+/**
+ * Pinned to a stable VS Code version. ExTester 8.x resolves ChromeDriver via
+ * the Chrome-for-Testing endpoint, so we are no longer constrained to the
+ * Chromium-114 era. This version's bundled Electron exposes the CDP
+ * `Browser.getWindowForTarget` command, which is what makes `setRect()` and
+ * `maximize()` work (both are needed to coerce the window to 1920x1080 on CI).
+ */
+const PINNED_VSCODE_VERSION = '1.95.3';
+
 /** Wraps ExTester setup for the screenshot pipeline. */
 export class VSCodeLauncher {
   private readonly repoRoot: string;
@@ -19,15 +28,23 @@ export class VSCodeLauncher {
   async launch(runnerPattern: string): Promise<number> {
     const settingsPath = SettingsSeeder.createTempFile();
 
-    const tester = new ExTester(path.join(this.repoRoot, '.vscode-test', 'screenshot-storage'));
+    // Isolate the test instance's extensions dir so user-installed extensions
+    // (e.g. vscode-icons, which injects a welcome toast) do not leak into the
+    // screenshots. Without this, ExTester picks up ~/.vscode/extensions.
+    const storageDir = path.join(this.repoRoot, '.vscode-test', 'screenshot-storage');
+    const extensionsDir = path.join(this.repoRoot, '.vscode-test', 'screenshot-extensions');
+    const tester = new ExTester(storageDir, undefined, extensionsDir);
     const vsixFile = path.join(this.repoRoot, '.vscode-test', 'screenshot-extension.vsix');
 
-    await tester.downloadCode('stable');
+    await tester.downloadCode(PINNED_VSCODE_VERSION);
+    await tester.downloadChromeDriver(PINNED_VSCODE_VERSION);
     await tester.installVsix({ vsixFile });
 
     return tester.runTests(runnerPattern, {
+      vscodeVersion: PINNED_VSCODE_VERSION,
       resources: [path.join(this.repoRoot, 'src', 'e2e', 'fixtures')],
       settings: settingsPath,
+      config: path.join(this.repoRoot, 'src', 'e2e', 'screenshots', '.mocharc.js'),
     });
   }
 }

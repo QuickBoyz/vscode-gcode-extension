@@ -1,10 +1,10 @@
 import { WebDriver } from 'selenium-webdriver';
-import { Workbench } from 'vscode-extension-tester';
 
+import { CommandPaletteRunner } from '../lib/CommandPaletteRunner';
 import { EDITOR_CROP } from '../lib/cropRegions';
 import { Scene } from '../lib/Scene';
 
-const PANEL_SETTLE_MS = 1000;
+const PANEL_SETTLE_MS = 1500;
 
 export class ErrorsScene extends Scene {
   readonly outputPath = 'images/screenshots/08-errors.png';
@@ -13,8 +13,7 @@ export class ErrorsScene extends Scene {
 
   async interact(driver: WebDriver): Promise<void> {
     // Open the Problems panel so diagnostics are visible.
-    const bench = new Workbench();
-    await bench.executeCommand('workbench.actions.view.problems');
+    await CommandPaletteRunner.runCommand(driver, 'workbench.actions.view.problems');
     await driver.sleep(PANEL_SETTLE_MS);
   }
 }

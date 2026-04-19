@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { WebDriver } from 'selenium-webdriver';
-import { Workbench } from 'vscode-extension-tester';
 
 import { Capture } from '../lib/Capture';
+import { CommandPaletteRunner } from '../lib/CommandPaletteRunner';
 import { EDITOR_CROP } from '../lib/cropRegions';
 import { Scene } from '../lib/Scene';
 
@@ -29,8 +29,7 @@ export class FormatScene extends Scene {
     await Capture.cropAndWrite(beforeBuffer, EDITOR_CROP, beforeAbs);
 
     // ── Format ────────────────────────────────────────────────────────
-    const bench = new Workbench();
-    await bench.executeCommand('editor.action.formatDocument');
+    await CommandPaletteRunner.runCommand(driver, 'editor.action.formatDocument');
     await driver.sleep(FORMAT_SETTLE_MS);
 
     // ── After ─────────────────────────────────────────────────────────

@@ -14,7 +14,15 @@ suite('Screenshot pipeline', function () {
 
   test('Capture all scenes', async function () {
     const driver = VSBrowser.instance.driver;
-    await driver.manage().window().setSize(1920, 1080);
+    // The xvfb virtual display is sized to 1920x1080 via `--server-args`.
+    // Selenium's `setRect` / `maximize` both map to CDP `Browser.getWindowForTarget`,
+    // which VS Code's Electron build does not expose. `window.resizeTo()` is a
+    // plain DOM call that Electron's BrowserWindow honors, so we use it directly.
+    try {
+      await driver.executeScript('window.moveTo(0, 0); window.resizeTo(1920, 1080);');
+    } catch (error) {
+      console.warn('[screenshot] window.resizeTo failed, using xvfb default:', error);
+    }
 
     const scenes = createAllScenes(repoRoot);
     const runner = new SceneRunner(scenes);

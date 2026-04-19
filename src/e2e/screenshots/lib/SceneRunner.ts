@@ -1,6 +1,6 @@
 import { WebDriver } from 'selenium-webdriver';
-import { EditorView, VSBrowser } from 'vscode-extension-tester';
 
+import { CommandPaletteRunner } from './CommandPaletteRunner';
 import { Scene } from './Scene';
 
 const SETTLE_DELAY_MS = 2000;
@@ -47,10 +47,17 @@ export class SceneRunner {
   }
 
   private async prepareForScene(driver: WebDriver, scene: Scene): Promise<void> {
-    // Close any open editors so each scene starts clean.
-    await new EditorView().closeAllEditors();
-    // Open the fixture file in a new editor.
-    await VSBrowser.instance.openResources(scene.fixtureAbsPath());
+    // Open the fixture via Quick Open. `code -r <path>` (VSBrowser.openResources)
+    // fails silently against VS Code instances launched by ChromeDriver.
+    // We use raw keyboard input (see CommandPaletteRunner) instead of the
+    // monaco-page-objects helper because the latter's webview-detection path
+    // wedges after the visualizer scenes. We intentionally do NOT close
+    // previous editors: `closeAllEditors` triggers "unsaved changes" modals
+    // whenever a prior scene mutated the buffer (e.g. FormatScene), and those
+    // modals cannot be reliably dismissed via selenium. Quick Open brings the
+    // freshly-opened fixture to the foreground; stale tabs are harmless.
+    await CommandPaletteRunner.openFile(driver, scene.fixtureAbsPath());
+
     // Allow the language server and document to settle.
     await driver.sleep(SETTLE_DELAY_MS);
   }
