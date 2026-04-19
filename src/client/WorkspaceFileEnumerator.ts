@@ -20,6 +20,7 @@ import {
 } from 'vscode-languageserver-protocol';
 
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
+import { ExcludeGlobBuilder } from './ExcludeGlobBuilder';
 
 export interface UriLike {
   toString(): string;
@@ -86,7 +87,7 @@ export class WorkspaceFileEnumerator {
       const allFiles: string[] = [];
 
       for (const folderUri of folders) {
-        const excludeGlob = this.buildExcludeGlob(this.deps.getExcludes(folderUri));
+        const excludeGlob = ExcludeGlobBuilder.build(this.deps.getExcludes(folderUri));
         const uris = await this.deps.findFiles(params.includeGlob, excludeGlob, folderUri);
         for (const uri of uris) {
           allFiles.push(uri.toString());
@@ -103,27 +104,5 @@ export class WorkspaceFileEnumerator {
         this.deps.reportProgress(token, { kind: 'end' });
       }
     }
-  }
-
-  private buildExcludeGlob(settings: ExcludeSettings): string | undefined {
-    const patterns = new Set<string>();
-    for (const [pattern, enabled] of Object.entries(settings.filesExclude)) {
-      if (enabled === true) {
-        patterns.add(pattern);
-      }
-    }
-    for (const [pattern, enabled] of Object.entries(settings.searchExclude)) {
-      if (enabled === true) {
-        patterns.add(pattern);
-      }
-    }
-
-    if (patterns.size === 0) {
-      return undefined;
-    }
-    if (patterns.size === 1) {
-      return patterns.values().next().value;
-    }
-    return `{${Array.from(patterns).join(',')}}`;
   }
 }

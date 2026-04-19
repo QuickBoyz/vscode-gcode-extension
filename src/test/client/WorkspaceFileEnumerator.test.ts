@@ -230,7 +230,10 @@ describe('WorkspaceFileEnumerator', () => {
           findFilesCalls.push({ include, exclude, folderUri });
           return Promise.resolve([]);
         },
-        getExcludes: () => {
+        getExcludes: (folderUri: string) => {
+          if (folderUri === 'file:///workspace/a') {
+            return { filesExclude: { '**/build': true }, searchExclude: {} };
+          }
           return { filesExclude: {}, searchExclude: {} };
         },
         reportProgress: jest.fn(),

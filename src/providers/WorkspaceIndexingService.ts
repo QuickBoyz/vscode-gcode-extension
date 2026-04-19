@@ -37,7 +37,7 @@
 import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 
@@ -45,6 +45,9 @@ import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
 import { LspBoundProgressReporter, ProgressReporter } from '../utils/ProgressReporter';
 import { ClientFeatureFlags } from './ClientFeatureFlags';
+import { FolderDialectResolver } from './FolderDialectResolver';
+import { WorkspaceIndexingConfigurationError } from './WorkspaceIndexingConfigurationError';
+import { WorkspacePath } from './WorkspacePath';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
 const SCAN_BATCH_SIZE = 50;
@@ -204,6 +207,7 @@ export class WorkspaceIndexingService {
       const rootUri = pathToFileURL(root).toString();
       folderDialects.set(root, await this.getDialect(rootUri));
     }
+    const dialectResolver = new FolderDialectResolver(folderDialects, roots);
 
     const progress = (await this.progressFactory?.()) ?? undefined;
 
@@ -222,7 +226,7 @@ export class WorkspaceIndexingService {
       // the client enumeration branch) is visible first. The server opens
       // one progress element and the UI morphs through both phases.
       progress?.begin('Indexing G-code files');
-      await this.indexFromList(fileUris, folderDialects, roots, scanGeneration, progress);
+      await this.indexFromList(fileUris, dialectResolver, scanGeneration, progress);
     } finally {
       progress?.done();
       // Only dispose the CTS if it is still the current one. If a newer scan
@@ -348,8 +352,7 @@ export class WorkspaceIndexingService {
 
   private async indexFromList(
     fileUris: readonly string[],
-    folderDialects: ReadonlyMap<string, DialectType>,
-    roots: readonly string[],
+    dialectResolver: FolderDialectResolver,
     scanGeneration: number,
     progress: ProgressReporter | undefined
   ): Promise<void> {
@@ -364,13 +367,13 @@ export class WorkspaceIndexingService {
 
       const batch = fileUris.slice(i, i + SCAN_BATCH_SIZE);
       for (const uri of batch) {
-        const dialect = resolveDialectForUri(uri, folderDialects, roots);
+        const dialect = dialectResolver.resolveForFileUri(uri);
         await this.indexFile(uri, dialect);
         processed++;
         const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
         progress?.report(percentage, `Indexed ${processed.toString()} of ${total.toString()}`);
       }
-      await yieldToEventLoop();
+      await this.yieldToEventLoop();
     }
   }
 
@@ -383,13 +386,13 @@ export class WorkspaceIndexingService {
     }
 
     // Resolve the folder containing this URI so we can apply its dialect.
-    const folderUri = resolveFolderUriForChangedFile(uri, this.lastRoots);
+    const folderUri = FolderDialectResolver.resolveFolderUriForFileUri(uri, this.lastRoots);
     const dialect = await this.getDialect(folderUri);
     await this.indexFile(uri, dialect);
   }
 
   private async indexFile(uri: string, dialect: DialectType): Promise<void> {
-    const filePath = uriToFilePath(uri);
+    const filePath = WorkspacePath.fromFileUri(uri);
     if (filePath === undefined) {
       this.logger?.(`Skipping non-file URI ${uri}`);
       return;
@@ -429,7 +432,7 @@ export class WorkspaceIndexingService {
       if (entry.isDirectory()) {
         if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
         await this.walkDirectory(fullPath, collected);
-      } else if (entry.isFile() && hasIndexedExtension(entry.name)) {
+      } else if (entry.isFile() && WorkspacePath.hasIndexedExtension(entry.name)) {
         collected.push(fullPath);
       }
     }
@@ -442,93 +445,8 @@ export class WorkspaceIndexingService {
     this.debounceTimers.clear();
     this.pendingChanges.clear();
   }
-}
 
-/**
- * Thrown when the service is misconfigured — for example when the client
- * advertises the listIndexFiles capability but no `requestFiles` callback
- * was injected. Surfaces a clear failure mode instead of silently falling
- * back to the walker, which would hide the misconfiguration.
- */
-export class WorkspaceIndexingConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'WorkspaceIndexingConfigurationError';
+  private yieldToEventLoop(): Promise<void> {
+    return new Promise((resolve) => setImmediate(resolve));
   }
-}
-
-/**
- * Find the dialect for a given file URI by longest-prefix matching against
- * the known workspace roots. Longest-prefix (not first-match) so that a
- * file under a nested root (e.g. `/repo/sub/f.nc` with roots
- * `['/repo', '/repo/sub']`) resolves to the most specific folder's dialect.
- * Falls back to the first entry in `folderDialects` (single-root) or
- * `DialectType.LINUXCNC` (no roots).
- */
-function resolveDialectForUri(
-  uri: string,
-  folderDialects: ReadonlyMap<string, DialectType>,
-  roots: readonly string[]
-): DialectType {
-  const match = findLongestMatchingRoot(uri, roots);
-  if (match !== undefined) {
-    const dialect = folderDialects.get(match);
-    if (dialect !== undefined) return dialect;
-  }
-  const first = folderDialects.values().next();
-  return first.done === false ? first.value : DialectType.LINUXCNC;
-}
-
-/**
- * Find the `file://` URI of the workspace folder that contains the given
- * file URI. Used to scope the dialect lookup in file-watcher events.
- * Uses longest-prefix matching so nested roots resolve to the most
- * specific folder. Returns an empty string when no known root matches
- * (the `getDialect` callback should fall back to workspace-level settings
- * in that case).
- */
-function resolveFolderUriForChangedFile(uri: string, roots: readonly string[]): string {
-  const match = findLongestMatchingRoot(uri, roots);
-  return match === undefined ? '' : pathToFileURL(match).toString();
-}
-
-function findLongestMatchingRoot(uri: string, roots: readonly string[]): string | undefined {
-  const filePath = uriToFilePath(uri);
-  if (filePath === undefined) return undefined;
-  let bestMatch: string | undefined;
-  for (const root of roots) {
-    if (
-      pathIsUnder(filePath, root) &&
-      (bestMatch === undefined || root.length > bestMatch.length)
-    ) {
-      bestMatch = root;
-    }
-  }
-  return bestMatch;
-}
-
-/** True when `filePath` is exactly `folder` or is a direct/indirect child of it. */
-function pathIsUnder(filePath: string, folder: string): boolean {
-  const withSep = folder.endsWith(path.sep) ? folder : folder + path.sep;
-  return filePath.startsWith(withSep) || filePath === folder;
-}
-
-function hasIndexedExtension(name: string): boolean {
-  const dot = name.lastIndexOf('.');
-  if (dot < 0) return false;
-  const ext = name.slice(dot + 1).toLowerCase();
-  return GCODE_INDEX_EXTENSIONS.includes(ext);
-}
-
-function uriToFilePath(uri: string): string | undefined {
-  if (!uri.startsWith('file:')) return undefined;
-  try {
-    return fileURLToPath(uri);
-  } catch {
-    return undefined;
-  }
-}
-
-function yieldToEventLoop(): Promise<void> {
-  return new Promise((resolve) => setImmediate(resolve));
 }

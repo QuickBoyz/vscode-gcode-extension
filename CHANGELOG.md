@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Updates and modifications -->
 - `ProgressCallback` (WorkerClient) now receives `{ phase, percentage?, message? }` instead of a bare `VisualizerPhase`, enabling richer progress metadata (#139)
 - Progress title "Finding G-code files" no longer has a trailing ellipsis — consistent with the `"<Gerund> <artifact>"` convention (#139)
+- Workspace indexing refactored into dedicated classes — `FolderDialectResolver`, `WorkspacePath`, `ExcludeGlobBuilder`, `VscodeWorkspaceEnumerationAdapter`, and a standalone `WorkspaceIndexingConfigurationError` — replacing module-level helpers and satisfying the one-class-per-file and strategy-pattern rules (#141)
 
 ### Fixed
 <!-- Bug fixes -->

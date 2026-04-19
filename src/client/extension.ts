@@ -12,10 +12,10 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node';
-import { WorkDoneProgress } from 'vscode-languageserver-protocol';
 
 import { ClientConfigProvider } from '../config/client-config-provider/ClientConfigProvider';
 import { CommandProvider } from './CommandProvider';
+import { VscodeWorkspaceEnumerationAdapter } from './VscodeWorkspaceEnumerationAdapter';
 import { WorkspaceFileEnumerator } from './WorkspaceFileEnumerator';
 import { GCODE_LANGUAGE_ID } from '../constants';
 import {
@@ -85,26 +85,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // connection during the LSP handshake — relying on post-`start()` registration
   // would make correctness depend on event-loop scheduling between the
   // resolved `start()` promise and the server's `onInitialized` chain.
-  const enumerator = new WorkspaceFileEnumerator({
-    findFiles: (include, exclude, folderUri) => {
-      if (folderUri) {
-        const pattern = new vscode.RelativePattern(vscode.Uri.parse(folderUri), include);
-        return vscode.workspace.findFiles(pattern, exclude ?? null);
-      }
-      return vscode.workspace.findFiles(include, exclude ?? null);
-    },
-    getExcludes: (folderUri) => {
-      const scope = folderUri ? vscode.Uri.parse(folderUri) : undefined;
-      const config = vscode.workspace.getConfiguration(undefined, scope);
-      return {
-        filesExclude: config.get<Record<string, unknown>>('files.exclude') ?? {},
-        searchExclude: config.get<Record<string, unknown>>('search.exclude') ?? {},
-      };
-    },
-    reportProgress: (token, value) => {
-      void client.sendProgress(WorkDoneProgress.type, token, value);
-    },
-  });
+  const enumerator = new WorkspaceFileEnumerator(
+    new VscodeWorkspaceEnumerationAdapter(() => client)
+  );
   context.subscriptions.push(
     client.onRequest(GCodeListIndexFilesRequest, (params) => enumerator.handle(params))
   );
