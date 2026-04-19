@@ -15,8 +15,8 @@
  * 1. **Client enumeration** (preferred). When `flags.supportsListIndexFiles`
  *    is true, the service issues a `workspace/gcodeListIndexFiles` request
  *    via the injected `requestFiles` callback so the VSCode client can use
- *    `vscode.workspace.findFiles` and honor user-configured `files.exclude`
- *    / `search.exclude`.
+ *    `vscode.workspace.findFiles` per folder and honor each folder's
+ *    `files.exclude` / `search.exclude` settings.
  * 2. **Fallback walker.** When the client does not advertise the capability
  *    (non-VSCode hosts), the service falls back to a `fs.readdir` walker.
  *    The walker's skip list is intentionally minimal — only `node_modules`
@@ -29,11 +29,15 @@
  * `scanGeneration` does not match the current generation are dropped
  * silently. The indexing loop also re-checks the generation between
  * batches so a config-driven rescan can pre-empt an in-flight pass.
+ *
+ * Both `gcode.dialect` and `files.exclude`/`search.exclude` are resolved
+ * per workspace folder so multi-root workspaces with differing per-folder
+ * configurations are handled correctly.
  */
 import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol';
 
@@ -41,6 +45,9 @@ import { DialectType, GCODE_INDEX_EXTENSIONS } from '../constants';
 import { GCodeListIndexFilesParams, GCodeListIndexFilesResult } from '../lsp/gcodeListIndexFiles';
 import { LspBoundProgressReporter, ProgressReporter } from '../utils/ProgressReporter';
 import { ClientFeatureFlags } from './ClientFeatureFlags';
+import { FolderDialectResolver } from './FolderDialectResolver';
+import { WorkspaceIndexingConfigurationError } from '../errors/WorkspaceIndexingConfigurationError';
+import { WorkspacePath } from './WorkspacePath';
 import { WorkspaceSymbolIndex } from './WorkspaceSymbolIndex';
 
 const SCAN_BATCH_SIZE = 50;
@@ -78,7 +85,15 @@ export type RequestFilesCallback = (
 
 export interface WorkspaceIndexingDependencies {
   readonly symbolIndex: WorkspaceSymbolIndex;
-  readonly getDialect: () => DialectType | Promise<DialectType>;
+  /**
+   * Returns the G-code dialect for the given workspace-folder URI.
+   * Called once per folder at the start of each scan and once per
+   * file-watcher event (to resolve the dialect of the containing folder).
+   * The `folderUri` is a `file://` URI string (e.g. `"file:///home/user/project"`).
+   * Pass an empty string when no folder can be determined — implementations
+   * should fall back to the global/workspace-level setting in that case.
+   */
+  readonly getDialect: (folderUri: string) => DialectType | Promise<DialectType>;
   readonly logger?: (message: string) => void;
   readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   readonly debounceMs?: number;
@@ -101,7 +116,7 @@ const GCODE_INCLUDE_GLOB = `**/*.{${GCODE_INDEX_EXTENSIONS.join(',')}}`;
 
 export class WorkspaceIndexingService {
   private readonly symbolIndex: WorkspaceSymbolIndex;
-  private readonly getDialect: () => DialectType | Promise<DialectType>;
+  private readonly getDialect: (folderUri: string) => DialectType | Promise<DialectType>;
   private readonly logger?: (message: string) => void;
   private readonly progressFactory?: () => Promise<LspBoundProgressReporter | undefined>;
   private readonly debounceMs: number;
@@ -163,11 +178,13 @@ export class WorkspaceIndexingService {
   /**
    * Walk the given workspace roots and index every G-code file found.
    *
+   * The dialect is resolved **per folder** before the scan so that files
+   * under each root are indexed with that folder's configured dialect.
    * Files are processed in batches of {@link SCAN_BATCH_SIZE} with a
-   * `setImmediate` yield between batches so the event loop stays responsive.
-   * Re-entering this method while a scan is in flight cancels the previous
-   * scan via its CancellationTokenSource and bumps the generation counter
-   * so any late client responses are dropped.
+   * `setImmediate` yield between batches so the event loop stays
+   * responsive. Re-entering this method while a scan is in flight cancels
+   * the previous scan via its CancellationTokenSource and bumps the
+   * generation counter so any late client responses are dropped.
    */
   async scanRoots(roots: readonly string[]): Promise<void> {
     // Remember the roots even when indexing is currently disabled, so a
@@ -183,9 +200,15 @@ export class WorkspaceIndexingService {
     this.currentScanGeneration += 1;
     const scanGeneration = this.currentScanGeneration;
 
-    // Dialect is captured once for the whole scan; per-folder dialects
-    // would require resolving the dialect per file (or per workspace folder).
-    const dialect = await this.getDialect();
+    // Resolve dialect once per folder so multi-root workspaces with
+    // differing per-folder dialect settings are handled correctly.
+    const folderDialects = new Map<string, DialectType>();
+    for (const root of roots) {
+      const rootUri = pathToFileURL(root).toString();
+      folderDialects.set(root, await this.getDialect(rootUri));
+    }
+    const dialectResolver = new FolderDialectResolver(folderDialects, roots);
+
     const progress = (await this.progressFactory?.()) ?? undefined;
 
     try {
@@ -203,7 +226,7 @@ export class WorkspaceIndexingService {
       // the client enumeration branch) is visible first. The server opens
       // one progress element and the UI morphs through both phases.
       progress?.begin('Indexing G-code files');
-      await this.indexFromList(fileUris, dialect, scanGeneration, progress);
+      await this.indexFromList(fileUris, dialectResolver, scanGeneration, progress);
     } finally {
       progress?.done();
       // Only dispose the CTS if it is still the current one. If a newer scan
@@ -295,9 +318,13 @@ export class WorkspaceIndexingService {
       );
     }
 
+    // Convert filesystem paths to file:// URIs so the client can use them
+    // with vscode.workspace.getConfiguration and vscode.RelativePattern for
+    // per-folder exclude resolution and scoped findFiles calls.
+    const folderUris = roots.map((root) => pathToFileURL(root).toString());
+
     const params: GCodeListIndexFilesParams = {
-      // filesystem paths; client currently ignores this field
-      folders: roots,
+      folders: folderUris,
       scanGeneration,
       includeGlob: GCODE_INCLUDE_GLOB,
       // Forward the server-allocated WorkDoneProgress identifier so the
@@ -325,7 +352,7 @@ export class WorkspaceIndexingService {
 
   private async indexFromList(
     fileUris: readonly string[],
-    dialect: DialectType,
+    dialectResolver: FolderDialectResolver,
     scanGeneration: number,
     progress: ProgressReporter | undefined
   ): Promise<void> {
@@ -340,12 +367,13 @@ export class WorkspaceIndexingService {
 
       const batch = fileUris.slice(i, i + SCAN_BATCH_SIZE);
       for (const uri of batch) {
+        const dialect = dialectResolver.resolveForFileUri(uri);
         await this.indexFile(uri, dialect);
         processed++;
         const percentage = total > 0 ? Math.floor((processed / total) * 100) : 100;
         progress?.report(percentage, `Indexed ${processed.toString()} of ${total.toString()}`);
       }
-      await yieldToEventLoop();
+      await this.yieldToEventLoop();
     }
   }
 
@@ -357,12 +385,14 @@ export class WorkspaceIndexingService {
       return;
     }
 
-    const dialect = await this.getDialect();
+    // Resolve the folder containing this URI so we can apply its dialect.
+    const folderUri = FolderDialectResolver.resolveFolderUriForFileUri(uri, this.lastRoots);
+    const dialect = await this.getDialect(folderUri);
     await this.indexFile(uri, dialect);
   }
 
   private async indexFile(uri: string, dialect: DialectType): Promise<void> {
-    const filePath = uriToFilePath(uri);
+    const filePath = WorkspacePath.fromFileUri(uri);
     if (filePath === undefined) {
       this.logger?.(`Skipping non-file URI ${uri}`);
       return;
@@ -402,7 +432,7 @@ export class WorkspaceIndexingService {
       if (entry.isDirectory()) {
         if (SKIPPED_DIRECTORIES.has(entry.name)) continue;
         await this.walkDirectory(fullPath, collected);
-      } else if (entry.isFile() && hasIndexedExtension(entry.name)) {
+      } else if (entry.isFile() && WorkspacePath.hasIndexedExtension(entry.name)) {
         collected.push(fullPath);
       }
     }
@@ -415,37 +445,8 @@ export class WorkspaceIndexingService {
     this.debounceTimers.clear();
     this.pendingChanges.clear();
   }
-}
 
-/**
- * Thrown when the service is misconfigured — for example when the client
- * advertises the listIndexFiles capability but no `requestFiles` callback
- * was injected. Surfaces a clear failure mode instead of silently falling
- * back to the walker, which would hide the misconfiguration.
- */
-export class WorkspaceIndexingConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'WorkspaceIndexingConfigurationError';
+  private yieldToEventLoop(): Promise<void> {
+    return new Promise((resolve) => setImmediate(resolve));
   }
-}
-
-function hasIndexedExtension(name: string): boolean {
-  const dot = name.lastIndexOf('.');
-  if (dot < 0) return false;
-  const ext = name.slice(dot + 1).toLowerCase();
-  return GCODE_INDEX_EXTENSIONS.includes(ext);
-}
-
-function uriToFilePath(uri: string): string | undefined {
-  if (!uri.startsWith('file:')) return undefined;
-  try {
-    return fileURLToPath(uri);
-  } catch {
-    return undefined;
-  }
-}
-
-function yieldToEventLoop(): Promise<void> {
-  return new Promise((resolve) => setImmediate(resolve));
 }

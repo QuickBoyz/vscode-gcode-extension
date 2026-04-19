@@ -9,6 +9,7 @@ import { GCodeListIndexFilesParams } from '../../lsp/gcodeListIndexFiles';
 interface FindFilesCall {
   readonly include: string;
   readonly exclude: string | undefined;
+  readonly folderUri: string;
 }
 
 interface ProgressCall {
@@ -30,8 +31,8 @@ function makeDeps(overrides: {
   const progressCalls: ProgressCall[] = [];
 
   const deps: WorkspaceFileEnumeratorDeps = {
-    findFiles: (include, exclude) => {
-      findFilesCalls.push({ include, exclude });
+    findFiles: (include, exclude, folderUri) => {
+      findFilesCalls.push({ include, exclude, folderUri });
       if (overrides.findFilesError) {
         return Promise.reject(overrides.findFilesError);
       }
@@ -121,8 +122,8 @@ describe('WorkspaceFileEnumerator', () => {
     const progressCalls: ProgressCall[] = [];
 
     const deps: WorkspaceFileEnumeratorDeps = {
-      findFiles: (include, exclude) => {
-        findFilesCalls.push({ include, exclude });
+      findFiles: (include, exclude, folderUri) => {
+        findFilesCalls.push({ include, exclude, folderUri });
         order.push('findFiles');
         return Promise.resolve([]);
       },
@@ -179,5 +180,114 @@ describe('WorkspaceFileEnumerator', () => {
     await enumerator.handle(makeParams());
 
     expect(findFilesCalls[0].exclude).toBe('**/dist');
+  });
+
+  describe('per-folder enumeration', () => {
+    it('issues one findFiles call per folder URI', async () => {
+      const findFilesCalls: FindFilesCall[] = [];
+      const deps: WorkspaceFileEnumeratorDeps = {
+        findFiles: (include, exclude, folderUri) => {
+          findFilesCalls.push({ include, exclude, folderUri });
+          return Promise.resolve([]);
+        },
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
+        reportProgress: jest.fn(),
+      };
+      const enumerator = new WorkspaceFileEnumerator(deps);
+
+      await enumerator.handle(
+        makeParams({ folders: ['file:///workspace/a', 'file:///workspace/b'] })
+      );
+
+      expect(findFilesCalls).toHaveLength(2);
+      expect(findFilesCalls[0].folderUri).toBe('file:///workspace/a');
+      expect(findFilesCalls[1].folderUri).toBe('file:///workspace/b');
+    });
+
+    it('passes each folder URI to getExcludes', async () => {
+      const excludeCalls: string[] = [];
+      const deps: WorkspaceFileEnumeratorDeps = {
+        findFiles: () => Promise.resolve([]),
+        getExcludes: (folderUri: string) => {
+          excludeCalls.push(folderUri);
+          return { filesExclude: {}, searchExclude: {} };
+        },
+        reportProgress: jest.fn(),
+      };
+      const enumerator = new WorkspaceFileEnumerator(deps);
+
+      await enumerator.handle(
+        makeParams({ folders: ['file:///workspace/a', 'file:///workspace/b'] })
+      );
+
+      expect(excludeCalls).toEqual(['file:///workspace/a', 'file:///workspace/b']);
+    });
+
+    it('applies per-folder excludes independently', async () => {
+      const findFilesCalls: FindFilesCall[] = [];
+      const deps: WorkspaceFileEnumeratorDeps = {
+        findFiles: (include, exclude, folderUri) => {
+          findFilesCalls.push({ include, exclude, folderUri });
+          return Promise.resolve([]);
+        },
+        getExcludes: (folderUri: string) => {
+          if (folderUri === 'file:///workspace/a') {
+            return { filesExclude: { '**/build': true }, searchExclude: {} };
+          }
+          return { filesExclude: {}, searchExclude: {} };
+        },
+        reportProgress: jest.fn(),
+      };
+      const enumerator = new WorkspaceFileEnumerator(deps);
+
+      await enumerator.handle(
+        makeParams({ folders: ['file:///workspace/a', 'file:///workspace/b'] })
+      );
+
+      expect(findFilesCalls[0].folderUri).toBe('file:///workspace/a');
+      expect(findFilesCalls[0].exclude).toBe('**/build');
+      expect(findFilesCalls[1].folderUri).toBe('file:///workspace/b');
+      expect(findFilesCalls[1].exclude).toBeUndefined();
+    });
+
+    it('merges results from all folders into a flat file list', async () => {
+      const deps: WorkspaceFileEnumeratorDeps = {
+        findFiles: (_include, _exclude, folderUri) => {
+          const file =
+            folderUri === 'file:///workspace/a'
+              ? 'file:///workspace/a/a.nc'
+              : 'file:///workspace/b/b.nc';
+          return Promise.resolve([{ toString: () => file }]);
+        },
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
+        reportProgress: jest.fn(),
+      };
+      const enumerator = new WorkspaceFileEnumerator(deps);
+
+      const result = await enumerator.handle(
+        makeParams({ folders: ['file:///workspace/a', 'file:///workspace/b'], scanGeneration: 5 })
+      );
+
+      expect(result.scanGeneration).toBe(5);
+      expect(result.files).toEqual(['file:///workspace/a/a.nc', 'file:///workspace/b/b.nc']);
+    });
+
+    it('falls back to whole-workspace search when folders is empty', async () => {
+      const findFilesCalls: FindFilesCall[] = [];
+      const deps: WorkspaceFileEnumeratorDeps = {
+        findFiles: (include, exclude, folderUri) => {
+          findFilesCalls.push({ include, exclude, folderUri });
+          return Promise.resolve([]);
+        },
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
+        reportProgress: jest.fn(),
+      };
+      const enumerator = new WorkspaceFileEnumerator(deps);
+
+      await enumerator.handle(makeParams({ folders: [] }));
+
+      expect(findFilesCalls).toHaveLength(1);
+      expect(findFilesCalls[0].folderUri).toBe('');
+    });
   });
 });
