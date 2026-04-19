@@ -261,7 +261,7 @@ const formatterService = new FormatterService(),
   workspaceIndexingService = new WorkspaceIndexingService({
     symbolIndex: workspaceSymbolIndex,
     getDialect: async (folderUri: string) => {
-      const config = await configProvider.getConfig(folderUri || undefined);
+      const config = await configProvider.getConfig(folderUri);
       return config.dialect;
     },
     logger: (msg) => connection.console.warn(msg),

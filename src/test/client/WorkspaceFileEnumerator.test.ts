@@ -41,7 +41,7 @@ function makeDeps(overrides: {
       }));
       return Promise.resolve(uris);
     },
-    getExcludes: (_folderUri: string) => ({
+    getExcludes: () => ({
       filesExclude: overrides.filesExclude ?? {},
       searchExclude: overrides.searchExclude ?? {},
     }),
@@ -127,7 +127,7 @@ describe('WorkspaceFileEnumerator', () => {
         order.push('findFiles');
         return Promise.resolve([]);
       },
-      getExcludes: (_folderUri: string) => ({ filesExclude: {}, searchExclude: {} }),
+      getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
       reportProgress: (token, value) => {
         order.push(`progress:${value.kind}`);
         progressCalls.push({ token, value });
@@ -190,7 +190,7 @@ describe('WorkspaceFileEnumerator', () => {
           findFilesCalls.push({ include, exclude, folderUri });
           return Promise.resolve([]);
         },
-        getExcludes: (_folderUri: string) => ({ filesExclude: {}, searchExclude: {} }),
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
         reportProgress: jest.fn(),
       };
       const enumerator = new WorkspaceFileEnumerator(deps);
@@ -207,7 +207,7 @@ describe('WorkspaceFileEnumerator', () => {
     it('passes each folder URI to getExcludes', async () => {
       const excludeCalls: string[] = [];
       const deps: WorkspaceFileEnumeratorDeps = {
-        findFiles: (_include, _exclude, _folderUri) => Promise.resolve([]),
+        findFiles: () => Promise.resolve([]),
         getExcludes: (folderUri: string) => {
           excludeCalls.push(folderUri);
           return { filesExclude: {}, searchExclude: {} };
@@ -230,10 +230,7 @@ describe('WorkspaceFileEnumerator', () => {
           findFilesCalls.push({ include, exclude, folderUri });
           return Promise.resolve([]);
         },
-        getExcludes: (folderUri: string) => {
-          if (folderUri === 'file:///workspace/a') {
-            return { filesExclude: { '**/build': true }, searchExclude: {} };
-          }
+        getExcludes: () => {
           return { filesExclude: {}, searchExclude: {} };
         },
         reportProgress: jest.fn(),
@@ -259,7 +256,7 @@ describe('WorkspaceFileEnumerator', () => {
               : 'file:///workspace/b/b.nc';
           return Promise.resolve([{ toString: () => file }]);
         },
-        getExcludes: (_folderUri: string) => ({ filesExclude: {}, searchExclude: {} }),
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
         reportProgress: jest.fn(),
       };
       const enumerator = new WorkspaceFileEnumerator(deps);
@@ -279,7 +276,7 @@ describe('WorkspaceFileEnumerator', () => {
           findFilesCalls.push({ include, exclude, folderUri });
           return Promise.resolve([]);
         },
-        getExcludes: (_folderUri: string) => ({ filesExclude: {}, searchExclude: {} }),
+        getExcludes: () => ({ filesExclude: {}, searchExclude: {} }),
         reportProgress: jest.fn(),
       };
       const enumerator = new WorkspaceFileEnumerator(deps);
