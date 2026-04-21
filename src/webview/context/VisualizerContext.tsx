@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useReducer, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { PathBounds, PathSegment, VisualizerConfig } from '../../visualizer/types';
 import { CameraState } from '../types';
 import { DEFAULT_ERROR_MESSAGE } from '../constants';
@@ -211,6 +211,22 @@ export function VisualizerProvider({ children }: { readonly children: React.Reac
   );
 
   useExtensionMessages(handleMessage);
+
+  // ── Screenshot harness: camera control messages ───────────────────
+
+  const resetViewRef = useRef(resetView);
+  resetViewRef.current = resetView;
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type !== 'cameraControl') return;
+      if (event.data.action === 'resetView') {
+        resetViewRef.current();
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   // ── Context values ────────────────────────────────────────────────
 

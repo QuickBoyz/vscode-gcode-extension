@@ -142,7 +142,7 @@ export class GCodeVisualizerPanel {
   ): void {
     const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
     instance.currentFilename = filename;
-    instance.panel.reveal(undefined, true);
+    instance.panel.reveal(GCodeVisualizerPanel.resolveRevealColumn(instance), true);
     instance.enqueue({
       type: 'loading',
       phase: VisualizerPhase.PARSING,
@@ -179,8 +179,26 @@ export class GCodeVisualizerPanel {
     settingsVariables: VariableDefinitions = {}
   ): void {
     const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
-    instance.panel.reveal(undefined, true);
+    instance.panel.reveal(GCodeVisualizerPanel.resolveRevealColumn(instance), true);
     instance.update(pathData, settings, sourceText, settingsVariables);
+  }
+
+  /**
+   * If the existing panel is currently in the same column as the active text
+   * editor, request `ViewColumn.Beside` so it splits back out. Otherwise keep
+   * it where the user put it. This collapses back into a split layout after
+   * `workbench.action.joinAllGroups` (which the screenshot pipeline relies on
+   * between scenes) without disrupting normal multi-column workflows.
+   */
+  private static resolveRevealColumn(
+    instance: GCodeVisualizerPanel
+  ): vscode.ViewColumn | undefined {
+    const panelColumn = instance.panel.viewColumn;
+    const activeColumn = vscode.window.activeTextEditor?.viewColumn;
+    if (panelColumn !== undefined && activeColumn !== undefined && panelColumn === activeColumn) {
+      return vscode.ViewColumn.Beside;
+    }
+    return undefined;
   }
 
   /**

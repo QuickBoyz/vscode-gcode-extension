@@ -1,15 +1,21 @@
 import { Key, WebDriver } from 'selenium-webdriver';
 import { TextEditor } from 'vscode-extension-tester';
 
-import { EDITOR_CROP } from '../lib/cropRegions';
+import { EDITOR_HEIGHT, EDITOR_START_TOP, EDITOR_WIDTH, LEFT_PANEL_LEFT } from '../lib/cropRegions';
 import { Scene } from '../lib/Scene';
 
 const HOVER_SETTLE_MS = 1500;
+const CROP_REGION = {
+  top: EDITOR_START_TOP,
+  left: LEFT_PANEL_LEFT,
+  width: Math.floor(EDITOR_WIDTH / 4),
+  height: Math.floor(EDITOR_HEIGHT / 2),
+};
 
 export class HoverScene extends Scene {
   readonly outputPath = 'images/screenshots/02-hover.png';
   readonly fixture = 'fixtures/complex.nc';
-  readonly cropRegion = EDITOR_CROP;
+  readonly cropRegion = CROP_REGION;
 
   async interact(driver: WebDriver): Promise<void> {
     // Land the cursor on a G-code word that has rich hover docs. Line 2 of

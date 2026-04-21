@@ -185,6 +185,11 @@
         "title": "Open 3D Visualizer",
         "category": "G-Code",
         "icon": "$(graph)"
+      },
+      {
+        "command": "gcode.e2eAddWorkspaceFolder",
+        "title": "Setup Screenshot Test Workspace",
+        "category": "G-Code E2E"
       }
     ],
     "menus": {

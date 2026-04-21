@@ -3,7 +3,7 @@
 #<result>=[#<counter>+#<var>]
 WHILE [#<counter> LT 100] DO
   #<counter>=[#<counter>+1]
-  G1 X[#<counter>] Y[#<var>]
+  G0 X[#<counter>] Y[#<result>]
 END
 M30
 

@@ -28,7 +28,7 @@ export abstract class Scene {
    * Region to crop from the full-window screenshot.
    * Null means full window (no crop) — used for the hero scene.
    */
-  readonly cropRegion: CropRegion | null = null;
+  abstract readonly cropRegion: CropRegion | null;
 
   constructor(protected readonly repoRoot: string) {}
 
@@ -54,9 +54,11 @@ export abstract class Scene {
     const rawBuffer = Buffer.from(rawPng, 'base64');
 
     const absOutput = path.resolve(this.repoRoot, this.outputPath);
-    fs.mkdirSync(path.dirname(absOutput), { recursive: true });
+    if (!fs.existsSync(absOutput)) {
+      fs.mkdirSync(path.dirname(absOutput), { recursive: true });
+    }
 
-    if (this.cropRegion === null) {
+    if (!this.cropRegion) {
       fs.writeFileSync(absOutput, rawBuffer);
     } else {
       await Capture.cropAndWrite(rawBuffer, this.cropRegion, absOutput);

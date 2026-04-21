@@ -57,9 +57,16 @@ export class SceneRunner {
     // Merge any lingering editor splits back into a single group. Visualizer
     // scenes (#05–07, #11) open a second group; without joining, the leftmost
     // group keeps a stale fixture tab that shows through in narrower crops
-    // (notably `OUTLINE_CROP` for #09). Visualizer scenes recreate their split
+    // (notably the outline crop for #09). Visualizer scenes recreate their split
     // during their own `interact` phase, so this does not fight them.
     await CommandPaletteRunner.runCommand(driver, 'workbench.action.joinAllGroups');
+
+    // Close the sidebar so that the workspace's Explorer tree does not bleed
+    // into editor-pane screenshots. Scenes that need the sidebar (Outline #09,
+    // Hero #11) reopen it explicitly in their own interact() phase.
+    // `workbench.action.closeSidebar` is a no-op when the sidebar is already
+    // hidden, so it is safe to run every time.
+    await CommandPaletteRunner.runCommand(driver, 'workbench.action.closeSidebar');
 
     // Open the fixture via Quick Open. `code -r <path>` (VSBrowser.openResources)
     // fails silently against VS Code instances launched by ChromeDriver.

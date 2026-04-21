@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import { ExTester } from 'vscode-extension-tester';
@@ -36,13 +38,19 @@ export class VSCodeLauncher {
     const tester = new ExTester(storageDir, undefined, extensionsDir);
     const vsixFile = path.join(this.repoRoot, '.vscode-test', 'screenshot-extension.vsix');
 
+    // Write the fixtures path to a well-known temp file so that the
+    // `gcode.e2eAddWorkspaceFolder` command can add it to the workspace
+    // from within the hero scene without reloading VS Code.
+    const fixturesDir = path.join(this.repoRoot, 'src', 'e2e', 'fixtures');
+    fs.writeFileSync(path.join(os.tmpdir(), '.gcode-screenshot-fixtures'), fixturesDir, 'utf8');
+
     await tester.downloadCode(PINNED_VSCODE_VERSION);
     await tester.downloadChromeDriver(PINNED_VSCODE_VERSION);
     await tester.installVsix({ vsixFile });
 
     return tester.runTests(runnerPattern, {
       vscodeVersion: PINNED_VSCODE_VERSION,
-      resources: [path.join(this.repoRoot, 'src', 'e2e', 'fixtures')],
+      resources: [fixturesDir],
       settings: settingsPath,
       config: path.join(this.repoRoot, 'src', 'e2e', 'screenshots', '.mocharc.js'),
     });
