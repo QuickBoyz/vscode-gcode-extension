@@ -2,44 +2,88 @@
 
 A Visual Studio Code extension providing comprehensive G-Code language support with syntax highlighting, intelligent formatting, and Language Server Protocol (LSP) integration.
 
+![Hero — editor and 3D visualizer side by side](images/screenshots/11-hero.png)
+
 ## Features
 
-- **3D Tool-Path Visualizer**: Interactive 3D view of cutting paths with orbit, pan, and zoom
-  - Tool-path animation and playback with play, pause, step, and speed controls
-  - ViewCube navigation gizmo for preset camera angles (faces and edges)
-  - Variable panel showing referenced and settings variables with inline override editing
-  - Segment hover, selection, and info panel (feed rate, spindle speed, tool number)
-  - Click-to-navigate from 3D segments to source G-code lines
-  - Arc plane support (G17/G18/G19) and G28 home position
-  - Pre-load variables from settings for accurate path visualization
-  - Reference grid, configurable colors and line widths
-  - Off-thread parsing with loading indicator for large files
-  - Live-update on document change
-- **Syntax Highlighting**: Semantic token-based highlighting for G-Code files with 50+ file extensions
-- **Document Formatting**: Intelligent formatting with customizable options and dialect-specific syntax
-- **Completions**: Dialect-aware IntelliSense with snippets and grouping for G/M commands, parameters, variables, functions, and operators
+### Syntax Highlighting
+
+Semantic token-based highlighting for G-Code files with 50+ file extensions.
+
+![Syntax highlighting](images/screenshots/01-syntax.png)
+
+### Hover Documentation
+
+Intelligent tooltips showing variable values and declarations, G/M command descriptions with parameters and examples, operator and function documentation, and axis parameter meanings.
+
+![Hover docs](images/screenshots/02-hover.png)
+
+### Code Completions
+
+Dialect-aware IntelliSense with snippets and grouping for G/M commands, parameters, variables, functions, and operators.
+
+![Completions](images/screenshots/03-completion.png)
+
+### Document Formatting
+
+Intelligent formatting with customizable options and dialect-specific syntax. Supports format on save, range formatting, and dialect-specific control flow syntax.
+
+| Before formatting                                              | After formatting                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------ |
+| ![Before formatting](images/screenshots/04a-format-before.png) | ![After formatting](images/screenshots/04b-format-after.png) |
+
+### 3D Tool-Path Visualizer
+
+Interactive 3D view of cutting paths with orbit, pan, and zoom.
+
+| Basic toolpath                                                  | Complex multi-pass surface                                        |
+| --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![Basic visualizer](images/screenshots/05-visualizer-basic.png) | ![Complex toolpath](images/screenshots/06-visualizer-complex.png) |
+
+Additional visualizer features:
+
+- Tool-path animation and playback with play, pause, step, and speed controls
+
+  ![Playback at 60%](images/screenshots/07-playback.png)
+
+- ViewCube navigation gizmo for preset camera angles (faces and edges)
+- Variable panel showing referenced and settings variables with inline override editing
+- Segment hover, selection, and info panel (feed rate, spindle speed, tool number)
+- Click-to-navigate from 3D segments to source G-code lines
+- Arc plane support (G17/G18/G19) and G28 home position
+- Pre-load variables from settings for accurate path visualization
+- Reference grid, configurable colors and line widths
+- Off-thread parsing with loading indicator for large files
+- Live-update on document change
+
+### Diagnostics
+
+Syntax error reporting with severity levels, quick-fix code actions, and intelligent error suggestions.
+
+![Errors](images/screenshots/08-errors.png)
+
+### Symbol Navigation
+
+Hierarchical document outline — symbols grouped by subroutine with IF/WHILE blocks as children.
+
+| Symbols outline                                        | Symbol quick-pick                                           |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| ![Outline](images/screenshots/09a-symbols-outline.png) | ![Quick-pick](images/screenshots/09b-symbols-quickpick.png) |
+
+### Additional Features
+
 - **Go to Definition / Find References**: Navigate to variable assignments and find all usages
-- **Hover Information**: Intelligent tooltips showing:
-  - Variable values and declarations
-  - G/M command descriptions with parameters and examples
-  - Operator and function documentation
-  - Axis parameter meanings
-- **Symbol Navigation**: Hierarchical document outline — symbols grouped by subroutine with IF/WHILE blocks as children
 - **Workspace Symbol Search**: Find G/M commands, variables, subroutines, and labels across the whole workspace (Ctrl+T). Indexing honours `files.exclude` and `search.exclude` so build and cache directories are omitted.
 - **Code Folding**: Fold IF/WHILE/subroutine blocks
 - **Variable Renaming**: Rename variables across entire document
 - **Document Highlights**: Highlight all occurrences of a variable
-- **Diagnostics**: Syntax error reporting with severity levels, quick-fix code actions, and intelligent error suggestions
 - **Semantic Analysis**: Modal state tracking and dialect-aware axis parameter validation
 - **Multi-Program Support**: Parse and navigate files containing multiple programs
 - **Subroutine Support**: Parsing and formatting of subroutines across all four dialects
-- **Robust Error Handling**: Parser gracefully handles unsupported syntax
-  - Preserves original code when encountering parse errors
-  - Continues parsing after errors for maximum code preservation
+- **Robust Error Handling**: Parser gracefully handles unsupported syntax — preserves original code and continues parsing after errors
 - **Custom Theme**: Dedicated G-Code color theme for optimal readability
 - **Language Server**: LSP-based architecture for fast and reliable language features
-- **Format on Save**: Automatic formatting support
-- **Range Formatting**: Format selected portions of code
+- **Format on Save** and **Range Formatting**
 
 ## Supported File Extensions
 

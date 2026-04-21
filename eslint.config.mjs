@@ -17,6 +17,7 @@ export default defineConfig(
       '*.vsix',
       '.vscode-test*',
       '*.d.ts',
+      '**/.mocharc.js',
     ],
   },
   eslint.configs.recommended,

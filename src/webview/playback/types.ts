@@ -47,3 +47,17 @@ export interface PlaybackActions {
   readonly seekToSegment: (index: number) => void;
   readonly setSpeed: (multiplier: number) => void;
 }
+
+/**
+ * Discriminated union for playback control messages posted to the webview window.
+ * Mirrors PlaybackActions — used by the screenshot harness to drive scene #7.
+ */
+export type PlaybackControlMessage =
+  | { readonly type: 'playbackControl'; readonly action: 'play' }
+  | { readonly type: 'playbackControl'; readonly action: 'pause' }
+  | { readonly type: 'playbackControl'; readonly action: 'stop' }
+  | { readonly type: 'playbackControl'; readonly action: 'exit' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepForward' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepBack' }
+  | { readonly type: 'playbackControl'; readonly action: 'seekToSegment'; readonly index: number }
+  | { readonly type: 'playbackControl'; readonly action: 'setSpeed'; readonly multiplier: number };

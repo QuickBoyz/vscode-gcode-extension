@@ -11,6 +11,7 @@ import { PathSegment } from '../../visualizer/types';
 import {
   DEFAULT_SPEED_MULTIPLIER,
   PlaybackActions,
+  PlaybackControlMessage,
   PlaybackSnapshot,
   PlaybackStatus,
   SOURCE_LINE_THROTTLE_MS,
@@ -245,6 +246,31 @@ export function PlaybackProvider({
     }),
     [engineActions, stepForward, stepBack, seekToSegment, setSpeed]
   );
+
+  // ── Screenshot harness: playback control messages ────────────────
+
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
+  useEffect(() => {
+    const handler = (event: MessageEvent<PlaybackControlMessage>) => {
+      if (event.data?.type !== 'playbackControl') return;
+      const msg = event.data;
+      const a = actionsRef.current;
+      switch (msg.action) {
+        case 'play': a.play(); break;
+        case 'pause': a.pause(); break;
+        case 'stop': a.stop(); break;
+        case 'exit': a.exit(); break;
+        case 'stepForward': a.stepForward(); break;
+        case 'stepBack': a.stepBack(); break;
+        case 'seekToSegment': a.seekToSegment(msg.index); break;
+        case 'setSpeed': a.setSpeed(msg.multiplier); break;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   // ── Timer cleanup on unmount ─────────────────────────────────────
 

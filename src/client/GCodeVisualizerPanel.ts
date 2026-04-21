@@ -28,6 +28,17 @@ import {
 } from '../visualizer/types';
 import { generateNonce } from './nonce';
 
+/** Mirrors PlaybackControlMessage in src/webview/playback/types.ts (separate compilation context). */
+type PlaybackControlMessage =
+  | { readonly type: 'playbackControl'; readonly action: 'play' }
+  | { readonly type: 'playbackControl'; readonly action: 'pause' }
+  | { readonly type: 'playbackControl'; readonly action: 'stop' }
+  | { readonly type: 'playbackControl'; readonly action: 'exit' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepForward' }
+  | { readonly type: 'playbackControl'; readonly action: 'stepBack' }
+  | { readonly type: 'playbackControl'; readonly action: 'seekToSegment'; readonly index: number }
+  | { readonly type: 'playbackControl'; readonly action: 'setSpeed'; readonly multiplier: number };
+
 /**
  * Message types sent from the extension to the webview.
  */
@@ -53,7 +64,8 @@ type ExtensionToWebviewMessage =
       phase: VisualizerPhase;
       filename: string | null;
       message?: string;
-    };
+    }
+  | PlaybackControlMessage;
 
 /**
  * Message types received from the webview.
@@ -130,7 +142,7 @@ export class GCodeVisualizerPanel {
   ): void {
     const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
     instance.currentFilename = filename;
-    instance.panel.reveal(undefined, true);
+    instance.panel.reveal(GCodeVisualizerPanel.resolveRevealColumn(instance), true);
     instance.enqueue({
       type: 'loading',
       phase: VisualizerPhase.PARSING,
@@ -167,8 +179,26 @@ export class GCodeVisualizerPanel {
     settingsVariables: VariableDefinitions = {}
   ): void {
     const instance = GCodeVisualizerPanel.ensureInstance(context, configProvider);
-    instance.panel.reveal(undefined, true);
+    instance.panel.reveal(GCodeVisualizerPanel.resolveRevealColumn(instance), true);
     instance.update(pathData, settings, sourceText, settingsVariables);
+  }
+
+  /**
+   * If the existing panel is currently in the same column as the active text
+   * editor, request `ViewColumn.Beside` so it splits back out. Otherwise keep
+   * it where the user put it. This collapses back into a split layout after
+   * `workbench.action.joinAllGroups` (which the screenshot pipeline relies on
+   * between scenes) without disrupting normal multi-column workflows.
+   */
+  private static resolveRevealColumn(
+    instance: GCodeVisualizerPanel
+  ): vscode.ViewColumn | undefined {
+    const panelColumn = instance.panel.viewColumn;
+    const activeColumn = vscode.window.activeTextEditor?.viewColumn;
+    if (panelColumn !== undefined && activeColumn !== undefined && panelColumn === activeColumn) {
+      return vscode.ViewColumn.Beside;
+    }
+    return undefined;
   }
 
   /**

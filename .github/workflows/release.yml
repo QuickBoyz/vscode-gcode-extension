@@ -90,8 +90,31 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build extension
-        run: npm run build
+      - name: Generate screenshots (attempt 1)
+        id: screenshots
+        continue-on-error: true
+        run: xvfb-run -a --server-args='-screen 0 1920x1080x24' npm run screenshots
+
+      - name: Generate screenshots (retry once)
+        id: screenshots_retry
+        if: steps.screenshots.outcome == 'failure'
+        continue-on-error: true
+        run: xvfb-run -a --server-args='-screen 0 1920x1080x24' npm run screenshots
+
+      - name: Commit screenshots if changed
+        if: steps.screenshots.outcome == 'success' || steps.screenshots_retry.outcome == 'success'
+        run: |
+          git add images/screenshots/
+          if git diff --cached --quiet images/screenshots/; then
+            echo "No screenshot changes — skipping commit"
+          else
+            git commit -m "chore: regenerate README screenshots for ${{ steps.bump_version.outputs.new_version }}"
+            git push origin main
+          fi
+
+      - name: Warn on double failure
+        if: steps.screenshots.outcome == 'failure' && steps.screenshots_retry.outcome == 'failure'
+        run: echo "::warning::Screenshots failed twice; release proceeds with previously committed PNGs"
 
       - name: Package extension
         id: package

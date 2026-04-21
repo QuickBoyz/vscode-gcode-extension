@@ -39,7 +39,8 @@
     "build": "rm -rf dist && tsc --project tsconfig.build.json && npm run build:webview",
     "build:webview": "node scripts/build-webview.mjs",
     "watch:webview": "node scripts/build-webview.mjs --watch",
-    "build:e2e": "npm run build && rm -rf out && tsc --project tsconfig.e2e.json",
+    "build:e2e": "npm run build && rm -rf out tsconfig.e2e.tsbuildinfo && tsc --project tsconfig.e2e.json",
+    "screenshots": "npm run build:e2e && mkdir -p .vscode-test && npx vsce package --out .vscode-test/screenshot-extension.vsix && node out/e2e/screenshots/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
@@ -87,10 +88,12 @@
     "mocha": "^11.7.5",
     "prettier": "^3.7.4",
     "sass": "^1.99.0",
+    "sharp": "^0.33.5",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0"
+    "typescript-eslint": "^8.52.0",
+    "vscode-extension-tester": "^8.23.0"
   },
   "categories": [
     "Programming Languages",
@@ -182,6 +185,11 @@
         "title": "Open 3D Visualizer",
         "category": "G-Code",
         "icon": "$(graph)"
+      },
+      {
+        "command": "gcode.e2eAddWorkspaceFolder",
+        "title": "Setup Screenshot Test Workspace",
+        "category": "G-Code E2E"
       }
     ],
     "menus": {

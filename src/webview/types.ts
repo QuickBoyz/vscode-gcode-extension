@@ -49,3 +49,16 @@ export enum DragMode {
   /** Pan the view in screen space. */
   PAN = 'pan',
 }
+
+/**
+ * Global window properties exposed by the visualizer webview for the screenshot harness.
+ * Set after the first successful toolpath render; polled by WebviewReadyWaiter.
+ */
+declare global {
+  interface Window {
+    /** True after the first toolpath render frame completes. Screenshot harness polls this. */
+    __gcodeVisualizerReady?: boolean;
+    /** Current document state for harness queries (e.g. totalSegments for seek math). */
+    __gcodeVisualizerState?: { readonly totalSegments: number };
+  }
+}

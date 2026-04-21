@@ -4,6 +4,8 @@
  * Centralized command registration and management for the G-Code extension.
  * New commands should be added here to keep extension.ts clean.
  */
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import * as vscode from 'vscode';
@@ -55,6 +57,7 @@ export class CommandProvider {
   registerCommands(context: vscode.ExtensionContext): void {
     this.commands.push(this.registerFormatDocumentCommand());
     this.commands.push(this.registerOpenVisualizerCommand(context));
+    this.commands.push(this.registerE2EAddWorkspaceFolderCommand());
 
     // Add all commands to subscriptions for proper cleanup
     this.commands.forEach((cmd) => context.subscriptions.push(cmd));
@@ -407,6 +410,23 @@ export class CommandProvider {
     } catch {
       // Document may have been closed or moved.
     }
+  }
+
+  /**
+   * Adds the path written to a well-known temp file by the screenshot launcher
+   * as a workspace folder. Used only by the automated screenshot pipeline to
+   * populate the Explorer sidebar for the hero scene.
+   *
+   * Reads `<tmpdir>/.gcode-screenshot-fixtures` for the folder path.
+   * A no-op if the file does not exist (i.e., not in screenshot mode).
+   */
+  private registerE2EAddWorkspaceFolderCommand(): vscode.Disposable {
+    return vscode.commands.registerCommand('gcode.e2eAddWorkspaceFolder', () => {
+      const tempPath = path.join(os.tmpdir(), '.gcode-screenshot-fixtures');
+      if (!fs.existsSync(tempPath)) return;
+      const fixturesDir = fs.readFileSync(tempPath, 'utf8').trim();
+      vscode.workspace.updateWorkspaceFolders(0, 0, { uri: vscode.Uri.file(fixturesDir) });
+    });
   }
 
   /**
