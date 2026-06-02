@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 <!-- Bug fixes -->
+- Typing a trailing dot while completing a G-code sub-code (e.g. `G05.`) no longer switches to axis-parameter mode — the completion list now correctly shows only matching sub-code commands (`G05.1`, `G05.2`, `G05.3`)
 
 <!-- #released -->
 ## [v2.7.0] - 2026-06-02
