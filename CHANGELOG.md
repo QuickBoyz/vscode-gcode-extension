@@ -5,6 +5,19 @@ All notable changes to the "G-Code Language Support" extension will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- #unreleased -->
+## [Unreleased]
+
+### Added
+<!-- New features and improvements -->
+
+### Changed
+<!-- Updates and modifications -->
+
+### Fixed
+<!-- Bug fixes -->
+
+<!-- #released -->
 ## [v2.8.0] - 2026-06-02
 
 ### Added
@@ -20,7 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Bug fixes -->
 - Typing a trailing dot while completing a G-code sub-code (e.g. `G05.`) no longer switches to axis-parameter mode — the completion list now correctly shows only matching sub-code commands (`G05.1`, `G05.2`, `G05.3`)
 
-<!-- #released -->
 ## [v2.7.0] - 2026-06-02
 
 ### Added
