@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 <!-- New features and improvements -->
+- LinuxCNC dialect: complete G-code coverage — added 40 missing commands including spline/NURBS motion (G5, G5.1, G5.2, G5.3), lathe modes (G7, G8), extended plane selection (G17.1, G18.1, G19.1), predefined position set (G28.1, G30.1), spindle-synchronized motion and rigid tapping (G33, G33.1), probing (G38.2–G38.5), dynamic cutter and tool-length compensation (G41.1, G42.1, G43.1, G43.2), local/machine coordinate commands (G52, G53), extended work offsets (G59.1–G59.3), path control modes (G61, G61.1, G64), lathe cycles (G70, G71, G72, G76), chip-break and left-hand tapping (G73, G74), arc-center mode (G90.1, G91.1), G92 offset variants (G92.1–G92.3), inverse-time feed (G93), and spindle modes (G96, G97)
+- LinuxCNC dialect: complete M-code coverage — added 20 missing commands including spindle orient (M19), pallet change pause (M60), set current tool (M61), override controls (M48, M49, M50, M51, M52, M53), I/O control (M62–M68), and modal state save/restore (M70–M73)
+- New `CommandGroup` values: `ARC_MODE`, `IO`, `LATHE`, `LATHE_CYCLE`, `OVERRIDES`, `PATH_CONTROL`, `PROBING`, `SPINDLE_MODE`, `SPINDLE_SYNC`, `STATE`
 
 ### Changed
 <!-- Updates and modifications -->
