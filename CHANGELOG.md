@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 <!-- New features and improvements -->
+- G64 command support: hover documentation and completions for G64 in LinuxCNC (Path Blending with P/Q tolerance parameters), Fanuc (Cutting Mode), and Haas (Cutting Mode) dialects
 
 ### Changed
 <!-- Updates and modifications -->

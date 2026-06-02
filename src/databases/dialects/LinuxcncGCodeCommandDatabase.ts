@@ -267,6 +267,18 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G64',
+    {
+      command: 'G64',
+      name: 'Path Blending',
+      description:
+        'Enable path blending (continuous path) mode. The controller blends motion between blocks to maintain feed rate. P sets the maximum path deviation tolerance; Q sets the naive cam detector tolerance for colinear segment merging. Omitting P applies blending with no tolerance limit.',
+      group: CommandGroup.MOTION,
+      parameters: ['P', 'Q'],
+      example: 'G64 P0.01 Q0.005',
+    },
+  ],
+  [
     'G80',
     {
       command: 'G80',

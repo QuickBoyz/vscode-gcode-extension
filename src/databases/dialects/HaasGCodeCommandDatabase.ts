@@ -268,6 +268,17 @@ export const GCODE_COMMANDS = new Map<string, GCodeCommandInfo>([
     },
   ],
   [
+    'G64',
+    {
+      command: 'G64',
+      name: 'Cutting Mode',
+      description:
+        'Enable cutting mode (normal path control). The controller does not decelerate at block boundaries, allowing smooth continuous motion. Haas-compatible equivalent of Fanuc G64. Contrast with G61 (exact stop) and G63 (tapping mode).',
+      group: CommandGroup.MOTION,
+      example: 'G64',
+    },
+  ],
+  [
     'G73',
     {
       command: 'G73',
