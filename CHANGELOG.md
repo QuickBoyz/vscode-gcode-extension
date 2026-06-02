@@ -5,8 +5,7 @@ All notable changes to the "G-Code Language Support" extension will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<!-- #unreleased -->
-## [Unreleased]
+## [v2.7.0] - 2026-06-02
 
 ### Added
 <!-- New features and improvements -->
