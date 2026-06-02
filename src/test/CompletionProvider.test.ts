@@ -79,6 +79,48 @@ describe('CompletionProvider', () => {
       expect(completions.every((item) => item.label.startsWith('G0'))).toBe(true);
     });
 
+    it('should provide sub-code command completions when typing a trailing dot', () => {
+      const content = 'G05.';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 4 },
+        settings
+      );
+
+      expect(completions.length).toBeGreaterThan(0);
+      expect(completions.every((item) => item.label.startsWith('G05.'))).toBe(true);
+      const hasG051 = completions.some((item) => item.label === 'G05.1');
+      const hasG052 = completions.some((item) => item.label === 'G05.2');
+      const hasG053 = completions.some((item) => item.label === 'G05.3');
+      expect(hasG051).toBe(true);
+      expect(hasG052).toBe(true);
+      expect(hasG053).toBe(true);
+    });
+
+    it('should provide command completions when prefix includes sub-code digits', () => {
+      const content = 'G05.1';
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 5 },
+        settings
+      );
+
+      expect(completions.length).toBeGreaterThan(0);
+      expect(completions.every((item) => item.label.startsWith('G05.1'))).toBe(true);
+      const hasG051 = completions.some((item) => item.label === 'G05.1');
+      expect(hasG051).toBe(true);
+    });
+
     it('should provide command details in completion items', () => {
       const content = 'G01';
       const document = createDocument(content);
@@ -210,6 +252,47 @@ describe('CompletionProvider', () => {
       expect(first5).toContain('X');
       expect(first5).toContain('Y');
       expect(first5).toContain('Z');
+    });
+
+    it('should provide parameters for sub-code commands', () => {
+      const content = 'G05.1 '; // Quadratic B-Spline — has X, Y, I, J
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 6 },
+        settings
+      );
+
+      expect(completions.length).toBeGreaterThan(0);
+      expect(completions[0].kind).toBe(CompletionItemKind.Property);
+      const hasX = completions.some((item) => item.label === 'X');
+      const hasY = completions.some((item) => item.label === 'Y');
+      const hasI = completions.some((item) => item.label === 'I');
+      const hasJ = completions.some((item) => item.label === 'J');
+      expect(hasX).toBe(true);
+      expect(hasY).toBe(true);
+      expect(hasI).toBe(true);
+      expect(hasJ).toBe(true);
+    });
+
+    it('should not suggest parameters for sub-code commands that take none', () => {
+      const content = 'G05.3 '; // NURBS Execute — no parameters
+      const document = createDocument(content);
+      const stateManager = new DocumentStateManager();
+      const provider = new CompletionProvider(stateManager);
+      const settings = createSettings();
+
+      const completions = provider.provideCompletionItems(
+        document,
+        { line: 0, character: 6 },
+        settings
+      );
+
+      expect(completions.length).toBe(0);
     });
 
     it('should not suggest parameters for commands that take none', () => {
@@ -702,7 +785,7 @@ describe('CompletionProvider', () => {
       const g81 = completions.find((item) => item.label === 'G81');
       expect(g01?.sortText).toBeDefined();
       expect(g81?.sortText).toBeDefined();
-      expect(g01!.sortText! < g81!.sortText!).toBe(true);
+      expect((g01?.sortText ?? '') < (g81?.sortText ?? '')).toBe(true);
     });
 
     it('should use group prefix in sortText', () => {

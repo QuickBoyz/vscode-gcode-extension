@@ -173,7 +173,7 @@ export class CompletionContextDetector {
     textBeforeCursor: string
   ): ContextInfo | null {
     // Must check that line has no trailing content (spaces or parameters)
-    const commandOnlyMatch = /^\s*([GM]\d*(?:\.\d+)?)$/i.exec(textBeforeCursor);
+    const commandOnlyMatch = /^\s*([GM]\d*(?:\.\d*)?)$/i.exec(textBeforeCursor);
     if (commandOnlyMatch) {
       // Check if the original line ends with whitespace (means we're in parameter context, not command)
       const hasSpaceAfterCommand = /\s$/.test(line);
