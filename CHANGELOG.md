@@ -5,6 +5,19 @@ All notable changes to the "G-Code Language Support" extension will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- #unreleased -->
+## [Unreleased]
+
+### Added
+<!-- New features and improvements -->
+
+### Changed
+<!-- Updates and modifications -->
+
+### Fixed
+<!-- Bug fixes -->
+
+<!-- #released -->
 ## [v2.8.1] - 2026-08-17
 
 ### Added
@@ -18,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visualizer: corrected inverted arc direction in the G18 (XZ) plane - G2 now dips below the chord and G3 bulges above it when viewed from +Y, matching the LinuxCNC/NIST convention
 - Visualizer: radius-format (R-word) G2/G3 arcs now render as arcs instead of straight lines in all three planes - negative R renders the long arc
 
-<!-- #released -->
 ## [v2.8.0] - 2026-06-02
 
 ### Added
