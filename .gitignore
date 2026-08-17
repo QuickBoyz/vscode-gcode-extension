@@ -6,3 +6,15 @@ out
 .vscode-test
 *.tsbuildinfo
 .claude/NOTES.md
+
+# Feature Forge runtime
+.forge/logs
+.forge/worktrees
+.forge/worktrees.json
+
+# pi coding agent runtime
+.pi
+
+# Environment overrides
+.env
+.env.local
