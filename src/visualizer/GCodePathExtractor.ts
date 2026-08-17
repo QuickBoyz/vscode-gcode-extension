@@ -100,6 +100,92 @@ function evaluateAxisValue(
 }
 
 /**
+ * Resolves arc-center offsets for a radius-format (R-word) arc.
+ *
+ * G2/G3 commands may specify the arc either with I/J/K offsets or with an
+ * R word. The R word only constrains the radius, leaving two candidate
+ * centers; the sign of R selects between the short arc (|sweep| <= PI,
+ * positive R) and the long arc (|sweep| > PI, negative R).
+ *
+ * Returns null when the geometry is degenerate: zero radius, zero chord
+ * length (full circles cannot be expressed with R alone), or a radius
+ * smaller than half the chord length.
+ */
+function resolveArcOffsetsFromRadius(
+  start: PathPoint,
+  end: PathPoint,
+  radiusValue: number,
+  isCW: boolean,
+  planeConfig: ArcPlaneConfig
+): { readonly offsetFirst: number; readonly offsetSecond: number } | null {
+  const radius = Math.abs(radiusValue);
+  if (radius < POSITION_EPSILON) return null;
+
+  const startFirst = start[planeConfig.inPlaneFirst];
+  const startSecond = start[planeConfig.inPlaneSecond];
+  const endFirst = end[planeConfig.inPlaneFirst];
+  const endSecond = end[planeConfig.inPlaneSecond];
+
+  const deltaFirst = endFirst - startFirst;
+  const deltaSecond = endSecond - startSecond;
+  const chordLength = Math.hypot(deltaFirst, deltaSecond);
+  if (chordLength < POSITION_EPSILON) return null; // No full circles via R word.
+
+  const halfChord = chordLength / 2;
+  if (radius < halfChord - POSITION_EPSILON) return null; // Impossible geometry.
+
+  const height = Math.sqrt(Math.max(0, radius * radius - halfChord * halfChord));
+
+  // Unit vector perpendicular to the chord within the arc plane.
+  const perpFirst = -deltaSecond / chordLength;
+  const perpSecond = deltaFirst / chordLength;
+
+  const midFirst = (startFirst + endFirst) / 2;
+  const midSecond = (startSecond + endSecond) / 2;
+
+  // Both candidate centers are equidistant from start and end.
+  const candidateCenters: readonly {
+    readonly first: number;
+    readonly second: number;
+  }[] = [
+    { first: midFirst + height * perpFirst, second: midSecond + height * perpSecond },
+    { first: midFirst - height * perpFirst, second: midSecond - height * perpSecond },
+  ];
+
+  const wantsLongArc = radiusValue < 0;
+
+  for (const center of candidateCenters) {
+    const startAngle = Math.atan2(startSecond - center.second, startFirst - center.first);
+    let endAngle = Math.atan2(endSecond - center.second, endFirst - center.first);
+
+    // Same sweep normalization as generateArcPoints so the chosen center
+    // produces the same traversal direction.
+    let sweep: number;
+    if (isCW) {
+      if (endAngle >= startAngle) {
+        endAngle -= 2 * Math.PI;
+      }
+      sweep = endAngle - startAngle;
+    } else {
+      if (endAngle <= startAngle) {
+        endAngle += 2 * Math.PI;
+      }
+      sweep = endAngle - startAngle;
+    }
+
+    const isLongArc = Math.abs(sweep) > Math.PI;
+    if (isLongArc === wantsLongArc) {
+      return {
+        offsetFirst: center.first - startFirst,
+        offsetSecond: center.second - startSecond,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Generates intermediate 3D points for a circular arc in an arbitrary plane.
  *
  * The arc math is fully plane-agnostic: all coordinate mapping is driven
@@ -355,10 +441,41 @@ export class GCodePathExtractor implements MotionHandler {
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
       const planeConfig = ARC_PLANE_CONFIGS[this.currentArcPlane];
-      const offsetFirst =
-        evaluateAxisValue(parameters, planeConfig.offsetFirst.toUpperCase(), evaluator) ?? 0;
-      const offsetSecond =
-        evaluateAxisValue(parameters, planeConfig.offsetSecond.toUpperCase(), evaluator) ?? 0;
+      const rawOffsetFirst = evaluateAxisValue(
+        parameters,
+        planeConfig.offsetFirst.toUpperCase(),
+        evaluator
+      );
+      const rawOffsetSecond = evaluateAxisValue(
+        parameters,
+        planeConfig.offsetSecond.toUpperCase(),
+        evaluator
+      );
+      const offsetRadius = Math.hypot(rawOffsetFirst ?? 0, rawOffsetSecond ?? 0);
+
+      let offsetFirst = rawOffsetFirst ?? 0;
+      let offsetSecond = rawOffsetSecond ?? 0;
+
+      // Radius-format arc (R word): without usable I/J/K offsets, resolve
+      // the center from the radius and chord geometry.
+      if (offsetRadius < POSITION_EPSILON) {
+        const radiusValue = evaluateAxisValue(parameters, 'R', evaluator);
+        const resolved =
+          radiusValue !== null
+            ? resolveArcOffsetsFromRadius(
+                this.currentPosition,
+                newPosition,
+                radiusValue,
+                motionType === MotionType.ARC_CW,
+                planeConfig
+              )
+            : null;
+        if (resolved !== null) {
+          offsetFirst = resolved.offsetFirst;
+          offsetSecond = resolved.offsetSecond;
+        }
+      }
+
       const arcPoints = generateArcPoints(
         this.currentPosition,
         newPosition,

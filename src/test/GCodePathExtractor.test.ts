@@ -639,6 +639,93 @@ G2 X20 Z0 I5 K0
   });
 
   // ---------------------------------------------------------------------------
+  // Radius-format arcs (R word)
+  // ---------------------------------------------------------------------------
+
+  it('renders a G17 semicircle from the R word (G2 X10 Y0 R5)', () => {
+    const data = extract('G2 X10 Y0 R5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    const yValues = arcPoints.map((p) => p.y);
+    expect(Math.max(...yValues)).toBeCloseTo(5, 5);
+    expect(Math.min(...yValues)).toBeCloseTo(0, 5);
+    for (const point of arcPoints) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('positive R picks the short arc for a quarter circle (G2 X5 Y5 R5)', () => {
+    const data = extract('G2 X5 Y5 R5');
+    expect(data.segments).toHaveLength(1);
+    const arcPoints = data.segments[0].points;
+    const midPoint = arcPoints[Math.floor(arcPoints.length / 2)];
+    // Short arc centered at (5, 0): the midpoint sits at (1.46, 3.54).
+    expect(midPoint.x).toBeCloseTo(1.46, 1);
+    expect(midPoint.y).toBeCloseTo(3.54, 1);
+    // Guard: it must not be the opposite side of the circle.
+    expect(midPoint.x).not.toBeCloseTo(3.54, 1);
+  });
+
+  it('negative R picks the long arc (G2 X5 Y5 R-5, 270-degree sweep)', () => {
+    const data = extract('G2 X5 Y5 R-5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    const midPoint = arcPoints[Math.floor(arcPoints.length / 2)];
+    // Long arc centered at (0, 5) sweeps 270 degrees CW, passing over the
+    // top of the circle: the midpoint sits at (-3.54, 8.54).
+    expect(midPoint.x).toBeCloseTo(-3.54, 1);
+    expect(midPoint.y).toBeCloseTo(8.54, 1);
+  });
+
+  it('renders a G18 R-word arc in the XZ plane (G2 X10 Z0 R5)', () => {
+    const data = extract('G18\nG2 X10 Z0 R5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    for (const point of arcPoints) {
+      expect(point.y).toBeCloseTo(0, 5);
+    }
+    const zValues = arcPoints.map((p) => p.z);
+    // CW viewed from +Y dips below the chord.
+    expect(Math.min(...zValues)).toBeCloseTo(-5, 5);
+    expect(Math.max(...zValues)).toBeCloseTo(0, 5);
+  });
+
+  it('renders a G19 R-word arc in the YZ plane (G2 Y10 Z0 R5)', () => {
+    const data = extract('G19\nG2 Y10 Z0 R5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    for (const point of arcPoints) {
+      expect(point.x).toBeCloseTo(0, 5);
+    }
+    const zValues = arcPoints.map((p) => p.z);
+    expect(Math.max(...zValues)).toBeCloseTo(5, 5);
+    expect(Math.min(...zValues)).toBeCloseTo(0, 5);
+  });
+
+  it('falls back to a straight line when the R word is impossible (G2 X10 Y0 R1)', () => {
+    const data = extract('G2 X10 Y0 R1');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].points.length).toBeLessThanOrEqual(2);
+  });
+
+  it('prefers I/J offsets over the R word when both are present', () => {
+    const data = extract('G2 X10 Y0 I5 J0 R50');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    const yValues = arcPoints.map((p) => p.y);
+    // I5 J0 places the center at (5, 0) - the R word must be ignored.
+    expect(Math.max(...yValues)).toBeCloseTo(5, 5);
+  });
+
+  // ---------------------------------------------------------------------------
   // G28 home position
   // ---------------------------------------------------------------------------
 

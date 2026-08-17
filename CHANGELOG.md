@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 <!-- Bug fixes -->
 - Visualizer: corrected inverted arc direction in the G18 (XZ) plane - G2 now dips below the chord and G3 bulges above it when viewed from +Y, matching the LinuxCNC/NIST convention
+- Visualizer: radius-format (R-word) G2/G3 arcs now render as arcs instead of straight lines in all three planes - negative R renders the long arc
 
 <!-- #released -->
 ## [v2.8.0] - 2026-06-02
