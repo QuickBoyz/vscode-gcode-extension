@@ -714,6 +714,62 @@ G2 X20 Z0 I5 K0
     expect(data.segments[0].points.length).toBeLessThanOrEqual(2);
   });
 
+  it('renders a semicircle for negative R when the chord equals the diameter (G2 X10 Y0 R-5)', () => {
+    const data = extract('G2 X10 Y0 R-5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    // The sign of R cannot select between short and long for an exact
+    // semicircle - the arc must still render.
+    const yValues = arcPoints.map((p) => p.y);
+    expect(Math.max(...yValues)).toBeCloseTo(5, 5);
+    expect(Math.min(...yValues)).toBeCloseTo(0, 5);
+    for (const point of arcPoints) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('renders a G3 CCW short arc from the R word (G3 X5 Y5 R5)', () => {
+    const data = extract('G3 X5 Y5 R5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CCW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    const midPoint = arcPoints[Math.floor(arcPoints.length / 2)];
+    // CCW short arc centered at (0, 5): the midpoint sits at (3.54, 1.46).
+    expect(midPoint.x).toBeCloseTo(3.54, 1);
+    expect(midPoint.y).toBeCloseTo(1.46, 1);
+    // Guard: it must not be the long-arc side of the circle.
+    expect(midPoint.x).not.toBeCloseTo(8.54, 1);
+  });
+
+  it('renders a G3 CCW long arc from negative R (G3 X5 Y5 R-5)', () => {
+    const data = extract('G3 X5 Y5 R-5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CCW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    const midPoint = arcPoints[Math.floor(arcPoints.length / 2)];
+    // CCW long arc centered at (5, 0) sweeps 270 degrees, passing under
+    // the circle: the midpoint sits at (8.54, -3.54).
+    expect(midPoint.x).toBeCloseTo(8.54, 1);
+    expect(midPoint.y).toBeCloseTo(-3.54, 1);
+  });
+
+  it('resolves the R word in G91 incremental mode (G91 G2 X10 Y0 R5)', () => {
+    const data = extract('G91\nG2 X10 Y0 R5');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    expect(arcPoints.length).toBeGreaterThan(2);
+    // Incremental endpoint (10, 0) relative to (0, 0) - the same semicircle.
+    const yValues = arcPoints.map((p) => p.y);
+    expect(Math.max(...yValues)).toBeCloseTo(5, 5);
+    expect(Math.min(...yValues)).toBeCloseTo(0, 5);
+    expect(arcPoints[arcPoints.length - 1].x).toBeCloseTo(10, 5);
+  });
+
   it('prefers I/J offsets over the R word when both are present', () => {
     const data = extract('G2 X10 Y0 I5 J0 R50');
     expect(data.segments).toHaveLength(1);

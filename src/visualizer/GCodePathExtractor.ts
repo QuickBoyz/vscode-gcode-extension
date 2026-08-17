@@ -100,6 +100,27 @@ function evaluateAxisValue(
 }
 
 /**
+ * Computes the directed arc sweep from startAngle to endAngle in the
+ * direction indicated by isCW, normalizing the end angle so the result
+ * carries the requested sign and lies within (-2*PI, 2*PI).
+ */
+function computeArcSweep(startAngle: number, endAngle: number, isCW: boolean): number {
+  let normalizedEndAngle = endAngle;
+  if (isCW) {
+    // Clockwise - angle decreases
+    if (normalizedEndAngle >= startAngle) {
+      normalizedEndAngle -= 2 * Math.PI;
+    }
+  } else {
+    // Counter-clockwise - angle increases
+    if (normalizedEndAngle <= startAngle) {
+      normalizedEndAngle += 2 * Math.PI;
+    }
+  }
+  return normalizedEndAngle - startAngle;
+}
+
+/**
  * Resolves arc-center offsets for a radius-format (R-word) arc.
  *
  * G2/G3 commands may specify the arc either with I/J/K offsets or with an
@@ -136,12 +157,21 @@ function resolveArcOffsetsFromRadius(
 
   const height = Math.sqrt(Math.max(0, radius * radius - halfChord * halfChord));
 
+  const midFirst = (startFirst + endFirst) / 2;
+  const midSecond = (startSecond + endSecond) / 2;
+
+  if (height < POSITION_EPSILON) {
+    // Exact semicircle: the two candidate centers coincide at the chord
+    // midpoint and the sign of R cannot select between them.
+    return {
+      offsetFirst: midFirst - startFirst,
+      offsetSecond: midSecond - startSecond,
+    };
+  }
+
   // Unit vector perpendicular to the chord within the arc plane.
   const perpFirst = -deltaSecond / chordLength;
   const perpSecond = deltaFirst / chordLength;
-
-  const midFirst = (startFirst + endFirst) / 2;
-  const midSecond = (startSecond + endSecond) / 2;
 
   // Both candidate centers are equidistant from start and end.
   const candidateCenters: readonly {
@@ -156,22 +186,8 @@ function resolveArcOffsetsFromRadius(
 
   for (const center of candidateCenters) {
     const startAngle = Math.atan2(startSecond - center.second, startFirst - center.first);
-    let endAngle = Math.atan2(endSecond - center.second, endFirst - center.first);
-
-    // Same sweep normalization as generateArcPoints so the chosen center
-    // produces the same traversal direction.
-    let sweep: number;
-    if (isCW) {
-      if (endAngle >= startAngle) {
-        endAngle -= 2 * Math.PI;
-      }
-      sweep = endAngle - startAngle;
-    } else {
-      if (endAngle <= startAngle) {
-        endAngle += 2 * Math.PI;
-      }
-      sweep = endAngle - startAngle;
-    }
+    const endAngle = Math.atan2(endSecond - center.second, endFirst - center.first);
+    const sweep = computeArcSweep(startAngle, endAngle, isCW);
 
     const isLongArc = Math.abs(sweep) > Math.PI;
     if (isLongArc === wantsLongArc) {
@@ -224,7 +240,7 @@ function generateArcPoints(
   }
 
   const startAngle = Math.atan2(startSecond - centerSecond, startFirst - centerFirst);
-  let endAngle = Math.atan2(endSecond - centerSecond, endFirst - centerFirst);
+  const endAngle = Math.atan2(endSecond - centerSecond, endFirst - centerFirst);
 
   // Full-circle special case: start and end are the same point.
   const isFullCircle =
@@ -232,22 +248,11 @@ function generateArcPoints(
     Math.abs(startSecond - endSecond) < POSITION_EPSILON &&
     Math.abs(startNormal - endNormal) < POSITION_EPSILON;
 
-  let sweep: number;
-  if (isFullCircle) {
-    sweep = isCW ? -2 * Math.PI : 2 * Math.PI;
-  } else if (isCW) {
-    // Clockwise -> angle decreases
-    if (endAngle >= startAngle) {
-      endAngle -= 2 * Math.PI;
-    }
-    sweep = endAngle - startAngle; // negative
-  } else {
-    // Counter-clockwise -> angle increases
-    if (endAngle <= startAngle) {
-      endAngle += 2 * Math.PI;
-    }
-    sweep = endAngle - startAngle; // positive
-  }
+  const sweep = isFullCircle
+    ? isCW
+      ? -2 * Math.PI
+      : 2 * Math.PI
+    : computeArcSweep(startAngle, endAngle, isCW);
 
   const numSegments = Math.max(
     ARC_MIN_SEGMENTS,
