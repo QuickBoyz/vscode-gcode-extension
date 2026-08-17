@@ -4,6 +4,14 @@
  * Each plane defines which two axes are "in-plane" (where the circular
  * interpolation happens), which axis is the "normal" (helical travel),
  * and which offset letters (I/J/K) specify the arc centre.
+ *
+ * The in-plane axes always follow the cyclic order (x, y) → (y, z) →
+ * (z, x), so the cross product of the first in-plane axis with the
+ * second equals the positive normal axis
+ * (`inPlaneFirst × inPlaneSecond = +normal`). This invariant guarantees
+ * that, viewed from the positive normal axis, the interpolation angle
+ * increases counter-clockwise — hence G3 (CCW) sweeps positively and
+ * G2 (CW) sweeps negatively, matching the LinuxCNC/NIST convention.
  */
 
 /**
@@ -36,6 +44,13 @@ export type OffsetKey = 'i' | 'j' | 'k';
  * By using this configuration object the arc math becomes fully
  * plane-agnostic — no conditionals are needed inside the interpolation
  * loop.
+ *
+ * The in-plane axes must follow the cyclic order (x, y) → (y, z) →
+ * (z, x), so that `inPlaneFirst × inPlaneSecond = +normal`. This
+ * invariant makes the interpolation angle increase counter-clockwise
+ * when viewed from the positive normal axis, which in turn means G3
+ * (CCW) sweeps positively and G2 (CW) sweeps negatively, matching the
+ * LinuxCNC/NIST convention.
  */
 export interface ArcPlaneConfig {
   /** First in-plane axis (maps to the "cosine" component). */
@@ -62,11 +77,11 @@ export const ARC_PLANE_CONFIGS: Readonly<Record<ArcPlane, ArcPlaneConfig>> = {
     offsetSecond: 'j',
   },
   [ArcPlane.XZ]: {
-    inPlaneFirst: 'x',
-    inPlaneSecond: 'z',
+    inPlaneFirst: 'z',
+    inPlaneSecond: 'x',
     normal: 'y',
-    offsetFirst: 'i',
-    offsetSecond: 'k',
+    offsetFirst: 'k',
+    offsetSecond: 'i',
   },
   [ArcPlane.YZ]: {
     inPlaneFirst: 'y',

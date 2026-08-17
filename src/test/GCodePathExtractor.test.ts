@@ -534,6 +534,60 @@ X0 Y0
     expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(0.1);
   });
 
+  it('G18 G2 arcs dip below the chord (CW viewed from +Y)', () => {
+    // Semicircle from (0,0,0) to (10,0,0) centred at (5,0,0).
+    // Viewed from +Y (G18 normal), CW must dip to z = -5 below the chord.
+    const data = extract('G18\nG2 X10 Z0 I5 K0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    const zValues = arcPoints.map((p) => p.z);
+    expect(Math.min(...zValues)).toBeCloseTo(-5, 5);
+    expect(Math.max(...zValues)).toBeCloseTo(0, 5);
+    for (const point of arcPoints) {
+      expect(point.y).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('G18 G3 arcs bulge above the chord (CCW viewed from +Y)', () => {
+    // Semicircle from (0,0,0) to (10,0,0) centred at (5,0,0).
+    // Viewed from +Y (G18 normal), CCW must bulge to z = +5 above the chord.
+    const data = extract('G18\nG3 X10 Z0 I5 K0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CCW);
+    const zValues = data.segments[0].points.map((p) => p.z);
+    expect(Math.min(...zValues)).toBeCloseTo(0, 5);
+    expect(Math.max(...zValues)).toBeCloseTo(5, 5);
+  });
+
+  it('G17 G2 arcs still bulge above the chord (plane unchanged)', () => {
+    // Regression guard: G17 G2 must bulge to y = +5 above the chord.
+    const data = extract('G2 X10 Y0 I5 J0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    const yValues = arcPoints.map((p) => p.y);
+    expect(Math.min(...yValues)).toBeCloseTo(0, 5);
+    expect(Math.max(...yValues)).toBeCloseTo(5, 5);
+    for (const point of arcPoints) {
+      expect(point.z).toBeCloseTo(0, 5);
+    }
+  });
+
+  it('G19 G2 arcs still bulge above the chord (plane unchanged)', () => {
+    // Regression guard: G19 G2 must bulge to z = +5 above the chord.
+    const data = extract('G19\nG2 Y10 Z0 J5 K0');
+    expect(data.segments).toHaveLength(1);
+    expect(data.segments[0].type).toBe(MotionType.ARC_CW);
+    const arcPoints = data.segments[0].points;
+    const zValues = arcPoints.map((p) => p.z);
+    expect(Math.min(...zValues)).toBeCloseTo(0, 5);
+    expect(Math.max(...zValues)).toBeCloseTo(5, 5);
+    for (const point of arcPoints) {
+      expect(point.x).toBeCloseTo(0, 5);
+    }
+  });
+
   it('switches arc plane mid-program', () => {
     const program = `
 G17
