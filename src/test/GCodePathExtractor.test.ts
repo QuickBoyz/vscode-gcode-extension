@@ -695,6 +695,57 @@ G2 X20 Z0 I5 K0
     expect(Math.max(...zValues)).toBeCloseTo(0, 5);
   });
 
+  it('renders the clamex P-14 three-pass semicircular groove (G18 + R-word arcs)', () => {
+    // Regression test mirroring the user's clamex_p14_slot.nc: three passes
+    // cutting a shallow groove in the G18 (ZX) plane with R-word arcs.
+    const program = `
+G90
+G0 X-21.881 Y0.000
+G0 Z2.000
+G1 Z0.000 F500
+G18
+G2 X21.881 Z0.000 R50.376 F1000
+G17
+G0 Z2.000
+G0 X-30.125 Y0.000
+G1 Z0.000 F500
+G18
+G2 X30.125 Z0.000 R50.376 F800
+G17
+G0 Z2.000
+G0 X-34.850 Y0.000
+G1 Z0.000 F500
+G18
+G2 X34.850 Z0.000 R50.376 F600
+G17
+G0 Z10.000
+    `;
+    const data = extract(program);
+    const arcs = data.segments.filter((s) => s.type === MotionType.ARC_CW);
+    expect(arcs).toHaveLength(3);
+
+    const passStarts = [-21.881, -30.125, -34.85];
+    const passEnds = [21.881, 30.125, 34.85];
+    // grooveDepths are the sagittas R - sqrt(R^2 - (width/2)^2) for R=50.376, widths 43.762/60.25/69.7.
+    const grooveDepths = [5, 10, 14];
+    const feedRates = [1000, 800, 600];
+
+    arcs.forEach((arc, index) => {
+      const passPoints = arc.points;
+      expect(passPoints.length).toBeGreaterThan(2);
+      expect(passPoints[0].x).toBeCloseTo(passStarts[index], 2);
+      expect(passPoints[passPoints.length - 1].x).toBeCloseTo(passEnds[index], 2);
+      for (const point of passPoints) {
+        expect(point.y).toBeCloseTo(0, 4);
+      }
+      const depth = grooveDepths[index];
+      const minZ = Math.min(...passPoints.map((p) => p.z));
+      expect(minZ).toBeGreaterThanOrEqual(-depth - 0.001); // never deeper than the true sagitta
+      expect(minZ).toBeLessThan(-depth + 0.2); // sampled min is at most a few hundredths shallower
+      expect(arc.context?.feedRate).toBe(feedRates[index]);
+    });
+  });
+
   it('renders a G19 R-word arc in the YZ plane (G2 Y10 Z0 R5)', () => {
     const data = extract('G19\nG2 Y10 Z0 R5');
     expect(data.segments).toHaveLength(1);
