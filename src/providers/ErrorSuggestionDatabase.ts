@@ -210,6 +210,12 @@ function buildCodeSuggestions(): Map<DiagnosticCode, ErrorSuggestion> {
     example: '#<my_variable>',
   });
 
+  map.set(ParserDiagnosticCode.UNTERMINATED_O_LABEL, {
+    enhancedMessage: 'Named O-word label is missing its closing angle bracket',
+    suggestion: 'Add a closing > to terminate the O-word label.',
+    example: 'o<change> sub',
+  });
+
   map.set(ParserDiagnosticCode.MISMATCHED_DO_END_SUFFIX, {
     enhancedMessage: 'DO and END nesting numbers do not match',
     suggestion:

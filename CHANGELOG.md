@@ -10,12 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 <!-- New features and improvements -->
+- LinuxCNC dialect: named O-word labels (`o<change> sub`, `o<helper> call`, `o<myfile> endsub`) are now lexed, parsed, and formatted
+- LinuxCNC dialect: subroutine return values on `return [expr]` and `endsub [expr]` are now parsed, formatted, and included in the AST
 
 ### Changed
 <!-- Updates and modifications -->
 
 ### Fixed
 <!-- Bug fixes -->
+- LinuxCNC dialect: O-word labels are now matched case-insensitively, matching the interpreter's case-insensitive input rules
+- LinuxCNC dialect: a named O-word label missing its closing `>` now reports a diagnostic instead of parsing silently
+- LinuxCNC formatter: named O-word labels keep their original case instead of being upper-cased
 
 <!-- #released -->
 ## [v2.8.1] - 2026-08-17

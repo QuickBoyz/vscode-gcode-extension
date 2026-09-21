@@ -283,6 +283,37 @@ M30
       expect(osubs).toHaveLength(2);
       expect(osubs.map((t) => t.value)).toEqual(['O100', 'O200']);
     });
+
+    it('should tokenize a named O-block label as a single OSUB token', () => {
+      const tokens = lexer.tokenize('o<change>');
+      const osubs = tokens.filter((t) => t.category === TokenCategory.OSUB);
+      expect(osubs).toHaveLength(1);
+      expect(osubs[0].value).toBe('o<change>');
+      expect(osubs[0].unterminated).toBe(false);
+    });
+
+    it('should preserve the case of a named O-block label', () => {
+      const tokens = lexer.tokenize('O<Change>');
+      const osubs = tokens.filter((t) => t.category === TokenCategory.OSUB);
+      expect(osubs).toHaveLength(1);
+      expect(osubs[0].value).toBe('O<Change>');
+    });
+
+    it('should tokenize a named O-block followed by a keyword', () => {
+      const tokens = lexer.tokenize('o<change> sub');
+      const osubs = tokens.filter((t) => t.category === TokenCategory.OSUB);
+      const subs = tokens.filter((t) => t.keyword === KeywordType.SUB);
+      expect(osubs).toHaveLength(1);
+      expect(osubs[0].value).toBe('o<change>');
+      expect(subs).toHaveLength(1);
+    });
+
+    it('should flag an unterminated named O-block label', () => {
+      const tokens = lexer.tokenize('o<change');
+      const osubs = tokens.filter((t) => t.category === TokenCategory.OSUB);
+      expect(osubs).toHaveLength(1);
+      expect(osubs[0].unterminated).toBe(true);
+    });
   });
 
   describe('line numbers', () => {

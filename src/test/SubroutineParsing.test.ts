@@ -2,8 +2,12 @@ import { DialectType } from '../constants';
 import { LexerFactory } from '../lexer/LexerFactory';
 import { ParserFactory } from '../parser/ParserFactory';
 import {
+  BinaryExpressionNode,
   ErrorNode,
+  IfStatementNode,
+  LiteralExpressionNode,
   MotionCommandNode,
+  ParserDiagnosticCode,
   ProgramNode,
   ReturnStatementNode,
   SubroutineCallNode,
@@ -143,6 +147,75 @@ G0 X0 Y0`;
     const program = parse(code);
     expect(program.statements.length).toBeGreaterThan(0);
     // Should not crash — error recovery handles the missing ENDSUB
+  });
+
+  it('parses named SUB/ENDSUB', () => {
+    const program = parse('o<change> SUB\nG0 X10\no<change> ENDSUB');
+
+    expect(program.statements.length).toBe(1);
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect(sub).toBeInstanceOf(SubroutineDefinitionNode);
+    expect(sub.label).toBe('o<change>');
+    expect(sub.body.length).toBe(1);
+    expect(sub.body[0]).toBeInstanceOf(MotionCommandNode);
+  });
+
+  it('parses named SUB with CALL', () => {
+    const program = parse('o<helper> SUB\nG0 X10\no<helper> ENDSUB\no<helper> CALL [1]');
+
+    expect(program.statements.length).toBe(2);
+    expect(program.statements[0]).toBeInstanceOf(SubroutineDefinitionNode);
+    const call = program.statements[1] as SubroutineCallNode;
+    expect(call).toBeInstanceOf(SubroutineCallNode);
+    expect(call.target).toBe('o<helper>');
+  });
+
+  it('parses RETURN with a bracketed return value', () => {
+    const program = parse('O100 SUB\nO100 RETURN [999]\nO100 ENDSUB');
+
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    const ret = sub.body[0] as ReturnStatementNode;
+    expect(ret).toBeInstanceOf(ReturnStatementNode);
+    expect(ret.returnValue).toBeInstanceOf(LiteralExpressionNode);
+  });
+
+  it('parses ENDSUB with a bracketed return value', () => {
+    const program = parse('O100 SUB\nO100 ENDSUB [3 * 4]');
+
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect(sub).toBeInstanceOf(SubroutineDefinitionNode);
+    expect(sub.returnValue).toBeInstanceOf(BinaryExpressionNode);
+  });
+
+  it('parses RETURN without a return value', () => {
+    const program = parse('O100 SUB\nO100 RETURN\nO100 ENDSUB');
+
+    const sub = program.statements[0] as SubroutineDefinitionNode;
+    expect((sub.body[0] as ReturnStatementNode).returnValue).toBeUndefined();
+  });
+
+  it('matches O-word labels case-insensitively', () => {
+    const program = parse('o100 IF [#1 EQ 1]\nG0 X1\nO100 ENDIF');
+
+    const errors = program.statements.filter((s) => s instanceof ErrorNode);
+    expect(errors).toHaveLength(0);
+    expect(program.statements[0]).toBeInstanceOf(IfStatementNode);
+  });
+
+  it('matches named O-word labels case-insensitively', () => {
+    const program = parse('o<change> SUB\nG0 X10\nO<CHANGE> ENDSUB');
+
+    const errors = program.statements.filter((s) => s instanceof ErrorNode);
+    expect(errors).toHaveLength(0);
+    expect(program.statements[0]).toBeInstanceOf(SubroutineDefinitionNode);
+  });
+
+  it('reports an unterminated named O-word label', () => {
+    const program = parse('o<change SUB');
+
+    const error = program.statements[0] as ErrorNode;
+    expect(error).toBeInstanceOf(ErrorNode);
+    expect(error.code).toBe(ParserDiagnosticCode.UNTERMINATED_O_LABEL);
   });
 });
 

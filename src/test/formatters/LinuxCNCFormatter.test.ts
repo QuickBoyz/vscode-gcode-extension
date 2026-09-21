@@ -294,6 +294,49 @@ O100 ENDSUB`,
       expect(formatted).toContain('O100 RETURN');
     });
 
+    it('formats RETURN with a return value', () => {
+      const code = 'O100 RETURN [999]',
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 RETURN [999.0]');
+    });
+
+    it('formats ENDSUB with a return value', () => {
+      const code = `O100 SUB
+O100 ENDSUB [3 * 4]`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('O100 ENDSUB [3.0 * 4.0]');
+    });
+
+    it('preserves the case of named O-word labels', () => {
+      const code = `o<change> SUB
+G0 X10
+o<change> ENDSUB`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('o<change> SUB');
+      expect(formatted).toContain('o<change> ENDSUB');
+      expect(formatted).not.toContain('O<CHANGE>');
+    });
+
+    it('formats a named ENDSUB with a return value', () => {
+      const code = `o<change> SUB
+G0 X10
+o<change> ENDSUB [1]`,
+        program = parse(code),
+        traverser = new AstTraverser(formatter),
+        formatted = formatter.formatGCode(program, traverser);
+
+      expect(formatted).toContain('o<change> ENDSUB [1.0]');
+    });
+
     it('formats full program with SUB, RETURN, ENDSUB, and CALL', () => {
       const code = `G0 X0 Y0
 O100 SUB
