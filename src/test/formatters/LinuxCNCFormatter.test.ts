@@ -321,8 +321,8 @@ o<change> ENDSUB`,
         traverser = new AstTraverser(formatter),
         formatted = formatter.formatGCode(program, traverser);
 
-      expect(formatted).toContain('o<change> SUB');
-      expect(formatted).toContain('o<change> ENDSUB');
+      expect(formatted).toContain('O<change> SUB');
+      expect(formatted).toContain('O<change> ENDSUB');
       expect(formatted).not.toContain('O<CHANGE>');
     });
 
@@ -334,7 +334,7 @@ o<change> ENDSUB [1]`,
         traverser = new AstTraverser(formatter),
         formatted = formatter.formatGCode(program, traverser);
 
-      expect(formatted).toContain('o<change> ENDSUB [1.0]');
+      expect(formatted).toContain('O<change> ENDSUB [1.0]');
     });
 
     it('formats full program with SUB, RETURN, ENDSUB, and CALL', () => {

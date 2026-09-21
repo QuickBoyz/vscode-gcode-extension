@@ -1,4 +1,4 @@
-import { GCodeKeywords, GCodeSymbols } from '../../constants';
+import { GCodeKeywords, GCodeSymbols, REGEX_PATTERNS } from '../../constants';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { BaseAstVisitor } from '../../parser/BaseAstVisitor';
 import {
@@ -13,12 +13,6 @@ import {
 } from '../../parser/nodes';
 import { IfClauseKind } from '../../parser/nodes';
 import { BaseFormatter } from '../BaseFormatter';
-
-/**
- * Matches a named O-block label (o<name>). Named labels keep their original
- * case; numeric labels are upper-cased.
- */
-const NAMED_O_WORD_PATTERN = /^o</i;
 
 /**
  * LinuxCNC-specific formatter.
@@ -134,7 +128,9 @@ export class LinuxCNCFormatter extends BaseFormatter {
    */
   private normalizeLabel(label: string): string {
     const trimmed = label.trim();
-    return NAMED_O_WORD_PATTERN.test(trimmed) ? trimmed : trimmed.toUpperCase();
+    return REGEX_PATTERNS.NAMED_O_WORD_PREFIX.test(trimmed)
+      ? trimmed.replace(REGEX_PATTERNS.NAMED_O_WORD_PREFIX, 'O<')
+      : trimmed.toUpperCase();
   }
 
   /**
