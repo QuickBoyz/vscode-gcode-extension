@@ -5,6 +5,19 @@ All notable changes to the "G-Code Language Support" extension will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- #unreleased -->
+## [Unreleased]
+
+### Added
+<!-- New features and improvements -->
+
+### Changed
+<!-- Updates and modifications -->
+
+### Fixed
+<!-- Bug fixes -->
+
+<!-- #released -->
 ## [v2.9.0] - 2026-09-21
 
 ### Added
@@ -21,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LinuxCNC dialect: a named O-word label missing its closing `>` now reports a diagnostic instead of parsing silently
 - LinuxCNC formatter: named O-word labels keep their original case instead of being upper-cased
 
-<!-- #released -->
 ## [v2.8.1] - 2026-08-17
 
 ### Added
