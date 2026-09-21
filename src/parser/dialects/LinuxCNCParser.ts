@@ -5,6 +5,11 @@ import { BaseParser } from '../BaseParser';
 import { ParseError } from '../../errors/ParseError';
 
 /**
+ * Error message for unterminated named O-word labels (missing closing >).
+ */
+const UNTERMINATED_O_LABEL_MESSAGE = 'Unterminated named O-word — missing closing >';
+
+/**
  * LinuxCNC dialect parser.
  *
  * Handles the full LinuxCNC G-code syntax including O-block labeled
@@ -63,6 +68,17 @@ export class LinuxCNCParser extends BaseParser {
 
   private parseOBlock(): StatementNode {
     const label = this.tokens.expectCategory(TokenCategory.OSUB);
+    if (label.unterminated) {
+      this.recoverToNextLine();
+      return this.factory.error(
+        UNTERMINATED_O_LABEL_MESSAGE,
+        label,
+        label.value,
+        undefined,
+        undefined,
+        ParserDiagnosticCode.UNTERMINATED_O_LABEL
+      );
+    }
     const token = this.tokens.peek();
 
     if (token?.isKeyword(KeywordType.WHILE)) {
@@ -92,7 +108,7 @@ export class LinuxCNCParser extends BaseParser {
       // Check for matching OSUB label followed by ENDSUB
       if (
         this.tokens.matchCategory(TokenCategory.OSUB) &&
-        this.tokens.peek()?.value === label.value &&
+        this.labelsMatch(this.tokens.peek(), label) &&
         this.tokens.peek(1)?.hasKeyword(KeywordType.ENDSUB)
       ) {
         break;
@@ -123,8 +139,9 @@ export class LinuxCNCParser extends BaseParser {
       });
     }
     const endToken = this.tokens.expectKeyword(KeywordType.ENDSUB);
+    const returnValue = this.parseOptionalBracketedExpression();
 
-    return this.factory.subroutineDefinition({ label, subToken, body, endToken });
+    return this.factory.subroutineDefinition({ label, subToken, body, endToken, returnValue });
   }
 
   private parseSubroutineCall(label: LexerToken): StatementNode {
@@ -149,6 +166,21 @@ export class LinuxCNCParser extends BaseParser {
 
   private parseReturn(label: LexerToken): StatementNode {
     const returnToken = this.tokens.expectKeyword(KeywordType.RETURN);
-    return this.factory.returnStatement({ returnToken, label });
+    const returnValue = this.parseOptionalBracketedExpression();
+    return this.factory.returnStatement({ returnToken, label, returnValue });
+  }
+
+  /**
+   * Parse an optional bracket-delimited expression: [expr].
+   * Used for the optional return value of RETURN and ENDSUB.
+   */
+  private parseOptionalBracketedExpression(): ExpressionNode | undefined {
+    if (!this.tokens.matchCategory(TokenCategory.LBRACKET)) {
+      return undefined;
+    }
+    this.tokens.next(); // consume LBRACKET
+    const expression = this.parseExpression();
+    this.tokens.expectCategory(TokenCategory.RBRACKET);
+    return expression;
   }
 }

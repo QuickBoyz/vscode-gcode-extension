@@ -154,7 +154,7 @@ export abstract class BaseParser {
         // With label: check for OSUB label ELSEIF pattern
         if (
           this.tokens.matchCategory(TokenCategory.OSUB) &&
-          this.tokens.peek()?.value === label.value &&
+          this.labelsMatch(this.tokens.peek(), label) &&
           this.tokens.peek(1)?.hasKeyword(KeywordType.ELSEIF)
         ) {
           this.tokens.next(); // OSUB
@@ -207,7 +207,7 @@ export abstract class BaseParser {
       // With label: expect OSUB before ELSE
       if (
         this.tokens.matchCategory(TokenCategory.OSUB) &&
-        this.tokens.peek()?.value === label.value &&
+        this.labelsMatch(this.tokens.peek(), label) &&
         this.tokens.peek(1)?.hasKeyword(KeywordType.ELSE)
       ) {
         this.tokens.next(); // OSUB
@@ -277,7 +277,7 @@ export abstract class BaseParser {
       if (
         label &&
         this.tokens.matchCategory(TokenCategory.OSUB) &&
-        this.tokens.peek()?.value === label.value
+        this.labelsMatch(this.tokens.peek(), label)
       ) {
         const next = this.tokens.peek(1);
         if (next?.hasKeyword(KeywordType.ELSE, KeywordType.ELSEIF, KeywordType.ENDIF)) {
@@ -329,7 +329,7 @@ export abstract class BaseParser {
 
     // If there's a label, consume the OSUB label token before expecting END/ENDWHILE
     if (label && this.tokens.matchCategory(TokenCategory.OSUB)) {
-      if (this.tokens.peek()?.value === label.value) {
+      if (this.labelsMatch(this.tokens.peek(), label)) {
         this.tokens.next(); // Consume the OSUB label
       }
     }
@@ -393,6 +393,18 @@ export abstract class BaseParser {
     }
   }
 
+  /**
+   * Compare an O-word label token with a reference label token.
+   * LinuxCNC treats O-words as case-insensitive, so both sides are
+   * normalized (trimmed and upper-cased) before comparison.
+   */
+  protected labelsMatch(token: LexerToken | undefined, label: LexerToken): boolean {
+    if (!token) {
+      return false;
+    }
+    return token.value.trim().toUpperCase() === label.value.trim().toUpperCase();
+  }
+
   protected isEndWhile(startLabel?: LexerToken): boolean {
     const token = this.tokens.peek();
     if (!token) return false;
@@ -403,7 +415,7 @@ export abstract class BaseParser {
     }
 
     // With label: check for OSUB followed by END or ENDWHILE
-    if (token.hasCategory(TokenCategory.OSUB) && token.value === startLabel.value) {
+    if (token.hasCategory(TokenCategory.OSUB) && this.labelsMatch(token, startLabel)) {
       const next = this.tokens.peek(1);
       return next?.hasKeyword(KeywordType.END, KeywordType.ENDWHILE) ?? false;
     }

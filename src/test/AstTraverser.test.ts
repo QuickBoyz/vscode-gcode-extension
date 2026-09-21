@@ -252,4 +252,38 @@ O100 ENDSUB`;
 
     expect(visited).toEqual(['program', 'return:O100']);
   });
+
+  it('visits the return value expressions of RETURN and ENDSUB', () => {
+    const code = `O100 SUB
+O100 RETURN [#<r> + 1]
+O100 ENDSUB [#<r> * 2]`;
+    const program = parse(code);
+    const visited: string[] = [];
+    const visitor = {
+      visitProgram: () => visited.push('program'),
+      visitSubroutineDefinition: (node: SubroutineDefinitionNode) =>
+        visited.push(`sub:${node.label}`),
+      visitSubroutineDefinitionEnd: (node: SubroutineDefinitionNode) =>
+        visited.push(`endsub:${node.label}`),
+      visitReturnStatement: (node: ReturnStatementNode) =>
+        visited.push(`return:${node.label ?? 'none'}`),
+      visitVariableReference: () => visited.push('varref'),
+      visitBinaryExpression: () => visited.push('binary'),
+      visitLiteralExpression: () => visited.push('literal'),
+    } as unknown as AstVisitor<string[]>;
+    new AstTraverser(visitor).traverseProgram(program);
+
+    expect(visited).toEqual([
+      'program',
+      'sub:O100',
+      'return:O100',
+      'binary', // [#<r> + 1]
+      'varref', // #<r>
+      'literal', // 1
+      'binary', // [#<r> * 2]
+      'varref', // #<r>
+      'literal', // 2
+      'endsub:O100',
+    ]);
+  });
 });

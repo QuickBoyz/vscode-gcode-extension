@@ -1,5 +1,6 @@
 import { AstVisitor } from '../AstVisitor';
 import { AstNode } from './AstNode';
+import { ExpressionNode } from './expressions';
 import { Range } from './Range';
 import { StatementNode } from './StatementNode';
 
@@ -8,6 +9,7 @@ export class ReturnStatementNode extends StatementNode {
     range: Range,
     readonly label: string | undefined,
     readonly returnTokenRange: Range,
+    readonly returnValue?: ExpressionNode,
     parent?: AstNode
   ) {
     super(range, parent);

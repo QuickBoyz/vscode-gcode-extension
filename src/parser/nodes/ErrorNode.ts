@@ -28,6 +28,7 @@ export enum ParserDiagnosticCode {
   EXPECTED_FUNCTION_NAME = 'expected-function-name',
   UNTERMINATED_COMMENT = 'unterminated-comment',
   UNTERMINATED_VARIABLE = 'unterminated-variable',
+  UNTERMINATED_O_LABEL = 'unterminated-o-label',
   MISMATCHED_DO_END_SUFFIX = 'mismatched-do-end-suffix',
   INVALID_DO_END_SUFFIX = 'invalid-do-end-suffix',
   UNSUPPORTED_NUMBERED_DO_END = 'unsupported-numbered-do-end',

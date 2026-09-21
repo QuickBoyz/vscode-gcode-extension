@@ -155,3 +155,14 @@ Check project obsidian wiki for known patterns and architectural decisions befor
 > The AST is the single source of truth. Everything else is a projection of it.
 
 Any change that violates this principle is invalid.
+
+<!-- agents-memo:begin -->
+
+## Wiki Knowledge Base
+
+Path: /home/michal/Projects/llm-memory
+When needed: (1) read wiki/hot.md first, (2) read wiki/index.md, (3) drill into domain pages.
+Use it for architectural quirks and complex concepts; skip it for straightforward
+questions answerable from common knowledge or the code.
+
+<!-- agents-memo:end -->

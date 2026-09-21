@@ -77,7 +77,7 @@ export class AstTraverser<T = void> {
         this.traverseSubroutineCall(node);
         break;
       case node instanceof ReturnStatementNode:
-        this.visitor.visitReturnStatement(node);
+        this.traverseReturnStatement(node);
         break;
       case node instanceof ProgramDelimiterNode:
         this.visitor.visitProgramDelimiter(node);
@@ -192,7 +192,17 @@ export class AstTraverser<T = void> {
   private traverseSubroutineDefinition(node: SubroutineDefinitionNode): void {
     this.visitor.visitSubroutineDefinition(node);
     this.traverseStatements(node.body);
+    if (node.returnValue) {
+      this.traverseExpression(node.returnValue);
+    }
     this.visitor.visitSubroutineDefinitionEnd(node);
+  }
+
+  private traverseReturnStatement(node: ReturnStatementNode): void {
+    this.visitor.visitReturnStatement(node);
+    if (node.returnValue) {
+      this.traverseExpression(node.returnValue);
+    }
   }
 
   private traverseSubroutineCall(node: SubroutineCallNode): void {

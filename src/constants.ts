@@ -193,6 +193,8 @@ export const REGEX_PATTERNS = {
   NUMBER: /\d+\.?\d*|\.\d+/,
   /** Matches parameter letters: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z */
   PARAMETER_LETTER: /[a-zA-Z]/,
+  /** Matches named O-word labels (o<name>) - case-insensitive prefix */
+  NAMED_O_WORD_PREFIX: /^o</i,
   /** Matches comments: ; comment */
   COMMENT: /;.*/,
   /** Matches parenthetical comments: (comment) */

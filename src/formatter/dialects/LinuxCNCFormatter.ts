@@ -1,4 +1,4 @@
-import { GCodeKeywords, GCodeSymbols } from '../../constants';
+import { GCodeKeywords, GCodeSymbols, REGEX_PATTERNS } from '../../constants';
 import { AstTraverser } from '../../parser/AstTraverser';
 import { BaseAstVisitor } from '../../parser/BaseAstVisitor';
 import {
@@ -108,17 +108,29 @@ export class LinuxCNCFormatter extends BaseFormatter {
   protected formatLabel(label?: string): string {
     // If label is explicitly provided, use it
     if (label) {
-      return `${label.toUpperCase()} `;
+      return `${this.normalizeLabel(label)} `;
     }
 
     // Otherwise, use the current statement label from the stack
     if (this.labelStack.length > 0) {
       const currentLabel = this.labelStack[this.labelStack.length - 1];
-      return `${currentLabel.toUpperCase()} `;
+      return `${this.normalizeLabel(currentLabel)} `;
     }
 
     // Fallback (shouldn't happen in normal traversal)
     return GCodeSymbols.EMPTY_STRING;
+  }
+
+  /**
+   * Normalize an O-block label for output. Numeric labels are upper-cased
+   * (o100 -> O100); named labels (o<name>) keep their source case because
+   * LinuxCNC named subroutines conventionally use lower case.
+   */
+  private normalizeLabel(label: string): string {
+    const trimmed = label.trim();
+    return REGEX_PATTERNS.NAMED_O_WORD_PREFIX.test(trimmed)
+      ? trimmed.replace(REGEX_PATTERNS.NAMED_O_WORD_PREFIX, 'O<')
+      : trimmed.toUpperCase();
   }
 
   /**
@@ -135,7 +147,10 @@ export class LinuxCNCFormatter extends BaseFormatter {
   }
 
   protected formatSubroutineDefinitionClose(node: SubroutineDefinitionNode): string {
-    return `${this.formatLabel(node.label)}ENDSUB`;
+    const line = `${this.formatLabel(node.label)}ENDSUB`;
+    return node.returnValue
+      ? `${line} [${this.expressionFormatter.format(node.returnValue)}]`
+      : line;
   }
 
   protected formatSubroutineCallLine(node: SubroutineCallNode): string {
@@ -147,7 +162,10 @@ export class LinuxCNCFormatter extends BaseFormatter {
   }
 
   protected formatReturnStatementLine(node: ReturnStatementNode): string {
-    return `${this.formatLabel(node.label)}RETURN`;
+    const line = `${this.formatLabel(node.label)}RETURN`;
+    return node.returnValue
+      ? `${line} [${this.expressionFormatter.format(node.returnValue)}]`
+      : line;
   }
 
   protected getIfKeyword(): string {

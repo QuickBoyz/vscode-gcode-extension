@@ -4,6 +4,7 @@ role: 'orchestrator'
 model: 'smart'
 skills:
   - 'notes-md'
+  - 'memo-*'
 tools:
   - set_flow_param
   - set_session_name
@@ -126,10 +127,10 @@ one entry per comment with `id`, `body`, `path`, `source: "review"`,
 `isResolved` (from the thread), and `threadId`. Threads with
 `isResolved: false` are the actionable inventory; resolved threads need no
 work. Fall back to the `GitHubService` class in
-`packages/cli/src/github.ts` only when shaping needs fields the routine
+`packages/core/src/github.ts` only when shaping needs fields the routine
 query does not return — `author` login, `line`, `createdAt`, `url`, and
 issue comments. Instantiate it once
-(`import { GitHubService } from './packages/cli/src/github.ts'; const gh = new GitHubService();`)
+(`import { GitHubService } from './packages/core/src/github.ts'; const gh = new GitHubService();`)
 and use `gh.getPullRequest()` / `gh.getUnresolvedComments()`. Run those from
 the main checkout, the one that has `node_modules` (find it with `git worktree
 list`).
@@ -212,6 +213,30 @@ when the ids do not line up.
 2. Verify the push succeeded (comments now point at code that exists on the
    branch), then call `destroy_workspace(workspace)`.
 3. Summarise for the user: comments triaged, groups built, verdicts posted.
+
+## Memory (memo- skills)
+
+This session may have a `memo-` skill namespace for persistent project
+memory (provided by an external memory plugin). The skills below are
+available when the plugin is installed - read the relevant `SKILL.md`
+before using:
+
+| Skill        | Command       | Purpose                                            |
+| ------------ | ------------- | -------------------------------------------------- |
+| `memo-query` | `/memo-query` | Ask project memory for prior notes before planning |
+| `memo-save`  | `/memo-save`  | File session learnings as permanent memory entries |
+| `memo-notes` | `/memo-notes` | Quick inbox capture                                |
+| `memo-daily` | `/memo-daily` | Timestamped daily log lines                        |
+| `memo-wiki`  | `/memo-wiki`  | Memory routing and scaffolding                     |
+
+These skills are declared here for documentation - the in-session
+orchestrator resolves them via the session's ambient skill discovery; the
+spec `skills:` allowlist (`memo-*`) is enforced only for subprocess
+agents.
+
+Use memory for context (`memo-query`) and as a write target for durable
+learnings (`memo-save`). Memory access is best-effort: if the `memo-`
+skills are unavailable, skip gracefully - never fail the flow over memory.
 
 ## Rules
 

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/misiekhardcore/feature-forge/main/packages/cli/src/flows/flow-schema.json",
+  "$schema": "https://raw.githubusercontent.com/misiekhardcore/feature-forge/main/packages/core/src/flows/flow-schema.json",
   "name": "resolve-pr-feedback",
   "command": "/resolve-pr-feedback",
   "orchestrator": {
@@ -97,13 +97,13 @@
         {
           "type": "shell",
           "id": "post_reply",
-          "command": "gh api graphql -f query='mutation($threadId:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$threadId,body:$body}){comment{id}}}' -F threadId={{threadId}} -f body='{{reply}}'",
-          "failFast": false
+          "command": "cat > /var/tmp/ff-reply-$$.md << 'FFEOF'\n{{reply}}\nFFEOF\ngh api graphql -f query='mutation($threadId:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$threadId,body:$body}){comment{id}}}' -F threadId={{threadId}} -F body=@/var/tmp/ff-reply-$$.md; status=$?; rm -f /var/tmp/ff-reply-$$.md; exit $status",
+          "failFast": true
         },
         {
           "type": "shell",
           "id": "resolve_thread",
-          "command": "case {{verdict}} in fixed|fixed-differently|not-addressing) gh api graphql -f query='mutation($threadId:ID!){resolveReviewThread(input:{threadId:$threadId}){thread{id}}}' -F threadId={{threadId}} ;; esac",
+          "command": "case \"{{verdict}}\" in fixed|fixed-differently|not-addressing) gh api graphql -f query='mutation($threadId:ID!){resolveReviewThread(input:{threadId:$threadId}){thread{id}}}' -F threadId={{threadId}} ;; esac",
           "failFast": false
         }
       ]

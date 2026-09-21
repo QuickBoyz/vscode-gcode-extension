@@ -165,6 +165,12 @@ export class GCodeScanner {
       return;
     }
 
+    // O followed by '<' -> named O-block subroutine label: o<name>
+    if (upperFirstChar === 'O' && nextChar === '<') {
+      this.scanNamedOWord(startOffset, startLine, startCol);
+      return;
+    }
+
     // N followed by digit -> Line number
     if (upperFirstChar === 'N' && this.isDigit(nextChar)) {
       this.readDigits();
@@ -226,6 +232,37 @@ export class GCodeScanner {
     }
 
     return { keyword: null };
+  }
+
+  /**
+   * Scan a named O-block label: o<name>. The closing '>' is optional at the
+   * lexer level; a missing '>' sets the token's unterminated flag so the
+   * parser can report it.
+   */
+  private scanNamedOWord(startOffset: number, startLine: number, startCol: number): void {
+    this.advance(); // consume '<'
+    while (
+      this.position < this.source.length &&
+      this.peek() !== '>' &&
+      this.peek() !== '\n' &&
+      this.peek() !== '\r'
+    ) {
+      this.advance();
+    }
+    const unterminated = this.peek() !== '>';
+    if (!unterminated) {
+      this.advance(); // consume '>'
+    }
+    const value = this.source.slice(startOffset, this.position);
+    this.emit(
+      TokenCategory.OSUB,
+      null,
+      value,
+      startOffset,
+      startLine,
+      startCol,
+      unterminated ? { unterminated } : undefined
+    );
   }
 
   /**

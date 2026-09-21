@@ -236,13 +236,15 @@ export class AstFactory {
     subToken: LexerToken;
     body: StatementNode[];
     endToken: LexerToken;
+    returnValue?: ExpressionNode;
   }): SubroutineDefinitionNode {
     const node = new SubroutineDefinitionNode(
-      this.rangeFrom(args.label, args.endToken),
+      this.rangeFrom(args.label, args.returnValue ?? args.endToken),
       args.label.value,
       args.body,
       this.rangeFrom(args.label),
-      this.rangeFrom(args.endToken)
+      this.rangeFrom(args.endToken),
+      args.returnValue
     );
     this.setParents(args.body, node);
     return node;
@@ -264,11 +266,16 @@ export class AstFactory {
     );
   }
 
-  returnStatement(args: { returnToken: LexerToken; label?: LexerToken }): ReturnStatementNode {
+  returnStatement(args: {
+    returnToken: LexerToken;
+    label?: LexerToken;
+    returnValue?: ExpressionNode;
+  }): ReturnStatementNode {
     return new ReturnStatementNode(
-      this.rangeFrom(args.label ?? args.returnToken, args.returnToken),
+      this.rangeFrom(args.label ?? args.returnToken, args.returnValue ?? args.returnToken),
       args.label?.value,
-      this.rangeFrom(args.returnToken)
+      this.rangeFrom(args.returnToken),
+      args.returnValue
     );
   }
 
