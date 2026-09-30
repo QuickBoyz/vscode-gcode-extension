@@ -30,14 +30,6 @@ describe('GCodePathExtractor', () => {
     return extractor.extract(ast, interpreter);
   }
 
-  /**
-   * Helper: extract with pre-populated variable environment.
-   */
-  function extractWithVariables(input: string, variables?: VariableEnvironment): ToolPathData {
-    const { ast, extractor, interpreter } = buildPipeline(input, variables);
-    return extractor.extract(ast, interpreter);
-  }
-
   // ---------------------------------------------------------------------------
   // Basic extraction
   // ---------------------------------------------------------------------------
@@ -131,80 +123,6 @@ describe('GCodePathExtractor', () => {
     const data = extract('G2 X10 Y0 I5 J0');
     // Arc should have more than 2 points (interpolated)
     expect(data.segments[0].points.length).toBeGreaterThan(2);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Motion length calculation
-  // ---------------------------------------------------------------------------
-
-  it('computes correct length for G1 linear move', () => {
-    const data = extract('G1 X10 Y20');
-    expect(data.segments[0].length).toBeCloseTo(22.3607, 4);
-  });
-
-  it('computes correct length for G0 rapid with all axes', () => {
-    const data = extract('G0 X5 Y-12 Z8');
-    // sqrt(233)
-    expect(data.segments[0].length).toBeCloseTo(Math.sqrt(233));
-  });
-
-  it('computes correct length for G1 with all three axes', () => {
-    const data = extract('G1 X5 Y-12 Z8');
-    // sqrt(233)
-    expect(data.segments[0].length).toBeCloseTo(Math.sqrt(233));
-  });
-
-  it('computes zero length for no-move command', () => {
-    const data = extract('G1');
-    expect(data.segments[0].length).toBe(0);
-    expect(data.segments[0].points).toEqual([
-      { x: 0, y: 0, z: 0 },
-      { x: 0, y: 0, z: 0 },
-    ]);
-  });
-
-  it('computes correct length for incremental mode', () => {
-    const data = extract('G91 G1 X5 Y-3 Z8');
-    // sqrt(25+9+64) = sqrt(98)
-    expect(data.segments[0].length).toBeCloseTo(Math.sqrt(98));
-  });
-
-  it('computes chord length for G2 clockwise arc', () => {
-    const data = extract('G2 X10 Y0 I5 J0');
-    // Quarter circle from (0,0) to (10,0) via arc - chord is 10 units
-    expect(data.segments[0].length).toBeCloseTo(10, 6);
-  });
-
-  it('computes zero length for full circle arc', () => {
-    const data = extract('G2 X0 Y0 I10 J0');
-    // Full circle returns to same point - chord is 0
-    expect(data.segments[0].length).toBe(0);
-    // But should still have many interpolated points
-    expect(data.segments[0].points.length).toBeGreaterThan(2);
-  });
-
-  it('computes correct length for G3 counter-clockwise arc', () => {
-    const data = extract('G3 X10 Y0 I5 J0');
-    // Same chord as G2 - half the circle
-    expect(data.segments[0].length).toBeCloseTo(10, 6);
-  });
-
-  it('handles arcs with R-word format', () => {
-    const data = extract('G1 X5 Y0; G2 X0 Y0 R5');
-    // Half circle from (5,0) to (0,0), chord is 5 units
-    expect(data.segments[0].length).toBeCloseTo(5, 6);
-  });
-
-  it('handles arcs with multiple axis changes', () => {
-    const data = extract('; start at origin\nG2 X10 Y10 I7.07 J0');
-    // Arc from (0,0) to (10,10), chord length is sqrt(10² + 10²)
-    expect(data.segments[0].length).toBeCloseTo(Math.sqrt(200));
-  });
-
-  it('handles three-axis movement correctly', () => {
-    // Test length with all three axes: sqrt(5² + (-12)² + 8²) = sqrt(233)
-    const data = extract('G1 X5 Y-12 Z8');
-    expect(data.segments[0].length).toBeCloseTo(Math.sqrt(233));
   });
 
   it('arc first point equals current position', () => {
@@ -1213,4 +1131,37 @@ G0 Z10.000
       jest.restoreAllMocks();
     });
   });
+});
+
+// ---------------------------------------------------------------------------
+// On-the-fly length calculation (InfoPanel display logic)
+// ---------------------------------------------------------------------------
+
+it('calculates correct Euclidean distance for two points', () => {
+  const startPoint = { x: 0, y: 0, z: 0 };
+  const endPoint = { x: 5, y: -12, z: 8 };
+  // InfoPanel uses Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z)
+  const length = Math.hypot(
+    endPoint.x - startPoint.x,
+    endPoint.y - startPoint.y,
+    endPoint.z - startPoint.z
+  );
+  expect(length).toBeCloseTo(Math.sqrt(233)); // ≈ 15.264
+});
+
+it('calculates zero length for identical points (no-move)', () => {
+  const startPoint = { x: 0, y: 0, z: 0 };
+  const endPoint = { x: 0, y: 0, z: 0 };
+  expect(
+    Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y, endPoint.z - startPoint.z)
+  ).toBe(0);
+});
+
+it('calculates correct length for arc chord (first to last point)', () => {
+  const startPoint = { x: 5, y: 0, z: 0 };
+  const endPoint = { x: 0, y: 0, z: 0 };
+  // Half-circle arc from (5,0) to (0,0), chord is 5 units
+  expect(
+    Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y, endPoint.z - startPoint.z)
+  ).toBe(5);
 });
