@@ -441,7 +441,8 @@ export class GCodePathExtractor implements MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): void {
-    const newPosition = this.computeNewPosition(parameters, evaluator);
+    const start = this.currentPosition;
+    const end = this.computeNewPosition(parameters, evaluator);
     const context = this.buildMotionContext(parameters, evaluator);
 
     if (motionType === MotionType.ARC_CW || motionType === MotionType.ARC_CCW) {
@@ -469,7 +470,7 @@ export class GCodePathExtractor implements MotionHandler {
           radiusValue !== null
             ? resolveArcOffsetsFromRadius(
                 this.currentPosition,
-                newPosition,
+                end,
                 radiusValue,
                 motionType === MotionType.ARC_CW,
                 planeConfig
@@ -483,18 +484,26 @@ export class GCodePathExtractor implements MotionHandler {
 
       const arcPoints = generateArcPoints(
         this.currentPosition,
-        newPosition,
+        end,
         offsetFirst,
         offsetSecond,
         motionType === MotionType.ARC_CW,
         planeConfig
       );
-      this.pushSegment(motionType, arcPoints, context);
+      const firstPoint = arcPoints[0];
+      const lastPoint = arcPoints[arcPoints.length - 1];
+      const length = Math.hypot(
+        lastPoint.x - firstPoint.x,
+        lastPoint.y - firstPoint.y,
+        lastPoint.z - firstPoint.z
+      );
+      this.pushSegment(motionType, arcPoints, context, length);
     } else {
-      this.pushSegment(motionType, [this.currentPosition, newPosition], context);
+      const length = Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
+      this.pushSegment(motionType, [start, end], context, length);
     }
 
-    this.currentPosition = newPosition;
+    this.currentPosition = end;
   }
 
   /**
@@ -513,6 +522,7 @@ export class GCodePathExtractor implements MotionHandler {
     parameters: readonly AxisParameterNode[],
     evaluator: GCodeExpressionEvaluator
   ): void {
+    const start = this.currentPosition;
     const context = this.buildMotionContext(parameters, evaluator);
     const hasAxisParameters = parameters.some((param) =>
       ['X', 'Y', 'Z'].includes(param.axis.toUpperCase())
@@ -520,20 +530,27 @@ export class GCodePathExtractor implements MotionHandler {
 
     if (!hasAxisParameters) {
       // No parameters: rapid directly to machine home.
-      this.pushSegment(MotionType.RAPID, [this.currentPosition, MACHINE_HOME_POSITION], context);
+      const length = Math.hypot(
+        MACHINE_HOME_POSITION.x - start.x,
+        MACHINE_HOME_POSITION.y - start.y,
+        MACHINE_HOME_POSITION.z - start.z
+      );
+      this.pushSegment(MotionType.RAPID, [start, MACHINE_HOME_POSITION], context, length);
       this.currentPosition = MACHINE_HOME_POSITION;
       return;
     }
 
     // Compute the intermediate position (respects absolute/incremental mode).
-    const intermediatePosition = this.computeNewPosition(parameters, evaluator);
-    this.pushSegment(MotionType.RAPID, [this.currentPosition, intermediatePosition], context);
-    this.currentPosition = intermediatePosition;
+    const end1 = this.computeNewPosition(parameters, evaluator);
+    const length1 = Math.hypot(end1.x - start.x, end1.y - start.y, end1.z - start.z);
+    this.pushSegment(MotionType.RAPID, [start, end1], context, length1);
+    this.currentPosition = end1;
 
     // Compute home target: only axes mentioned in the parameters go to zero.
-    const homeTarget = this.computeHomeTarget(parameters);
-    this.pushSegment(MotionType.RAPID, [this.currentPosition, homeTarget], context);
-    this.currentPosition = homeTarget;
+    const end2 = this.computeHomeTarget(parameters);
+    const length2 = Math.hypot(end2.x - end1.x, end2.y - end1.y, end2.z - end1.z);
+    this.pushSegment(MotionType.RAPID, [end1, end2], context, length2);
+    this.currentPosition = end2;
   }
 
   /**
@@ -620,9 +637,20 @@ export class GCodePathExtractor implements MotionHandler {
     };
   }
 
-  private pushSegment(type: MotionType, points: PathPoint[], context: MotionContext): void {
+  private pushSegment(
+    type: MotionType,
+    points: PathPoint[],
+    context: MotionContext,
+    length: number
+  ): void {
     if (points.length < 2) return;
-    this.segments.push({ type, points, context });
+    
+    // Sanity check - ensure non-negative length
+    if (length < 0) {
+      throw new Error(`Negative segment length: ${length}`);
+    }
+    
+    this.segments.push({ type, points, context, length });
 
     if (this.onProgress) {
       const now = Date.now();

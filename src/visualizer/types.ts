@@ -73,6 +73,8 @@ export interface PathSegment {
   readonly type: MotionType;
   /** Ordered points, at minimum [start, end]. */
   readonly points: readonly PathPoint[];
+  /** Length of this motion in work units (mm or inches). Always >= 0. */
+  readonly length: number;
   /** Source context (line number, feed rate, spindle speed). */
   readonly context?: MotionContext;
 }

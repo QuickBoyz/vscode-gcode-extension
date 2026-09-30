@@ -97,6 +97,9 @@ export function InfoPanel({ wrapperRef }: InfoPanelProps) {
         {' → '}
         {`X:${endPoint.x.toFixed(3)} Y:${endPoint.y.toFixed(3)} Z:${endPoint.z.toFixed(3)}`}
       </div>
+      <div id="info-length">
+        Length: {segment.length.toFixed(3)}
+      </div>
       <div id="info-extra">
         {extraParams && Object.keys(extraParams).length > 0
           ? Object.entries(extraParams)
