@@ -644,12 +644,12 @@ export class GCodePathExtractor implements MotionHandler {
     length: number
   ): void {
     if (points.length < 2) return;
-    
+
     // Sanity check - ensure non-negative length
     if (length < 0) {
       throw new Error(`Negative segment length: ${length}`);
     }
-    
+
     this.segments.push({ type, points, context, length });
 
     if (this.onProgress) {

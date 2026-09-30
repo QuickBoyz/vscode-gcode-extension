@@ -157,7 +157,10 @@ describe('GCodePathExtractor', () => {
   it('computes zero length for no-move command', () => {
     const data = extract('G1');
     expect(data.segments[0].length).toBe(0);
-    expect(data.segments[0].points).toEqual([{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }]);
+    expect(data.segments[0].points).toEqual([
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+    ]);
   });
 
   it('computes correct length for incremental mode', () => {
