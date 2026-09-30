@@ -69,6 +69,12 @@ export function InfoPanel({ wrapperRef }: InfoPanelProps) {
   const ctx = segment.context;
   const startPoint = segment.points[0];
   const endPoint = segment.points[segment.points.length - 1];
+  // Calculate length on-the-fly for display
+  const length = Math.hypot(
+    endPoint.x - startPoint.x,
+    endPoint.y - startPoint.y,
+    endPoint.z - startPoint.z
+  );
   const extraParams = ctx?.extraParams;
   const lineNum = ctx?.sourceLine;
   const tokens = lineNum !== undefined ? sourceTokens?.[lineNum] : undefined;
@@ -96,6 +102,9 @@ export function InfoPanel({ wrapperRef }: InfoPanelProps) {
         {`X:${startPoint.x.toFixed(3)} Y:${startPoint.y.toFixed(3)} Z:${startPoint.z.toFixed(3)}`}
         {' → '}
         {`X:${endPoint.x.toFixed(3)} Y:${endPoint.y.toFixed(3)} Z:${endPoint.z.toFixed(3)}`}
+      </div>
+      <div id="info-length">
+        Length: {length.toFixed(3)}
       </div>
       <div id="info-extra">
         {extraParams && Object.keys(extraParams).length > 0
