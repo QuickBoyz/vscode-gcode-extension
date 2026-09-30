@@ -1132,36 +1132,3 @@ G0 Z10.000
     });
   });
 });
-
-// ---------------------------------------------------------------------------
-// On-the-fly length calculation (InfoPanel display logic)
-// ---------------------------------------------------------------------------
-
-it('calculates correct Euclidean distance for two points', () => {
-  const startPoint = { x: 0, y: 0, z: 0 };
-  const endPoint = { x: 5, y: -12, z: 8 };
-  // InfoPanel uses Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z)
-  const length = Math.hypot(
-    endPoint.x - startPoint.x,
-    endPoint.y - startPoint.y,
-    endPoint.z - startPoint.z
-  );
-  expect(length).toBeCloseTo(Math.sqrt(233)); // ≈ 15.264
-});
-
-it('calculates zero length for identical points (no-move)', () => {
-  const startPoint = { x: 0, y: 0, z: 0 };
-  const endPoint = { x: 0, y: 0, z: 0 };
-  expect(
-    Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y, endPoint.z - startPoint.z)
-  ).toBe(0);
-});
-
-it('calculates correct length for arc chord (first to last point)', () => {
-  const startPoint = { x: 5, y: 0, z: 0 };
-  const endPoint = { x: 0, y: 0, z: 0 };
-  // Half-circle arc from (5,0) to (0,0), chord is 5 units
-  expect(
-    Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y, endPoint.z - startPoint.z)
-  ).toBe(5);
-});

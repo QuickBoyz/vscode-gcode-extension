@@ -526,14 +526,14 @@ export class GCodePathExtractor implements MotionHandler {
     }
 
     // Compute the intermediate position (respects absolute/incremental mode).
-    const end1 = this.computeNewPosition(parameters, evaluator);
-    this.pushSegment(MotionType.RAPID, [this.currentPosition, end1], context);
-    this.currentPosition = end1;
+    const intermediatePosition = this.computeNewPosition(parameters, evaluator);
+    this.pushSegment(MotionType.RAPID, [this.currentPosition, intermediatePosition], context);
+    this.currentPosition = intermediatePosition;
 
     // Compute home target: only axes mentioned in the parameters go to zero.
-    const end2 = this.computeHomeTarget(parameters);
-    this.pushSegment(MotionType.RAPID, [end1, end2], context);
-    this.currentPosition = end2;
+    const homeTarget = this.computeHomeTarget(parameters);
+    this.pushSegment(MotionType.RAPID, [this.currentPosition, homeTarget], context);
+    this.currentPosition = homeTarget;
   }
 
   /**
@@ -622,7 +622,6 @@ export class GCodePathExtractor implements MotionHandler {
 
   private pushSegment(type: MotionType, points: PathPoint[], context: MotionContext): void {
     if (points.length < 2) return;
-
     this.segments.push({ type, points, context });
 
     if (this.onProgress) {
